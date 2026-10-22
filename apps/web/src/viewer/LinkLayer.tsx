@@ -36,6 +36,20 @@ import styles from './LinkLayer.module.css';
 import { pageFrame } from './page-frame';
 
 const MAX_CACHED_PAGES = 300;
+
+/**
+ * Hover marks a link only once the pointer has moved over it (DSN-3: nothing looks selected on
+ * arrival). `:hover` alone also matches a pointer parked where the page opens, which drew the
+ * selection blue box on the sample's first link before anything was touched.
+ */
+export const hoverMark = {
+  onPointerMove: (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.pointerType === 'mouse') event.currentTarget.dataset.hover = '';
+  },
+  onPointerLeave: (event: ReactPointerEvent<HTMLElement>) => {
+    delete event.currentTarget.dataset.hover;
+  },
+};
 const links = new Map<string, Promise<readonly LinkAnnotation[]>>();
 
 function isLink(annotation: Annotation): annotation is LinkAnnotation {
@@ -123,6 +137,7 @@ export function LinkLayer(props: PageOverlayProps) {
                 tabIndex={live ? 0 : -1}
                 data-link="internal"
                 onPointerDown={selectPastSlop}
+                {...hoverMark}
                 onClick={() => {
                   if (target) useViewStore.getState().scrollToPage(target.id);
                 }}
@@ -237,6 +252,7 @@ function UriHotspot({
               tabIndex={tabIndex}
               data-link="uri"
               onPointerDown={selectPastSlop}
+              {...hoverMark}
             />
           }
         />

@@ -191,3 +191,221 @@ describe('conversion names (R23-8)', () => {
     for (const [query, id] of cases) expect(search(registry, query)[0], query).toBe(id);
   });
 });
+
+/**
+ * The command half of the Epic 4 corpus (R12 E10; the intent half is `query.test.ts`): everyday
+ * words in English and Turkish, typed any way, land on the command that does the job, and a
+ * word with no command lands on nothing (the score floor, `isMeaningfulMatch`).
+ */
+const synonyms: readonly (readonly [string, string])[] = [
+  ['make smaller', 'document.compress'],
+  ['make it smaller', 'document.compress'],
+  ['shrink', 'document.compress'],
+  ['shrink file', 'document.compress'],
+  ['compress', 'document.compress'],
+  ['reduce file size', 'document.compress'],
+  ['file too big', 'document.compress'],
+  ['küçült', 'document.compress'],
+  ['KÜÇÜLT', 'document.compress'],
+  ['kucult', 'document.compress'],
+  ['dosyayı küçült', 'document.compress'],
+  ['boyutu küçült', 'document.compress'],
+  ['sıkıştır', 'document.compress'],
+  ['SIKIŞTIR', 'document.compress'],
+  ['sikistir', 'document.compress'],
+  ['hafiflet', 'document.compress'],
+  ['save as', 'file.export'],
+  ['farklı kaydet', 'file.export'],
+  ['farkli kaydet', 'file.export'],
+  ['download', 'file.export'],
+  ['indir', 'file.export'],
+  ['save', 'file.save'],
+  ['kaydet', 'file.save'],
+  ['KAYDET', 'file.save'],
+  ['password protect', 'document.setPassword'],
+  ['add password', 'document.setPassword'],
+  ['encrypt', 'document.setPassword'],
+  ['şifre koy', 'document.setPassword'],
+  ['sifre', 'document.setPassword'],
+  ['parola', 'document.setPassword'],
+  ['şifreyi kaldır', 'document.removePassword'],
+  ['unlock', 'document.removePassword'],
+  ['anonymize', 'document.stripMetadata'],
+  ['remove personal info', 'document.stripMetadata'],
+  ['anonimleştir', 'document.stripMetadata'],
+  ['gizlilik', 'document.stripMetadata'],
+  ['rotate right', 'pages.rotateRight'],
+  ['turn right', 'pages.rotateRight'],
+  ['clockwise', 'pages.rotateRight'],
+  ['sağa çevir', 'pages.rotateRight'],
+  ['sola çevir', 'pages.rotateLeft'],
+  ['rotate left', 'pages.rotateLeft'],
+  ['counterclockwise', 'pages.rotateLeft'],
+  ['döndür', 'pages.rotateRight'],
+  ['sayfaları sil', 'pages.delete'],
+  ['sayfayı sil', 'pages.delete'],
+  ['delete page', 'pages.delete'],
+  ['remove page', 'pages.delete'],
+  ['duplicate', 'pages.duplicate'],
+  ['çoğalt', 'pages.duplicate'],
+  ['cogalt', 'pages.duplicate'],
+  ['ÇOĞALT', 'pages.duplicate'],
+  ['extract', 'pages.extract'],
+  ['sayfaları ayır', 'pages.extract'],
+  ['dark mode', 'settings.appearance'],
+  ['karanlık mod', 'settings.appearance'],
+  ['karanlik mod', 'settings.appearance'],
+  ['gece modu', 'settings.appearance'],
+  ['theme', 'settings.appearance'],
+  ['tema', 'settings.appearance'],
+  ['find', 'search.open'],
+  ['search', 'search.open'],
+  ['ara', 'search.open'],
+  ['ARA', 'search.open'],
+  ['belgede ara', 'search.open'],
+  ['ocr', 'document.ocr'],
+  ['make searchable', 'document.ocr'],
+  ['scanned pdf', 'document.ocr'],
+  ['taranmış pdf', 'document.ocr'],
+  ['aranabilir yap', 'document.ocr'],
+  ['merge', 'documents.mergeAll'],
+  ['combine', 'documents.mergeAll'],
+  ['pdf birleştir', 'documents.mergeAll'],
+  ['split', 'section.split'],
+  ['split pdf', 'section.split'],
+  ['pdf böl', 'section.split'],
+  ['böl', 'section.split'],
+  ['revert', 'file.revert'],
+  ['start over', 'file.revert'],
+  ['baştan başla', 'file.revert'],
+  ['page count', 'document.info'],
+  ['how many pages', 'document.info'],
+  ['kaç sayfa', 'document.info'],
+  ['sayfa sayısı', 'document.info'],
+  ['dosya boyutu', 'document.info'],
+  ['sign here', 'tool.signature'],
+  ['imza', 'tool.signature'],
+  ['İMZA', 'tool.signature'],
+  ['imzala', 'tool.signature'],
+  ['watermark', 'document.watermark'],
+  ['filigran', 'document.watermark'],
+  ['FİLİGRAN', 'document.watermark'],
+  ['open pdf', 'file.open'],
+  ['browse files', 'file.open'],
+  ['dosya aç', 'file.open'],
+  ['pdf aç', 'file.open'],
+  ['undo', 'edit.undo'],
+  ['geri al', 'edit.undo'],
+  ['redo', 'edit.redo'],
+  ['yinele', 'edit.redo'],
+  ['highlight', 'tool.highlight'],
+  ['vurgula', 'tool.highlight'],
+  ['fosforlu', 'tool.highlight'],
+  ['underline', 'tool.underline'],
+  ['alt çizgi', 'tool.underline'],
+  ['strikethrough', 'tool.strikeout'],
+  ['üstünü çiz', 'tool.strikeout'],
+  ['censor', 'tool.redact'],
+  ['black out', 'tool.redact'],
+  ['hide text', 'tool.redact'],
+  ['sansürle', 'tool.redact'],
+  ['erase', 'tool.eraser'],
+  ['silgi', 'tool.eraser'],
+  ['stamp', 'tool.stamp'],
+  ['damga', 'tool.stamp'],
+  ['sticky note', 'tool.note'],
+  ['yapışkan not', 'tool.note'],
+  ['circle', 'tool.ellipse'],
+  ['daire', 'tool.ellipse'],
+  ['arrow', 'tool.arrow'],
+  ['compare', 'mode.compare'],
+  ['karşılaştır', 'mode.compare'],
+  ['crop', 'pages.crop'],
+  ['kırp', 'pages.crop'],
+  ['kirp', 'pages.crop'],
+  ['resize', 'pages.resize'],
+  ['sayfa boyutu', 'pages.resize'],
+  ['blank page', 'pages.insertBlank'],
+  ['boş sayfa', 'pages.insertBlank'],
+  ['bates', 'document.bates'],
+  ['header', 'document.headerFooter'],
+  ['üst bilgi', 'document.headerFooter'],
+  ['page numbers', 'document.pageNumbers'],
+  ['sayfa numarası', 'document.pageNumbers'],
+  ['bookmark', 'outline.addBookmark'],
+  ['sample', 'file.sample'],
+  ['örnek', 'file.sample'],
+  ['settings', 'settings.open'],
+  ['ayarlar', 'settings.open'],
+  ['AYARLAR', 'settings.open'],
+  ['shortcuts', 'help.shortcuts'],
+  ['zoom in', 'zoom.in'],
+  ['zoom out', 'zoom.out'],
+  ['fit page', 'zoom.fitPage'],
+  ['home', 'view.home'],
+  ['ana ekran', 'view.home'],
+  ['certificate', 'document.sign'],
+  ['e-imza', 'document.sign'],
+  ['pdf to jpg', 'document.exportImages'],
+  ['images to pdf', 'section.insertImages'],
+  ['batch', 'document.batch'],
+  ['toplu işlem', 'document.batch'],
+];
+
+describe('synonym corpus (Epic 4)', () => {
+  it('has at least 100 command queries', () => {
+    expect(synonyms.length).toBeGreaterThanOrEqual(100);
+  });
+
+  it.each(['en', 'tr'] as const)(
+    'lands each everyday word on its command in the %s UI',
+    (locale) => {
+      setLocale(locale);
+      const registry = allCommands();
+      // In the Turkish UI the titles are Turkish, so a command with no catalog keywords is only
+      // reached by its own words; the corpus asks for the ones the catalogs carry.
+      const misses = synonyms
+        .filter(([, id]) => locale === 'en' || messageKeywords(id).length > 0)
+        .filter(([query, id]) => !search(registry, query).slice(0, 5).includes(id));
+      expect(misses).toEqual([]);
+    },
+  );
+
+  it('puts Compress first for the headline synonyms', () => {
+    const registry = allCommands();
+    for (const query of ['make smaller', 'shrink', 'küçült', 'kucult', 'sıkıştır']) {
+      expect(search(registry, query)[0], query).toBe('document.compress');
+    }
+  });
+});
+
+describe('score floor (Epic 4)', () => {
+  it('never offers an unrelated row for a word with no command', () => {
+    const registry = allCommands();
+    // Print… (PRD-25) is the only row for print; the junk match was "Toggle pen draws in Edit".
+    for (const query of ['print', 'yazdır', 'printer']) {
+      expect(search(registry, query), query).toEqual(['file.print']);
+    }
+    for (const query of ['xyzzy', 'blockchain', 'qwerty', 'kahve']) {
+      expect(search(registry, query), query).toEqual([]);
+    }
+  });
+
+  it('keeps consonant abbreviations on their old top matches', () => {
+    const registry = allCommands();
+    expect(search(registry, 'wtrmrk')[0]).toBe('document.watermark');
+    expect(search(registry, 'mrkdn')[0]).toBe('document.exportMarkdown');
+    expect(search(registry, 'dwnld')[0]).toBe('file.export');
+    expect(search(registry, 'hl').slice(0, 5)).toContain('tool.highlight');
+    expect(search(registry, 'dlt')).toEqual(
+      expect.arrayContaining(['pages.delete', 'annotation.delete']),
+    );
+  });
+
+  it('keeps abbreviations and one-letter slips', () => {
+    const registry = allCommands();
+    expect(search(registry, 'zi')).toContain('zoom.in');
+    expect(search(registry, 'zom in')).toContain('zoom.in');
+    expect(search(registry, 'rotat')).toContain('pages.rotateRight');
+  });
+});

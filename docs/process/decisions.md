@@ -69,6 +69,7 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PRD-20](decisions/product.md) | Office package r2: fonts trimmed (GPL faces out by default), Recto's substitution table, about 70 MB | In force; BQ-1 to BQ-3 open to the board, defaults applied | 2026-10-21 |
 | [PRD-21](decisions/product.md) | Settings removes the Office package; About lists its licences | In force | 2026-10-21 |
 | [PRD-22](decisions/product.md) | What must be true before `?office=1` goes on desktop and tablet; then the owner decides | In force; the switch is the owner's | 2026-10-21 |
+| [PRD-23](decisions/product.md) | The palette reads a query with a rule grammar (typed intents carrying resolved pages), a score floor and catalog synonyms; no model | In force; the owner reads the corpus through | 2026-10-21 |
 | [PRD-25](decisions/product.md) | Print… (⌘P, title menu, palette) prints Save a copy's bytes: a blob frame where the browser has a PDF viewer and is not WebKit, else rendered pages | Built; held for board question 2 | 2026-10-22 |
 | [PRD-14](decisions/product.md) | W0-q findings are assigned to waves: signed fixture opens locked and saves byte-identical (W1-a/W1-b), truncated.pdf… | In force; W1-b and W1-g merged | 2026-10-09 |
 
@@ -326,6 +327,7 @@ Full rows: [`decisions/process.md`](decisions/process.md).
 | [PRC-26](decisions/process.md) | The Office package in CI and the deploy: cached fetch, a required-package build, a 100 MB file gate, its own e2e job | In force | 2026-10-21 |
 | [PRC-27](decisions/process.md) | Company reports in English; one small HQ improvement a day | In force | 2026-10-21 |
 | [PRC-28](decisions/process.md) | Major work runs as epics; deep cycles, heartbeats and lane-sized check-ins; a daily fresh-eyes check | In force | 2026-10-21 |
+| [PRC-29](decisions/process.md) | Agent skills adopted as our own texts (lean-change, verify-before-done, root-cause); Graphify skipped | In force | 2026-10-21 |
 
 ## Foundations (ADR titles)
 
