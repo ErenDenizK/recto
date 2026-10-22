@@ -1,3 +1,4 @@
+/* eslint-disable -- temporary probe */
 // page.evaluate callbacks run in the browser.
 /**
  * On-device Office conversion, phases 1 and 2 (ADR-0035 §7, EDN-20): the real LibreOffice
@@ -163,6 +164,11 @@ test('a Word file converts on the device and opens as a PDF', async ({ page }) =
     if (watching) log('res', r.status(), r.url(), r.fromServiceWorker() ? 'fromSW' : '');
   });
   page.context().on('serviceworker', (w) => log('sw', w.url()));
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Network.enable');
+  cdp.on('Network.loadingFailed', (e) => {
+    if (watching) log('cdp loadingFailed', JSON.stringify(e));
+  });
 
   await useFileInputPicker(page);
   await useDownloadPath(page);
@@ -287,6 +293,70 @@ test('a Word file converts on the device and opens as a PDF', async ({ page }) =
   await expect(confirmation).toBeVisible();
   await confirmation.getByRole('button', { name: 'Remove', exact: true }).click();
   await expect(row).toBeDisabled();
+  const [worker] = page.context().serviceWorkers();
+  log('patching sw', worker?.url());
+  await worker
+    ?.evaluate(() => {
+      const g = self as unknown as {
+        __probe: string[];
+        caches: CacheStorage;
+        fetch: typeof fetch;
+      };
+      const t = Date.now();
+      const out: string[] = [];
+      g.__probe = out;
+      const note = (s: string) => out.push(`+${Date.now() - t} ${s}`);
+      const proto = (
+        self as unknown as { FetchEvent: { prototype: { respondWith(p: unknown): void } } }
+      ).FetchEvent.prototype;
+      const respondWith = proto.respondWith;
+      proto.respondWith = function (this: { request: Request }, p: unknown) {
+        const url = this.request.url;
+        Promise.resolve(p).then(
+          (r) => {
+            const res = r as Response;
+            if (!res || res.type === 'error' || res.status !== 200)
+              note(`resp ${url} ${res?.type} ${res?.status}`);
+            const clone = res?.clone?.();
+            clone?.arrayBuffer().then(
+              () => undefined,
+              (e: unknown) => note(`body error ${url} ${String(e)}`),
+            );
+          },
+          (e: unknown) => note(`respondWith rejected ${url} ${String(e)}`),
+        );
+        return respondWith.call(this, p);
+      };
+      const match = Cache.prototype.match;
+      Cache.prototype.match = function (this: Cache, ...a: Parameters<Cache['match']>) {
+        return match.apply(this, a).catch((e: unknown) => {
+          note(
+            `cache.match error ${String(a[0] instanceof Request ? a[0].url : a[0])} ${String(e)}`,
+          );
+          throw e;
+        });
+      };
+      const f = g.fetch;
+      g.fetch = (...a: Parameters<typeof fetch>) =>
+        f(...a).then(
+          (r) => {
+            note(`sw fetch ${String(a[0] instanceof Request ? a[0].url : a[0])} ${r.status}`);
+            return r;
+          },
+          (e: unknown) => {
+            note(
+              `sw fetch error ${String(a[0] instanceof Request ? a[0].url : a[0])} ${String(e)}`,
+            );
+            throw e;
+          },
+        );
+      self.addEventListener('error', (e) => note(`error ${String((e as ErrorEvent).message)}`));
+      self.addEventListener('unhandledrejection', (e) =>
+        note(`unhandledrejection ${String((e as PromiseRejectionEvent).reason)}`),
+      );
+      note('patched');
+    })
+    .catch((e: unknown) => log('patch failed', String(e)));
   log('final reload');
   pending.clear();
   watching = true;
@@ -326,6 +396,20 @@ test('a Word file converts on the device and opens as a PDF', async ({ page }) =
       })
       .catch((e: unknown) => String(e));
     log('BOOT FAILED dump', JSON.stringify(dump));
+    log(
+      'sw workers now',
+      page
+        .context()
+        .serviceWorkers()
+        .map((w) => w.url()),
+      worker === page.context().serviceWorkers()[0],
+    );
+    const swLog = await worker
+      ?.evaluate(
+        () => (self as unknown as { __probe?: string[] }).__probe ?? 'no probe (restarted?)',
+      )
+      .catch((e: unknown) => `sw evaluate failed ${String(e)}`);
+    log('SW LOG', JSON.stringify(swLog));
     throw error;
   }
   await atRest(page.getByTestId('app-shell'));
