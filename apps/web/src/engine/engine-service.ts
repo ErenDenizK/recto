@@ -1125,7 +1125,7 @@ export class EngineService {
     query: string,
     options: SearchOptions = {},
     signal?: AbortSignal,
-    onHits?: (hits: readonly SearchHit[]) => void,
+    onHits?: (hits: readonly SearchHit[], pageIndex: number) => void,
   ): Promise<EngineResult<readonly SearchHit[]>> {
     try {
       const reopened = await this.ensureOpen(sourceId);
@@ -1137,7 +1137,9 @@ export class EngineService {
         ...(options.matchCase ? { matchCase: true } : {}),
         ...(options.wholeWord ? { wholeWord: true } : {}),
         ...(signal === undefined ? {} : { signal }),
-        ...(onHits === undefined ? {} : { onProgress: (hits) => onHits(hits) }),
+        ...(onHits === undefined
+          ? {}
+          : { onProgress: (hits, pageIndex) => onHits(hits, pageIndex) }),
       };
       const hits = await engine.search(sourceId, query, callOptions);
       if (signal?.aborted) return fail('aborted', 'Search aborted');

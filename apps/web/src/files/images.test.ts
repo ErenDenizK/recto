@@ -6,6 +6,8 @@ import {
   exceedsA4,
   imagePageSize,
   isImageFile,
+  paperForLocales,
+  LETTER,
   shouldAskImageSizing,
   sniffImageType,
 } from './images';
@@ -93,5 +95,36 @@ describe('image files', () => {
     const photo = await decodeImageFile(new File([bytes], 'photo.jpg', { type: 'image/jpeg' }));
     expect(photo).toMatchObject({ type: 'image/jpeg', width: 20, height: 40 });
     expect(new Uint8Array(photo.bytes)).toEqual(bytes);
+  });
+
+  it('accepts HEIC and HEIF by name', () => {
+    expect(isImageFile({ name: 'IMG_1.HEIC', type: '' })).toBe(true);
+    expect(isImageFile({ name: 'x', type: 'image/heif' })).toBe(true);
+  });
+
+  it('picks Letter for US-style regions and A4 elsewhere', () => {
+    expect(paperForLocales(['en-US'])).toEqual(LETTER);
+    expect(paperForLocales(['en-CA', 'fr'])).toEqual(LETTER);
+    expect(paperForLocales(['en-GB'])).toEqual(A4);
+    expect(paperForLocales(['tr-TR'])).toEqual(A4);
+    expect(paperForLocales(['en'])).toEqual(A4);
+    expect(paperForLocales([])).toEqual(A4);
+  });
+
+  it('fits an image inside the paper in its own orientation', () => {
+    expect(imagePageSize(3000, 4000, 'fit-paper', A4)).toEqual({ width: 595.28, height: 793.71 });
+    expect(imagePageSize(2100, 2970, 'fit-paper', A4).height).toBeCloseTo(841.89, 0);
+    const land = imagePageSize(4000, 3000, 'fit-paper', LETTER);
+    expect(land.width).toBe(792);
+    expect(land.height).toBe(594);
+    const tall = imagePageSize(100, 400, 'fit-paper', LETTER);
+    expect(tall).toEqual({ width: 198, height: 792 });
+  });
+
+  it('scales an image over the longest-side cap and keeps a JPEG a JPEG', async () => {
+    const big = await decodeImageFile(await canvasImage('image/jpeg', 400, 200), { maxSide: 100 });
+    expect(big).toMatchObject({ type: 'image/jpeg', width: 100, height: 50 });
+    const png = await decodeImageFile(await canvasImage('image/png', 200, 400), { maxSide: 100 });
+    expect(png).toMatchObject({ type: 'image/png', width: 50, height: 100 });
   });
 });

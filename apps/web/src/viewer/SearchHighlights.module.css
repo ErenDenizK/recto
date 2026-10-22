@@ -2,17 +2,31 @@
   pointer-events: none;
 }
 
+/* A hit is lime (DSN-16) and reads on a page of either tone (DSN-62). It keeps the text under it
+   only by blending into the page: a multiply fill darkens a light page to a deep lime, a screen
+   fill (`data-tone='dark'`, from the page bitmap's median lightness under the hit) lifts a dark one. Nothing
+   here animates. */
 .hit {
   position: absolute;
   border-radius: var(--radius-page);
-  background: var(--select-wash);
+  background: var(--find-hit-multiply);
   mix-blend-mode: multiply;
 }
 
-/* The current hit: stronger fill plus an outline (never colour alone), in the page's selection
-   blue (language.md §1.5). */
+.hit[data-tone='dark'] {
+  background: var(--find-hit-screen);
+  mix-blend-mode: screen;
+}
+
+/* The current hit: a deeper fill on a light page, a brighter one on a dark page, and a dark ring
+   between two lime bands (never colour alone; each band reads on the tone the other vanishes on). */
 .hit[data-current] {
-  background: var(--select-wash-strong);
-  outline: 2px solid var(--select);
+  background: var(--find-current-multiply);
+  outline: 2px solid var(--find-current-ring);
   outline-offset: 1px;
+  box-shadow: 0 0 0 4px var(--find-current-halo);
+}
+
+.hit[data-tone='dark'][data-current] {
+  background: var(--find-current-screen);
 }

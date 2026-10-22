@@ -33,6 +33,7 @@ import { EmptyNote } from '../../ui/EmptyNote';
 import { Icon } from '../../ui/Icon';
 import { IconButton } from '../../ui/IconButton';
 import menuStyles from '../../ui/Menu.module.css';
+import { Progress } from '../../ui/Progress';
 import { toast } from '../../ui/Toast/toast';
 import { useCanChangeActive } from '../../viewer/input-state';
 import { documentLabels, hasCustomLabels, navigationBase } from '../../viewer/navigation';
@@ -47,17 +48,39 @@ import {
   selectHit,
   setSearchOptions,
   setSearchQuery,
-  splitContext,
   useSearchStore,
 } from '../../viewer/search';
 import { useCommandShortcut } from '../use-command-shortcut';
 import styles from './FindSection.module.css';
+import { cutSnippet } from './snippet';
 import { useTextless } from './textless';
 
 /** Pause after typing before the search restarts. */
 const TYPING_DELAY_MS = 150;
 const HEADER_HEIGHT = 32;
 const HIT_HEIGHT = 52;
+/** The scan's label and bar change at most this often, together (09-primitives §24.6). */
+const SCAN_THROTTLE_MS = 200;
+
+/** `value`, changing at most once per `SCAN_THROTTLE_MS`; the latest value is never dropped. */
+function useThrottled<T>(value: T): T {
+  const [shown, setShown] = useState(value);
+  const last = useRef(0);
+  useEffect(() => {
+    const wait = last.current + SCAN_THROTTLE_MS - performance.now();
+    const apply = () => {
+      last.current = performance.now();
+      setShown(value);
+    };
+    if (wait <= 0) {
+      apply();
+      return undefined;
+    }
+    const timer = window.setTimeout(apply, wait);
+    return () => window.clearTimeout(timer);
+  }, [value]);
+  return shown;
+}
 
 export function FindSection() {
   const doc = useActiveDocument();
@@ -78,6 +101,7 @@ function FindView({ doc }: { readonly doc: VirtualDocument }) {
   const status = useSearchStore((s) => s.status);
   const hits = useSearchStore((s) => s.hits);
   const current = useSearchStore((s) => s.current);
+  const scan = useThrottled(useSearchStore((s) => s.scan));
   const focusSerial = useSearchStore((s) => s.focusSerial);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -240,6 +264,18 @@ function FindView({ doc }: { readonly doc: VirtualDocument }) {
           >
             {m.find_recognize()}
           </Button>
+        </div>
+      ) : null}
+      {hasQuery && ours && status === 'searching' && scan.total > 0 ? (
+        <div className={styles.scan} data-testid="find-scanning">
+          <Progress
+            value={(scan.done / scan.total) * 100}
+            hideValue
+            label={m.find_scanning({
+              done: formatNumber(scan.done),
+              total: formatNumber(scan.total),
+            })}
+          />
         </div>
       ) : null}
       {noMatches ? <p className={styles.hint}>{m.find_no_matches({ title: doc.title })}</p> : null}
@@ -423,7 +459,7 @@ function ResultList({
               </div>
             );
           }
-          const parts = splitContext(row.hit, query, matchCase);
+          const parts = cutSnippet(row.hit, query, matchCase);
           const isCurrent = row.index === current;
           return (
             <div
