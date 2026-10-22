@@ -258,7 +258,11 @@ test.describe('type right after Mod+F: the word lands whole (MOT-17)', () => {
 test.describe('Ctrl and ⌘ shortcuts work from inside Find (INK-12)', () => {
   test('Save a copy and Settings; the field keeps select all and undo', async ({ page }) => {
     await open(page);
-    const field = await openFindPanel(page);
+    // The strip's Find, in the strip from 1280 px or laid over it below (1180 touch): it stays
+    // while a sheet is up, where the sidebar laid over the page is put away.
+    const field = page.locator('[data-find-entry] input[type="search"]').first();
+    await page.keyboard.press('ControlOrMeta+f');
+    await expect(field).toBeFocused();
     await field.fill('lorem');
     await field.press('ControlOrMeta+a');
     await expect(field).toBeFocused();
