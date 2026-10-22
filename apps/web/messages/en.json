@@ -2513,6 +2513,7 @@
     }
   ],
   "export_redaction_pending_marks": "Redaction marks that were not applied are still in the file: apply or delete them, then export again.",
+  "export_redaction_flattened_marks": "A mark drawn over a redacted area cannot be flattened into the page: save without flattening annotations, or move or delete the mark.",
   "redaction_apply_none": "Tick at least one mark to apply",
   "redaction_apply_busy": "Redactions are already being applied.",
   "redaction_apply_failed": "Applying redactions failed; the document is unchanged.",
@@ -3957,6 +3958,7 @@
   "job_stopping": "Stopping…",
   "job_cancel": "Cancel",
   "job_in_document": "{name} · {label}",
+  "job_reopening": "Reopening the document…",
   "update_ready": "Update ready",
   "update_kept": "Your documents reopen where they were.",
   "update_not_kept": "Reloading closes open documents.",
@@ -3992,7 +3994,7 @@
   "shortcuts_search_label": "Find a shortcut",
   "shortcuts_search_placeholder": "Find a shortcut",
   "shortcuts_no_match": "No shortcut matches “{query}”.",
-  "shortcuts_footer_note": "Shortcuts never fire while you type in a field.",
+  "shortcuts_footer_note": "While you type in a field, plain keys go to the field; {mod} shortcuts like Save and Find still work.",
   "shortcuts_action": "Action",
   "shortcuts_keys": "Keys",
   "undo_step": "Undo {step}",
@@ -4551,6 +4553,9 @@
   "markup_group_add": "Add",
   "markup_group_sign": "Fill and sign",
   "markup_group_page": "Page content",
+  "markup_task_comment": "Comment",
+  "markup_task_change": "Change page",
+  "markup_task_armed": "{group}: {tool} armed",
   "markup_certificate": "Sign with certificate…",
   "markup_find_sensitive": "Find sensitive data…",
   "markup_fields": "Fields",
@@ -4896,6 +4901,97 @@
   "file_picker_text": "Text files",
   "text_to_pdf_failed": "Could not turn {name} into a PDF",
   "text_to_pdf_too_large": "{name} is too large to turn into a PDF (over 2 MB).",
+  "palette_intent_group": "Suggested",
+  "palette_recent_files": "Recent files",
+  "palette_intent_go_page": "Go to page {page}",
+  "palette_intent_go_heading": "Go to ‘{title}’",
+  "palette_intent_page_n": "Page {page}",
+  "palette_intent_open_recent": "Open ‘{name}’",
+  "palette_intent_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 page",
+        "countPlural=*": "{count} pages"
+      }
+    }
+  ],
+  "palette_intent_rotate_right": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Rotate page {pages} right",
+        "countPlural=*": "Rotate pages {pages} right"
+      }
+    }
+  ],
+  "palette_intent_rotate_left": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Rotate page {pages} left",
+        "countPlural=*": "Rotate pages {pages} left"
+      }
+    }
+  ],
+  "palette_intent_rotate_half": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Rotate page {pages} 180°",
+        "countPlural=*": "Rotate pages {pages} 180°"
+      }
+    }
+  ],
+  "palette_intent_delete": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Delete page {pages}",
+        "countPlural=*": "Delete pages {pages}"
+      }
+    }
+  ],
+  "palette_intent_duplicate": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Duplicate page {pages}",
+        "countPlural=*": "Duplicate pages {pages}"
+      }
+    }
+  ],
+  "palette_intent_extract": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Extract page {pages}",
+        "countPlural=*": "Extract pages {pages}"
+      }
+    }
+  ],
+  "palette_intent_no_document": "Open a document first",
+  "palette_intent_out_of_range": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "This document has 1 page",
+        "countPlural=*": "This document has {count} pages"
+      }
+    }
+  ],
+  "palette_intent_reversed": "Put the smaller page first, like 3–7",
+  "palette_intent_no_pages": "No pages match that",
+  "palette_intent_all_pages": "That would remove every page",
+  "palette_intent_ambiguous": "Say a range, like 2–3",
   "recents_search_label": "Search recent files",
   "recents_sort_label": "Sort recent files",
   "recents_sort_recent": "Last opened",
