@@ -3114,6 +3114,7 @@
   "find_no_text": "Bu sayfalarda metin yok",
   "find_no_text_pages": "{count} sayfada metin yok",
   "find_recognize": "Metni tanı…",
+  "find_scanning": "Aranıyor… {total} sayfadan {done}",
   "find_results_more": "Diğer sonuç işlemleri",
   "find_marked": "{count} eşleşme işaretlendi",
   "review_filter_words": "Kontrol edilecek sözcükler",

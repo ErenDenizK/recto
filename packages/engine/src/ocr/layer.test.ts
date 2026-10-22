@@ -132,6 +132,9 @@ describe('page facts', () => {
       });
       expect(page.imageDpi).toBeCloseTo(200, 0);
     }
+    // A range reads those pages only, the first entry being page `from`.
+    expect(await engine.ocrPageFacts(sid('facts-scan'), { from: 1, count: 5 })).toEqual([facts[1]]);
+    expect(await engine.ocrPageFacts(sid('facts-scan'), { from: 0, count: 1 })).toEqual([facts[0]]);
     await engine.close(sid('facts-scan'));
 
     await engine.open(sid('facts-foreign'), await fixtureBytes('scan-foreign-ocr.pdf'));
