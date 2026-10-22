@@ -140,6 +140,24 @@ describe('workspace store: protection of work in progress', () => {
     expect(fileNames()).toEqual(['first.pdf']);
   });
 
+  it('closing a document gives its bitmaps back but keeps the source open for undo', async () => {
+    const engine = gateEngine([]);
+    const report = await model().openFiles([await fixtureFile(simpleUrl, 'gone.pdf')]);
+    const docId = report.opened[0]?.documentId;
+    if (docId === undefined) throw new Error('gone.pdf did not open');
+    const id = Object.keys(model().workspace.sources)[0] as SourceId;
+    await expectUsable(id);
+    const service = getEngineService();
+    const release = vi.spyOn(service, 'releaseBitmaps');
+    model().closeDocument(docId);
+    expect(release).toHaveBeenCalledWith(id);
+    expect(engine.closed).toEqual([]);
+    // Undo brings the document back, and the source still renders.
+    model().undo();
+    expect(Object.keys(model().workspace.documents)).toContain(docId);
+    await expectUsable(id);
+  });
+
   it('a blob added by a prelude that is cancelled is dropped with it', async () => {
     const blob = await pngBlob('cancelled.png');
     let stored: BlobId | undefined;

@@ -735,6 +735,23 @@ export class EngineService {
     }
   }
 
+  /**
+   * Drops a source's cached bitmaps and pending renders but leaves it open in the engine: the
+   * source belongs to a closed document that undo can bring back (workspace-store.ts), so it
+   * stays, while its bitmaps (up to the cache budget, twice over in shared memory) would
+   * outlive the tab. Views render again if the document returns.
+   */
+  releaseBitmaps(sourceId: SourceId): void {
+    const prefix = `${sourceId}:`;
+    for (const job of [...this.jobs.values()]) {
+      if (!job.key.startsWith(prefix)) continue;
+      job.sourceClosed = true;
+      this.cancel(job, 'Source released');
+    }
+    this.cache.removeSource(sourceId);
+    this.forgetRendered(prefix);
+  }
+
   /** Closes a source in the engine and drops its cached bitmaps and pending renders. */
   async close(sourceId: SourceId): Promise<EngineResult<void>> {
     const prefix = `${sourceId}:`;

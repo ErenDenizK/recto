@@ -461,6 +461,15 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => {
     for (const entry of entries) {
       for (const id of Object.keys(entry.workspace.sources)) live.add(id);
     }
+    // Sources only history references (a closed document undo can bring back) keep their
+    // engine document but give their rendered bitmaps back.
+    const shown = new Set<string>();
+    for (const doc of Object.values(history.present.workspace.documents)) {
+      for (const page of doc.pages) if (page.ref.kind === 'source') shown.add(page.ref.source);
+    }
+    for (const id of Object.keys(files) as SourceId[]) {
+      if (!shown.has(id) && !protections.has(id)) getEngineService().releaseBitmaps(id);
+    }
     const dead = (Object.keys(files) as SourceId[]).filter((id) => !live.has(id));
     if (dead.length > 0) {
       for (const id of dead) void getEngineService().close(id);
