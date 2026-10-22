@@ -9,7 +9,7 @@ import { readFile } from 'node:fs/promises';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { enterEdit, openFixtures, openSaveCopy, useFileInputPicker } from './helpers';
+import { enterEdit, openFixtures, openSaveCopy, PAGE_CANVAS, useFileInputPicker } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Download flow is verified on Chromium');
 
@@ -139,7 +139,9 @@ test('a rotated, resized page lines up in Read mode: text selects, annotations c
   const box = await sheet.boundingBox();
   if (!box) throw new Error('page not laid out');
   expect(box.width / box.height).toBeCloseTo(841.89 / 595.28, 2);
-  await expect(sheet.locator('canvas[data-state="rendered"]')).toBeAttached({ timeout: 20_000 });
+  await expect(sheet.locator(`${PAGE_CANVAS}[data-state="rendered"]`)).toBeAttached({
+    timeout: 20_000,
+  });
 
   // The highlight's hit target sits on the yellow the renderer drew.
   const highlight = sheet.locator('[data-annotation-id="fixture-annot-highlight-1"]');

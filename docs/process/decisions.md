@@ -13,8 +13,7 @@ roadmap stay proposals until the owner marks a row.
 the row it names. *Open*: asked, not yet answered. Do not act on an open row; keep its safe
 default.
 
-**Ids.** Rows carry a log id (PRD, DSN, MOT, GLS, INK, EDN, PRC, TXT, MOB, PF) so they never clash with the
-**Ids.** Rows carry a log id (PRD, DSN, MOT, GLS, INK, EDN, PRC, TXT, MOB, RED) so they never clash with the
+**Ids.** Rows carry a log id (PRD, DSN, MOT, GLS, INK, EDN, PRC, TXT, MOB, PF, RED) so they never clash with the
 sources' own ids (R12's D-1 to D-5, PLAN's P-1 to P-8, the feedback's F and G items), which each
 row quotes.
 
@@ -73,6 +72,7 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PRD-23](decisions/product.md) | The palette reads a query with a rule grammar (typed intents carrying resolved pages), a score floor and catalog synonyms; no model | In force; the owner reads the corpus through | 2026-10-21 |
 | [PRD-14](decisions/product.md) | W0-q findings are assigned to waves: signed fixture opens locked and saves byte-identical (W1-a/W1-b), truncated.pdf… | In force; W1-b and W1-g merged | 2026-10-09 |
 | [PF-18](decisions/product.md) | A closed document's source is parked; the engine worker ends when none is open | In force | 2026-10-22 |
+| [PF-19](decisions/product.md) | Read mode's whole-page bitmap is capped at 4 MP on every edition; tiles keep the visible page 1:1 | In force | 2026-10-22 |
 
 ## Design
 

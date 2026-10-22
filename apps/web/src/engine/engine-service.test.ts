@@ -7,11 +7,11 @@ import {
   bitmapSide,
   chooseBucket,
   chooseScale,
-  COMPACT_BITMAP_PIXELS,
   EngineService,
   exactScale,
   isCapped,
   MAX_BITMAP_PIXELS,
+  READ_BITMAP_PIXELS,
   type RendererLike,
   RENDER_PRIORITY,
   scaleBucket,
@@ -174,13 +174,28 @@ describe('exact render scales', () => {
     // Letter at 2× fit width on a 390 px DPR 3 phone: 2244 device px wide, 6.5 MP.
     const phone2x = 2244 / 612;
     expect(isCapped(phone2x, 612, 792)).toBe(false);
-    expect(isCapped(phone2x, 612, 792, COMPACT_BITMAP_PIXELS)).toBe(true);
-    const capped = chooseScale(phone2x, 612, 792, COMPACT_BITMAP_PIXELS);
-    expect(612 * capped * 792 * capped).toBeLessThanOrEqual(COMPACT_BITMAP_PIXELS);
+    expect(isCapped(phone2x, 612, 792, READ_BITMAP_PIXELS)).toBe(true);
+    const capped = chooseScale(phone2x, 612, 792, READ_BITMAP_PIXELS);
+    expect(612 * capped * 792 * capped).toBeLessThanOrEqual(READ_BITMAP_PIXELS);
     // Fit width on the same phone (1122 px, 1.6 MP) is drawn 1:1, without tiles.
-    expect(isCapped(1122 / 612, 612, 792, COMPACT_BITMAP_PIXELS)).toBe(false);
+    expect(isCapped(1122 / 612, 612, 792, READ_BITMAP_PIXELS)).toBe(false);
     // A budget above the global cap is held to it.
     expect(chooseScale(8, 612, 792, MAX_BITMAP_PIXELS * 4)).toBe(chooseScale(8, 612, 792));
+  });
+
+  it('caps a desktop fit-width page at DPR 2, not a Letter or A4 page at 100% (PF-19)', () => {
+    // Fit width at 1440 x 900, DPR 2: a 2688 device px wide Letter sheet, 9.35 MP.
+    const fit = 2688 / 612;
+    expect(isCapped(fit, 612, 792, READ_BITMAP_PIXELS)).toBe(true);
+    const capped = chooseScale(fit, 612, 792, READ_BITMAP_PIXELS);
+    const pixels = bitmapSide(612, capped) * bitmapSide(792, capped);
+    expect(pixels).toBeLessThanOrEqual(READ_BITMAP_PIXELS);
+    // At most half the uncapped page: the visible part is tiled at the exact scale instead.
+    expect(pixels).toBeLessThan((2688 * bitmapSide(792, fit)) / 2);
+    // 100% at DPR 2 (96/72 CSS px per point): drawn whole and 1:1, as before.
+    const actual = 2 * (96 / 72);
+    expect(isCapped(actual, 612, 792, READ_BITMAP_PIXELS)).toBe(false);
+    expect(isCapped(actual, 595, 842, READ_BITMAP_PIXELS)).toBe(false);
   });
 
   it('derives the scale from the whole device pixels of the sheet', () => {

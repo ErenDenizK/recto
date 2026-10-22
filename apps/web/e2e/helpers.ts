@@ -15,6 +15,12 @@ import { type Download, expect, type Locator, type Page } from '@playwright/test
 
 export const FIXTURES = new URL('../../../test/fixtures/', import.meta.url);
 
+/**
+ * A page's own bitmap canvas, not the exact-scale tiles `TiledPage` lays over it above Read
+ * mode's 4 MP budget (PF-19), which also carry `data-state`.
+ */
+export const PAGE_CANVAS = 'canvas[data-layer="page"]';
+
 export function fixturePath(name: string): string {
   return fileURLToPath(new URL(name, FIXTURES));
 }
