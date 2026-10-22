@@ -101,6 +101,8 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:edition:v1',
       // Not stored: the window event an applied undo or redo fires (history/history-applied.ts).
       'pdf-editor:history-applied',
+      // The Library's recents search flag, ?home=search|0 (home/home-flags.ts, Epic 3).
+      'pdf-editor:home-search:v1',
       // Today's edit-policy:v1, migrated once (state/input-policy-store.ts, redesign spec §7).
       'pdf-editor:input-policy:v1',
       // The one-time `1` migration notice (commands/keymap-notice.ts, D2-7).
@@ -110,6 +112,8 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:office-reload:v1',
       // The Office conversion flag, ?office=1|0 (office/flag.ts, ADR-0035 §6).
       'pdf-editor:office:v1',
+      // Open one file from the Library to its page, ?open=page|0 (home/home-flags.ts, Epic 3).
+      'pdf-editor:open-page:v1',
       'pdf-editor:recents:v1',
       // "Don't ask again for this file" on Save's Replace question (files/save.ts, ADR-0032 §2.1).
       'pdf-editor:save:replace-ok:v1',
