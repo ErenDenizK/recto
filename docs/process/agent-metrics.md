@@ -8,6 +8,18 @@ volume, not the bill); **first CI** is whether the PR's first CI run passed with
 rounds** counts pushes needed after that; **stray** counts files changed outside the brief's scope;
 **review** counts blocking findings of the Opus reviewer (— when no review ran).
 
+From the first lane after PRC-29 (skills adopted, 2026-10-21), new rows add four columns; older rows
+keep the old header. **Diff** is the lane's `--shortstat` as `+added/−removed` lines
+(`lean-change`); **review→CI** is the reviewer's blocking findings as `earned/wasted` (wasted: CI
+would also have caught it); **false green** counts report claims that a check passed which CI then
+failed (`verify-before-done`, target 0); **recur** notes, for root-cause lanes, whether the same
+symptom returned within two weeks (`root-cause`). Each skill is judged after six lanes that load it,
+against the last six lanes of the same kind before it; a skill that does not move its numbers goes.
+Header for new tables:
+
+| Round | Lane | Model | Effort | Tokens | Minutes | First CI | Fix rounds | Stray | Review | Diff | Review→CI | False green | Recur |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+
 ## Summary by kind of work (R21–R22, all Opus 5.5)
 
 | Kind | Lanes | Tokens (sum) | First CI green | Notes |
