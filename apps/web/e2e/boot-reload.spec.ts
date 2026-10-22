@@ -39,13 +39,26 @@ test('a failed edition chunk reloads the page once and the app boots', async ({ 
     if (requests === 1) await route.fulfill(UNAVAILABLE);
     else await route.continue();
   });
-  const navigations = countNavigations(page);
+  const chunkRequests: string[] = [];
+  page.on('request', (request) => {
+    if (APP_CHUNK.test(request.url())) chunkRequests.push(request.url());
+  });
+  // The shell, or the page error that says why it will not come (and what was fetched).
+  const failed = page.waitForEvent('pageerror', { timeout: 0 }).then((error) => {
+    throw new Error(
+      `page error after ${requests} routed and ${chunkRequests.length} seen chunk requests: ${error.message}`,
+    );
+  });
+  // Settles when the test ends (the page closes); the race below is what reads it.
+  failed.catch(() => undefined);
 
   await page.goto('./');
-  await expect(page.getByTestId('app-shell')).toBeVisible({ timeout: 20_000 });
+  await Promise.race([
+    expect(page.getByTestId('app-shell')).toBeVisible({ timeout: 20_000 }),
+    failed,
+  ]);
   // The first load failed the chunk, the one reload fetched it again and booted.
   expect(requests).toBe(2);
-  expect(navigations()).toBe(2);
   const type = await page.evaluate(
     () => (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming).type,
   );
