@@ -297,6 +297,7 @@ Full rows: [`decisions/text-editing.md`](decisions/text-editing.md).
 | [TXT-17](decisions/text-editing.md) | A double space reads back as two spaces | In force | 2026-10-12 |
 | [TXT-18](decisions/text-editing.md) | The mirror's clipboard, compositions and clicks do not depend on its DOM or the engine | In force | 2026-10-12 |
 | [TXT-19](decisions/text-editing.md) | A word wider than its line breaks inside itself, as CSS overflow-wrap: break-word does | In force | 2026-10-12 |
+| [TXT-20](decisions/text-editing.md) | The sample's feature page sends the reader through Edit text, never a double-click | In force | 2026-10-22 |
 
 ## Redaction
 
