@@ -1,22 +1,26 @@
 /**
- * A launch chunk that fails reloads the page once, never in a loop (`boot-reload.ts`, PRD-26).
- * The end-to-end case is `e2e/boot-reload.spec.ts`.
+ * A launch chunk that fails is imported again in the page, then the page reloads once, then a
+ * static screen offers Reload: never a loop, never a blank page (`boot-reload.ts`, PRD-26). The
+ * end-to-end cases are `e2e/boot-reload.spec.ts`.
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   BOOT_RELOAD_KEY,
   BOOT_RELOAD_WINDOW_MS,
   type BootWindow,
+  bustedUrl,
+  editionChunk,
   loadOrReload,
-  moduleWith,
   reloadForFailedBoot,
-  retryUrl,
+  retryStyles,
+  showBootFailure,
 } from './boot-reload';
 
 function fakeWindow(stored?: string, throws = false) {
   const items = new Map<string, string>(stored === undefined ? [] : [[BOOT_RELOAD_KEY, stored]]);
   let reloads = 0;
+  const replaced: string[] = [];
   const document = { readyState: 'complete' as DocumentReadyState };
   let onLoad: (() => void) | undefined;
   const win: BootWindow = {
@@ -34,8 +38,12 @@ function fakeWindow(stored?: string, throws = false) {
       },
     },
     location: {
+      href: 'https://example.test/recto/?office=1#page=2',
       reload: () => {
         reloads += 1;
+      },
+      replace: (url) => {
+        replaced.push(String(url));
       },
     },
   };
@@ -43,14 +51,15 @@ function fakeWindow(stored?: string, throws = false) {
     document.readyState = 'complete';
     onLoad?.();
   };
-  return { win, items, document, load, reloads: () => reloads };
+  return { win, items, document, load, replaced, reloads: () => reloads };
 }
 
-/** A loader whose source reads as the build writes it (`main.tsx` after the build). */
-function built<T>(load: () => Promise<T>): () => Promise<T> {
-  const source = '()=>o(()=>import(`./app-AbCd1234.js`).then(e=>e.t),__vite__mapDeps([1,2]))';
-  return Object.assign(load, { toString: () => source });
-}
+const CHUNK = { file: 'assets/app-AbCd1234.js', key: 'App' };
+const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+afterEach(() => {
+  for (const screen of document.querySelectorAll('[data-testid="boot-failure"]')) screen.remove();
+});
 
 describe('reloadForFailedBoot', () => {
   it('reloads the first time and notes when', () => {
@@ -77,7 +86,6 @@ describe('reloadForFailedBoot', () => {
     fake.document.readyState = 'interactive';
     expect(reloadForFailedBoot(fake.win, 1_000_000)).toBe(true);
     expect(fake.reloads()).toBe(0);
-    expect(fake.items.get(BOOT_RELOAD_KEY)).toBe('1000000');
     fake.load();
     expect(fake.reloads()).toBe(1);
   });
@@ -92,76 +100,110 @@ describe('reloadForFailedBoot', () => {
 describe('loadOrReload', () => {
   it('passes a loaded module through', async () => {
     const fake = fakeWindow();
-    await expect(loadOrReload(() => Promise.resolve('module'), 'App', fake.win)).resolves.toBe(
-      'module',
-    );
+    await expect(
+      loadOrReload(() => Promise.resolve('module'), 'full', fake.win, undefined, CHUNK),
+    ).resolves.toBe('module');
     expect(fake.reloads()).toBe(0);
   });
 
-  it('reloads on a failed load and never settles', async () => {
-    const fake = fakeWindow();
-    let settled = false;
-    void loadOrReload(() => Promise.reject(new TypeError('Failed to fetch')), 'App', fake.win).then(
-      () => {
-        settled = true;
-      },
-      () => {
-        settled = true;
-      },
-    );
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(fake.reloads()).toBe(1);
-    expect(settled).toBe(false);
-  });
-
-  it('throws the failure when it already reloaded', async () => {
-    const fake = fakeWindow(String(Date.now()));
-    const failure = new TypeError('Failed to fetch');
-    await expect(loadOrReload(() => Promise.reject(failure), 'App', fake.win)).rejects.toBe(
-      failure,
-    );
-    expect(fake.reloads()).toBe(0);
-  });
-
-  it('imports the chunk again under a fresh URL before it reloads', async () => {
+  it('imports the edition chunk again under a fresh URL before it reloads', async () => {
     const fake = fakeWindow();
     const app = { App: 'the app' };
     const asked: string[] = [];
-    // What the build writes: the emitted chunk, its module re-exported under a short name.
-    const load = built(() => Promise.reject(new TypeError('failed')));
-    const loaded = await loadOrReload(load, 'App', fake.win, (url) => {
-      asked.push(url);
-      return Promise.resolve({ t: app });
-    });
+    const loaded = await loadOrReload(
+      () => Promise.reject(new TypeError('failed')),
+      'full',
+      fake.win,
+      (url) => {
+        asked.push(url);
+        return Promise.resolve(app);
+      },
+      CHUNK,
+    );
     expect(loaded).toBe(app);
     expect(asked).toHaveLength(1);
-    expect(asked[0]).toMatch(/\/app-AbCd1234\.js\?r=\d+$/);
+    expect(asked[0]).toMatch(/^https:\/\/example\.test\/assets\/app-AbCd1234\.js\?r=\d+$/);
     expect(fake.reloads()).toBe(0);
   });
 
-  it('reloads when the fresh URL fails too', async () => {
-    const fake = fakeWindow();
-    const load = built(() => Promise.reject(new TypeError('failed')));
-    void loadOrReload(load, 'App', fake.win, () => Promise.reject(new TypeError('again')));
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(fake.reloads()).toBe(1);
+  it('reloads when the retried chunk fails or lacks the edition, and never settles', async () => {
+    for (const retry of [() => Promise.reject(new TypeError('again')), () => Promise.resolve({})]) {
+      const fake = fakeWindow();
+      let settled = false;
+      void loadOrReload(
+        () => Promise.reject(new TypeError('x')),
+        'full',
+        fake.win,
+        retry,
+        CHUNK,
+      ).then(
+        () => {
+          settled = true;
+        },
+        () => {
+          settled = true;
+        },
+      );
+      await tick();
+      await tick();
+      expect(fake.reloads()).toBe(1);
+      expect(settled).toBe(false);
+    }
+  });
+
+  it('shows the static screen when it already reloaded', async () => {
+    const fake = fakeWindow(String(Date.now()));
+    void loadOrReload(
+      () => Promise.reject(new TypeError('x')),
+      'full',
+      fake.win,
+      undefined,
+      undefined,
+    );
+    await tick();
+    expect(fake.reloads()).toBe(0);
+    expect(document.querySelector('[data-testid="boot-failure"]')).not.toBeNull();
   });
 });
 
-describe('retryUrl and moduleWith', () => {
-  it('reads the emitted chunk from the loader and adds a fresh query', () => {
-    const load = built(() => Promise.resolve({}));
-    expect(retryUrl(load, 42, 'https://example.test/assets/main-x.js')).toBe(
-      'https://example.test/assets/app-AbCd1234.js?r=42',
-    );
-    expect(retryUrl(() => Promise.resolve({}), 42)).toBeUndefined();
+describe('the pieces', () => {
+  it('reads the edition chunks the build writes, and nothing before the build', () => {
+    const raw = JSON.stringify({
+      full: CHUNK,
+      compact: { file: 'assets/c.js', key: 'CompactApp' },
+    });
+    expect(editionChunk('full', raw)).toEqual(CHUNK);
+    expect(editionChunk('compact')).toBeUndefined();
   });
 
-  it('finds the module in the chunk or in the namespace it is re-exported under', () => {
-    const app = { App: 1 };
-    expect(moduleWith(app, 'App')).toBe(app);
-    expect(moduleWith({ t: app, n: 2 }, 'App')).toBe(app);
-    expect(moduleWith({ t: {} }, 'App')).toBeUndefined();
-    expect(moduleWith(undefined, 'App')).toBeUndefined();
+  it('busts a URL, keeping its other parameters and its hash', () => {
+    expect(bustedUrl('https://example.test/?office=1#p=2', '_r', 42)).toBe(
+      'https://example.test/?office=1&_r=42#p=2',
+    );
+  });
+
+  it('asks again for a stylesheet that failed to load', async () => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    // A port nothing listens on: the load fails, and the retry fails too.
+    link.href = 'http://127.0.0.1:9/missing-stylesheet.css';
+    await new Promise((resolve) => {
+      link.onerror = resolve;
+      document.head.append(link);
+    });
+    expect(await retryStyles(document, 42)).toBe(false);
+    const fresh = document.querySelector<HTMLLinkElement>(
+      'link[href*="missing-stylesheet.css?r=42"]',
+    );
+    expect(fresh).not.toBeNull();
+    fresh?.remove();
+  });
+
+  it('the screen reloads to a cache-busted document URL', () => {
+    const fake = fakeWindow();
+    const screen = showBootFailure(document, fake.win);
+    expect(screen.getAttribute('role')).toBe('alert');
+    screen.querySelector('button')?.click();
+    expect(fake.replaced[0]).toMatch(/^https:\/\/example\.test\/recto\/\?office=1&_r=\d+#page=2$/);
   });
 });

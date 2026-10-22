@@ -1,30 +1,102 @@
 /**
  * The edition's chunk at launch (ADR-0033 §2.1, `main.tsx`) is the one import the page cannot
- * do without: when it fails, nothing mounts and the page stays blank with no way out. A load
- * can fail for a reason the next one does not have (PRD-26): in CI, right after Settings removed
- * the Office package and the page reloaded out of isolation (ADR-0035 §4, PRD-21), a few of the
- * app chunk's module requests answered by the service worker came back `net::ERR_ABORTED`, and
- * a fresh load of the same page booted. A module that failed to load is not fetched again by a
- * later `import()` of the same URL, so the chunk is first imported again under a fresh URL in
- * the page (`loadOrReload`), and only when that fails too does the page reload, once (a failed
- * static dependency of the chunk keeps failing in the page; a reload fetches it again). A
- * second failure within
- * `BOOT_RELOAD_WINDOW_MS` is thrown as before: that is a real outage (offline on a first visit,
- * a broken deploy) and a loop would hide it. Without session storage the guard cannot hold, so
- * nothing reloads. The reload waits for the document's `load` when the chunk failed before it:
- * a reload started while the page is still loading is not one in every engine (Firefox runs it
- * as a new navigation, and WebKit fails the loads still in flight).
+ * do without: when it fails, nothing mounts. A load can fail for a reason the next one does not
+ * have (PRD-26): in CI, right after Settings removed the Office package and the page reloaded
+ * out of isolation (ADR-0035 §4, PRD-21), a few of the app's module requests answered by the
+ * service worker came back `net::ERR_ABORTED`, and a fresh load of the same page booted. So:
+ *
+ * 1. **In the page.** A module that failed is not fetched again by a later `import()` of the
+ *    same URL (WebKit keeps it failed even in the reloaded page), so the edition's chunk is
+ *    imported again under a fresh URL (`?r=<time>`), after any stylesheet that failed to load is
+ *    asked for again the same way. The build keeps that chunk a thin facade no other chunk
+ *    imports (vite.config.ts `editionChunks`), so the retried copy is the only one, and
+ *    writes its file and export key over `EDITION_CHUNKS`.
+ * 2. **One reload**, when that fails too (a failed module the facade imports keeps failing in
+ *    the page; a reload asks for it again in Chromium and Firefox). It waits for the document's
+ *    `load`: a reload started while the page is loading is not one in every engine (Firefox
+ *    runs it as a new navigation). A second failure within `BOOT_RELOAD_WINDOW_MS`, or no session
+ *    storage to guard it, never reloads again: a loop would hide a real outage.
+ * 3. **A static screen** then, never a blank page: what failed, and Reload, which loads a
+ *    cache-busted document URL (`_r=<time>`). It needs no React; its strings come from the
+ *    messages the first paint already carries.
  */
+import { m } from '../i18n';
 
 /** `sessionStorage`: when this tab last reloaded for a failed launch chunk (ms since epoch). */
 export const BOOT_RELOAD_KEY = 'pdf-editor:boot-reload:v1';
 export const BOOT_RELOAD_WINDOW_MS = 60_000;
 
+/** Replaced at build (vite.config.ts `editionChunks`) with `{ full, compact }: { file, key }` as JSON. */
+const EDITION_CHUNKS = '__RECTO_EDITION_CHUNKS__';
+
+export type Edition = 'full' | 'compact';
+
+export interface EditionChunk {
+  /** The emitted file, relative to the base path (`assets/app-<hash>.js`). */
+  readonly file: string;
+  /** The key the edition's component is exported under. */
+  readonly key: string;
+}
+
 export interface BootWindow {
   readonly sessionStorage: Pick<Storage, 'getItem' | 'setItem'>;
-  readonly location: Pick<Location, 'reload'>;
+  readonly location: Pick<Location, 'reload' | 'replace' | 'href'>;
   readonly document: Pick<Document, 'readyState'>;
   addEventListener(type: 'load', listener: () => void, options: { once: true }): void;
+}
+
+/** The edition's chunk as the build wrote it; undefined before the build (dev, unit tests). */
+export function editionChunk(
+  edition: Edition,
+  raw: string = EDITION_CHUNKS,
+): EditionChunk | undefined {
+  try {
+    const chunks = JSON.parse(raw) as Partial<Record<Edition, EditionChunk>>;
+    return chunks[edition];
+  } catch {
+    return undefined;
+  }
+}
+
+/** `url` with `name=<now>` set, keeping its other parameters and its hash. */
+export function bustedUrl(url: string, name: string, now = Date.now()): string {
+  const busted = new URL(url);
+  busted.searchParams.set(name, String(now));
+  return busted.href;
+}
+
+/**
+ * Stylesheet links whose load failed (Vite's preload of the edition's CSS rejects its import
+ * then). Seen through `error` in the capture phase, as a failed link keeps a `sheet` in Chromium.
+ */
+export const failedStyles = new Set<HTMLLinkElement>();
+document.addEventListener(
+  'error',
+  (event) => {
+    if (event.target instanceof HTMLLinkElement && event.target.rel === 'stylesheet') {
+      failedStyles.add(event.target);
+    }
+  },
+  true,
+);
+
+/** Asks again, under a fresh URL, for each failed stylesheet; resolves whether all loaded. */
+export function retryStyles(doc: Document = document, now = Date.now()): Promise<boolean> {
+  const failed = [...failedStyles];
+  failedStyles.clear();
+  return Promise.all(
+    failed.map(
+      (link) =>
+        new Promise<boolean>((resolve) => {
+          const fresh = doc.createElement('link');
+          fresh.rel = 'stylesheet';
+          fresh.href = bustedUrl(link.href, 'r', now);
+          fresh.onload = () => resolve(true);
+          fresh.onerror = () => resolve(false);
+          link.replaceWith(fresh);
+        }),
+    ),
+  ).then((loaded) => !loaded.includes(false));
 }
 
 /**
@@ -33,10 +105,8 @@ export interface BootWindow {
  */
 export function reloadForFailedBoot(win: BootWindow = window, now = Date.now()): boolean {
   try {
-    const last = Number(win.sessionStorage.getItem(BOOT_RELOAD_KEY) ?? Number.NaN);
-    if (Number.isFinite(last) && now - last >= 0 && now - last < BOOT_RELOAD_WINDOW_MS) {
-      return false;
-    }
+    const last = Number(win.sessionStorage.getItem(BOOT_RELOAD_KEY));
+    if (now - last < BOOT_RELOAD_WINDOW_MS) return false;
     win.sessionStorage.setItem(BOOT_RELOAD_KEY, String(now));
   } catch {
     return false;
@@ -47,60 +117,49 @@ export function reloadForFailedBoot(win: BootWindow = window, now = Date.now()):
 }
 
 /**
- * The URL `load` imports, as the build wrote it (`() => import(`./app-<hash>.js`)`, resolved
- * against this module, which sits beside it in `assets/`), with a cache-busting `?r=`: a URL the
- * engine has not failed yet. Undefined when the source names no emitted `.js` file (dev).
+ * The screen of a launch that could not load (`data-testid="boot-failure"`), outside React.
+ * Its text is the app's own messages, never input, so it is written as markup.
  */
-export function retryUrl(
-  load: () => unknown,
-  now = Date.now(),
-  base = import.meta.url,
-): string | undefined {
-  const match = /import\(\s*[`'"]([^`'"]+\.js)[`'"]\s*\)/.exec(String(load));
-  if (match?.[1] === undefined) return undefined;
-  const url = new URL(match[1], base);
-  url.searchParams.set('r', String(now));
-  return url.href;
-}
-
-/**
- * The module that carries `name` in what a chunk exports: the chunk itself, or the namespace
- * the build re-exports it under (`import(...).then((e) => e.t)` when the module shares a chunk).
- */
-export function moduleWith<T>(chunk: unknown, name: string): T | undefined {
-  if (chunk === null || typeof chunk !== 'object') return undefined;
-  if (name in chunk) return chunk as T;
-  for (const value of Object.values(chunk)) {
-    if (value !== null && typeof value === 'object' && name in value) return value as T;
-  }
-  return undefined;
+export function showBootFailure(doc: Document = document, win: BootWindow = window): HTMLElement {
+  const screen = doc.createElement('section');
+  screen.dataset.testid = 'boot-failure';
+  screen.setAttribute('role', 'alert');
+  screen.style.cssText =
+    'position:fixed;inset:0;display:grid;place-content:center;gap:12px;padding:16px;text-align:center';
+  screen.innerHTML = `<p>${m.boot_failed()}</p><button type=button>${m.error_reload()}</button>`;
+  (screen.lastChild as HTMLElement).onclick = () =>
+    win.location.replace(bustedUrl(win.location.href, '_r'));
+  doc.body.append(screen);
+  return screen;
 }
 
 const importUrl = (url: string): Promise<unknown> => import(/* @vite-ignore */ url);
 
 /**
- * `load()`; when it fails, the same chunk again under a fresh URL (`retryUrl`: a module that
- * failed keeps failing under its own URL, in WebKit even after a reload); when that fails too,
- * one reload (`reloadForFailedBoot`). After a reload the returned promise never settles, so the
- * blank page is not rendered as an error on its way out. `name` is an export of the module, to
- * find it in the retried chunk.
+ * `load()`; when it fails, the edition's chunk again under a fresh URL; then one reload; then
+ * the static screen (the module comment). After a reload or the screen the promise never
+ * settles, so React renders nothing on the way.
  */
 export function loadOrReload<T>(
   load: () => Promise<T>,
-  name: string,
+  edition: Edition,
   win: BootWindow = window,
   retry: (url: string) => Promise<unknown> = importUrl,
+  chunk: EditionChunk | undefined = editionChunk(edition),
 ): Promise<T> {
-  return load().catch(async (error: unknown) => {
-    const url = retryUrl(load);
-    if (url !== undefined) {
-      const found = await retry(url).then(
-        (chunk) => moduleWith<T>(chunk, name),
-        () => undefined,
+  return load().catch(async () => {
+    if (chunk !== undefined && (await retryStyles())) {
+      const url = bustedUrl(
+        new URL(import.meta.env.BASE_URL + chunk.file, win.location.href).href,
+        'r',
       );
-      if (found !== undefined) return found;
+      const module = (await retry(url).catch(() => undefined)) as
+        | Record<string, unknown>
+        | undefined;
+      if (module?.[chunk.key] !== undefined) return module as T;
     }
-    if (!reloadForFailedBoot(win)) throw error;
+    // The error is not rethrown: the screen says it, and React would only unmount the root.
+    if (!reloadForFailedBoot(win)) showBootFailure(document, win);
     return new Promise<T>(() => undefined);
   });
 }

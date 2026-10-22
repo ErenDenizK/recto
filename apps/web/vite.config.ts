@@ -60,6 +60,166 @@ function bundleModules(): Plugin {
 }
 
 /**
+ * The two edition modules (ADR-0033 §2.1), each loaded by `main.tsx` with a dynamic import. A
+ * launch whose edition chunk fails imports it again under a fresh URL (`src/pwa/boot-reload.ts`,
+ * PRD-26); that is safe only while the chunk is a thin facade no other chunk imports, so a
+ * retried copy never duplicates a store or a React context.
+ */
+const EDITIONS = {
+  full: { id: fileURLToPath(new URL('./src/app.tsx', import.meta.url)), name: 'App' },
+  compact: {
+    id: fileURLToPath(new URL('./src/shell/compact/CompactApp.tsx', import.meta.url)),
+    name: 'CompactApp',
+  },
+} as const;
+
+/** What `src/pwa/boot-reload.ts` reads: each edition's chunk and the key it exports under. */
+const EDITION_CHUNKS_PLACEHOLDER = '__RECTO_EDITION_CHUNKS__';
+
+interface GraphInfo {
+  readonly importedIds: readonly string[];
+  readonly dynamicallyImportedIds: readonly string[];
+  readonly code: string | null;
+}
+
+/** Paraglide's message barrels: what imports them uses a few messages, never all of them. */
+const MESSAGE_BARREL = /[\\/]i18n[\\/]paraglide[\\/]messages(?:\.js|[\\/]_index\.js)$/;
+const MESSAGE_MODULE = /[\\/]i18n[\\/]paraglide[\\/]messages[\\/](\w+)\.js$/;
+
+/**
+ * The `codeSplitting` group name for a module (`build.rolldownOptions`, PRD-26), so each
+ * edition's chunk is a facade of its module alone and no other chunk imports it:
+ *
+ * - `editor` or `compact-core`: what that edition reaches by static imports and dominates (no
+ *   path from `main.tsx` reaches it without passing the edition's module);
+ * - `editions`: what both editions reach by static imports and the entry does not, which loads
+ *   with either edition anyway (else the default merges it into a facade);
+ * - the default for the rest: the entry's statics (first paint), each lazy chunk's own modules,
+ *   and every module some chunk imports dynamically, which stays the root of its own chunk.
+ *
+ * Paraglide's barrels are read as the messages each module calls (`m.<id>`, however it
+ * imported `m`), not as every message: that is what tree shaking makes of them.
+ */
+function editionGroups(): (
+  id: string,
+  ctx: { getModuleInfo(id: string): GraphInfo | null },
+) => string | null {
+  const main = fileURLToPath(new URL('./src/main.tsx', import.meta.url));
+  let owner: Map<string, string> | undefined;
+
+  const plan = (get: (id: string) => GraphInfo | null): Map<string, string> => {
+    // The graph from the entry, each barrel edge replaced by the messages the importer calls.
+    const messages = new Map<string, string>();
+    const statics = new Map<string, string[]>();
+    const dynamics = new Map<string, readonly string[]>();
+    const callers: string[] = [];
+    const queue = [main];
+    while (queue.length > 0) {
+      const id = queue.pop() as string;
+      if (statics.has(id)) continue;
+      const info = get(id);
+      const imported = info?.importedIds ?? [];
+      const message = MESSAGE_MODULE.exec(id)?.[1];
+      if (message !== undefined) messages.set(message, id);
+      statics.set(
+        id,
+        imported.filter((next) => !MESSAGE_BARREL.test(next)),
+      );
+      dynamics.set(id, info?.dynamicallyImportedIds ?? []);
+      // `m` comes through `../i18n` as often as from the barrel itself: any module calling it.
+      if (/\bm\.\w/.test(info?.code ?? '')) callers.push(id);
+      queue.push(...imported, ...(info?.dynamicallyImportedIds ?? []));
+    }
+    for (const id of callers) {
+      const list = statics.get(id) as string[];
+      // Calls, not the comments that show one (`m.open_files()` in i18n/index.ts's).
+      const code = (get(id)?.code ?? '').replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, '');
+      for (const match of code.matchAll(/\bm\.(\w+)/g)) {
+        const target = messages.get(match[1] as string);
+        if (target !== undefined) list.push(target);
+      }
+    }
+    const reach = (root: string, skip: string | null, dynamic: boolean): Set<string> => {
+      const seen = new Set<string>();
+      const stack = [root];
+      while (stack.length > 0) {
+        const id = stack.pop() as string;
+        if (id === skip || seen.has(id)) continue;
+        seen.add(id);
+        stack.push(...(statics.get(id) ?? []));
+        if (dynamic) stack.push(...(dynamics.get(id) ?? []));
+      }
+      return seen;
+    };
+
+    const result = new Map<string, string>();
+    const everything = reach(main, null, true);
+    const first = reach(main, null, false);
+    const targets = new Set([...dynamics.values()].flat());
+    const own = {
+      full: reach(EDITIONS.full.id, null, false),
+      compact: reach(EDITIONS.compact.id, null, false),
+    };
+    for (const [edition, group] of [
+      ['full', 'editor'],
+      ['compact', 'compact-core'],
+    ] as const) {
+      const { id: module } = EDITIONS[edition];
+      const without = reach(main, module, true);
+      for (const id of own[edition]) {
+        if (id !== module && everything.has(id) && !without.has(id)) result.set(id, group);
+      }
+    }
+    for (const id of own.compact) {
+      if (own.full.has(id) && !first.has(id) && !targets.has(id) && !result.has(id)) {
+        result.set(id, 'editions');
+      }
+    }
+    return result;
+  };
+
+  return (id, ctx) => {
+    owner ??= plan((m) => ctx.getModuleInfo(m));
+    return owner.get(id) ?? null;
+  };
+}
+
+/**
+ * Writes each edition's chunk file and export key over `EDITION_CHUNKS_PLACEHOLDER` (read by
+ * `src/pwa/boot-reload.ts`), and fails the build when an edition's chunk is missing, is not a
+ * facade of its module, or is imported by another chunk than the entry's dynamic import.
+ */
+function editionChunks(): Plugin {
+  return {
+    name: 'recto:edition-chunks',
+    apply: 'build',
+    generateBundle(_options, bundle) {
+      const chunks = Object.values(bundle).filter((output) => output.type === 'chunk');
+      if (!chunks.some((chunk) => chunk.code.includes(EDITION_CHUNKS_PLACEHOLDER))) return;
+      const found: Record<string, { file: string; key: string }> = {};
+      for (const [edition, { id, name }] of Object.entries(EDITIONS)) {
+        const chunk = chunks.find((c) => c.facadeModuleId === id);
+        if (!chunk) throw new Error(`recto:edition-chunks: no chunk for ${name} (${id})`);
+        if (!chunk.exports.includes(name)) {
+          throw new Error(`recto:edition-chunks: ${chunk.fileName} does not export ${name}`);
+        }
+        const importers = chunks.filter((c) => c.imports.includes(chunk.fileName));
+        if (importers.length > 0) {
+          throw new Error(
+            `recto:edition-chunks: ${chunk.fileName} is imported by ${importers.map((c) => c.fileName).join(', ')}; it holds ${Object.keys(chunk.modules).join(', ')}`,
+          );
+        }
+        found[edition] = { file: chunk.fileName, key: name };
+      }
+      const value = JSON.stringify(JSON.stringify(found));
+      for (const chunk of chunks) {
+        chunk.code = chunk.code.replace(/(["'`])__RECTO_EDITION_CHUNKS__\1/g, value);
+      }
+    },
+  };
+}
+
+/**
  * Build identity for the About dialog (ADR-0017 §6), injected as `define` constants and
  * read through `src/shell/about/build-info.ts`. The version is the web package's, which the
  * release workflow tags.
@@ -155,6 +315,7 @@ export default defineConfig({
     __LAB__: JSON.stringify(lab),
   },
   plugins: [
+    editionChunks(),
     bundleModules(),
     react(),
     // React Compiler (ADR-0003), applied through Babel. Rolldown's filter in the preset
@@ -289,6 +450,11 @@ export default defineConfig({
         // registers its fetch listener before Workbox's, and does nothing for anyone else.
         importScripts: ['sw-office.js'],
         cleanupOutdatedCaches: true,
+        // Workbox's defaults, and `r`: the cache-busting query of a launch chunk imported
+        // again (src/pwa/boot-reload.ts, PRD-26) still finds the precache, so the retry
+        // works offline. The precache answers the same bytes as the first try then; a retry
+        // that must reach the network is the reload's (a cache-busted document, `_r`).
+        ignoreURLParametersMatching: [/^utm_/, /^fbclid$/, /^r$/],
         // Match callbacks are serialized into the service worker, so they cannot close over
         // `base`: `location` there is the worker script's URL, which sits at `base`.
         runtimeCaching: [
@@ -387,6 +553,8 @@ export default defineConfig({
               test: /[\\/]src[\\/]motion[\\/](?!gesture[\\/]|container\.ts$|nav-push\.ts$|disclose\.ts$|lazy\.ts$)/,
               priority: 20,
             },
+            // Each edition's chunk a facade of its module alone (PRD-26): see `editionGroups`.
+            { name: editionGroups(), priority: 10, includeDependenciesRecursively: false },
           ],
         },
       },
