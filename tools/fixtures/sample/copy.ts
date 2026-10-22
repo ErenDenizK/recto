@@ -2,8 +2,9 @@
  * The sample's copy (docs/design/sample-2026-10/design.md §4): Margin No. 07 / Kenar Sayı 07,
  * a fictional quarterly's press-week folder. Turkish in the siz register (BR-V3), sentence
  * case, no exclamation marks. A `Cut` string differs per edition (§1.4): the full cut says
- * choose / double-click with key hints, the phone cut tap / press and hold / pinch with the
- * compact edition's own labels. Every person, place, company and number is invented.
+ * choose / select / type with key hints (never a double-click on text: in viewing it selects
+ * a word, TXT-20), the phone cut tap / press and hold / pinch with the compact edition's own
+ * labels. Every person, place, company and number is invented.
  */
 import type { SampleEdition, SampleLocale } from './context.ts';
 
@@ -258,7 +259,7 @@ const EN: SampleCopy = {
     ],
     alt: 'The lighthouse’s first-order lens: rings of glass prisms around a small flame',
     tryLine: {
-      full: 'Double-click any paragraph to change its words. Put your name in the byline, or add a sentence to the end of the first column and watch it reflow.',
+      full: 'Choose Edit text (E), then any paragraph, to change its words. Put your name in the byline, or add a sentence to the end of the first column and watch it reflow.',
       phone:
         'Tap Edit, then Edit text, then a paragraph. Put your name in the byline, or add a sentence and watch it reflow.',
     },
@@ -530,7 +531,7 @@ const TR: SampleCopy = {
     ],
     alt: 'Fenerin birinci derece merceği: küçük bir alevin çevresinde cam prizma halkaları',
     tryLine: {
-      full: 'Sözcüklerini değiştirmek için herhangi bir paragrafa çift tıklayın. Künyeye kendi adınızı yazın ya da ilk sütunun sonuna bir cümle ekleyip metnin yeniden dizilişini izleyin.',
+      full: 'Metni düzenle’yi (E), ardından bir paragrafı seçip sözcüklerini değiştirin. Künyeye kendi adınızı yazın ya da ilk sütunun sonuna bir cümle ekleyip metnin yeniden dizilişini izleyin.',
       phone:
         'Düzenle’de Metni düzenle’yi seçip bir paragrafa dokunun. Künyeye adınızı yazın ya da cümle ekleyip akışı izleyin.',
     },

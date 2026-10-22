@@ -97,13 +97,30 @@ export type Wire<T> =
 /** Call options minus what cannot cross a thread boundary. */
 export type WireCallOptions = Omit<EngineCallOptions, 'signal'>;
 export type WireOpenOptions = Omit<OpenOptions, 'signal'>;
-export type WireRenderOptions = Omit<RenderOptions, 'signal'>;
+export type WireRenderOptions = Omit<RenderOptions, 'signal'> & {
+  /** Send the render as its pixels (`WireRenderPixels`), not as a bitmap (PF-22). */
+  readonly asPixels?: boolean;
+};
 export type WireSearchOptions = Omit<SearchOptions, 'signal' | 'onProgress'>;
 export type WireSaveOptions = Omit<SaveOptions, 'signal'>;
 export type WireApplyRedactionsOptions = Omit<ApplyRedactionsOptions, 'signal'>;
 export type WireVerifyRedactedOutputOptions = Omit<VerifyRedactedOutputOptions, 'signal'>;
 export type WireSaveReceiptOptions = Omit<SaveReceiptOptions, 'signal'>;
 export type WireRenderForOcrOptions = Omit<RenderForOcrOptions, 'signal'>;
+
+/**
+ * A page render sent as its RGBA pixels, transferred; the caller's thread makes the bitmap
+ * (PF-22). Only WebKit asks for it: an ImageBitmap transferred out of the worker there, received
+ * while the worker makes the next bitmap of the same size, can show that bitmap's pixels (seen
+ * in CI: a page tile drawn with its neighbour's content, so the eyedropper read the wrong
+ * colour), though it was right in the worker. Other engines keep the transferred bitmap, which
+ * costs the main thread nothing.
+ */
+export interface WireRenderPixels {
+  readonly pixels: ArrayBuffer;
+  readonly width: number;
+  readonly height: number;
+}
 export type WireParagraphEditOptions = Omit<ParagraphEditOptions, 'signal'>;
 
 /**
@@ -144,13 +161,13 @@ export interface PdfiumWorkerApi {
     abortPort?: MessagePort,
   ): Promise<Wire<OpenedDocument>>;
   close(id: SourceId): Promise<Wire<null>>;
-  /** The bitmap is transferred to the caller. */
+  /** The bitmap is transferred to the caller; with `asPixels`, its pixels (PF-22). */
   renderPage(
     id: SourceId,
     pageIndex: number,
     options: WireRenderOptions,
     abortPort?: MessagePort,
-  ): Promise<Wire<RenderResult>>;
+  ): Promise<Wire<RenderResult | WireRenderPixels>>;
   getPageText(
     id: SourceId,
     pageIndex: number,

@@ -120,6 +120,22 @@ describe('with an open document', () => {
     expect([r4.width, r4.height]).toEqual([800, 500]);
   });
 
+  test('renderPagePixels gives the RGBA pixels renderPage draws, in a buffer of their own', async () => {
+    const pixels = await adapter.renderPagePixels(sid('doc'), 0, { scale: 1 });
+    expect([pixels.width, pixels.height]).toEqual([200, 300]);
+    expect(pixels.data.byteOffset).toBe(0);
+    expect(pixels.data.buffer.byteLength).toBe(200 * 300 * 4);
+    const render = await adapter.renderPage(sid('doc'), 0, { scale: 1 });
+    const canvas = new OffscreenCanvas(render.width, render.height);
+    const context = canvas.getContext('2d')!;
+    context.drawImage(render.bitmap, 0, 0);
+    const drawn = context.getImageData(0, 0, render.width, render.height).data;
+    let differ = 0;
+    for (let i = 0; i < drawn.length; i++) if (Math.abs(drawn[i]! - pixels.data[i]!) > 1) differ++;
+    expect(differ).toBe(0);
+    render.bitmap.close();
+  });
+
   test('renders a clip rectangle', async () => {
     const r = await adapter.renderPage(sid('doc'), 0, {
       scale: 2,
