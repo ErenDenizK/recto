@@ -436,6 +436,24 @@ test.describe('the compact edition', () => {
   test('the chrome leaves and comes back on a spring the scroll starts (MOT-16)', async ({
     page,
   }) => {
+    page.on('console', (msg) => {
+      if (msg.text().startsWith('PROBE')) console.log(msg.text());
+    });
+    await page.addInitScript(() => {
+      navigator.serviceWorker?.addEventListener('controllerchange', () =>
+        console.log(`PROBE-SW controllerchange t=${performance.now().toFixed(0)}`),
+      );
+      const reg = navigator.serviceWorker?.register.bind(navigator.serviceWorker);
+      if (reg && navigator.serviceWorker) {
+        navigator.serviceWorker.register = (...args) => {
+          console.log(`PROBE-SW register t=${performance.now().toFixed(0)}`);
+          return reg(...args);
+        };
+      }
+      new MutationObserver(() =>
+        console.log(`PROBE-ROOT t=${performance.now().toFixed(0)} motion=${document.documentElement.dataset.motion} spring=${document.documentElement.dataset.chromeSpring}`),
+      ).observe(document.documentElement, { attributeFilter: ['data-motion', 'data-chrome-spring'] });
+    });
     await openLibrary(page);
     await openPdf(page, 'simple-text.pdf');
     // The spring rides in the editing chunk: ✎ and Done bring it in now, not when idle.
@@ -467,6 +485,9 @@ test.describe('the compact edition', () => {
         const ms = Number.parseFloat(style.transitionDuration.split(',')[at] ?? '0');
         const easing = style.transitionTimingFunction.split(/,(?![^(]*\))/)[at] ?? '';
         const stops = [...easing.matchAll(/(-?[\d.]+)(?: [\d.]+%)?[,)]/g)].map((m) => Number(m[1]));
+        console.log(
+          `PROBE-MOVE t=${performance.now().toFixed(0)} step=${document.documentElement.dataset.chromeSpring} motion=${document.documentElement.dataset.motion} hidden=${el.hasAttribute('data-hidden')} props=${style.transitionProperty} dur=${style.transitionDuration} hideMs=${style.getPropertyValue('--hide-ms')} quick=${style.getPropertyValue('--spring-quick')} sw=${navigator.serviceWorker?.controller ? 'controlled' : 'none'} reduce=${matchMedia('(prefers-reduced-motion: reduce)').matches} anims=${el.getAnimations().map((a) => (a as CSSTransition).transitionProperty ?? a.constructor.name).join(',')} same=${el === document.querySelector('[data-testid="compact-capsule"]')} n=${document.querySelectorAll('[data-testid="compact-capsule"]').length}`,
+        );
         return {
           step: document.documentElement.dataset.chromeSpring ?? null,
           ms: Math.round(style.transitionDuration.includes('ms') ? ms : ms * 1000),
