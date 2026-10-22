@@ -400,12 +400,23 @@ test('page 1 keeps its text in view through 1440 → 1024 → 1440 px', async ({
     await page.setViewportSize({ width, height: 900 });
     await expect
       .poll(() =>
-        first.evaluate(
-          // The bitmap follows the sheet at device scale once the re-render has landed;
-          // a one-pixel tolerance covers the snapped sheet size on every engine.
-          (canvas: HTMLCanvasElement) =>
-            Math.abs(canvas.width - canvas.getBoundingClientRect().width * devicePixelRatio) <= 1,
-        ),
+        first.evaluate((canvas: HTMLCanvasElement) => {
+          // The bitmap follows the sheet at device scale once the re-render has landed; a
+          // one-pixel tolerance covers the snapped sheet size on every engine. Above Read
+          // mode's 4 MP budget (PF-19, a DPR 2 screen) the page bitmap stays capped and the
+          // tiles over the view carry the device scale instead: all of them rendered, 1:1.
+          const oneToOne = (c: HTMLCanvasElement) =>
+            Math.abs(c.width - c.getBoundingClientRect().width * devicePixelRatio) <= 1;
+          if (oneToOne(canvas)) return true;
+          const tiles = [
+            ...(canvas
+              .closest('[data-page-index]')
+              ?.querySelectorAll<HTMLCanvasElement>('[data-testid="page-tiles"] canvas') ?? []),
+          ];
+          return (
+            tiles.length > 0 && tiles.every((t) => t.dataset.state === 'rendered' && oneToOne(t))
+          );
+        }),
       )
       .toBe(true);
   };

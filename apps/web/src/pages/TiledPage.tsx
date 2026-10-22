@@ -68,6 +68,12 @@ export interface Tile {
 /**
  * Tiles covering `visible` (a box on the displayed page in points) for a page of
  * `size` points rendered at `bucket` device pixels per point.
+ *
+ * The grid is TILE_PX device pixels of the whole-page bitmap, whose sides are rounded
+ * (`bitmapSide`), so its pixels per point on each axis are `bitmapSide(side) / side`, a hair
+ * off `bucket`. Each tile's clip is that pixel box over those per-axis scales: EmbedPDF maps a
+ * clip onto its rounded output size, so the tile then draws with exactly the whole page's
+ * matrix, at a whole-pixel offset, and its pixels match the page render's (PF-19).
  */
 export function tilesFor(
   size: { readonly width: number; readonly height: number },
@@ -79,24 +85,27 @@ export function tilesFor(
     readonly bottom: number;
   },
 ): Tile[] {
-  const edge = TILE_PX / bucket;
-  const left = Math.max(0, visible.left);
-  const top = Math.max(0, visible.top);
-  const right = Math.min(size.width, visible.right);
-  const bottom = Math.min(size.height, visible.bottom);
+  const pageW = bitmapSide(size.width, bucket);
+  const pageH = bitmapSide(size.height, bucket);
+  const sx = pageW / size.width;
+  const sy = pageH / size.height;
+  const left = Math.max(0, visible.left) * sx;
+  const top = Math.max(0, visible.top) * sy;
+  const right = Math.min(size.width, visible.right) * sx;
+  const bottom = Math.min(size.height, visible.bottom) * sy;
   if (right <= left || bottom <= top) return [];
   const tiles: Tile[] = [];
-  for (let row = Math.floor(top / edge); row * edge < bottom; row++) {
-    for (let col = Math.floor(left / edge); col * edge < right; col++) {
-      const x = col * edge;
-      const y = row * edge;
+  for (let row = Math.floor(top / TILE_PX); row * TILE_PX < bottom; row++) {
+    for (let col = Math.floor(left / TILE_PX); col * TILE_PX < right; col++) {
+      const x = col * TILE_PX;
+      const y = row * TILE_PX;
       tiles.push({
         col,
         row,
-        left: x,
-        top: y,
-        width: Math.min(edge, size.width - x),
-        height: Math.min(edge, size.height - y),
+        left: x / sx,
+        top: y / sy,
+        width: Math.min(TILE_PX, pageW - x) / sx,
+        height: Math.min(TILE_PX, pageH - y) / sy,
       });
     }
   }
