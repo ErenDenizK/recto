@@ -45,7 +45,6 @@ import type {
   RedactionPlan,
   RenderForOcrOptions,
   RenderOptions,
-  RenderResult,
   SaveOptions,
   SaveReceipt,
   SaveReceiptAct,
@@ -103,6 +102,19 @@ export type WireApplyRedactionsOptions = Omit<ApplyRedactionsOptions, 'signal'>;
 export type WireVerifyRedactedOutputOptions = Omit<VerifyRedactedOutputOptions, 'signal'>;
 export type WireSaveReceiptOptions = Omit<SaveReceiptOptions, 'signal'>;
 export type WireRenderForOcrOptions = Omit<RenderForOcrOptions, 'signal'>;
+
+/**
+ * A page render as it crosses: its RGBA pixels, transferred, and the caller's thread makes the
+ * bitmap. An ImageBitmap transferred out of the worker is not safe in WebKit: received while
+ * the worker makes the next bitmap of the same size, it can show that bitmap's pixels (seen in
+ * CI: a tile of the page drawn with its neighbour's content, so the eyedropper read the wrong
+ * colour), though it was right in the worker.
+ */
+export interface WireRenderPixels {
+  readonly pixels: ArrayBuffer;
+  readonly width: number;
+  readonly height: number;
+}
 export type WireParagraphEditOptions = Omit<ParagraphEditOptions, 'signal'>;
 
 /**
@@ -143,13 +155,13 @@ export interface PdfiumWorkerApi {
     abortPort?: MessagePort,
   ): Promise<Wire<OpenedDocument>>;
   close(id: SourceId): Promise<Wire<null>>;
-  /** The bitmap is transferred to the caller. */
+  /** The pixels are transferred to the caller, which makes the bitmap (`WireRenderPixels`). */
   renderPage(
     id: SourceId,
     pageIndex: number,
     options: WireRenderOptions,
     abortPort?: MessagePort,
-  ): Promise<Wire<RenderResult>>;
+  ): Promise<Wire<WireRenderPixels>>;
   getPageText(
     id: SourceId,
     pageIndex: number,
