@@ -972,11 +972,13 @@ export class EngineService {
     for (const key of [...this.revisions.keys()]) {
       if (key.startsWith(prefix)) this.revisions.delete(key);
     }
-    await this.parking.get(sourceId);
-    await this.reopening.get(sourceId);
+    // Synchronous up to here, listeners included: views and the edit runner forget the source
+    // at once (a content revision read right after `close` already differs).
     const wasParked = this.parked.delete(sourceId);
     this.openSources.delete(sourceId);
     for (const listener of this.closeListeners) listener(sourceId);
+    await this.parking.get(sourceId);
+    await this.reopening.get(sourceId);
     if (this.renderer === undefined || wasParked) {
       this.armIdle();
       return ok(undefined);
