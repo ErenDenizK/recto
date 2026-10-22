@@ -1,5 +1,5 @@
 /**
- * The update-ready notice (`register.ts`; `08-feedback` FB4 §2, §5, issue 9): its toast loads
+ * The update-ready notice (`service-worker.ts`; `08-feedback` FB4 §2, §5, issue 9): its toast loads
  * on demand (`update-toast.ts`, kept out of the first paint, V1-P1) and still shows once, with
  * Reload and Later, saying whether documents reopen. And which engine wasm each edition warms.
  */
@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { setLocale } from '../i18n';
 import { resetSessionStore, useSessionStore } from '../session/session-store';
 import { resetToasts, useToastStore } from '../ui/Toast/toast-store';
-import { dismissUpdate, showUpdateReady, usePwaStore, warmWasmUrls } from './register';
+import { dismissUpdate, showUpdateReady, usePwaStore, warmWasmUrls } from './service-worker';
 
 afterEach(() => {
   resetToasts();
