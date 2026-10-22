@@ -28,13 +28,8 @@ export function ticksOf(
   return { at, current: page === undefined ? null : (page + 0.5) / pages };
 }
 
-useSearchStore.subscribe((state, previous) => {
-  if (
-    state.hits === previous.hits &&
-    state.current === previous.current &&
-    state.documentId === previous.documentId
-  )
-    return;
+function sync(): void {
+  const state = useSearchStore.getState();
   const workspace = useWorkspaceStore.getState().workspace;
   const doc = getActiveDocument(workspace);
   setScrollTicks(
@@ -42,4 +37,17 @@ useSearchStore.subscribe((state, previous) => {
       ? ticksOf(state.hits, state.current, doc.pages.length)
       : null,
   );
+}
+
+useSearchStore.subscribe((state, previous) => {
+  if (
+    state.hits !== previous.hits ||
+    state.current !== previous.current ||
+    state.documentId !== previous.documentId
+  )
+    sync();
+});
+// A tab switch leaves the old document's ticks behind otherwise.
+useWorkspaceStore.subscribe((state, previous) => {
+  if (state.workspace.activeDocument !== previous.workspace.activeDocument) sync();
 });

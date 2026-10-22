@@ -4,7 +4,7 @@
  * DSN-62).
  */
 import type { Rect } from '@pdf-editor/document-model';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { PageOverlayProps } from '../stage/page-overlays';
 import { useWorkspaceStore } from '../state/workspace-store';
@@ -13,31 +13,51 @@ import { pageFrame } from './page-frame';
 import { useSearchStore } from './search';
 import styles from './SearchHighlights.module.css';
 
-/** Below this median lightness (sRGB, 0..1) of the page bitmap a hit is lifted, not darkened. */
-const DARK_PAGE = 0.4;
+/** Below this median lightness (sRGB, 0..1) under a hit it is lifted (screen), not darkened. */
+const DARK_UNDER = 0.4;
+/** The page bitmap is read once per measure at this width, however large it rendered. */
+const PROBE_WIDTH = 512;
 
 /**
- * Whether the page under `layer` is dark, from the median lightness of an 8 x 8 reduction of its
- * rendered bitmap (DSN-62: a hit keeps the text under it only when it darkens a light page or
- * lifts a dark one, so it has to know which).
+ * Whether each hit of `layer` lies on a dark part of its page, from the median lightness of the
+ * page bitmap under it (DSN-62: a hit keeps the text under it only when it darkens a light
+ * ground or lifts a dark one, so it has to know which; a dark callout on a white page counts).
+ * `undefined` while the bitmap is not rendered (a zoom's preview).
  */
-function pageIsDark(layer: HTMLElement): boolean | undefined {
+function darkUnder(layer: HTMLElement): boolean[] | undefined {
   const canvas = layer.closest('[data-page-index]')?.querySelector('canvas');
-  if (canvas?.dataset.state !== 'rendered' || canvas.width === 0) return undefined;
+  if (canvas?.dataset.state !== 'rendered' || canvas.width === 0 || !layer.clientWidth)
+    return undefined;
+  const w = Math.min(PROBE_WIDTH, canvas.width);
+  const h = Math.max(1, Math.round((canvas.height * w) / canvas.width));
   const probe = document.createElement('canvas');
-  probe.width = probe.height = 8;
-  const ctx = probe.getContext('2d', { willReadFrequently: true });
+  probe.width = w;
+  probe.height = h;
+  const ctx = probe.getContext('2d');
   if (!ctx) return undefined;
-  ctx.drawImage(canvas, 0, 0, 8, 8);
-  const { data } = ctx.getImageData(0, 0, 8, 8);
-  const light: number[] = [];
-  for (let i = 0; i < data.length; i += 4) {
-    light.push(
-      (0.2126 * (data[i] ?? 0) + 0.7152 * (data[i + 1] ?? 0) + 0.0722 * (data[i + 2] ?? 0)) / 255,
-    );
-  }
-  light.sort((a, b) => a - b);
-  return (light[32] ?? 1) < DARK_PAGE;
+  ctx.drawImage(canvas, 0, 0, w, h);
+  const { data } = ctx.getImageData(0, 0, w, h);
+  const sx = w / layer.clientWidth;
+  const sy = h / layer.clientHeight;
+  return [...layer.children].map((el) => {
+    const box = el as HTMLElement;
+    const x0 = Math.max(0, Math.floor(box.offsetLeft * sx));
+    const y0 = Math.max(0, Math.floor(box.offsetTop * sy));
+    const x1 = Math.min(w, Math.max(x0 + 1, Math.ceil((box.offsetLeft + box.offsetWidth) * sx)));
+    const y1 = Math.min(h, Math.max(y0 + 1, Math.ceil((box.offsetTop + box.offsetHeight) * sy)));
+    const light: number[] = [];
+    for (let y = y0; y < y1; y++) {
+      for (let x = x0; x < x1; x++) {
+        const i = (y * w + x) * 4;
+        light.push(
+          (0.2126 * (data[i] ?? 0) + 0.7152 * (data[i + 1] ?? 0) + 0.0722 * (data[i + 2] ?? 0)) /
+            255,
+        );
+      }
+    }
+    light.sort((p, q) => p - q);
+    return (light[light.length >> 1] ?? 1) < DARK_UNDER;
+  });
 }
 
 export function SearchHighlights(props: PageOverlayProps) {
@@ -45,39 +65,49 @@ export function SearchHighlights(props: PageOverlayProps) {
   const current = useSearchStore((s) => s.current);
   const documentId = useSearchStore((s) => s.documentId);
   const active = useWorkspaceStore((s) => s.workspace.activeDocument);
-  const [dark, setDark] = useState(false);
-  // Measured when the layer mounts and whenever the page's bitmap finishes rendering.
-  const watch = (el: HTMLDivElement) => {
-    const canvas = el.closest('[data-page-index]')?.querySelector('canvas');
-    if (!canvas) return;
-    const measure = () => setDark(pageIsDark(el) ?? false);
+  const [tones, setTones] = useState<readonly boolean[]>([]);
+
+  const mine: { index: number; rects: readonly Rect[] }[] = [];
+  if (hits.length > 0 && documentId === active) {
+    hits.forEach((hit, index) => {
+      if (hit.pageId === props.pageId) mine.push({ index, rects: hit.rects });
+    });
+  }
+  const count = mine.reduce((n, { rects }) => n + rects.length, 0);
+  const layer = useRef<HTMLDivElement>(null);
+  // Measured when the layer mounts or its hits change, and whenever the page's bitmap finishes
+  // rendering. A zoom's `preview` keeps the last known tones.
+  useEffect(() => {
+    const el = layer.current;
+    const canvas = el?.closest('[data-page-index]')?.querySelector('canvas');
+    if (!el || !canvas || count === 0) return;
+    const measure = () => {
+      const next = darkUnder(el);
+      if (next) {
+        setTones((was) =>
+          was.length === next.length && was.every((v, i) => v === next[i]) ? was : next,
+        );
+      }
+    };
     measure();
     const observer = new MutationObserver(measure);
     observer.observe(canvas, { attributes: true, attributeFilter: ['data-state'] });
     return () => observer.disconnect();
-  };
-  if (hits.length === 0 || documentId !== active) return null;
-  const mine: { index: number; rects: readonly Rect[] }[] = [];
-  hits.forEach((hit, index) => {
-    if (hit.pageId === props.pageId) mine.push({ index, rects: hit.rects });
-  });
-  if (mine.length === 0) return null;
+  }, [count, props.pageId]);
+  if (count === 0) return null;
   const frame = pageFrame(props);
+  let k = 0;
   return (
-    <div
-      ref={watch}
-      className={styles.layer}
-      aria-hidden="true"
-      data-testid="search-highlights"
-      data-tone={dark ? 'dark' : undefined}
-    >
+    <div ref={layer} className={styles.layer} aria-hidden="true" data-testid="search-highlights">
       {mine.flatMap(({ index, rects }) =>
         rects.map((rect, i) => {
           const box = userRectToCss(frame, rect);
+          const dark = tones[k++];
           return (
             <div
               key={`${index}:${i}`}
               className={styles.hit}
+              data-tone={dark ? 'dark' : undefined}
               data-current={index === current || undefined}
               style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
             />

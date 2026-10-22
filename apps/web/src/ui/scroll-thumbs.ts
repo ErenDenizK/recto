@@ -87,6 +87,11 @@ export interface ScrollTicks {
 let ticks: ScrollTicks | null = null;
 let redrawTicks: (() => void) | null = null;
 
+/** Redraws the ticks where the reader's bar now is (its stand-in mounted, unmounted or moved). */
+export function refreshScrollTicks(): void {
+  redrawTicks?.();
+}
+
 /** Shows (or, with `null`, clears) hit ticks along the reader's bar. */
 export function setScrollTicks(next: ScrollTicks | null): void {
   ticks = next;
@@ -388,6 +393,7 @@ function start(): () => void {
   canvas.dataset.scrollTicks = '';
   layer.prepend(canvas);
   let tickKey = '';
+  let drawn: ScrollTicks | null = null;
   const tickSize = new ResizeObserver(() => drawTicks());
   const drawTicks = () => {
     const proxy = ticks
@@ -397,6 +403,7 @@ function start(): () => void {
     if (!ticks || !proxy || !ctx || ticks.at.length === 0) {
       canvas.hidden = true;
       tickKey = '';
+      drawn = null;
       tickSize.disconnect();
       return;
     }
@@ -410,9 +417,10 @@ function start(): () => void {
     const px = Math.floor(room * dpr);
     const left = style.direction === 'rtl' ? rect.left : rect.right - HIT;
     const top = rect.top + before + END;
-    const key = `${left}|${top}|${room}|${dpr}|${ticks.at.length}|${ticks.current}`;
-    if (px < 1 || key === tickKey) return;
+    const key = `${left}|${top}|${room}|${dpr}`;
+    if (px < 1 || (key === tickKey && drawn === ticks)) return;
     tickKey = key;
+    drawn = ticks;
     canvas.hidden = false;
     canvas.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
     canvas.style.width = `${HIT}px`;
@@ -426,8 +434,9 @@ function start(): () => void {
     // bounded number of rects.
     const rows = new Uint8Array(px);
     for (const f of ticks.at) rows[Math.min(px - 1, Math.max(0, Math.floor(f * px)))] = 1;
-    const w = 6 * dpr;
-    const x = (HIT - 2 - 6) * dpr;
+    // In the thumb's own lane (4 px, 5 px in from the bar's end), under it.
+    const w = 4 * dpr;
+    const x = 5 * dpr;
     const h = Math.max(2, Math.round(dpr * 2));
     const runs: number[] = [];
     for (let r = 0; r < px; ) {
@@ -454,9 +463,9 @@ function start(): () => void {
     if (ticks.current !== null) {
       // The current hit: wider and taller, dark with a lime edge (distinct from the rest).
       const y = Math.min(px - 1, Math.max(0, Math.floor(ticks.current * px)));
-      const cw = 9 * dpr;
+      const cw = 8 * dpr;
       const ch = Math.round(4 * dpr);
-      const cx = x - 3 * dpr;
+      const cx = x - 2 * dpr;
       ctx.fillStyle = halo;
       ctx.fillRect(cx - edge, y - edge - dpr, cw + 2 * edge, ch + 2 * edge + 2 * dpr);
       ctx.fillStyle = ring;

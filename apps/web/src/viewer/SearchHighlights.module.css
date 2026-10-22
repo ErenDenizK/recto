@@ -4,7 +4,7 @@
 
 /* A hit is lime (DSN-16) and reads on a page of either tone (DSN-62). It keeps the text under it
    only by blending into the page: a multiply fill darkens a light page to a deep lime, a screen
-   fill (`data-tone='dark'`, from the page bitmap's median lightness) lifts a dark one. Nothing
+   fill (`data-tone='dark'`, from the page bitmap's median lightness under the hit) lifts a dark one. Nothing
    here animates. */
 .hit {
   position: absolute;
@@ -13,7 +13,7 @@
   mix-blend-mode: multiply;
 }
 
-.layer[data-tone='dark'] .hit {
+.hit[data-tone='dark'] {
   background: var(--find-hit-screen);
   mix-blend-mode: screen;
 }
@@ -27,6 +27,6 @@
   box-shadow: 0 0 0 4px var(--find-current-halo);
 }
 
-.layer[data-tone='dark'] .hit[data-current] {
+.hit[data-tone='dark'][data-current] {
   background: var(--find-current-screen);
 }
