@@ -536,15 +536,19 @@ export function MarkupPaletteContent() {
   // The capsule rests at this content's size, centred in the dock: its width rounds so the
   // palette's glass rests on whole pixels (Q-2; it sat at x 190.88, V2 review item 16).
   const contentRef = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    const el = contentRef.current;
-    if (!el) return undefined;
-    return snapToWholePixels(el, 'width', { container: () => centredRoom(el, '[data-capsule]') });
-  }, []);
   const door = usePaletteDoor();
   const mode = useToolStore((s) => s.mode);
   const activePen = useAnnotationStore((s) => s.pen.active);
   const { candidates, state } = useRowState(door);
+  // Snapped again when the grouped palette opens another group: the row stretches to the
+  // minimum the snap set, so its narrower items would never resize anything it observes, and
+  // the capsule would keep the old group's width.
+  const rowItems = `${state.open ?? ''}|${candidates.join(' ')}`;
+  useLayoutEffect(() => {
+    const el = contentRef.current;
+    if (!el) return undefined;
+    return snapToWholePixels(el, 'width', { container: () => centredRoom(el, '[data-capsule]') });
+  }, [rowItems]);
 
   // --- Focus, roving and Esc -----------------------------------------------------------
   const roving = useRovingTabindex(
@@ -656,7 +660,7 @@ function TaskHeader({
       label={armed === undefined ? name : m.markup_task_armed({ group: name, tool: armed })}
       text={
         <span className={styles.names} aria-hidden="true">
-          {groupNames(group).map((text) => (
+          {(open ? groupNames(group) : [name]).map((text) => (
             <span key={text} data-shown={text === shown ? '' : undefined}>
               {text}
             </span>

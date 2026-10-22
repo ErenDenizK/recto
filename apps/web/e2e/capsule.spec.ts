@@ -548,6 +548,9 @@ for (const palette of PALETTES) {
           'true',
         );
         await settled(page);
+        const capsuleWidth = () =>
+          page.locator('[data-capsule]').evaluate((el) => el.getBoundingClientRect().width);
+        const drawWidth = await capsuleWidth();
         // Pressed inside the page, the animations read on the next frame (as below).
         const seen = await page.evaluate(async () => {
           const capsule = document.querySelector('[data-capsule]') as HTMLElement;
@@ -573,6 +576,9 @@ for (const palette of PALETTES) {
         );
         await expect(bar.locator('[data-item="note"]')).toBeVisible();
         await expect(bar.locator('[data-item="eraser"]')).toHaveCount(0);
+        // The capsule rests at Comment's narrower row, not at Draw's width.
+        await settled(page);
+        expect(await capsuleWidth()).toBeLessThan(drawWidth - 40);
       });
     }
 

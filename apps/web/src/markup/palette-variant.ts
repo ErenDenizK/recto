@@ -2,7 +2,7 @@
  * Which Markup palette shows (epic R25-7, board question 3; `design/markup-groups-2026-10.md`):
  * today's row (`03-markup` MK-2), the default, or one of two layouts to try before one is chosen.
  *
- * - **`?palette=groups`**: four labelled groups (Draw · Comment · Sign & fill · Change page),
+ * - **`?palette=groups`**: four labelled groups (Draw · Comment · Fill & sign · Change page),
  *   one open at a time, its tools in place (`task-groups.ts`).
  * - **`?palette=labels`**: today's row with a short label beside each tool, folding by width
  *   (the memo's layout B, a mock kept for the comparison).

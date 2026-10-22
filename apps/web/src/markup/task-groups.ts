@@ -1,22 +1,22 @@
 /**
  * The grouped Markup palette (`?palette=groups`, `palette-variant.ts`; epic R25-7, layout A of
  * `design/markup-groups-2026-10.md`): the row's tools under four labelled groups named for the
- * task, Draw · Comment · Sign & fill · Change page, between Select and +.
+ * task, Draw · Comment · Fill & sign · Change page, between Select and +.
  *
  * ```
- * ✓ Done │ ↖ │ ✎ Draw ◉ ● ● ▬ ⌫ ◌ ▭ │ 💬 Comment │ ✑ Sign & fill │ ▤ Change page │ +
+ * ✓ Done │ ↖ │ ✎ Draw ◉ ● ● ▬ ⌫ ◌ ▭ │ 💬 Comment │ ✑ Fill & sign │ ▤ Change page │ +
  * ```
  *
  * - **One group open**, its tools in place after its name; the others show their name alone.
  *   Pressing a name opens that group, and the capsule morphs to the new row (MK-1, through
  *   `shell/capsule/content-morph.ts`). The door picks the first one (Markup: Draw, so a pen
- *   is still one press, INK-2; Fill & sign: Sign & fill).
+ *   is still one press, INK-2; Fill & sign: its own group).
  * - **Keys follow**: a tool armed by its key, ⌘K or + opens its group (installed on import, so
  *   it holds for every path that arms a tool). Closing Markup forgets the choice.
  * - **The armed tool's name**: a group holding the armed tool shows that tool's name in place of
  *   its own when the tool's button has none of its own (Draw, Comment). Every name the group can
  *   show is laid out in one grid cell, so the name changes and nothing moves under the hand.
- * - **Fold** (`palette-fold.ts`): the closed groups' names drop first (Change page, Sign & fill,
+ * - **Fold** (`palette-fold.ts`): the closed groups' names drop first (Change page, Fill & sign,
  *   Comment, Draw), then Done's, then today's steps for the open group's tools, then its name.
  */
 import { useSyncExternalStore } from 'react';
@@ -53,7 +53,8 @@ export const TASK_ITEMS: Readonly<Record<TaskGroup, readonly PaletteItem[]>> = {
 export const TASK_LABEL: Readonly<Record<TaskGroup, () => string>> = {
   draw: m.markup_group_draw,
   comment: m.markup_task_comment,
-  sign: m.markup_task_sign,
+  // One task, one name: the group the Fill & sign door opens is named as the door.
+  sign: m.dock_fill_sign,
   change: m.markup_task_change,
 };
 
@@ -77,15 +78,14 @@ const NAMED_MODES: Readonly<Record<TaskGroup, readonly ToolMode[]>> = {
   change: [],
 };
 
-/** The name of an armed tool as its group shows it ("Pen", "Highlighter", "Note"). */
+/** The name of an armed tool as its group shows it ("Pen", "Eraser", "Note"). */
 function modeName(mode: ToolMode, highlighter: boolean): string {
   return mode === 'ink' && highlighter ? m.tool_highlighter() : toolDefinition(mode).title();
 }
 
-/** Every name `group`'s label can show: its own, then its tools' (laid out in one cell). */
+/** Every name `group`'s label can show while open: its own, then its tools' (one cell). */
 export function groupNames(group: TaskGroup): readonly string[] {
   const names = NAMED_MODES[group].map((mode) => modeName(mode, false));
-  if (group === 'draw') names.push(m.tool_highlighter());
   return [TASK_LABEL[group](), ...new Set(names)];
 }
 
@@ -95,6 +95,9 @@ export function armedName(
   mode: ToolMode,
   highlighter: boolean,
 ): string | undefined {
+  // The highlighter's own swatch says what it is, and its long name would widen Draw's slot at
+  // rest: Draw keeps its name while it is armed.
+  if (mode === 'ink' && highlighter) return undefined;
   return NAMED_MODES[group].includes(mode) ? modeName(mode, highlighter) : undefined;
 }
 

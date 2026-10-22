@@ -6,18 +6,18 @@ behind a flag that sticks per device (`markup/palette-variant.ts`, as `office/fl
 
 ## (A) Four labelled groups: built (`?palette=groups`)
 
-`✓ Done │ ↖ │ ✎ Draw ● ● ● ▬ ⌫ ◌ ▭ │ 💬 Comment │ ✑ Sign & fill │ ▤ Change page │ +`
+`✓ Done │ ↖ │ ✎ Draw ● ● ● ▬ ⌫ ◌ ▭ │ 💬 Comment │ ✑ Fill & sign │ ▤ Change page │ +`
 
-- Draw (pens, highlighter, eraser, lasso, shapes) · Comment (note, text box, stamp, image) · Sign &
-  fill (sign, saved signatures, fields) · Change page (edit text, redact). One group is open at a time,
-  with its tools in place after its name. Pressing another name opens that group, and the capsule
-  morphs to the new row (MK-1, `shell/capsule/content-morph.ts`). Reduced motion gets the
-  cross-fade.
-- Markup opens on Draw, so a pen is still one press (INK-2). Fill & sign opens on Sign & fill.
-  When a tool is armed by its key, ⌘K or +, its group opens. Keys stay INK-7.
-- The armed tool shows its name: Draw reads "Highlighter" or "Eraser", Comment reads "Note". Every
-  name sits in one grid cell, so the name changes and nothing moves under the hand. Sign and Edit text
-  already show their own label.
+- Draw (pens, highlighter, eraser, lasso, shapes) · Comment (note, text box, stamp, image) · Fill &
+  sign (sign, saved signatures, fields; named as its door, one task one name) · Change page (edit
+  text, redact; TR "Sayfayı düzenle"). One group is open at a time, its tools in place after its
+  name. Pressing another name opens it, and the capsule morphs to the new row (MK-1,
+  `shell/capsule/content-morph.ts`); reduced motion gets the cross-fade.
+- Markup opens on Draw, so a pen is still one press (INK-2); Fill & sign opens its own group. A tool
+  armed by its key, ⌘K or + opens its group. Keys stay INK-7.
+- The armed tool shows its name: Draw reads "Eraser" or "Rectangle", Comment reads "Note" (the
+  highlighter's swatch names itself, so Draw keeps its name). The open group's names share one grid
+  cell, so nothing moves under the hand; a closed group takes only its own name's width.
 - Fold: the closed groups' names go first, then Done's label, then MK-2's steps for the open group.
   At 1180, 1366 and 1440 nothing goes under +.
 
@@ -34,8 +34,8 @@ wide desktop. A costs one extra press for a tool outside Draw used with the mous
 nothing extra. A also brings back M6's labelled groups (DSN-7's concept) inside one capsule (Q-9). The
 board picks: try A on the iPad and let the user tests decide (DSN-59).
 
-**Screenshots** (lead's scratchpad): `r25-markup-{groups,labels}-{1440,1180-touch,1366-touch}-{light,dark}.png`
-and `r25-markup-groups-{size}-comment-armed.png` (Comment open, Note armed and named).
+**Screenshots** (scratchpad): `r25-markup2-groups-{1440,1180-touch,1366-touch}-{light,dark}.png`, `…-light-comment-armed.png`
+(Note armed, capsule at Comment's width), `…-{1440,1180-touch}-light-tr*.png` (TR: four names fit, no fold).
 
 ## Presses to each user-test-kit tool (`research/user-tests/kit.md` D2–D6)
 
@@ -46,7 +46,7 @@ counted. The tablet counts are the same, because neither layout folds a kit tool
 | ------------------------------------ | ------------------------------------------------------------ | --------------------------- | --------------------------- |
 | D2 highlight + note                  | 5: Markup · Highlighter · drag · Note · place                 | 6: + Comment before Note    | 4: H · drag · N · place     |
 | D3 edit a word                       | 3: Markup · Edit text · the word                              | 4: + Change page            | 2: E · the word             |
-| D4 fill and sign (first signature)   | 5: Fill & sign · Sign · draw · Use signature · place (+ fields) | 5: Sign & fill opens itself | 4: G · draw · Use · place   |
+| D4 fill and sign (first signature)   | 5: Fill & sign · Sign · draw · Use signature · place (+ fields) | 5: the door opens its group | 4: G · draw · Use · place   |
 | D5 last page first                   | 2: Pages · drag                                               | 2 (not on the row)          | 2                           |
 | D6 redact and apply                  | 5: Markup · Redact · drag · Apply · confirm                   | 6: + Change page            | 4: X · drag · Apply · confirm |
 

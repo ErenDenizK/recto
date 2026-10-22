@@ -25,7 +25,7 @@ describe('the grouped palette', () => {
     expect([...grouped, 'done', 'select', 'more'].sort()).toEqual([...PALETTE_ITEMS].sort());
   });
 
-  it('opens on Draw from Markup and on Sign & fill from Fill & sign', () => {
+  it('opens on Draw from Markup and on Fill & sign from Fill & sign', () => {
     expect(doorGroup('draw')).toBe('draw');
     expect(doorGroup('sign')).toBe('sign');
   });
@@ -42,7 +42,9 @@ describe('the grouped palette', () => {
 
   it("names the armed tool on its group when the tool's button has no name", () => {
     expect(armedName('draw', 'eraser', false)).toBe('Eraser');
-    expect(armedName('draw', 'ink', true)).toBe('Highlighter');
+    // The highlighter's swatch names it; Draw keeps its name (no long name in its slot).
+    expect(armedName('draw', 'ink', true)).toBeUndefined();
+    expect(armedName('draw', 'ink', false)).toBe('Pen');
     expect(armedName('comment', 'note', false)).toBe('Note');
     // Sign and Edit text carry their own names; another group's tool is not named.
     expect(armedName('sign', 'signature', false)).toBeUndefined();

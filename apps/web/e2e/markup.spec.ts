@@ -12,7 +12,7 @@
  *   builds; until then Apply sits in the Redact tool's strip.
  *
  * Each count is of real presses, drags and keys (`presses`), and holds on today's row and on the
- * grouped palette (`?palette=groups`, epic R25-7: Markup opens on Draw, Fill & sign on Sign & fill).
+ * grouped palette (`?palette=groups`, epic R25-7: Markup opens on Draw, Fill & sign on its own group).
  */
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
