@@ -144,6 +144,7 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-59](decisions/design.md) | The grouped Markup palette (four labelled groups) is a prototype behind `?palette=groups` | Prototype; board question 3 | 2026-10-22 |
 | [DSN-60](decisions/design.md) | Reading zoom stays uncapped on laptops (the R25 proposal to hold the page near 900 px is declined) | In force | 2026-10-22 |
 | [DSN-61](decisions/design.md) | Find outranks the page facts (chunked, paused for a search), shows scan progress, one snippet per result | In force | 2026-10-22 |
+| [DSN-62](decisions/design.md) | Find shows where: lime hits that read on a light or a dark page (per-page multiply or screen, darker current hit), and hit ticks on the reader's scroll bar from one canvas | In force | 2026-10-22 |
 
 ## Motion
 

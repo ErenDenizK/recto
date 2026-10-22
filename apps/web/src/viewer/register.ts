@@ -5,6 +5,7 @@
 import { registerPageOverlay } from '../stage/page-overlays';
 import { LinkLayer } from './LinkLayer';
 import { SearchHighlights } from './SearchHighlights';
+import './search-ticks';
 import { TextLayer } from './TextLayer';
 
 // Explicit names: overlays are keyed by name, and minified function names can collide.

@@ -14,7 +14,7 @@
  */
 import { type CSSProperties, useEffect, useLayoutEffect, useRef } from 'react';
 
-import { setScrollLabel } from '../ui/scroll-thumbs';
+import { refreshScrollTicks, setScrollLabel } from '../ui/scroll-thumbs';
 import styles from './ReadView.module.css';
 import type { Size } from './stage-bleed';
 
@@ -105,6 +105,11 @@ export function ScrollProxies({
     if (!bar) return;
     setScrollLabel(bar, (scrollTop) => labelRef.current?.(scrollTop) ?? '');
     return () => setScrollLabel(bar, null);
+  }, [vertical]);
+  // Find's hit ticks follow the vertical bar as it comes and goes (DSN-62).
+  useEffect(() => {
+    refreshScrollTicks();
+    return refreshScrollTicks;
   }, [vertical]);
 
   const bare = (thumb ? {} : { '--scroll-bar': 'none' }) as CSSProperties;
