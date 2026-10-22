@@ -30,6 +30,7 @@ import type {
   LocatedRun,
   NewAnnotation,
   OcrApplyResult,
+  OcrFactsOptions,
   OcrLayerPlan,
   OcrPageFacts,
   OcrRaster,
@@ -362,7 +363,7 @@ export interface PdfiumWorkerApi {
   // PdfOcrLayer (ocr/): facts and rasters under raw access, the layer like a redaction.
   ocrPageFacts(
     id: SourceId,
-    options: WireCallOptions,
+    options: Omit<OcrFactsOptions, 'signal'>,
     abortPort?: MessagePort,
   ): Promise<Wire<readonly OcrPageFacts[]>>;
   /** The PGM bytes are transferred to the caller. */

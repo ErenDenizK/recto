@@ -13,14 +13,18 @@ import { getEngineService, getOcrRecognizers } from '../engine/engine-service';
 export type OcrPacks = Pick<OcrPackStore, 'list' | 'keepOffline' | 'remove' | 'importFile'>;
 
 export interface OcrDependencies {
-  readonly facts: (source: SourceId) => Promise<readonly OcrPageFacts[]>;
+  /** Facts of `range.count` pages from `range.from` (entry 0 is page `from`); all by default. */
+  readonly facts: (
+    source: SourceId,
+    range?: { readonly from: number; readonly count: number },
+  ) => Promise<readonly OcrPageFacts[]>;
   readonly packs: () => Promise<OcrPacks>;
   /** Worker and core files "Keep available offline" caches with a pack (ADR-0012 §4). */
   readonly engineFiles: () => Promise<readonly string[]>;
 }
 
 const defaults = (): OcrDependencies => ({
-  facts: async (source) => (await getEngineService().ocrLayer()).ocrPageFacts(source),
+  facts: async (source, range) => (await getEngineService().ocrLayer()).ocrPageFacts(source, range),
   packs: () => getOcrRecognizers().packs(),
   engineFiles: async () => (await import('@pdf-editor/engine/client')).ocrEngineFiles(),
 });

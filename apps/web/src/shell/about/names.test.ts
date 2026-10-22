@@ -93,6 +93,8 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:annotations:author:v1',
       'pdf-editor:appearance:v1',
       'pdf-editor:bates-last-number',
+      // The tab's last reload for a failed launch chunk (sessionStorage, pwa/boot-reload.ts).
+      'pdf-editor:boot-reload:v1',
       'pdf-editor:dev:glass-stats',
       'pdf-editor:dev:ink-stats',
       'pdf-editor:drawer:v1',

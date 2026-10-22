@@ -9,6 +9,7 @@ import { lazy, StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { getLocale } from './i18n/locale';
+import { loadOrReload } from './pwa/boot-reload';
 import { armServiceWorkerRegistration, startServiceWorker } from './pwa/register';
 import { launchEdition } from './shell/frame/edition';
 import { useSizeClass } from './shell/frame/size-class';
@@ -36,17 +37,19 @@ if (getLocale() === 'tr')
  * the compact edition, everything else the full one. Each edition is its own chunk, loaded
  * lazily, so a phone never downloads the full shell (`app.tsx`, today's tree, unchanged) and
  * a desktop never downloads the compact one (`shell/compact/`). `?edition=compact|full`
- * overrides the choice for the session.
+ * overrides the choice for the session. A chunk that fails to load is imported again, then
+ * the page reloads once, then a static screen offers Reload (`pwa/boot-reload.ts`, PRD-26):
+ * never a blank page.
  */
 const Edition =
   launchEdition() === 'compact'
     ? lazy(() =>
-        import('./shell/compact/CompactApp')
+        loadOrReload(() => import('./shell/compact/CompactApp'), 'compact', 'CompactApp')
           .then((module) => ({ default: module.CompactApp }))
           .finally(armServiceWorkerRegistration),
       )
     : lazy(() =>
-        import('./app')
+        loadOrReload(() => import('./app'), 'full', 'App')
           .then((module) => ({ default: module.App }))
           .finally(armServiceWorkerRegistration),
       );

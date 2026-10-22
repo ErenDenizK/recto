@@ -17,7 +17,7 @@ import { useRef } from 'react';
 
 import { commandRegistry } from '../commands/registry';
 import { formatNumber, m } from '../i18n';
-import { usePwaStore } from '../pwa/register';
+import { usePwaStore } from '../pwa/service-worker';
 import { serviceWorkerLabel } from '../pwa/service-worker-label';
 import { BUILD_INFO } from '../shell/about/build-info';
 import { KeptOnDevice } from '../session/KeptOnDevice';
