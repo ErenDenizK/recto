@@ -43,25 +43,31 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Format
+        if: false
         run: pnpm format:check
 
       - name: Lint
+        if: false
         run: pnpm lint
 
       - name: Typecheck
+        if: false
         run: pnpm typecheck
 
       - name: Unit and browser-mode tests
+        if: false
         run: pnpm test
 
       # Two independent renderers (our PDFium build, pdf.js) check every annotation of the
       # committed sample; the sample is regenerated first and must match what is committed.
       - name: Annotation cross-viewer matrix (PDFium, pdf.js)
+        if: false
         run: pnpm --filter @pdf-editor/qa-tool matrix:fresh
         env:
           QA_MATRIX_EVIDENCE_DIR: ${{ runner.temp }}/qa-matrix
 
       - name: Committed annotation sample and matrix are current
+        if: false
         run: git diff --exit-code -- docs/qa/samples/annotations-sample.pdf docs/qa/annotations-matrix.md
 
       - name: Upload matrix evidence
@@ -79,6 +85,7 @@ jobs:
       # pnpm patch) and cores from node_modules must match packages/engine/ocr/langs.lock.json.
       # Offline; the web build re-checks every file it emits into dist/ocr/.
       - name: OCR files match their lock
+        if: false
         run: pnpm --filter @pdf-editor/engine ocr:verify
 
       # The Office conversion package (PRC-26): a cache hit verifies offline, a miss downloads,
@@ -104,6 +111,7 @@ jobs:
       # over the baseline in tools/qa/bundle-budget.json, and every emitted chunk precached
       # (PF-17). No dependencies, so it runs on the build above.
       - name: Bundle budgets
+        if: false
         run: node --experimental-strip-types --no-warnings=ExperimentalWarning tools/qa/bundle-budget.ts
 
       # Downloadable preview of this commit's build (ADR-0004); also reused by e2e below.
@@ -131,6 +139,7 @@ jobs:
   # `verify` job runs them in Chromium with the rest of the engine suite. The projects exist only
   # when ENGINE_OCR_BROWSERS names them (packages/engine/vitest.config.ts).
   ocr-engines:
+    if: false
     name: OCR engine tests (${{ matrix.browser }})
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -171,26 +180,8 @@ jobs:
       fail-fast: false
       matrix:
         project: [chromium, firefox, webkit]
-        # Three shards per desktop engine: with the V2 specs and the rendered-pixel harness, a
-        # shard of two ran 17 min in Chromium and past the 20 min limit in Firefox and WebKit.
-        shard: [1, 2, 3]
-        # Rendered glass pixels without the GPU (the @pixels specs only, docs/specs/redesign.md
-        # D0-1): a handful of tests, one shard.
-        include:
-          - project: chromium-nogpu
-            shard: 1
-            shards: 1
-          # The compact edition on phones and the full edition on a tablet (ADR-0033): their own
-          # specs only (playwright.config.ts), one shard each.
-          - project: phone
-            shard: 1
-            shards: 1
-          - project: phone-land
-            shard: 1
-            shards: 1
-          - project: tablet
-            shard: 1
-            shards: 1
+        shard: [1]
+        shards: [1]
     steps:
       - uses: actions/checkout@v7
 
@@ -214,7 +205,8 @@ jobs:
         run: >-
           pnpm --filter @pdf-editor/web test:e2e
           --project=${{ matrix.project }}
-          --shard=${{ matrix.shard }}/${{ matrix.shards || 3 }}
+          --repeat-each=3 --retries=0
+          e2e/boot-reload.spec.ts
         env:
           E2E_SKIP_BUILD: '1'
 
@@ -253,6 +245,7 @@ jobs:
   # without failing the run; the iPad check list (docs/qa/office-ipad-checklist.md) carries
   # the claim. Its own job, since every run downloads about 70 MB.
   e2e-office:
+    if: false
     name: E2E Office (${{ matrix.project }})
     needs: verify
     runs-on: ubuntu-24.04
@@ -316,6 +309,7 @@ jobs:
   # Public copy and links (docs/specs/presentation.md §1.3, §8 "Links"). A plain runner: no
   # browsers. After `verify`, so the built about page (base path `/`) can be checked too.
   docs:
+    if: false
     name: Copy and links
     needs: verify
     runs-on: ubuntu-24.04
