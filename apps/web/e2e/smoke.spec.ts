@@ -2,7 +2,15 @@ import { fileURLToPath } from 'node:url';
 
 import { expect, test } from '@playwright/test';
 
-import { atRest, enterEdit, openFixtures, quiet, trackEngine, useFileInputPicker } from './helpers';
+import {
+  atRest,
+  enterEdit,
+  openFixtures,
+  PAGE_CANVAS,
+  quiet,
+  trackEngine,
+  useFileInputPicker,
+} from './helpers';
 
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
 
@@ -209,7 +217,9 @@ test('screenshots of the shell, Home and Document info (design review)', async (
   // The Document menu's sections, then Document info: a side sheet from the menu.
   await page.locator('body').press('Home');
   await expect(
-    page.locator('[data-read-viewport] [data-page-index="0"] canvas[data-state="rendered"]'),
+    page.locator(
+      `[data-read-viewport] [data-page-index="0"] ${PAGE_CANVAS}[data-state="rendered"]`,
+    ),
   ).toBeVisible({ timeout: 20_000 });
   await quiet(page);
   await page.getByTestId('document-menu').click();
@@ -236,7 +246,9 @@ test('screenshots of the shell, Home and Document info (design review)', async (
   await page.locator('body').press('1');
   await page.setViewportSize(narrow);
   await expect(
-    page.locator('[data-read-viewport] [data-page-index="0"] canvas[data-state="rendered"]'),
+    page.locator(
+      `[data-read-viewport] [data-page-index="0"] ${PAGE_CANVAS}[data-state="rendered"]`,
+    ),
   ).toBeVisible({ timeout: 20_000 });
   await quiet(page);
   await shot('m0-shell-read-1024.png');

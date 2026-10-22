@@ -10,7 +10,14 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { enterEdit, openFixtures, quiet, trackEngine, useFileInputPicker } from './helpers';
+import {
+  enterEdit,
+  openFixtures,
+  PAGE_CANVAS,
+  quiet,
+  trackEngine,
+  useFileInputPicker,
+} from './helpers';
 
 const palette = (page: Page) => page.getByRole('toolbar', { name: 'Markup', exact: true });
 /**
@@ -252,7 +259,9 @@ test("Read's page menu offers the page operations, pages acts without Edit (D1-5
 }) => {
   await openFixtures(page, ['simple-text.pdf']);
   const first = page.locator('[data-page-index="0"]');
-  await expect(first.locator('canvas[data-state="rendered"]')).toBeAttached({ timeout: 20_000 });
+  await expect(first.locator(`${PAGE_CANVAS}[data-state="rendered"]`)).toBeAttached({
+    timeout: 20_000,
+  });
   const box = await first.boundingBox();
   if (!box) throw new Error('page 1 not laid out');
   await page.mouse.click(box.x + 40, box.y + 40, { button: 'right' });
