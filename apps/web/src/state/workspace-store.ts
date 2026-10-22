@@ -463,13 +463,15 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => {
       for (const id of Object.keys(entry.workspace.sources)) live.add(id);
     }
     // Sources only history references (a closed document undo can bring back) are parked, and
-    // parked ones shown again are reopened (PF-18); the lazy module decides.
+    // parked ones shown again are reopened (PF-18); the lazy module decides. It gets the
+    // protected set as it is now: the module loads later, and a source whose operation finished
+    // meanwhile is no longer protected but is not in the `present` read here either.
     void import('./reopen-parked').then((m) =>
       m.syncParking(
         Object.keys(files) as SourceId[],
         live,
         history.present.workspace.sources,
-        protections,
+        held,
       ),
     );
     const dead = (Object.keys(files) as SourceId[]).filter((id) => !live.has(id));

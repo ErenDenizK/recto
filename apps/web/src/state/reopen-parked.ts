@@ -18,7 +18,7 @@ export function syncParking(
   ids: readonly SourceId[],
   live: ReadonlySet<string>,
   shown: object,
-  protections: { has(id: string): boolean },
+  protections: ReadonlySet<string>,
 ): void {
   const engine = getEngineService();
   for (const id of ids) {
