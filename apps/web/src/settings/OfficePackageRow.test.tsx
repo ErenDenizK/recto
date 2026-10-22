@@ -26,6 +26,7 @@ vi.mock('../ui/sheet', async (importActual) => ({
 vi.mock('../pwa/office-worker', () => ({
   askServiceWorker: () => Promise.resolve(true),
   serviceWorkerControls: () => true,
+  whenServiceWorkerControls: () => Promise.resolve(true),
 }));
 
 async function stubInstalled(): Promise<void> {
