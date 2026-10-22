@@ -3,7 +3,7 @@
  * About dialog so both say the same thing.
  */
 import { m } from '../i18n';
-import type { ServiceWorkerStatus } from './register';
+import type { ServiceWorkerStatus } from './service-worker';
 
 export function serviceWorkerLabel(status: ServiceWorkerStatus, updateAvailable: boolean): string {
   switch (status) {

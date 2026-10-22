@@ -80,6 +80,12 @@ export const SEMANTIC_TOKENS: readonly string[] = [
   '--select-muted',
   '--select-wash',
   '--select-wash-strong',
+  '--find-hit-multiply',
+  '--find-hit-screen',
+  '--find-current-multiply',
+  '--find-current-screen',
+  '--find-current-ring',
+  '--find-current-halo',
   '--redact-page',
   '--crop-dim',
   // Status.

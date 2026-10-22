@@ -17,7 +17,7 @@ import { page, userEvent } from 'vitest/browser';
 
 import { useAnnotationStore } from '../annotations/annotation-store';
 import { setLocale } from '../i18n';
-import { usePwaStore } from '../pwa/register';
+import { usePwaStore } from '../pwa/service-worker';
 import { makeBuildInfo } from '../shell/about/build-info';
 import { DEFAULT_APPEARANCE, useAppearanceStore } from '../state/appearance-store';
 import { resetInputPolicyStore, useInputPolicyStore } from '../state/input-policy-store';

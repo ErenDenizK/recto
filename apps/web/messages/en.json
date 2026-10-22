@@ -55,6 +55,7 @@
   "selection_edit_text_tooltip": "Switch to Edit and change this text",
   "selection_mark_up_hint": "Highlight with H, underline with U, strike out with S",
   "selection_copied": "Text copied",
+  "images_document_title": "Images",
   "drop_no_pdfs": "No PDF or image files found in the drop",
   "nav_label": "Sidebar",
   "nav_views_label": "Sidebar sections",
@@ -4641,6 +4642,7 @@
     }
   ],
   "find_recognize": "Recognize text…",
+  "find_scanning": "Searching… {done} of {total} pages",
   "find_results_more": "More result actions",
   "find_marked": [
     {
