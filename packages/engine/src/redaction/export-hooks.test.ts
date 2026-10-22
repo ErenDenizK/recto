@@ -145,6 +145,29 @@ describe('export plan', () => {
     expect(hooks?.unmappedAreas).toBe(3);
   });
 
+  test('annotations created after an apply are its later marks (RED-1)', () => {
+    const create = (id: string, source: SourceId = S): EngineEdit => ({
+      id: `create-${id}`,
+      source,
+      pageIndex: 0,
+      kind: 'annotation.create',
+      payload: { annotation: { id, kind: 'ink' } },
+    });
+    const applyEdit = ws.engineEdits[0]!;
+    const later = {
+      ...ws,
+      engineEdits: [
+        create('before'),
+        applyEdit,
+        create('after'),
+        create('elsewhere', 'x' as SourceId),
+      ],
+    };
+    const [mapped] = planExport(later, documentId as never).redaction?.plans ?? [];
+    expect(mapped?.laterMarks).toEqual(['after']);
+    expect(planExport(ws, documentId as never).redaction?.plans[0]?.laterMarks).toBeUndefined();
+  });
+
   test('only well-formed redaction.apply payloads count', () => {
     const edit = (kind: EngineEdit['kind'], payload: unknown): EngineEdit => ({
       id: 'x',

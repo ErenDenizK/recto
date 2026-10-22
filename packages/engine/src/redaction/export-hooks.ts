@@ -6,6 +6,7 @@
  * Areas stay valid through the assembler's page copy, rotation and crop (user space is
  * unchanged); areas on a page that is resized are not mapped (its content is transformed)
  * and are counted in `unmappedAreas`, while their strings are still checked document-wide.
+ * Each plan carries the annotations created after its apply (`laterMarks`, RED-1).
  */
 
 import type { EngineEdit, SourceId, VirtualDocument, Workspace } from '@pdf-editor/document-model';
@@ -51,16 +52,34 @@ export function redactionPlanOf(edit: EngineEdit): RedactionPlan | undefined {
   return plan;
 }
 
+/**
+ * Ids (/NM) of the annotations `edits` create on `source`: marks made after a redaction's
+ * apply (RED-1), which its area checks ignore. A /Redact mark among them is still refused by
+ * the check.
+ */
+function createdAnnotationIds(edits: readonly EngineEdit[], source: SourceId): string[] {
+  const ids: string[] = [];
+  for (const edit of edits) {
+    if (edit.kind !== 'annotation.create' || edit.source !== source) continue;
+    const id = (edit.payload as { annotation?: { id?: unknown } } | null)?.annotation?.id;
+    if (typeof id === 'string' && id !== '') ids.push(id);
+  }
+  return ids;
+}
+
 /** The redactions of `doc` for its export, or undefined when none of its sources has any. */
 export function redactionExportPlan(
   ws: Workspace,
   doc: VirtualDocument,
 ): RedactionExportPlan | undefined {
   const bySource = new Map<SourceId, RedactionPlan[]>();
-  for (const edit of ws.engineEdits) {
+  ws.engineEdits.forEach((edit, index) => {
     const plan = redactionPlanOf(edit);
-    if (plan) bySource.set(edit.source, [...(bySource.get(edit.source) ?? []), plan]);
-  }
+    if (!plan) return;
+    const laterMarks = createdAnnotationIds(ws.engineEdits.slice(index + 1), edit.source);
+    const withMarks = laterMarks.length > 0 ? { ...plan, laterMarks } : plan;
+    bySource.set(edit.source, [...(bySource.get(edit.source) ?? []), withMarks]);
+  });
   const used = new Set<SourceId>();
   for (const page of doc.pages) {
     if (page.ref.kind === 'source' && bySource.has(page.ref.source)) used.add(page.ref.source);

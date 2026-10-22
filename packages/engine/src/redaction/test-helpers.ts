@@ -95,12 +95,12 @@ export async function createRedactionHarness(wasmUrl: string): Promise<Redaction
     const deps: ForensicDeps = {
       getPageText: (pageIndex) => adapter.getPageText(id, pageIndex),
       search: (query) => adapter.search(id, query),
-      renderArea: async (pageIndex, rect, scale): Promise<ForensicPixels> => {
+      renderArea: async (pageIndex, rect, scale, annotations = true): Promise<ForensicPixels> => {
         const { bitmap, width, height } = await adapter.renderPage(id, pageIndex, {
           scale,
           clip: rect,
-          withAnnotations: true,
-          withForms: true,
+          withAnnotations: annotations,
+          withForms: annotations,
         });
         const canvas = new OffscreenCanvas(width, height);
         const ctx = canvas.getContext('2d');

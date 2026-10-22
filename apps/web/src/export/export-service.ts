@@ -874,11 +874,18 @@ async function prepareExportNow(
             (f) => f.detail === 'pending /Redact mark' || f.detail === 'Redact intersects an area',
           ),
         );
+        // A mark drawn over a redaction after its apply is excused only while it stays an
+        // annotation (RED-1): flattened, it is page content the pixel check cannot tell apart.
+        const flattenedMarks =
+          flatten &&
+          redaction.plans.some((p) => (p.laterMarks ?? []).length > 0) &&
+          check.checks.some((c) => c.id === 'fill-pixels' && !c.passed);
         verification = {
           ok: false,
           problems: [
             ...verification.problems,
             ...(pendingMarks ? [m.export_redaction_pending_marks()] : []),
+            ...(flattenedMarks ? [m.export_redaction_flattened_marks()] : []),
             ...failingCheckLines(check),
           ],
         };

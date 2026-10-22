@@ -40,8 +40,13 @@ export interface ScratchDocument {
   chars(pageIndex: number): Promise<PageChar[]>;
   /** Case-insensitive search over all pages; hit rects in user space. */
   search(query: string): Promise<{ pageIndex: number; rects: Rect[] }[]>;
-  /** Raw RGBA render of `rect` (user space) with annotations and forms. */
-  renderArea(pageIndex: number, rect: Rect, scale: number): Promise<ForensicPixels>;
+  /** Raw RGBA render of `rect` (user space), with annotations and forms unless told not to. */
+  renderArea(
+    pageIndex: number,
+    rect: Rect,
+    scale: number,
+    annotations?: boolean,
+  ): Promise<ForensicPixels>;
   close(): Promise<void>;
 }
 
@@ -106,14 +111,14 @@ export async function openScratch(
         rects: hit.rects.map((r) => deviceToUserRect(pageGeometry(page(hit.pageIndex)), r)),
       }));
     },
-    async renderArea(pageIndex, rect, scale) {
+    async renderArea(pageIndex, rect, scale, annotations = true) {
       const p = page(pageIndex);
       const image = await runTask(
         engine.renderPageRectRaw(doc, p, userToDeviceRect(pageGeometry(p), rect), {
           scaleFactor: scale,
           rotation: 0,
-          withAnnotations: true,
-          withForms: true,
+          withAnnotations: annotations,
+          withForms: annotations,
         }),
         signal,
         { op: 'redaction render' },
@@ -148,7 +153,8 @@ export function forensicDepsOf(scratch: ScratchDocument): ForensicDeps {
         rects: hit.rects,
         context: '',
       })),
-    renderArea: (pageIndex, rect, scale) => scratch.renderArea(pageIndex, rect, scale),
+    renderArea: (pageIndex, rect, scale, annotations) =>
+      scratch.renderArea(pageIndex, rect, scale, annotations),
   };
 }
 
