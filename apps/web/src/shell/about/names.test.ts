@@ -110,6 +110,8 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:office-reload:v1',
       // The Office conversion flag, ?office=1|0 (office/flag.ts, ADR-0035 §6).
       'pdf-editor:office:v1',
+      // The Markup palette flag, ?palette=groups|labels|row (markup/palette-variant.ts, R25-7).
+      'pdf-editor:palette:v1',
       'pdf-editor:recents:v1',
       // "Don't ask again for this file" on Save's Replace question (files/save.ts, ADR-0032 §2.1).
       'pdf-editor:save:replace-ok:v1',
