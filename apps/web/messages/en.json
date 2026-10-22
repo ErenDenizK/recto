@@ -3994,7 +3994,7 @@
   "shortcuts_search_label": "Find a shortcut",
   "shortcuts_search_placeholder": "Find a shortcut",
   "shortcuts_no_match": "No shortcut matches “{query}”.",
-  "shortcuts_footer_note": "Shortcuts never fire while you type in a field.",
+  "shortcuts_footer_note": "While you type in a field, plain keys go to the field; {mod} shortcuts like Save and Find still work.",
   "shortcuts_action": "Action",
   "shortcuts_keys": "Keys",
   "undo_step": "Undo {step}",
@@ -4899,5 +4899,96 @@
   "cmd_file_text_to_pdf_keywords": "text to pdf, txt to pdf, txt, text, convert, text file to pdf, metinden pdf, metin",
   "file_picker_text": "Text files",
   "text_to_pdf_failed": "Could not turn {name} into a PDF",
-  "text_to_pdf_too_large": "{name} is too large to turn into a PDF (over 2 MB)."
+  "text_to_pdf_too_large": "{name} is too large to turn into a PDF (over 2 MB).",
+  "palette_intent_group": "Suggested",
+  "palette_recent_files": "Recent files",
+  "palette_intent_go_page": "Go to page {page}",
+  "palette_intent_go_heading": "Go to ‘{title}’",
+  "palette_intent_page_n": "Page {page}",
+  "palette_intent_open_recent": "Open ‘{name}’",
+  "palette_intent_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 page",
+        "countPlural=*": "{count} pages"
+      }
+    }
+  ],
+  "palette_intent_rotate_right": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Rotate page {pages} right",
+        "countPlural=*": "Rotate pages {pages} right"
+      }
+    }
+  ],
+  "palette_intent_rotate_left": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Rotate page {pages} left",
+        "countPlural=*": "Rotate pages {pages} left"
+      }
+    }
+  ],
+  "palette_intent_rotate_half": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Rotate page {pages} 180°",
+        "countPlural=*": "Rotate pages {pages} 180°"
+      }
+    }
+  ],
+  "palette_intent_delete": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Delete page {pages}",
+        "countPlural=*": "Delete pages {pages}"
+      }
+    }
+  ],
+  "palette_intent_duplicate": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Duplicate page {pages}",
+        "countPlural=*": "Duplicate pages {pages}"
+      }
+    }
+  ],
+  "palette_intent_extract": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Extract page {pages}",
+        "countPlural=*": "Extract pages {pages}"
+      }
+    }
+  ],
+  "palette_intent_no_document": "Open a document first",
+  "palette_intent_out_of_range": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "This document has 1 page",
+        "countPlural=*": "This document has {count} pages"
+      }
+    }
+  ],
+  "palette_intent_reversed": "Put the smaller page first, like 3–7",
+  "palette_intent_no_pages": "No pages match that",
+  "palette_intent_all_pages": "That would remove every page",
+  "palette_intent_ambiguous": "Say a range, like 2–3"
 }

@@ -207,6 +207,84 @@ test.describe('no key arms a tool while focus is in a field', () => {
   });
 });
 
+test.describe('type right after Mod+F: the word lands whole (MOT-17)', () => {
+  const find = (page: Page) => page.locator('[data-find-entry] input[type="search"]').first();
+
+  /** Mod+F and the word at once, while the view still changes; nothing else may act. */
+  async function findAtOnce(page: Page): Promise<void> {
+    await page.keyboard.press('ControlOrMeta+f');
+    await page.keyboard.type('tempor');
+    await expect(find(page)).toBeFocused();
+    await expect(find(page)).toHaveValue('tempor');
+    await expect(palette(page)).toHaveCount(0);
+    await expect(layer(page)).toHaveAttribute('data-tool', 'select');
+    await expect(page.getByTestId('find-count')).not.toHaveText('');
+  }
+
+  // 1440: the field in the strip; 1180: the field laid over the strip once ⌕ opens it.
+  for (const width of [1440, 1180]) {
+    test(`from the Pages grid as it closes (${width})`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 820 });
+      await open(page);
+      await page.keyboard.press('3');
+      await expect(grid(page)).toBeVisible();
+      await quiet(page);
+      // `1` starts the way out; its view transition holds the frames while the page prepares.
+      await page.keyboard.press('1');
+      await findAtOnce(page);
+      await expect(grid(page)).toHaveCount(0);
+    });
+  }
+
+  test('from the Library', async ({ page }) => {
+    await open(page);
+    await page.keyboard.press('0');
+    await expect(library(page)).toBeVisible();
+    await quiet(page);
+    await findAtOnce(page);
+    await expect(library(page)).toBeHidden();
+  });
+
+  test('from the command palette', async ({ page }) => {
+    await open(page);
+    await page.keyboard.press('ControlOrMeta+k');
+    const commands = page.getByRole('dialog');
+    await expect(commands.getByRole('combobox')).toBeFocused();
+    await findAtOnce(page);
+    await expect(commands).toHaveCount(0);
+  });
+});
+
+test.describe('Ctrl and ⌘ shortcuts work from inside Find (INK-12)', () => {
+  test('Save a copy and Settings; the field keeps select all and undo', async ({ page }) => {
+    await open(page);
+    // The strip's Find, in the strip from 1280 px or laid over it below (1180 touch): it stays
+    // while a sheet is up, where the sidebar laid over the page is put away.
+    const field = page.locator('[data-find-entry] input[type="search"]').first();
+    await page.keyboard.press('ControlOrMeta+f');
+    await expect(field).toBeFocused();
+    await field.fill('lorem');
+    await field.press('ControlOrMeta+a');
+    await expect(field).toBeFocused();
+    await expect(grid(page)).toHaveCount(0);
+    const selection = (el: HTMLInputElement) => [el.selectionStart, el.selectionEnd];
+    expect(await field.evaluate(selection)).toEqual([0, 5]);
+
+    await field.press('ControlOrMeta+Shift+S');
+    const saveCopy = page.getByTestId('save-copy-sheet');
+    await expect(saveCopy).toBeVisible();
+    // Esc pressed while Find still has the focus (WebKit moves it into the sheet a frame
+    // later): the sheet takes it and closes; Find keeps its query.
+    await field.dispatchEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    await expect(saveCopy).toHaveCount(0);
+    await expect(field).toHaveValue('lorem');
+
+    await field.focus();
+    await field.press('ControlOrMeta+,');
+    await expect(page.getByTestId('settings-sheet')).toBeVisible();
+  });
+});
+
 test.describe('the shortcuts overlay lists the map', () => {
   for (const lang of ['en', 'tr'] as const) {
     test(`in its groups, with keycaps (${lang})`, async ({ page }, testInfo) => {
@@ -259,7 +337,8 @@ const TEXT = {
     groups: ['Places', 'Tools', 'On a selection', 'Pages', 'Files', 'View', 'Commands', 'History'],
     places: ['Library', 'Back to viewing', 'Open or close Markup', 'Pages grid', 'Compare'],
     rotateRight: 'Rotate pages right',
-    footer: 'Shortcuts never fire while you type in a field.',
+    footer:
+      /^While you type in a field, plain keys go to the field; (⌘|Ctrl) shortcuts like Save and Find still work\.$/,
     query: 'close markup',
   },
   tr: {
@@ -282,7 +361,8 @@ const TEXT = {
       'Karşılaştır',
     ],
     rotateRight: 'Sayfaları sağa döndür',
-    footer: 'Bir alana yazarken kısayollar çalışmaz.',
+    footer:
+      /^Bir alana yazarken tuşlar alana gider; Kaydet ve Bul gibi (⌘|Ctrl) kısayolları yine çalışır\.$/,
     query: 'aç veya kapat',
   },
 } as const;
