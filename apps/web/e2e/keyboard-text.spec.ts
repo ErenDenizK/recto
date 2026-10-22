@@ -330,7 +330,8 @@ const TEXT = {
     groups: ['Places', 'Tools', 'On a selection', 'Pages', 'Files', 'View', 'Commands', 'History'],
     places: ['Library', 'Back to viewing', 'Open or close Markup', 'Pages grid', 'Compare'],
     rotateRight: 'Rotate pages right',
-    footer: 'Shortcuts never fire while you type in a field.',
+    footer:
+      /^While you type in a field, plain keys go to the field; (⌘|Ctrl) shortcuts like Save and Find still work\.$/,
     query: 'close markup',
   },
   tr: {
@@ -353,7 +354,8 @@ const TEXT = {
       'Karşılaştır',
     ],
     rotateRight: 'Sayfaları sağa döndür',
-    footer: 'Bir alana yazarken kısayollar çalışmaz.',
+    footer:
+      /^Bir alana yazarken tuşlar alana gider; Kaydet ve Bul gibi (⌘|Ctrl) kısayolları yine çalışır\.$/,
     query: 'aç veya kapat',
   },
 } as const;

@@ -3992,7 +3992,7 @@
   "shortcuts_search_label": "Find a shortcut",
   "shortcuts_search_placeholder": "Find a shortcut",
   "shortcuts_no_match": "No shortcut matches “{query}”.",
-  "shortcuts_footer_note": "Shortcuts never fire while you type in a field.",
+  "shortcuts_footer_note": "While you type in a field, plain keys go to the field; {mod} shortcuts like Save and Find still work.",
   "shortcuts_action": "Action",
   "shortcuts_keys": "Keys",
   "undo_step": "Undo {step}",

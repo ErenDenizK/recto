@@ -22,6 +22,7 @@ import { reducedMotion } from '../motion/reduced-motion';
 import { springToLinear } from '../motion/springs';
 import { EASE, SPRING_CSS_MS } from '../motion/tokens';
 import { showOverlaySidebar } from '../shell/frame/frame-store';
+import { frameClassOf } from '../shell/frame/size-class';
 import { isPageView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
@@ -461,6 +462,9 @@ export function setFindEntry(entry: FindEntryHandle | undefined): void {
   findEntry = entry;
 }
 
+/** Whether the document's strip has the Find entry: all but the tight bar, which folds into ⋯. */
+const stripHasFind = () => !frameClassOf(window.innerWidth, window.innerHeight).tight;
+
 /** The field takes the focus with its query selected, so typing replaces it (F6 §6). */
 const selectQuery = (field: HTMLElement) => {
   if (field instanceof HTMLInputElement) field.select();
@@ -481,7 +485,9 @@ export function openFind(): void {
   // has gone, as it hands the focus back where it was when it closes.
   const palette = ui.paletteOpen;
   if (palette) ui.setPaletteOpen(false);
-  if (!findEntry && !library) {
+  // No entry in the strip (component tests; the narrow compact bar, whose strip has ⋯ instead,
+  // also once the Library has gone): the Search panel, as before, and nothing is held.
+  if (!findEntry && !(library && stripHasFind())) {
     openSearchPanel();
     return;
   }

@@ -16,41 +16,28 @@ export function isEditableTarget(target: EventTarget | null): boolean {
   return false;
 }
 
-/** Keys that, with Ctrl or ⌘, edit a field's text or move its caret (select all, undo…). */
-const FIELD_KEYS = new Set([
-  'a',
-  'c',
-  'v',
-  'x',
-  'z',
-  'y',
-  'arrowleft',
-  'arrowright',
-  'arrowup',
-  'arrowdown',
-  'home',
-  'end',
-  'pageup',
-  'pagedown',
-  'backspace',
-  'delete',
+/**
+ * The app's Ctrl/⌘ shortcuts that run from inside a text field outside a dialog (INK-12): Save,
+ * Save a copy, Settings, the command bar, Find and Open (Print joins when it exists, Epic 5).
+ * Every other key stays the field's or the browser's; a command can still opt in everywhere,
+ * dialogs included (`allowInInputs`).
+ */
+export const FIELD_SHORTCUTS: ReadonlySet<string> = new Set([
+  'file.save',
+  'file.export',
+  'settings.open',
+  'view.palette',
+  'search.open',
+  'file.open',
 ]);
-/** Bold, italic and underline, which a rich text field (contenteditable) keeps as well. */
-const RICH_TEXT_KEYS = new Set(['b', 'i', 'u']);
 
 /**
- * Whether a text field keeps `event` as text (INK-12): a key without Ctrl or ⌘ (a letter,
- * Shift, Alt, which types characters on macOS) and the Ctrl or ⌘ keys that edit text or move
- * the caret. Any other Ctrl or ⌘ key cannot mean text, so the app's shortcut runs from the
- * field (Save a copy, Settings, Zoom).
+ * Whether a text field keeps `event` as text: any key without Ctrl or ⌘, and any key typed
+ * with AltGr, which Windows reports as Ctrl+Alt (Turkish AltGr+Q types @).
  */
 export function fieldKeepsKey(event: KeyboardEvent): boolean {
-  if (!event.ctrlKey && !event.metaKey) return true;
-  const key = event.key.toLowerCase();
-  if (FIELD_KEYS.has(key)) return true;
-  return (
-    event.target instanceof HTMLElement && event.target.isContentEditable && RICH_TEXT_KEYS.has(key)
-  );
+  if (event.getModifierState('AltGraph')) return true;
+  return !event.ctrlKey && !event.metaKey;
 }
 
 function isInsideModal(target: EventTarget | null): boolean {
@@ -79,12 +66,14 @@ export function dispatchShortcut(
   platform: Platform = currentPlatform,
 ): boolean {
   if (event.defaultPrevented || event.isComposing || event.key === 'Process') return false;
-  // In a field (outside a dialog) a Ctrl or ⌘ key the field does not keep is the app's.
   const modal = isInsideModal(event.target);
   const editable = isEditableTarget(event.target);
-  const guarded = modal || (editable && fieldKeepsKey(event));
+  // In a field outside a dialog, the allowlisted Ctrl/⌘ shortcuts are the app's too (INK-12).
+  const fieldGives = editable && !modal && !fieldKeepsKey(event);
   for (const command of registry.list()) {
-    if (guarded && !command.allowInInputs) continue;
+    if ((modal || editable) && !command.allowInInputs) {
+      if (!fieldGives || !FIELD_SHORTCUTS.has(command.id)) continue;
+    }
     if (!command.shortcuts.some((s) => matchShortcut(event, s, platform))) continue;
     if (!registry.isEnabled(command)) continue;
     event.preventDefault();

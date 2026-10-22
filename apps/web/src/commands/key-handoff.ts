@@ -6,10 +6,10 @@
  * typed into the field as soon as it takes the focus, so no letter reaches the view being
  * left, where the key map reads it as a tool or a place (`t` arming the Text box).
  *
- * - **Held:** characters (no Ctrl, Meta or Alt, AltGr allowed) and Backspace, which takes back
- *   the last held one. Modified keys (app shortcuts) and the others (Enter, Tab, arrows) pass.
- * - **Ends** once the field has the focus, on Esc or a press anywhere (the held text goes), or
- *   after `HANDOFF_MS`. Polled on a timer, not on frames: a view transition holds frames while
+ * - **Held:** characters (no Ctrl or ⌘; Alt and AltGr type characters) and Backspace, which
+ *   takes back the last held one. Ctrl/⌘ keys (app shortcuts), Enter and the arrows pass.
+ * - **Ends** once the field has the focus, on Esc, Tab or a press anywhere (the held text
+ *   goes), or after `HANDOFF_MS`. Polled on a timer, not on frames: a view transition holds frames while
  *   it prepares, which is how the keys were lost.
  * - One handoff at a time; a new one ends the last.
  */
@@ -33,11 +33,14 @@ function focusable(field: HTMLElement): boolean {
   return field.getClientRects().length > 0;
 }
 
-/** A key that types into a field: a character, with Shift or AltGr at most. */
+/**
+ * A key that types into a field: a character without Ctrl or ⌘. Alt counts as typing (macOS
+ * Option+L types @ on a German Mac), and so does AltGr, which Windows reports as Ctrl+Alt.
+ */
 function typesText(event: KeyboardEvent): boolean {
   if (event.isComposing || event.key.length !== 1) return false;
   const altGraph = event.getModifierState('AltGraph');
-  return altGraph || (!event.ctrlKey && !event.metaKey && !event.altKey);
+  return altGraph || (!event.ctrlKey && !event.metaKey);
 }
 
 /**
@@ -95,7 +98,7 @@ export function handKeysTo(
   };
 
   function onKeyDown(event: KeyboardEvent): void {
-    if (event.key === 'Escape') {
+    if (event.key === 'Escape' || event.key === 'Tab') {
       end();
       return;
     }

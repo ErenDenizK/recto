@@ -211,7 +211,7 @@ Full rows: [`decisions/ink.md`](decisions/ink.md).
 | [INK-9](decisions/ink.md) | Hold to shape | Done | 2026-10-09 |
 | [INK-10](decisions/ink.md) | A zoom in the middle of a stroke spends its hold | Done | 2026-10-12 |
 | [INK-11](decisions/ink.md) | Before a pen is seen, every finger draws; the palm size rule needs a pen | In force | 2026-10-19 |
-| [INK-12](decisions/ink.md) | Ctrl and ⌘ shortcuts work from inside a text field where they cannot mean text (Epic 2) | In force | 2026-10-21 |
+| [INK-12](decisions/ink.md) | App shortcuts that work from inside a text field: an allowlist (Save, Save a copy, Settings, ⌘K, Find, Open; Epic 2) | In force | 2026-10-22 |
 
 ## Editions
 
