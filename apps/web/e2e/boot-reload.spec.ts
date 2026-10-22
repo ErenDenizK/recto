@@ -4,15 +4,18 @@
  * removed the Office package sometimes had a few of the app chunk's module requests aborted
  * (`net::ERR_ABORTED`), `import('./app')` rejected and nothing ever mounted (office.spec.ts).
  *
- * Here the chunk's first answer is a 503 with `no-store`, a failure every engine treats as a
- * failed module load and none keeps in its memory cache (an aborted route left WebKit's reload
- * unfinished). Reloads are counted as main-frame navigation requests, not `load` events: the
- * chunk can fail, and the page reload, before the first document's `load` (Firefox). The
- * service worker is blocked so the route sees every request; the precache plays no part here.
+ * Here the chunk's first answer is a 503 with `no-store`, a failed module load in every engine.
+ * The booted page is checked by the chunk's two routed requests and the reload's
+ * note in session storage, which hold in every engine (a reload's navigation type and its
+ * request event do not, in Firefox). The service worker is blocked so the route sees every
+ * request; the precache plays no part here.
  */
 import { expect, type Page, test } from '@playwright/test';
 
 test.use({ serviceWorkers: 'block' });
+
+/** `src/pwa/boot-reload.ts`: set when the page reloaded for a failed launch chunk. */
+const BOOT_RELOAD_KEY = 'pdf-editor:boot-reload:v1';
 
 /** The full edition's chunk (`main.tsx`): `assets/app-<hash>.js`, not its stylesheet. */
 const APP_CHUNK = /\/assets\/app-[\w-]{8}\.js$/;
@@ -39,30 +42,20 @@ test('a failed edition chunk reloads the page once and the app boots', async ({ 
     if (requests === 1) await route.fulfill(UNAVAILABLE);
     else await route.continue();
   });
-  const chunkRequests: string[] = [];
-  page.on('request', (request) => {
-    if (APP_CHUNK.test(request.url())) chunkRequests.push(request.url());
-  });
-  // The shell, or the page error that says why it will not come (and what was fetched).
-  const failed = page.waitForEvent('pageerror', { timeout: 0 }).then((error) => {
-    throw new Error(
-      `page error after ${requests} routed and ${chunkRequests.length} seen chunk requests: ${error.message}`,
-    );
-  });
-  // Settles when the test ends (the page closes); the race below is what reads it.
-  failed.catch(() => undefined);
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
 
   await page.goto('./');
-  await Promise.race([
-    expect(page.getByTestId('app-shell')).toBeVisible({ timeout: 20_000 }),
-    failed,
-  ]);
+  try {
+    await expect(page.getByTestId('app-shell')).toBeVisible({ timeout: 20_000 });
+  } catch (error) {
+    throw new Error(`no shell; chunk requests ${requests}, page errors ${JSON.stringify(errors)}`, {
+      cause: error,
+    });
+  }
   // The first load failed the chunk, the one reload fetched it again and booted.
   expect(requests).toBe(2);
-  const type = await page.evaluate(
-    () => (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming).type,
-  );
-  expect(type).toBe('reload');
+  expect(await page.evaluate((key) => sessionStorage.getItem(key), BOOT_RELOAD_KEY)).not.toBeNull();
 });
 
 test('a chunk that keeps failing does not reload in a loop', async ({ page }) => {

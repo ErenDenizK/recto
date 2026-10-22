@@ -15,7 +15,13 @@ import {
 function fakeWindow(stored?: string, throws = false) {
   const items = new Map<string, string>(stored === undefined ? [] : [[BOOT_RELOAD_KEY, stored]]);
   let reloads = 0;
+  const document = { readyState: 'complete' as DocumentReadyState };
+  let onLoad: (() => void) | undefined;
   const win: BootWindow = {
+    document,
+    addEventListener: (_type, listener) => {
+      onLoad = listener;
+    },
     sessionStorage: {
       getItem: (key) => {
         if (throws) throw new DOMException('blocked', 'SecurityError');
@@ -31,7 +37,11 @@ function fakeWindow(stored?: string, throws = false) {
       },
     },
   };
-  return { win, items, reloads: () => reloads };
+  const load = () => {
+    document.readyState = 'complete';
+    onLoad?.();
+  };
+  return { win, items, document, load, reloads: () => reloads };
 }
 
 describe('reloadForFailedBoot', () => {
@@ -51,6 +61,16 @@ describe('reloadForFailedBoot', () => {
   it('reloads again once the window has passed', () => {
     const fake = fakeWindow('1000000');
     expect(reloadForFailedBoot(fake.win, 1_000_000 + BOOT_RELOAD_WINDOW_MS)).toBe(true);
+    expect(fake.reloads()).toBe(1);
+  });
+
+  it('waits for the document to load before it reloads', () => {
+    const fake = fakeWindow();
+    fake.document.readyState = 'interactive';
+    expect(reloadForFailedBoot(fake.win, 1_000_000)).toBe(true);
+    expect(fake.reloads()).toBe(0);
+    expect(fake.items.get(BOOT_RELOAD_KEY)).toBe('1000000');
+    fake.load();
     expect(fake.reloads()).toBe(1);
   });
 

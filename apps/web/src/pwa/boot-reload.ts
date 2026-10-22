@@ -8,7 +8,9 @@
  * later `import()` of the same page, so the page reloads, once. A second failure within
  * `BOOT_RELOAD_WINDOW_MS` is thrown as before: that is a real outage (offline on a first visit,
  * a broken deploy) and a loop would hide it. Without session storage the guard cannot hold, so
- * nothing reloads.
+ * nothing reloads. The reload waits for the document's `load` when the chunk failed before it:
+ * a reload started while the page is still loading is not one in every engine (Firefox runs it
+ * as a new navigation, and WebKit fails the loads still in flight).
  */
 
 /** `sessionStorage`: when this tab last reloaded for a failed launch chunk (ms since epoch). */
@@ -18,9 +20,14 @@ export const BOOT_RELOAD_WINDOW_MS = 60_000;
 export interface BootWindow {
   readonly sessionStorage: Pick<Storage, 'getItem' | 'setItem'>;
   readonly location: Pick<Location, 'reload'>;
+  readonly document: Pick<Document, 'readyState'>;
+  addEventListener(type: 'load', listener: () => void, options: { once: true }): void;
 }
 
-/** Whether the page reloads for a failed launch chunk now (and notes that it did). */
+/**
+ * Whether the page reloads for a failed launch chunk (and notes that it did): now, or once the
+ * document has loaded.
+ */
 export function reloadForFailedBoot(win: BootWindow = window, now = Date.now()): boolean {
   try {
     const last = Number(win.sessionStorage.getItem(BOOT_RELOAD_KEY) ?? Number.NaN);
@@ -31,7 +38,8 @@ export function reloadForFailedBoot(win: BootWindow = window, now = Date.now()):
   } catch {
     return false;
   }
-  win.location.reload();
+  if (win.document.readyState === 'complete') win.location.reload();
+  else win.addEventListener('load', () => win.location.reload(), { once: true });
   return true;
 }
 
