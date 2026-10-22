@@ -28,6 +28,7 @@ import {
   type OcrRecognizeOptions,
   type OcrRecognizer,
 } from '../types';
+import { isWebKitUserAgent } from '../webkit';
 import { wordsFromBlocks } from './geometry';
 import { OCR_LOCK, OcrPackStore } from './packs';
 import { meanConfidence, ocrQuality } from './quality';
@@ -73,8 +74,7 @@ export function ocrPoolEnvironment(): OcrPoolEnvironment {
   return {
     ...(typeof nav?.hardwareConcurrency === 'number' ? { cores: nav.hardwareConcurrency } : {}),
     ...(typeof nav?.deviceMemory === 'number' ? { deviceMemory: nav.deviceMemory } : {}),
-    // Chromium's user agent names AppleWebKit too; only it says Chrome or Chromium.
-    webkit: userAgent.includes('AppleWebKit') && !/Chrome\/|Chromium\//.test(userAgent),
+    webkit: isWebKitUserAgent(userAgent),
   };
 }
 

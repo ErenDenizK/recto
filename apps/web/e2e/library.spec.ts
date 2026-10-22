@@ -202,6 +202,91 @@ test('J12: ○ A, ○ B, Compare: three steps from the Library', async ({ page }
   expect(person.steps).toBe(3);
 });
 
+test('3a: one file opened from the Library keeps Select mode without ?open=page', async ({
+  page,
+}) => {
+  await page.goto('./?lang=en');
+  const chooser = page.waitForEvent('filechooser');
+  await openButton(page).click();
+  await (await chooser).setFiles(['compare-a.pdf', 'compare-b.pdf'].map(fixturePath));
+  await expect(cards(page)).toHaveCount(2, { timeout: 20_000 });
+  await page.getByRole('button', { name: 'Done' }).click();
+  const next = page.waitForEvent('filechooser');
+  await openButton(page).click();
+  await (await next).setFiles(fixturePath('simple-text.pdf'));
+  await expect(cards(page)).toHaveCount(3, { timeout: 20_000 });
+  await expect(library(page)).toBeVisible();
+  await expect(checked(page)).toHaveCount(1);
+});
+
+test('3a: ?open=page takes one file opened from the Library to its page', async ({ page }) => {
+  await page.goto('./?lang=en&open=page');
+  const chooser = page.waitForEvent('filechooser');
+  await openButton(page).click();
+  await (await chooser).setFiles(['compare-a.pdf', 'compare-b.pdf'].map(fixturePath));
+  // Two files keep today's Select behaviour.
+  await expect(cards(page)).toHaveCount(2, { timeout: 20_000 });
+  await expect(checked(page)).toHaveCount(2);
+  await page.getByRole('button', { name: 'Done' }).click();
+  const next = page.waitForEvent('filechooser');
+  await openButton(page).click();
+  await (await next).setFiles(fixturePath('simple-text.pdf'));
+  await expect(library(page)).toHaveCount(0, { timeout: 20_000 });
+  // The page shows (no Select mode, no Combine bar).
+  await expect(page.locator('canvas[data-state="rendered"]').first()).toBeVisible({
+    timeout: 20_000,
+  });
+});
+
+test('3d: ?home=search filters and sorts Recents by name, folding Turkish case', async ({
+  page,
+}) => {
+  await page.goto('./?lang=en&home=search');
+  const names = [
+    'simple-text',
+    'rotated-pages',
+    'compare-a',
+    'compare-b',
+    'annotations',
+    'cropbox',
+  ];
+  const chooser = page.waitForEvent('filechooser');
+  await openButton(page).click();
+  await (await chooser).setFiles(names.map((n) => fixturePath(`${n}.pdf`)));
+  await expect(cards(page)).toHaveCount(6, { timeout: 30_000 });
+  for (const name of names) {
+    await page.getByRole('tab', { name }).focus();
+    await page.keyboard.press('Delete');
+  }
+  const recents = page.getByRole('list', { name: 'Recent files' });
+  await expect(recents.locator('[data-recent-id]')).toHaveCount(6);
+  const search = page.getByRole('searchbox', { name: 'Search recent files' });
+  await search.fill('ROTATED');
+  await expect(recents.getByRole('button', { name: /^rotated-pages\.pdf, / })).toBeVisible();
+  await expect(recents.getByRole('button', { name: /^simple-text\.pdf, / })).toHaveCount(0);
+  await search.fill('zzz');
+  await expect(page.getByRole('status').filter({ hasText: 'No recent files match' })).toBeVisible();
+  await search.fill('');
+  await page.getByRole('radio', { name: 'Name' }).click();
+  await expect(recents.locator('[data-recent-id]').first()).toHaveAccessibleName(
+    /^annotations\.pdf, /,
+  );
+});
+
+test('3d: with fewer than six recents the card has no search tools', async ({ page }) => {
+  await page.goto('./?lang=en&home=search');
+  const chooser = page.waitForEvent('filechooser');
+  await openButton(page).click();
+  await (await chooser).setFiles(['simple-text.pdf', 'rotated-pages.pdf'].map(fixturePath));
+  await expect(cards(page)).toHaveCount(2, { timeout: 20_000 });
+  for (const name of ['simple-text', 'rotated-pages']) {
+    await page.getByRole('tab', { name }).focus();
+    await page.keyboard.press('Delete');
+  }
+  await expect(page.getByRole('list', { name: 'Recent files' })).toBeVisible();
+  await expect(page.getByTestId('recent-tools')).toHaveCount(0);
+});
+
 /**
  * Whether this launch keeps snapshots (ADR-0032 §2.5). An engine whose test context refuses OPFS
  * (Playwright's WebKit, like a private window) keeps none and says so; Chromium always keeps.

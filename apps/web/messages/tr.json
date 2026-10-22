@@ -3355,5 +3355,12 @@
   "palette_intent_reversed": "Küçük sayfa numarası önce gelmeli, örneğin 3–7",
   "palette_intent_no_pages": "Buna uyan sayfa yok",
   "palette_intent_all_pages": "Bu, tüm sayfaları kaldırırdı",
-  "palette_intent_ambiguous": "Bir aralık yazın, örneğin 2–3"
+  "palette_intent_ambiguous": "Bir aralık yazın, örneğin 2–3",
+  "recents_search_label": "Son dosyalarda ara",
+  "recents_sort_label": "Son dosyaları sırala",
+  "recents_sort_recent": "Son açılma",
+  "recents_sort_name": "Ad",
+  "recents_sort_size": "Boyut",
+  "recents_search_placeholder": "Ara",
+  "recents_search_none": "“{query}” ile eşleşen son dosya yok."
 }
