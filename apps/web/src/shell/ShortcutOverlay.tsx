@@ -18,7 +18,12 @@ import { useId, useRef } from 'react';
 
 import { type KeymapRow, WIDGET_KEYS, keymapGroupTitle, keymapRows } from '../commands/keymap';
 import type { Command } from '../commands/registry';
-import { currentPlatform, toAriaKeyShortcut } from '../commands/shortcuts';
+import {
+  currentPlatform,
+  formatShortcut,
+  parseShortcut,
+  toAriaKeyShortcut,
+} from '../commands/shortcuts';
 import { useCommands } from '../commands/use-commands';
 import { m } from '../i18n';
 import { useUiStore } from '../state/ui-store';
@@ -80,7 +85,11 @@ export function ShortcutOverlay() {
       title={m.keyboard_shortcuts()}
       restored={query !== ''}
       initialFocus={searchRef}
-      footnote={m.shortcuts_footer_note()}
+      // INK-12: a field keeps plain keys, ⌘ (Ctrl) Save, Find… still run; the modifier as the
+      // keycaps show it.
+      footnote={m.shortcuts_footer_note({
+        mod: formatShortcut(parseShortcut('Mod+K'), currentPlatform)[0] ?? '',
+      })}
       testId="shortcuts-overlay"
     >
       <SheetField

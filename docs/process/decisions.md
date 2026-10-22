@@ -160,6 +160,7 @@ Full rows: [`decisions/motion.md`](decisions/motion.md).
 | [MOT-14](decisions/motion.md) | The capsule and ✎ morph as one body on the compositor (C-5, DSN-43) | In force | 2026-10-17 |
 | [MOT-15](decisions/motion.md) | The tabs' fill slides by one transform (C-5) | In force | 2026-10-17 |
 | [MOT-16](decisions/motion.md) | The phone chrome hides and returns on a spring the scroll starts (owner, R22 brief C-6) | In force | 2026-10-17 |
+| [MOT-17](decisions/motion.md) | Keys typed during a view change go where focus is going (Epic 2) | In force | 2026-10-21 |
 
 ## Glass
 
@@ -212,6 +213,7 @@ Full rows: [`decisions/ink.md`](decisions/ink.md).
 | [INK-9](decisions/ink.md) | Hold to shape | Done | 2026-10-09 |
 | [INK-10](decisions/ink.md) | A zoom in the middle of a stroke spends its hold | Done | 2026-10-12 |
 | [INK-11](decisions/ink.md) | Before a pen is seen, every finger draws; the palm size rule needs a pen | In force | 2026-10-19 |
+| [INK-12](decisions/ink.md) | App shortcuts that work from inside a text field: an allowlist (Save, Save a copy, Settings, ⌘K, Find, Open; Epic 2) | In force | 2026-10-22 |
 
 ## Editions
 

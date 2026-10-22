@@ -49,7 +49,9 @@ describe('the shortcuts overlay (07 §23)', () => {
     expect(rows.length).toBeGreaterThan(50);
     for (const row of rows) expect(titles).toContain(row.title);
     expect(
-      within(dialog).getByText('Shortcuts never fire while you type in a field.'),
+      within(dialog).getByText(
+        /^While you type in a field, plain keys go to the field; (⌘|Ctrl) shortcuts/,
+      ),
     ).toBeVisible();
   });
 

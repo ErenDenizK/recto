@@ -25,6 +25,9 @@ import { fuzzyFilter } from '../commands/fuzzy';
 import { type Command, commandRegistry, groupCommands } from '../commands/registry';
 import { parseShortcut } from '../commands/shortcuts';
 import { useCommands } from '../commands/use-commands';
+import { loadRecents, type RecentEntry, useRecentsStore } from '../files/recents';
+import { openRecent } from '../home/home-actions';
+import type * as PaletteIntent from '../commands/palette-intent';
 import { m } from '../i18n';
 import { animateStyle, type Motion } from '../motion/animate';
 import { useUiStore } from '../state/ui-store';
@@ -45,6 +48,37 @@ interface Section {
   readonly group: string;
   readonly rows: Row[];
 }
+
+/** One row as the list draws it: a command, an intent the query parsed, or a recent file. */
+interface ListRow {
+  readonly key: string;
+  readonly title: string;
+  readonly positions: readonly number[];
+  readonly enabled: boolean;
+  /** An intent that cannot run: its title stays legible, only its detail explains. */
+  readonly invalidIntent?: boolean;
+  /** Can be the active row (an invalid intent can, so Enter on it does nothing). */
+  readonly focusable: boolean;
+  /** Why it cannot run, or the intent's quiet detail. */
+  readonly reason: string | undefined;
+  readonly hint: string | undefined;
+  readonly shortcut: Command['shortcuts'][number] | undefined;
+  readonly command: Command | undefined;
+  readonly run: () => void;
+}
+
+interface ListSection {
+  readonly id: string;
+  /** The visible heading; none for the intent's own rows. */
+  readonly label: string | undefined;
+  readonly ariaLabel: string;
+  readonly rows: ListRow[];
+}
+
+/** How many recent files the empty state offers. */
+const RECENT_FILES_SHOWN = 5;
+/** Offered by typing "clear recents", not in the empty state's list (Epic 4). */
+const HIDDEN_WHEN_EMPTY = new Set(['file.clearRecents']);
 
 /** Internal id of the recents section; its heading is translated when rendered. */
 const RECENT_GROUP = 'Recent';
@@ -204,52 +238,120 @@ export function CommandPalette() {
   );
 }
 
+/**
+ * The intent parser, its rows and their strings load on the palette's first open, in a chunk of
+ * their own, so they stay out of the editor's initial bundle (V1-P2). A keystroke that comes
+ * before the chunk does ranks commands as before.
+ */
+type IntentModule = Pick<
+  typeof PaletteIntent,
+  'parseQuery' | 'gatherQueryContext' | 'describeIntent' | 'runIntent'
+>;
+let intentModule: IntentModule | null = null;
+let intentLoading: Promise<IntentModule> | null = null;
+function loadIntents(): Promise<IntentModule> {
+  intentLoading ??= import('../commands/palette-intent').then((loaded) => {
+    intentModule = loaded;
+    return loaded;
+  });
+  return intentLoading;
+}
+
 function PalettePopup({ onClose }: { readonly onClose: () => void }) {
   const commands = useCommands();
   const recents = useUiStore((s) => s.recents);
   const pushRecent = useUiStore((s) => s.pushRecent);
+  const recentFiles = useRecentsStore((s) => s.entries);
   const [query, setQuery] = useState('');
+  const [intents, setIntents] = useState<IntentModule | null>(intentModule);
   const deferredQuery = useDeferredValue(query);
-  // The active option is tracked by command id and derived into an index, so it survives
+  // The active option is tracked by row key and derived into an index, so it survives
   // re-ranking and falls back to the first enabled row when filtered out.
   const [activeId, setActiveId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [list, setList] = useState<HTMLDivElement | null>(null);
   const baseId = useId();
 
-  const sections = useMemo(
-    () =>
-      buildSections(
-        deferredQuery,
-        commands,
-        recents,
-        (c) => commandRegistry.isEnabled(c),
-        (c) => commandRegistry.disabledReason(c),
-      ),
-    [deferredQuery, commands, recents],
-  );
+  useEffect(() => {
+    void loadRecents();
+    loadIntents()
+      .then(setIntents)
+      .catch((error: unknown) => {
+        console.error('Palette intents failed to load', error);
+      });
+  }, []);
+
+  const sections = useMemo<ListSection[]>(() => {
+    const empty = deferredQuery.trim() === '';
+    const result: ListSection[] = [];
+    // A query that reads as an intent (a page, a range, a heading, a file) shows it first, with
+    // what it will do; nothing runs unseen (Epic 4).
+    const intent =
+      empty || !intents ? null : intents.parseQuery(deferredQuery, intents.gatherQueryContext());
+    if (intent && intents) {
+      result.push({
+        id: 'intent',
+        label: undefined,
+        ariaLabel: m.palette_intent_group(),
+        rows: intents.describeIntent(intent, deferredQuery).map((view, index) => ({
+          key: view.key,
+          title: view.label,
+          positions: [],
+          enabled: view.runnable,
+          invalidIntent: !view.runnable,
+          focusable: true,
+          reason: view.detail,
+          hint: undefined,
+          shortcut: undefined,
+          command: undefined,
+          run: () => {
+            if (!view.runnable) return;
+            onClose();
+            intents.runIntent(intent, index).catch((error: unknown) => {
+              console.error('Palette intent failed', error);
+            });
+          },
+        })),
+      });
+    }
+    if (empty && recentFiles.length > 0) {
+      result.push({
+        id: 'recent-files',
+        label: m.palette_recent_files(),
+        ariaLabel: m.palette_recent_files(),
+        rows: recentFiles.slice(0, RECENT_FILES_SHOWN).map((entry) => fileRow(entry, onClose)),
+      });
+    }
+    const commandSections = buildSections(
+      deferredQuery,
+      empty ? commands.filter((c) => !HIDDEN_WHEN_EMPTY.has(c.id)) : commands,
+      recents,
+      (c) => commandRegistry.isEnabled(c),
+      (c) => commandRegistry.disabledReason(c),
+    );
+    for (const section of commandSections) {
+      const recent = section.group === RECENT_GROUP;
+      result.push({
+        id: section.group,
+        label: recent ? m.palette_recent() : section.group,
+        ariaLabel: recent ? m.palette_recent() : section.group,
+        rows: section.rows.map((row) => commandRow(row, recent, pushRecent, onClose)),
+      });
+    }
+    return result;
+  }, [deferredQuery, commands, recents, recentFiles, pushRecent, onClose, intents]);
   const rows = useMemo(() => sections.flatMap((s) => s.rows), [sections]);
-  const matchedIndex = rows.findIndex((r) => r.command.id === activeId && r.enabled);
-  const activeIndex = matchedIndex >= 0 ? matchedIndex : rows.findIndex((r) => r.enabled);
+  const matchedIndex = rows.findIndex((r) => r.key === activeId && r.focusable);
+  const activeIndex = matchedIndex >= 0 ? matchedIndex : rows.findIndex((r) => r.focusable);
   const active = activeIndex >= 0 ? rows[activeIndex] : undefined;
-  const optionId = (commandId: string) => `${baseId}-option-${commandId}`;
-  const activeOptionId = active ? optionId(active.command.id) : undefined;
+  const optionId = (key: string) => `${baseId}-option-${key}`;
+  const activeOptionId = active ? optionId(active.key) : undefined;
 
   useEffect(() => {
     if (!activeOptionId) return;
     document.getElementById(activeOptionId)?.scrollIntoView?.({ block: 'nearest' });
   }, [activeOptionId]);
   usePaletteFill(list, activeOptionId);
-
-  const run = (row: Row | undefined) => {
-    if (!row?.enabled) return;
-    pushRecent(row.command.id);
-    onClose();
-    // Same task as the keydown/click, so pickers keep the user activation they need.
-    commandRegistry.execute(row.command.id).catch((error: unknown) => {
-      console.error(`Command "${row.command.id}" failed`, error);
-    });
-  };
 
   const move = (delta: 1 | -1) => {
     if (rows.length === 0) return;
@@ -258,8 +360,8 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
     do {
       next = (next + delta + rows.length) % rows.length;
       remaining -= 1;
-    } while (remaining > 0 && !rows[next]?.enabled);
-    setActiveId(rows[next]?.command.id ?? null);
+    } while (remaining > 0 && !rows[next]?.focusable);
+    setActiveId(rows[next]?.key ?? null);
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -272,7 +374,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
       move(-1);
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      run(active);
+      active?.run();
     }
   };
 
@@ -323,67 +425,64 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
           </p>
         ) : null}
         {sections.map((section, s) => {
-          const headingId = `${baseId}-group-${section.group}`;
+          const headingId = `${baseId}-group-${section.id}`;
           const first = firstRows[s] ?? 0;
           return (
             <div
-              key={section.group}
+              key={section.id}
               role="group"
-              aria-labelledby={headingId}
+              aria-labelledby={section.label === undefined ? undefined : headingId}
+              aria-label={section.label === undefined ? section.ariaLabel : undefined}
               className={styles.group}
+              data-intent={section.id === 'intent' ? '' : undefined}
             >
-              <div
-                id={headingId}
-                role="presentation"
-                className={styles.groupLabel}
-                data-stagger=""
-                style={staggerStyle(first)}
-              >
-                {section.group === RECENT_GROUP ? m.palette_recent() : section.group}
-              </div>
+              {section.label === undefined ? null : (
+                <div
+                  id={headingId}
+                  role="presentation"
+                  className={styles.groupLabel}
+                  data-stagger=""
+                  style={staggerStyle(first)}
+                >
+                  {section.label}
+                </div>
+              )}
               {section.rows.map((row, i) => {
-                const shortcut = row.command.shortcuts[0];
                 const selected = row === active;
-                const reasonId = row.reason ? `${optionId(row.command.id)}-reason` : undefined;
+                const reasonId = row.reason ? `${optionId(row.key)}-reason` : undefined;
                 return (
                   // Options are driven from the combobox input via aria-activedescendant
                   // (APG); they take pointer input only and are never focused themselves.
                   // eslint-disable-next-line jsx-a11y/click-events-have-key-events
                   <div
-                    key={row.command.id}
-                    id={optionId(row.command.id)}
+                    key={row.key}
+                    id={optionId(row.key)}
                     role="option"
                     tabIndex={-1}
                     aria-selected={selected}
                     aria-disabled={!row.enabled || undefined}
                     aria-describedby={reasonId}
+                    data-intent-invalid={row.invalidIntent ? '' : undefined}
                     className={styles.option}
                     data-stagger=""
                     style={staggerStyle(first + i)}
                     onPointerMove={() => {
-                      if (row.enabled && !selected) setActiveId(row.command.id);
+                      if (row.focusable && !selected) setActiveId(row.key);
                     }}
                     onPointerDown={(event) => {
                       event.preventDefault();
                     }}
-                    onClick={() => {
-                      run(row);
-                    }}
+                    onClick={row.run}
                   >
                     {selected ? (
                       <span className={styles.fill} data-palette-fill="" aria-hidden="true" />
                     ) : null}
                     <span className={styles.title}>
-                      <Highlighted text={row.command.title} positions={row.positions} />
+                      <Highlighted text={row.title} positions={row.positions} />
                     </span>
-                    {section.group === RECENT_GROUP ? (
-                      <span className={styles.groupHint}>{row.command.group}</span>
-                    ) : null}
-                    {/* The tool bar group of a tool (experience-redesign spec §5.1). */}
-                    {section.group !== RECENT_GROUP &&
-                    paletteGroupLabelOfCommand(row.command.id) ? (
+                    {row.hint ? (
                       <span className={styles.groupHint} data-bar-group-hint="">
-                        {paletteGroupLabelOfCommand(row.command.id)}
+                        {row.hint}
                       </span>
                     ) : null}
                     {/* The reason takes the keycap's place (04-context §12.2); it is the
@@ -397,8 +496,8 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
                       >
                         {row.reason}
                       </span>
-                    ) : shortcut ? (
-                      <Keycaps shortcut={shortcut} />
+                    ) : row.shortcut ? (
+                      <Keycaps shortcut={row.shortcut} />
                     ) : null}
                   </div>
                 );
@@ -426,4 +525,56 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
       </div>
     </Dialog.Popup>
   );
+}
+
+/** A recent file in the empty state: opens it as the Library's row does (L7 §6). */
+function fileRow(entry: RecentEntry, onClose: () => void): ListRow {
+  return {
+    key: `file-${entry.id}`,
+    title: entry.name,
+    positions: [],
+    enabled: true,
+    focusable: true,
+    reason: undefined,
+    hint: undefined,
+    shortcut: undefined,
+    command: undefined,
+    run: () => {
+      onClose();
+      // No await before it: the permission prompt needs this activation.
+      openRecent(entry).catch((error: unknown) => {
+        console.error(`Opening ${entry.name} failed`, error);
+      });
+    },
+  };
+}
+
+/** A command row; a recent command shows its group, a tool its bar group (spec §5.1). */
+function commandRow(
+  row: Row,
+  recent: boolean,
+  pushRecent: (id: string) => void,
+  onClose: () => void,
+): ListRow {
+  const { command } = row;
+  return {
+    key: command.id,
+    title: command.title,
+    positions: row.positions,
+    enabled: row.enabled,
+    focusable: row.enabled,
+    reason: row.reason,
+    hint: recent ? command.group : paletteGroupLabelOfCommand(command.id),
+    shortcut: command.shortcuts[0],
+    command,
+    run: () => {
+      if (!row.enabled) return;
+      pushRecent(command.id);
+      onClose();
+      // Same task as the keydown/click, so pickers keep the user activation they need.
+      commandRegistry.execute(command.id).catch((error: unknown) => {
+        console.error(`Command "${command.id}" failed`, error);
+      });
+    },
+  };
 }
