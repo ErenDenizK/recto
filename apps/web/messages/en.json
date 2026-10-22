@@ -4637,6 +4637,7 @@
     }
   ],
   "find_recognize": "Recognize text…",
+  "find_scanning": "Searching… {done} of {total} pages",
   "find_results_more": "More result actions",
   "find_marked": [
     {

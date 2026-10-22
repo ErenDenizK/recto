@@ -2819,9 +2819,19 @@ export interface OcrApplyResult {
   readonly durationMs: number;
 }
 
+/** Which pages `ocrPageFacts` reads: `count` pages from `from` (default: all of them). */
+export interface OcrFactsOptions extends EngineCallOptions {
+  readonly from?: number;
+  readonly count?: number;
+}
+
 /** OCR in the PDFium worker (spec §1.4), exposed by `PdfiumProxy`. */
 export interface PdfOcrLayer {
-  ocrPageFacts(id: SourceId, options?: EngineCallOptions): Promise<readonly OcrPageFacts[]>;
+  /**
+   * Per-page facts, the first entry being page `options.from` (0 by default). A range holds
+   * the source's lock for that range only, so a long file can be read in short turns.
+   */
+  ocrPageFacts(id: SourceId, options?: OcrFactsOptions): Promise<readonly OcrPageFacts[]>;
   renderForOcr(id: SourceId, pageIndex: number, options: RenderForOcrOptions): Promise<OcrRaster>;
   /**
    * Writes `plan` as invisible text: the source is saved as it is (security removed), the

@@ -64,6 +64,8 @@ interface SearchState extends SearchOptions {
   readonly timing: { readonly first?: number; readonly total?: number };
   /** Bumped to ask the search field to take focus (Mod+F). */
   readonly focusSerial: number;
+  /** Source pages the running search has finished, and how many it will scan in all. */
+  readonly scan: { readonly done: number; readonly total: number };
 }
 
 const INITIAL: SearchState = {
@@ -77,6 +79,7 @@ const INITIAL: SearchState = {
   documentId: null,
   timing: {},
   focusSerial: 0,
+  scan: { done: 0, total: 0 },
 };
 
 export const useSearchStore = create<SearchState>()(() => INITIAL);
@@ -174,6 +177,22 @@ export function groupHitsByPage(hits: readonly DocumentHit[]): HitGroup[] {
 }
 
 /**
+ * Lower-cases without changing the length, so an index in the folded text is an index in the
+ * original: `toLocaleLowerCase` turns the Turkish İ into two code units ("i" and a combining
+ * dot), which would shift every offset after it. İ folds to plain i, as Find matches it. What
+ * does not fold (the "ﬁ" ligature against "fi", the dotless ı against "I") finds no match here and
+ * falls back to the whole snippet, unemphasised; the engine's offsets are used when it has them.
+ */
+function fold(text: string): string {
+  let out = '';
+  for (const ch of text) {
+    const lower = ch === 'İ' ? 'i' : ch.toLowerCase();
+    out += lower.length === ch.length ? lower : ch;
+  }
+  return out;
+}
+
+/**
  * Splits a context snippet around its match, for emphasis: at the engine's offsets when it
  * reports them, else at the first occurrence of the query. Whitespace runs are collapsed;
  * falls back to the whole snippet when nothing is found.
@@ -200,9 +219,7 @@ export function splitContext(
   const text = squash(context);
   const needle = query.trim();
   if (needle === '') return { before: text, match: '', after: '' };
-  const at = matchCase
-    ? text.indexOf(needle)
-    : text.toLocaleLowerCase().indexOf(needle.toLocaleLowerCase());
+  const at = matchCase ? text.indexOf(needle) : fold(text).indexOf(fold(needle));
   if (at < 0) return { before: text, match: '', after: '' };
   return {
     before: text.slice(0, at),
@@ -282,6 +299,7 @@ export async function runSearch(doc: VirtualDocument | undefined, startPage = 0)
       current: -1,
       documentId: doc?.id ?? null,
       timing: {},
+      scan: { done: 0, total: 0 },
     });
     return;
   }
@@ -295,13 +313,37 @@ export async function runSearch(doc: VirtualDocument | undefined, startPage = 0)
     currentChosen: false,
     documentId: doc.id,
     timing: {},
+    scan: { done: 0, total: 0 },
   });
   const pages = sourcePageMap(doc);
+  // Every source page is scanned once, however often the document shows it.
+  let scanned = 0;
+  const scanTotal = pages.size;
   let seq = 0;
   let lastPublish = 0;
   let collected: DocumentHit[] = [];
   let failed = false;
 
+  const now = () => performance.now();
+  let lastScanPublish = 0;
+  const publishScan = () => {
+    lastScanPublish = now();
+    useSearchStore.setState({ scan: { done: scanned, total: scanTotal } });
+  };
+  // Every page moves the count: now when the last publish is old enough, else after a pause.
+  let scanTimer: number | undefined;
+  const touchScan = () => {
+    if (scanTimer !== undefined) return;
+    const wait = lastScanPublish + PUBLISH_INTERVAL_MS - now();
+    if (wait <= 0) {
+      publishScan();
+      return;
+    }
+    scanTimer = window.setTimeout(() => {
+      scanTimer = undefined;
+      if (!own.signal.aborted) publishScan();
+    }, wait);
+  };
   const publish = (next: DocumentHit[]) => {
     if (own.signal.aborted) return;
     collected = sortHits(next);
@@ -314,7 +356,13 @@ export async function runSearch(doc: VirtualDocument | undefined, startPage = 0)
     const previous = state.currentChosen ? state.hits[state.current] : undefined;
     let current = previous ? findSameHit(collected, previous) : -1;
     if (current < 0) current = firstHitFrom(collected, startPage);
-    useSearchStore.setState({ hits: collected, current, timing });
+    useSearchStore.setState({
+      hits: collected,
+      current,
+      timing,
+      scan: { done: scanned, total: scanTotal },
+    });
+    lastScanPublish = now();
   };
 
   for (const sourceId of sourcesOf(doc)) {
@@ -328,16 +376,18 @@ export async function runSearch(doc: VirtualDocument | undefined, startPage = 0)
       needle,
       { matchCase, wholeWord },
       own.signal,
-      (hits) => {
+      (hits, page) => {
+        // Pages the document no longer shows (deleted, extracted) are scanned but not counted.
+        if (pages.has(`${sourceId}:${page}`)) scanned++;
+        touchScan();
         const mapped = mapHits(doc, pages, sourceId, hits, seq);
         if (mapped.length === 0) return;
         seq += mapped.length;
         streamed.push(...mapped);
         // The first hits show at once; later ones at most every PUBLISH_INTERVAL_MS, so a
         // long document does not re-sort and re-render once per page.
-        const now = performance.now();
-        if (collected.length === 0 || now - lastPublish >= PUBLISH_INTERVAL_MS) {
-          lastPublish = now;
+        if (collected.length === 0 || now() - lastPublish >= PUBLISH_INTERVAL_MS) {
+          lastPublish = now();
           publish([...base, ...streamed]);
         }
       },
@@ -353,9 +403,11 @@ export async function runSearch(doc: VirtualDocument | undefined, startPage = 0)
     publish([...base, ...mapped]);
   }
   if (own.signal.aborted) return;
+  window.clearTimeout(scanTimer);
   controller = undefined;
   useSearchStore.setState((s) => ({
     status: failed && collected.length === 0 ? 'error' : 'done',
+    scan: { done: scanTotal, total: scanTotal },
     timing: { ...s.timing, total: performance.now() - started },
   }));
 }

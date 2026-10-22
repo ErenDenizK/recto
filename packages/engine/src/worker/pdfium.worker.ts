@@ -525,15 +525,17 @@ const api: PdfiumWorkerApi = {
       );
     });
   },
-  ocrPageFacts(id, _options, abortPort) {
+  ocrPageFacts(id, options, abortPort) {
     // Raw access takes the source's lock itself (exclusive; not re-entrant): no `onSource`.
     return call(abortPort, async (signal) => {
       const hosted = await host();
       return hosted.withRawAccess(
         id,
         (raw) => {
-          const count = raw.module.FPDF_GetPageCount(raw.docPtr);
-          return Array.from({ length: count }, (_, pageIndex) => pageFacts(raw, pageIndex));
+          const total = raw.module.FPDF_GetPageCount(raw.docPtr);
+          const from = Math.min(total, Math.max(0, options.from ?? 0));
+          const to = Math.min(total, from + (options.count ?? total));
+          return Array.from({ length: to - from }, (_, i) => pageFacts(raw, from + i));
         },
         signal ? { signal } : {},
       );
