@@ -586,7 +586,21 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
       : await this.run(engine.renderPageRaw(doc, page, renderOptions), options, 'renderPage');
     throwIfAborted(options.signal, 'renderPage');
     const bitmap = await createImageBitmap(new ImageData(raw.data, raw.width, raw.height));
-    return { bitmap, width: raw.width, height: raw.height };
+    let probe = '';
+    try {
+      const oc = new OffscreenCanvas(raw.width, raw.height);
+      const c2 = oc.getContext('2d');
+      c2?.drawImage(bitmap, 0, 0);
+      const back = c2?.getImageData(0, 0, raw.width, raw.height).data;
+      let diff = 0;
+      if (back) {
+        for (let i = 0; i < back.length; i += 4 * 97) if (back[i] !== raw.data[i]) diff++;
+      }
+      probe = `${raw.width}x${raw.height} diff=${diff}`;
+    } catch (error) {
+      probe = `check failed ${String(error)}`;
+    }
+    return { bitmap, width: raw.width, height: raw.height, probe } as RenderResult;
   }
 
   /**

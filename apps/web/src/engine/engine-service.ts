@@ -1517,6 +1517,7 @@ export class EngineService {
         ...(clip === undefined ? {} : { clip }),
         ...(bare === true ? { withAnnotations: false, withForms: false } : {}),
       });
+      console.log(`PROBE-WORKER ${job.key} ${(rendered as unknown as { probe?: string }).probe}`);
       const entry: CachedBitmap = {
         key: job.key,
         bitmap: rendered.bitmap,
