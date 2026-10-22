@@ -34,17 +34,28 @@ export interface ScratchDocument {
 
 /** Opens `bytes` (transferred to the engine) as a scratch document. */
 export async function openScratch(bytes: ArrayBuffer, password?: string): Promise<ScratchDocument> {
-  const renderer = await toolRenderer();
-  const id = `__tools:${++scratchCounter}` as SourceId;
-  const document = await renderer.open(id, bytes, password === undefined ? {} : { password });
+  // The worker stays up until the scratch document closes (PF-18).
+  const release = getEngineService().hold();
   let closed = false;
-  return {
-    id,
-    document,
-    close: async () => {
-      if (closed) return;
-      closed = true;
-      await renderer.close(id).catch(() => undefined);
-    },
-  };
+  try {
+    const renderer = await toolRenderer();
+    const id = `__tools:${++scratchCounter}` as SourceId;
+    const document = await renderer.open(id, bytes, password === undefined ? {} : { password });
+    return {
+      id,
+      document,
+      close: async () => {
+        if (closed) return;
+        closed = true;
+        try {
+          await renderer.close(id).catch(() => undefined);
+        } finally {
+          release();
+        }
+      },
+    };
+  } catch (error) {
+    release();
+    throw error;
+  }
 }

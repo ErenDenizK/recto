@@ -4,8 +4,8 @@
  * side (two-up), or only the current page (single page). Placeholder sheets are sized from
  * the model (`pageDisplaySize`) so the layout never jumps; bitmaps fill in as they arrive.
  * On zoom the sheets resize at once (the current bitmap stretches) and a sharper render is
- * requested after a short debounce; above the single-bitmap cap, visible tiles render at
- * full resolution (`TiledPage`).
+ * requested after a short debounce; above Read mode's whole-page budget
+ * (`READ_BITMAP_PIXELS`, PF-19), visible tiles render at full resolution (`TiledPage`).
  *
  * Zoom keeps a stable anchor: the point under the viewport centre (buttons, keys) stays in
  * place. Pinch, trackpad pinch, Mod+wheel and the touch double tap go through the canvas zoom
@@ -36,7 +36,7 @@ import {
 } from '@pdf-editor/document-model';
 import { type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-import { RENDER_PRIORITY, sheetSize } from '../engine/engine-service';
+import { READ_BITMAP_PIXELS, RENDER_PRIORITY, sheetSize } from '../engine/engine-service';
 import { animate, type Motion } from '../motion/animate';
 import { sheetPush } from '../motion/catalogue';
 import { reducedMotion } from '../motion/reduced-motion';
@@ -1248,7 +1248,7 @@ function PageColumn({
                   textual &&
                   rowVisible &&
                   resized?.stretched !== true &&
-                  needsTiles(contentScale, contentPt.width, contentPt.height);
+                  needsTiles(contentScale, contentPt.width, contentPt.height, READ_BITMAP_PIXELS);
                 return (
                   <div
                     key={page.id}
@@ -1276,6 +1276,7 @@ function PageColumn({
                         exact={resized?.stretched !== true}
                         priority={rowVisible ? RENDER_PRIORITY.page : RENDER_PRIORITY.offscreen}
                         delayMs={ZOOM_RENDER_DELAY_MS}
+                        maxPixels={READ_BITMAP_PIXELS}
                       />
                       {tiled && sourceId !== undefined ? (
                         <TiledPage
