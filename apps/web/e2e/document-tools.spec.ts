@@ -157,3 +157,12 @@ test('strip metadata, export: the output has no author', async ({ page }) => {
   expect(pdf.catalog.get(PDFName.of('Names'))).toBeUndefined();
   expect(pdf.catalog.get(PDFName.of('Metadata'))).toBeUndefined();
 });
+
+// PF-21: the sheets load on first use; the first opening is modal and focus comes back.
+test('Document info on first open is modal and returns focus to the opener', async ({ page }) => {
+  await start(page, 'simple-text.pdf');
+  const sheet = await openDocumentInfo(page);
+  await expect(sheet).toHaveAttribute('aria-modal', 'true');
+  await closeDocumentInfo(page);
+  await expect(page.getByTestId('document-menu')).toBeFocused();
+});
