@@ -2545,6 +2545,7 @@
   "error_engine_stopped": "PDF motoru durdu.",
   "error_engine_stopped_spoken": "PDF motoru durdu. Devam etmek için yeniden yükleyin.",
   "error_reload": "Yeniden yükle",
+  "error_load_failed": "Bu bölüm yüklenemedi. Bağlantınızı denetleyin, sonra yeniden açın ya da sayfayı yeniden yükleyin.",
   "error_try_again": "Yeniden dene",
   "sheet_close": "Kapat",
   "sheet_back": "Geri",

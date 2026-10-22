@@ -32,6 +32,12 @@ import { act, waitFor } from '@testing-library/react';
  */
 export const EXIT_TIMEOUT = 3000;
 
+/**
+ * How long a test waits for a sheet's lazy chunk (PF-21) on first open: the dev server
+ * transforms the module and its imports on the first request, which takes seconds on a cold run.
+ */
+export const CHUNK_LOAD_TIMEOUT = 10_000;
+
 const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
 /** The finite animations running on `el`, its subtree and its ancestors. */

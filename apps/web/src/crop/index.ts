@@ -7,7 +7,6 @@ import { registerPageOverlay } from '../stage/page-overlays';
 import { CropLayer } from './CropLayer';
 
 export { cropPages, planCrops, planDiscard } from './actions';
-export { CropDialog } from './CropDialog';
 export { CropDrawBanner } from './CropDrawBanner';
 
 registerPageOverlay(Object.assign(CropLayer, { displayName: 'CropLayer' }));
