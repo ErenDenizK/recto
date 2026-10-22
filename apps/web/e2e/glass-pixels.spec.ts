@@ -273,6 +273,24 @@ test(
   },
 );
 
+test('no link shows a ring or mark after the sample opens without the keyboard', {
+  tag: '@pixels',
+}, async ({ page, browserName }) => {
+  test.skip(browserName !== 'chromium', APP_SURFACES_CHROMIUM_ONLY);
+  // DSN-3: focus is lime and only on :focus-visible, the blue is the page's selection, and
+  // nothing looks selected on arrival. The hover gating itself is LinkLayer.hover.test.tsx.
+  await page.goto('./?sample');
+  const links = page.locator('[data-link]');
+  await expect(links.first()).toBeAttached({ timeout: 30_000 });
+  const marks = await links.evaluateAll((els) =>
+    els.map((el) => {
+      const style = getComputedStyle(el);
+      return [el.matches(':focus-visible'), style.boxShadow, style.backgroundColor].join(' | ');
+    }),
+  );
+  expect(new Set(marks)).toEqual(new Set(['false | none | rgba(0, 0, 0, 0)']));
+});
+
 test.describe('in the light theme (spec D3-7)', () => {
   test.use({ colorScheme: 'light' });
 
