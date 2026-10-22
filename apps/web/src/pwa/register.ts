@@ -8,7 +8,7 @@
  *   window, storage refused) it says reloading closes them (FB4 issue 9). The toast lives in
  *   `update-toast.ts`, loaded when a worker waits, so the first paint does not carry the
  *   toast API and what it reaches (V1-P1, PRC-11).
- * - The worker registers after the first document's first page has drawn, or
+ * - The worker registers in an idle moment after the first document's first page has drawn, or
  *   `REGISTER_FALLBACK_MS` after the edition has loaded and the Library shows, whichever comes
  *   first, not at boot: its precache would otherwise share a phone's link with the sample that
  *   is opening (PF-20, docs/research/perf/phone-first-load-2026-10.md P5). Offline-ready and
@@ -142,10 +142,21 @@ function watchForUpdates(registration: ServiceWorkerRegistration): void {
 /** How long the Library may sit with no document before the worker registers anyway (PF-20). */
 const REGISTER_FALLBACK_MS = 5_000;
 
+/** Settling time after the first page: the capsule morph and first touches run in it (PF-20). */
+const IDLE_AFTER_RENDER_MS = 1_500;
+
+/** Runs `fn` in an idle moment after the first page: `requestIdleCallback`, else a short timer. */
+function whenIdle(fn: () => void): void {
+  if (typeof requestIdleCallback === 'function') {
+    // Idle callbacks can fire in the first quiet frame; wait out the settling time first.
+    setTimeout(() => requestIdleCallback(fn, { timeout: 3_000 }), IDLE_AFTER_RENDER_MS);
+  } else setTimeout(fn, IDLE_AFTER_RENDER_MS);
+}
+
 /**
- * Calls `run` once: when a page canvas first reaches `data-state="rendered"` (the first
- * document's first page, `PageCanvas`/`TiledPage`), or `fallbackMs` after the returned `arm`
- * is called, whichever comes first. Watching the attribute keeps this module free of the
+ * Calls `run` once: in an idle moment after a page canvas first reaches `data-state="rendered"`
+ * (the first document's first page, `PageCanvas`/`TiledPage`), or `fallbackMs` after the
+ * returned `arm` is called, whichever comes first; `now` runs it at once. Watching the attribute keeps this module free of the
  * viewer's components.
  */
 export function runAfterFirstPage(
@@ -158,7 +169,8 @@ export function runAfterFirstPage(
     for (const record of records) {
       const target = record.target;
       if (target instanceof HTMLCanvasElement && target.dataset.state === 'rendered') {
-        go();
+        observer.disconnect();
+        whenIdle(go);
         return;
       }
     }

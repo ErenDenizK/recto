@@ -93,12 +93,9 @@ describe('runAfterFirstPage (PF-20)', () => {
     await vi.waitFor(() => expect(seen).toHaveBeenCalledTimes(1));
     expect(run).not.toHaveBeenCalled();
     canvas.dataset.state = 'rendered';
-    await vi.waitFor(() => expect(run).toHaveBeenCalledTimes(1));
-    canvas.dataset.state = 'placeholder';
-    await vi.waitFor(() => expect(seen).toHaveBeenCalledTimes(3));
-    canvas.dataset.state = 'rendered';
-    await vi.waitFor(() => expect(seen).toHaveBeenCalledTimes(4));
-    expect(run).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(seen).toHaveBeenCalledTimes(2));
+    expect(run).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(run).toHaveBeenCalledTimes(1), { timeout: 6_000 });
     control.disconnect();
   });
 
