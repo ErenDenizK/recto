@@ -196,7 +196,9 @@ function Gallery() {
             ) : undefined
           }
           footnote={
-            kind === 'overlay' ? 'Shortcuts never fire while you type in a field.' : undefined
+            kind === 'overlay'
+              ? 'While you type in a field, plain keys go to the field; Ctrl shortcuts like Save and Find still work.'
+              : undefined
           }
           testId={`sheet-${kind}`}
         >

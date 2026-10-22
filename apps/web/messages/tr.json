@@ -2563,7 +2563,7 @@
   "shortcuts_search_label": "Kısayol bul",
   "shortcuts_search_placeholder": "Kısayol bul",
   "shortcuts_no_match": "“{query}” ile eşleşen kısayol yok.",
-  "shortcuts_footer_note": "Bir alana yazarken kısayollar çalışmaz.",
+  "shortcuts_footer_note": "Bir alana yazarken tuşlar alana gider; Kaydet ve Bul gibi {mod} kısayolları yine çalışır.",
   "shortcuts_action": "Eylem",
   "shortcuts_keys": "Tuşlar",
   "undo_step": "Geri al: {step}",
