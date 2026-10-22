@@ -257,6 +257,26 @@ function TileCanvas({
         canvas.height = bitmap.height;
         canvas.getContext('2d')?.drawImage(bitmap, 0, 0);
         canvas.dataset.state = 'rendered';
+        {
+          const img = canvas.getContext('2d')?.getImageData(0, 0, canvas.width, canvas.height);
+          let minX = 1e9, minY = 1e9, maxX = -1, maxY = -1, count = 0;
+          if (img) {
+            for (let yy = 0; yy < img.height; yy += 4) {
+              for (let xx = 0; xx < img.width; xx += 4) {
+                const k = (yy * img.width + xx) * 4;
+                const d = img.data;
+                if ((d[k + 3] ?? 0) < 250 || (d[k] ?? 0) < 250 || (d[k + 1] ?? 0) < 250 || (d[k + 2] ?? 0) < 250) {
+                  count++;
+                  if (xx < minX) minX = xx;
+                  if (yy < minY) minY = yy;
+                  if (xx > maxX) maxX = xx;
+                  if (yy > maxY) maxY = yy;
+                }
+              }
+            }
+          }
+          console.log(`PROBE-DRAW ${result.value.key} ink=${count} bbox=${minX},${minY}-${maxX},${maxY} fresh=${fresh}`);
+        }
         // A new tile fades in over the capped bitmap (motion-2026-10 viewer.md §3).
         if (fresh) fadeIn(canvas);
       });

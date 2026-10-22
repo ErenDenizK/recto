@@ -273,6 +273,24 @@ function isSignedEntry(s: { readonly byteRange: ArrayBuffer; readonly contents: 
 /** Max pages scanned for widgets when the byte heuristic cannot decide (object streams). */
 const WIDGET_SCAN_PAGE_LIMIT = 100;
 
+
+function probeSig(data: Uint8ClampedArray, width: number, height: number): string {
+  let minX = 1e9, minY = 1e9, maxX = -1, maxY = -1, count = 0;
+  for (let yy = 0; yy < height; yy += 4) {
+    for (let xx = 0; xx < width; xx += 4) {
+      const k = (yy * width + xx) * 4;
+      if ((data[k + 3] ?? 0) < 250 || (data[k] ?? 0) < 250 || (data[k + 1] ?? 0) < 250 || (data[k + 2] ?? 0) < 250) {
+        count++;
+        if (xx < minX) minX = xx;
+        if (yy < minY) minY = yy;
+        if (xx > maxX) maxX = xx;
+        if (yy > maxY) maxY = yy;
+      }
+    }
+  }
+  return `ink=${count} bbox=${minX},${minY}-${maxX},${maxY}`;
+}
+
 export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
   private readonly wasmUrl: string;
   private readonly fontFallback: FontFallbackConfig | null;
@@ -586,20 +604,7 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
       : await this.run(engine.renderPageRaw(doc, page, renderOptions), options, 'renderPage');
     throwIfAborted(options.signal, 'renderPage');
     const bitmap = await createImageBitmap(new ImageData(raw.data, raw.width, raw.height));
-    let probe = '';
-    try {
-      const oc = new OffscreenCanvas(raw.width, raw.height);
-      const c2 = oc.getContext('2d');
-      c2?.drawImage(bitmap, 0, 0);
-      const back = c2?.getImageData(0, 0, raw.width, raw.height).data;
-      let diff = 0;
-      if (back) {
-        for (let i = 0; i < back.length; i += 4 * 97) if (back[i] !== raw.data[i]) diff++;
-      }
-      probe = `${raw.width}x${raw.height} diff=${diff}`;
-    } catch (error) {
-      probe = `check failed ${String(error)}`;
-    }
+    const probe = probeSig(raw.data, raw.width, raw.height);
     return { bitmap, width: raw.width, height: raw.height, probe } as RenderResult;
   }
 

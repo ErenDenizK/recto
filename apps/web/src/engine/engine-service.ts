@@ -1517,7 +1517,20 @@ export class EngineService {
         ...(clip === undefined ? {} : { clip }),
         ...(bare === true ? { withAnnotations: false, withForms: false } : {}),
       });
-      console.log(`PROBE-WORKER ${job.key} ${(rendered as unknown as { probe?: string }).probe}`);
+      {
+        let mainSig = '';
+        try {
+          const oc = new OffscreenCanvas(rendered.bitmap.width, rendered.bitmap.height);
+          const c2 = oc.getContext('2d');
+          c2?.drawImage(rendered.bitmap, 0, 0);
+          const img = c2?.getImageData(0, 0, oc.width, oc.height);
+          if (img) mainSig = probeSig(img.data, img.width, img.height);
+        } catch (error) {
+          mainSig = String(error);
+        }
+        const workerSig = (rendered as unknown as { probe?: string }).probe;
+        console.log(`PROBE-RECV ${job.key} worker[${workerSig}] main[${mainSig}] ${workerSig === mainSig ? 'same' : 'DIFFERENT'}`);
+      }
       const entry: CachedBitmap = {
         key: job.key,
         bitmap: rendered.bitmap,
@@ -1618,6 +1631,24 @@ export class EngineService {
  * Cache identity of a tile: its own "page" (`…:rotation#tile`) so tiles never stand in for
  * a whole-page preview (`BitmapCache.best`), yet `removeSource` still drops them.
  */
+
+function probeSig(data: Uint8ClampedArray, width: number, height: number): string {
+  let minX = 1e9, minY = 1e9, maxX = -1, maxY = -1, count = 0;
+  for (let yy = 0; yy < height; yy += 4) {
+    for (let xx = 0; xx < width; xx += 4) {
+      const k = (yy * width + xx) * 4;
+      if ((data[k + 3] ?? 0) < 250 || (data[k] ?? 0) < 250 || (data[k + 1] ?? 0) < 250 || (data[k + 2] ?? 0) < 250) {
+        count++;
+        if (xx < minX) minX = xx;
+        if (yy < minY) minY = yy;
+        if (xx > maxX) maxX = xx;
+        if (yy > maxY) maxY = yy;
+      }
+    }
+  }
+  return `ink=${count} bbox=${minX},${minY}-${maxX},${maxY}`;
+}
+
 function tileAwarePage(page: string, tile: string | undefined): string {
   return tile === undefined ? page : `${page}#${tile}`;
 }
