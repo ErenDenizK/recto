@@ -4,10 +4,9 @@
  * removed the Office package sometimes had a few of the app chunk's module requests aborted
  * (`net::ERR_ABORTED`), `import('./app')` rejected and nothing ever mounted (office.spec.ts).
  *
- * Here the chunk's first answer is a 503 with `no-store`, a failed module load in every engine.
- * The booted page is checked by the chunk's two routed requests and the reload's
- * note in session storage, which hold in every engine (a reload's navigation type and its
- * request event do not, in Firefox). The service worker is blocked so the route sees every
+ * Here the chunk is answered 503 with `no-store` until the page reloads.
+ * The booted page is checked by its two main-frame navigations, the chunk's answers and the
+ * reload's note in session storage. The service worker is blocked so the route sees every
  * request; the precache plays no part here.
  */
 import { expect, type Page, test } from '@playwright/test';
@@ -36,11 +35,18 @@ function countNavigations(page: Page): () => number {
 }
 
 test('a failed edition chunk reloads the page once and the app boots', async ({ page }) => {
-  let requests = 0;
+  // Every request for the chunk fails until the page reloads: an engine may fetch it more than
+  // once for one import (Firefox did, and its second fetch then booted without any reload).
+  const documents = countNavigations(page);
+  const answers: string[] = [];
   await page.route(APP_CHUNK, async (route) => {
-    requests += 1;
-    if (requests === 1) await route.fulfill(UNAVAILABLE);
-    else await route.continue();
+    if (documents() <= 1) {
+      answers.push('503');
+      await route.fulfill(UNAVAILABLE);
+    } else {
+      answers.push('ok');
+      await route.continue();
+    }
   });
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
@@ -49,12 +55,15 @@ test('a failed edition chunk reloads the page once and the app boots', async ({ 
   try {
     await expect(page.getByTestId('app-shell')).toBeVisible({ timeout: 20_000 });
   } catch (error) {
-    throw new Error(`no shell; chunk requests ${requests}, page errors ${JSON.stringify(errors)}`, {
-      cause: error,
-    });
+    throw new Error(
+      `no shell; documents ${documents()}, chunk answers ${answers.join(',')}, page errors ${JSON.stringify(errors)}`,
+      { cause: error },
+    );
   }
-  // The first load failed the chunk, the one reload fetched it again and booted.
-  expect(requests).toBe(2);
+  // The first document's chunk failed, the one reload fetched it and booted.
+  expect(documents()).toBe(2);
+  expect(answers[0]).toBe('503');
+  expect(answers.at(-1)).toBe('ok');
   expect(await page.evaluate((key) => sessionStorage.getItem(key), BOOT_RELOAD_KEY)).not.toBeNull();
 });
 
