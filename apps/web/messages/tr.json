@@ -2545,7 +2545,6 @@
   "error_engine_stopped_spoken": "PDF motoru durdu. Devam etmek için yeniden yükleyin.",
   "error_reload": "Yeniden yükle",
   "error_try_again": "Yeniden dene",
-  "boot_failed": "Recto başlatılamadı: uygulamanın bir bölümü yüklenemedi. Yeniden yükleyip tekrar deneyin.",
   "sheet_close": "Kapat",
   "sheet_back": "Geri",
   "sheet_cancel": "Vazgeç",

@@ -3974,7 +3974,6 @@
   "error_engine_stopped_spoken": "The PDF engine stopped. Reload to continue.",
   "error_reload": "Reload",
   "error_try_again": "Try again",
-  "boot_failed": "Recto could not start: part of the app did not load. Reload to try again.",
   "sheet_close": "Close",
   "sheet_back": "Back",
   "sheet_cancel": "Cancel",

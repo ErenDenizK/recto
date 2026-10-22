@@ -54,7 +54,7 @@ function fakeWindow(stored?: string, throws = false) {
   return { win, items, document, load, replaced, reloads: () => reloads };
 }
 
-const CHUNK = { file: 'assets/app-AbCd1234.js', key: 'App' };
+const CHUNK = 'assets/app-AbCd1234.js';
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 afterEach(() => {
@@ -101,7 +101,7 @@ describe('loadOrReload', () => {
   it('passes a loaded module through', async () => {
     const fake = fakeWindow();
     await expect(
-      loadOrReload(() => Promise.resolve('module'), 'full', fake.win, undefined, CHUNK),
+      loadOrReload(() => Promise.resolve('module'), 'full', 'App', fake.win, undefined, CHUNK),
     ).resolves.toBe('module');
     expect(fake.reloads()).toBe(0);
   });
@@ -113,6 +113,7 @@ describe('loadOrReload', () => {
     const loaded = await loadOrReload(
       () => Promise.reject(new TypeError('failed')),
       'full',
+      'App',
       fake.win,
       (url) => {
         asked.push(url);
@@ -133,6 +134,7 @@ describe('loadOrReload', () => {
       void loadOrReload(
         () => Promise.reject(new TypeError('x')),
         'full',
+        'App',
         fake.win,
         retry,
         CHUNK,
@@ -156,6 +158,7 @@ describe('loadOrReload', () => {
     void loadOrReload(
       () => Promise.reject(new TypeError('x')),
       'full',
+      'App',
       fake.win,
       undefined,
       undefined,
@@ -168,11 +171,9 @@ describe('loadOrReload', () => {
 
 describe('the pieces', () => {
   it('reads the edition chunks the build writes, and nothing before the build', () => {
-    const raw = JSON.stringify({
-      full: CHUNK,
-      compact: { file: 'assets/c.js', key: 'CompactApp' },
-    });
-    expect(editionChunk('full', raw)).toEqual(CHUNK);
+    const raw = JSON.stringify([CHUNK, 'assets/CompactApp-AbCd1234.js']);
+    expect(editionChunk('full', raw)).toBe(CHUNK);
+    expect(editionChunk('compact', raw)).toBe('assets/CompactApp-AbCd1234.js');
     expect(editionChunk('compact')).toBeUndefined();
   });
 

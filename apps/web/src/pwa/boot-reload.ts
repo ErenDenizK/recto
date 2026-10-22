@@ -17,26 +17,32 @@
  *    runs it as a new navigation). A second failure within `BOOT_RELOAD_WINDOW_MS`, or no session
  *    storage to guard it, never reloads again: a loop would hide a real outage.
  * 3. **A static screen** then, never a blank page: what failed, and Reload, which loads a
- *    cache-busted document URL (`_r=<time>`). It needs no React; its strings come from the
- *    messages the first paint already carries.
+ *    cache-busted document URL (`_r=<time>`). It needs no React, and its two lines are kept here
+ *    rather than in messages/*.json: the messages' modules would cost the first paint more
+ *    than the text (V1-P1), and this is the page shown when modules fail to load.
  */
-import { m } from '../i18n';
+import { getLocale } from '../i18n/locale';
 
 /** `sessionStorage`: when this tab last reloaded for a failed launch chunk (ms since epoch). */
 export const BOOT_RELOAD_KEY = 'pdf-editor:boot-reload:v1';
 export const BOOT_RELOAD_WINDOW_MS = 60_000;
 
-/** Replaced at build (vite.config.ts `editionChunks`) with `{ full, compact }: { file, key }` as JSON. */
+/**
+ * Replaced at build (vite.config.ts `editionChunks`) with the JSON list of the editions' chunk
+ * files, full then compact, relative to the base path (`assets/app-<hash>.js`).
+ */
 const EDITION_CHUNKS = '__RECTO_EDITION_CHUNKS__';
 
 export type Edition = 'full' | 'compact';
 
-export interface EditionChunk {
-  /** The emitted file, relative to the base path (`assets/app-<hash>.js`). */
-  readonly file: string;
-  /** The key the edition's component is exported under. */
-  readonly key: string;
-}
+/** The screen's text by locale: what failed, and the button (`error_reload` in messages). */
+const TEXT = {
+  en: ['Recto could not start: part of the app did not load. Reload to try again.', 'Reload'],
+  tr: [
+    'Recto başlatılamadı: uygulamanın bir bölümü yüklenemedi. Yeniden yükleyip tekrar deneyin.',
+    'Yeniden yükle',
+  ],
+} as const;
 
 export interface BootWindow {
   readonly sessionStorage: Pick<Storage, 'getItem' | 'setItem'>;
@@ -45,14 +51,10 @@ export interface BootWindow {
   addEventListener(type: 'load', listener: () => void, options: { once: true }): void;
 }
 
-/** The edition's chunk as the build wrote it; undefined before the build (dev, unit tests). */
-export function editionChunk(
-  edition: Edition,
-  raw: string = EDITION_CHUNKS,
-): EditionChunk | undefined {
+/** The edition's chunk file as the build wrote it; undefined before the build (dev, tests). */
+export function editionChunk(edition: Edition, raw: string = EDITION_CHUNKS): string | undefined {
   try {
-    const chunks = JSON.parse(raw) as Partial<Record<Edition, EditionChunk>>;
-    return chunks[edition];
+    return (JSON.parse(raw) as string[])[edition === 'full' ? 0 : 1];
   } catch {
     return undefined;
   }
@@ -118,7 +120,7 @@ export function reloadForFailedBoot(win: BootWindow = window, now = Date.now()):
 
 /**
  * The screen of a launch that could not load (`data-testid="boot-failure"`), outside React.
- * Its text is the app's own messages, never input, so it is written as markup.
+ * Its text is the app's own, never input, so it is written as markup.
  */
 export function showBootFailure(doc: Document = document, win: BootWindow = window): HTMLElement {
   const screen = doc.createElement('section');
@@ -126,7 +128,8 @@ export function showBootFailure(doc: Document = document, win: BootWindow = wind
   screen.setAttribute('role', 'alert');
   screen.style.cssText =
     'position:fixed;inset:0;display:grid;place-content:center;gap:12px;padding:16px;text-align:center';
-  screen.innerHTML = `<p>${m.boot_failed()}</p><button type=button>${m.error_reload()}</button>`;
+  const [text, reload] = TEXT[getLocale() === 'tr' ? 'tr' : 'en'];
+  screen.innerHTML = `<p>${text}</p><button type=button>${reload}</button>`;
   (screen.lastChild as HTMLElement).onclick = () =>
     win.location.replace(bustedUrl(win.location.href, '_r'));
   doc.body.append(screen);
@@ -138,25 +141,24 @@ const importUrl = (url: string): Promise<unknown> => import(/* @vite-ignore */ u
 /**
  * `load()`; when it fails, the edition's chunk again under a fresh URL; then one reload; then
  * the static screen (the module comment). After a reload or the screen the promise never
- * settles, so React renders nothing on the way.
+ * settles, so React renders nothing on the way. `name` is the edition's export, which the build
+ * checks its chunk has.
  */
 export function loadOrReload<T>(
   load: () => Promise<T>,
   edition: Edition,
+  name: string,
   win: BootWindow = window,
   retry: (url: string) => Promise<unknown> = importUrl,
-  chunk: EditionChunk | undefined = editionChunk(edition),
+  file: string | undefined = editionChunk(edition),
 ): Promise<T> {
   return load().catch(async () => {
-    if (chunk !== undefined && (await retryStyles())) {
-      const url = bustedUrl(
-        new URL(import.meta.env.BASE_URL + chunk.file, win.location.href).href,
-        'r',
-      );
+    if (file !== undefined && (await retryStyles())) {
+      const url = bustedUrl(new URL(import.meta.env.BASE_URL + file, win.location.href).href, 'r');
       const module = (await retry(url).catch(() => undefined)) as
         | Record<string, unknown>
         | undefined;
-      if (module?.[chunk.key] !== undefined) return module as T;
+      if (module?.[name] !== undefined) return module as T;
     }
     // The error is not rethrown: the screen says it, and React would only unmount the root.
     if (!reloadForFailedBoot(win)) showBootFailure(document, win);

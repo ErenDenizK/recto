@@ -73,7 +73,7 @@ const EDITIONS = {
   },
 } as const;
 
-/** What `src/pwa/boot-reload.ts` reads: each edition's chunk and the key it exports under. */
+/** What `src/pwa/boot-reload.ts` reads: the editions' chunk files, full then compact. */
 const EDITION_CHUNKS_PLACEHOLDER = '__RECTO_EDITION_CHUNKS__';
 
 interface GraphInfo {
@@ -185,9 +185,9 @@ function editionGroups(): (
 }
 
 /**
- * Writes each edition's chunk file and export key over `EDITION_CHUNKS_PLACEHOLDER` (read by
- * `src/pwa/boot-reload.ts`), and fails the build when an edition's chunk is missing, is not a
- * facade of its module, or is imported by another chunk than the entry's dynamic import.
+ * Writes the editions' chunk files over `EDITION_CHUNKS_PLACEHOLDER` (read by
+ * `src/pwa/boot-reload.ts`), and fails the build when an edition's chunk is missing, does not
+ * export the edition's component (`main.tsx` reads that key), or is imported by another chunk.
  */
 function editionChunks(): Plugin {
   return {
@@ -196,8 +196,8 @@ function editionChunks(): Plugin {
     generateBundle(_options, bundle) {
       const chunks = Object.values(bundle).filter((output) => output.type === 'chunk');
       if (!chunks.some((chunk) => chunk.code.includes(EDITION_CHUNKS_PLACEHOLDER))) return;
-      const found: Record<string, { file: string; key: string }> = {};
-      for (const [edition, { id, name }] of Object.entries(EDITIONS)) {
+      const files: string[] = [];
+      for (const { id, name } of [EDITIONS.full, EDITIONS.compact]) {
         const chunk = chunks.find((c) => c.facadeModuleId === id);
         if (!chunk) throw new Error(`recto:edition-chunks: no chunk for ${name} (${id})`);
         if (!chunk.exports.includes(name)) {
@@ -209,9 +209,9 @@ function editionChunks(): Plugin {
             `recto:edition-chunks: ${chunk.fileName} is imported by ${importers.map((c) => c.fileName).join(', ')}; it holds ${Object.keys(chunk.modules).join(', ')}`,
           );
         }
-        found[edition] = { file: chunk.fileName, key: name };
+        files.push(chunk.fileName);
       }
-      const value = JSON.stringify(JSON.stringify(found));
+      const value = JSON.stringify(JSON.stringify(files));
       for (const chunk of chunks) {
         chunk.code = chunk.code.replace(/(["'`])__RECTO_EDITION_CHUNKS__\1/g, value);
       }

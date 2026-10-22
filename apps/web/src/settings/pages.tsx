@@ -26,7 +26,7 @@ import { formatFileSize } from '../home/home-model';
 import { formatDay, formatSize, m, useLocale } from '../i18n';
 import { documentCsp, parseCsp } from '../privacy/csp';
 import { useExternalRequests } from '../privacy/external-requests';
-import { usePwaStore } from '../pwa/register';
+import { usePwaStore } from '../pwa/service-worker';
 import { serviceWorkerLabel } from '../pwa/service-worker-label';
 import { clearKeptChanges } from '../session/session';
 import { useSessionStore } from '../session/session-store';

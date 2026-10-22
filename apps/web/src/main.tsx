@@ -44,12 +44,16 @@ if (getLocale() === 'tr')
 const Edition =
   launchEdition() === 'compact'
     ? lazy(() =>
-        loadOrReload(() => import('./shell/compact/CompactApp'), 'compact').then((module) => ({
-          default: module.CompactApp,
-        })),
+        loadOrReload(() => import('./shell/compact/CompactApp'), 'compact', 'CompactApp').then(
+          (module) => ({
+            default: module.CompactApp,
+          }),
+        ),
       )
     : lazy(() =>
-        loadOrReload(() => import('./app'), 'full').then((module) => ({ default: module.App })),
+        loadOrReload(() => import('./app'), 'full', 'App').then((module) => ({
+          default: module.App,
+        })),
       );
 
 /** Mirrors the size class on `:root` (`data-size`, `data-short`) in both editions. */
