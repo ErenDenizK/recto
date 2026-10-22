@@ -69,7 +69,7 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PRD-20](decisions/product.md) | Office package r2: fonts trimmed (GPL faces out by default), Recto's substitution table, about 70 MB | In force; BQ-1 to BQ-3 open to the board, defaults applied | 2026-10-21 |
 | [PRD-21](decisions/product.md) | Settings removes the Office package; About lists its licences | In force | 2026-10-21 |
 | [PRD-22](decisions/product.md) | What must be true before `?office=1` goes on desktop and tablet; then the owner decides | In force; the switch is the owner's | 2026-10-21 |
-| [PRD-23](decisions/product.md) | Images in as a new PDF: one unsaved document, a page per image fitted to A4/Letter by region, EXIF honoured, 4000 px cap; ships after board question 2 | In force; owner's yes pending | 2026-10-22 |
+| [PRD-24](decisions/product.md) | Images in as a new PDF: one unsaved document, a page per image fitted to A4/Letter by region, EXIF honoured, 4000 px cap; ships after board question 2 | In force; owner's yes pending | 2026-10-22 |
 | [PRD-14](decisions/product.md) | W0-q findings are assigned to waves: signed fixture opens locked and saves byte-identical (W1-a/W1-b), truncated.pdf… | In force; W1-b and W1-g merged | 2026-10-09 |
 
 ## Design

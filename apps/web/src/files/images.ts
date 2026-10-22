@@ -25,7 +25,7 @@ const IMAGE_TYPES = new Set([
   'image/heif',
 ]);
 // HEIC/HEIF are accepted by name; only a browser that decodes them (WebKit) gets a page, the
-// rest reports the file as unreadable like any other undecodable image (PRD-23).
+// rest reports the file as unreadable like any other undecodable image (PRD-24).
 const IMAGE_EXTENSION = /\.(png|jpe?g|webp|heic|heif)$/i;
 
 /** Accept string for pickers and inputs. */
@@ -38,7 +38,7 @@ export function isImageFile(file: NamedFile): boolean {
   return IMAGE_EXTENSION.test(file.name);
 }
 
-/** `fit-paper`: the page is the image fitted inside A4 or Letter (PRD-23). */
+/** `fit-paper`: the page is the image fitted inside A4 or Letter (PRD-24). */
 export type ImageSizing = 'fit-a4' | 'original' | 'fit-paper';
 
 /** US Letter in points. */

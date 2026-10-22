@@ -1,5 +1,5 @@
 /**
- * Images as a new PDF end to end (Epic 5, PRD-23): a JPEG or a PNG opened through Open files or
+ * Images as a new PDF end to end (Epic 5, PRD-24): a JPEG or a PNG opened through Open files or
  * dropped on the app becomes one new, unsaved document with one page per image. Two images give
  * "Images"; a PDF dropped with an image still opens as usual.
  */
