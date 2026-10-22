@@ -37,6 +37,9 @@ declare global {
 }
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'the methods are forced on Chromium');
+// The full Chromium build (new headless), not the headless shell: the shell has no PDF viewer,
+// so a PDF frame never loads there and the frame path falls back to the pages after 15 s.
+test.use({ channel: 'chromium' });
 
 const TOKEN = 'SECRET-7731';
 
