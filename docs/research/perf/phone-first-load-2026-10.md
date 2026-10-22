@@ -162,3 +162,33 @@ sample**, and page 1 renders in the compact edition.
 - **P6. Smaller manifest tiles** (brand/media). Even out of the precache, `icon-512.png` is
   143 KiB and the maskable one 126 KiB. A palette-quantised PNG from `tools/media app-icons`
   would likely be under 40 KiB each.
+
+## Changes made (R25)
+
+Branch `r25/phone-first-load`, measured on the same profile as the table above (Pixel 7, 4× CPU,
+9 Mbps and 170 ms per request, fresh profile, three runs, `RECTO_RENDER_OVERRIDE=1` builds) on a
+busy shared machine, so the times below are noisy (the sample's first page ranged 6.9 to 12.8 s
+within one build) and the bytes are the signal.
+
+1. **P5, done (PF-20).** The worker registers when the first page canvas reaches
+   `data-state="rendered"`, or 5 s after the edition's chunk has loaded and the Library shows
+   (`src/pwa/register.ts`, `runAfterFirstPage`; the fallback clock starts in `main.tsx`). Bytes by
+   the sample's first page, of which the service worker's: 3,935 KB (131 KB) on `develop`,
+   3,825 KB (14 KB) with P5. The first-page time did not separate from the noise. The editor
+   initial JS stays at 829.9 KB gzip (+0.1 KB). `offline.spec.ts` (2 tests), `sample.spec.ts` (7,
+   including its offline test) and `compact-overview.spec.ts` on the phone project pass without a
+   changed wait: the specs already wait on the worker's state, not on a clock.
+2. **P4, built, held back at the gate.** The 100 KB gzip `PinchDetentChip.module` chunk existed
+   because `stage/section-operations` (reached by the phone's Pages overview through `dnd/drop`)
+   imported `targetPages` from `commands/app-commands`, and `app-commands` reaches almost every
+   desktop module. Moving `targetPages` into `stage/arrange-data` cuts that edge: the chunk drops
+   from 99.4 KB to 7.7 KB gzip, and `FurnitureDialogs`, `forms/create/*` and `app-commands` leave
+   the phone's path (together with P5, 3,681 KB by the first page, 254 KB less than `develop`).
+   Rolldown now cuts the desktop side along its importer sets into `app-commands` (68.7 KB gzip)
+   and about nine small fragments, so the editor initial JS rises from 829.8 to 836.6 KB gzip
+   (+1.4 % over the baseline, past the 1 % cap) while the compact edition falls to 278.3 KB. A
+   `codeSplitting` group for the fragments recovered only 1.8 KB, and a wider group pulled
+   pdf-lib, fontkit and the OCR recognizer into the editor's initial load. `tools/qa/bundle-budget.ts`
+   also needed its chunk pattern to take an 8-character hash, because the new `app-commands-<hash>`
+   chunk matched `app-*`. Not merged as is: it needs about 3.5 KB gzip saved elsewhere in the editor
+   initial JS, or a baseline the owner accepts (PRC-11).
