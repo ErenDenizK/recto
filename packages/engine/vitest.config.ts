@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { playwright } from '@vitest/browser-playwright';
 import { searchForWorkspaceRoot } from 'vite';
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 import { chromiumLaunchOptions } from '../../tooling/playwright-chromium.ts';
 import { ocrAssetsPlugin } from './ocr/assets.ts';
@@ -25,6 +25,14 @@ const OCR_ENGINES = (process.env.ENGINE_OCR_BROWSERS ?? '')
   .split(',')
   .map((name) => name.trim())
   .filter((name): name is 'firefox' | 'webkit' => name === 'firefox' || name === 'webkit');
+
+/**
+ * Tests that hold a wall-clock budget (the sample's render times, MOB-14). Run on their own,
+ * after every other file: files run in parallel, and a neighbour that keeps every core busy
+ * (OCR's pool of four recognizers) multiplies a render's time. Seen in CI: one page at 179 ms
+ * whose best of three is 37 ms on a quiet runner.
+ */
+const TIMED_TESTS = ['src/pdfium/sample-render.test.ts'];
 
 /**
  * Signature tests (M5 W3): `openssl cms -verify` of a detached CMS over the signed byte ranges,
@@ -110,24 +118,45 @@ export default defineConfig({
     ],
   },
   test: {
-    include: ['src/**/*.test.ts', 'test/**/*.test.ts'],
     passWithNoTests: true,
     browser: {
       enabled: true,
       headless: true,
       provider: playwright({ launchOptions: chromiumLaunchOptions() }),
-      instances: [
-        { browser: 'chromium' },
-        ...OCR_ENGINES.map((browser) => ({
-          browser,
-          name: `ocr-${browser}`,
-          include: OCR_TESTS,
-          provider: playwright(),
-          testTimeout: 120_000,
-          hookTimeout: 120_000,
-        })),
-      ],
       commands: { opensslCmsVerify },
     },
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'engine',
+          include: ['src/**/*.test.ts', 'test/**/*.test.ts'],
+          exclude: [...configDefaults.exclude, ...TIMED_TESTS],
+          browser: {
+            instances: [
+              { browser: 'chromium', name: 'chromium' },
+              ...OCR_ENGINES.map((browser) => ({
+                browser,
+                name: `ocr-${browser}`,
+                include: OCR_TESTS,
+                provider: playwright(),
+                testTimeout: 120_000,
+                hookTimeout: 120_000,
+              })),
+            ],
+          },
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'timed',
+          include: TIMED_TESTS,
+          // After every other file has finished, so nothing else runs meanwhile.
+          sequence: { groupOrder: 1 },
+          browser: { instances: [{ browser: 'chromium', name: 'chromium-timed' }] },
+        },
+      },
+    ],
   },
 });
