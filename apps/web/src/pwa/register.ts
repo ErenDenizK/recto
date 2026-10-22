@@ -148,7 +148,10 @@ const REGISTER_FALLBACK_MS = 5_000;
  * is called, whichever comes first. Watching the attribute keeps this module free of the
  * viewer's components.
  */
-export function runAfterFirstPage(run: () => void, fallbackMs: number): () => void {
+export function runAfterFirstPage(
+  run: () => void,
+  fallbackMs: number,
+): { readonly arm: () => void; readonly now: () => void } {
   let done = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const observer = new MutationObserver((records) => {
@@ -172,12 +175,24 @@ export function runAfterFirstPage(run: () => void, fallbackMs: number): () => vo
     attributes: true,
     attributeFilter: ['data-state'],
   });
-  return () => {
-    if (!done) timer ??= setTimeout(go, fallbackMs);
+  return {
+    arm: () => {
+      if (!done) timer ??= setTimeout(go, fallbackMs);
+    },
+    now: go,
   };
 }
 
+/** The latest the worker registers, even if no edition loads and no page draws (PF-20). */
+const REGISTER_CEILING_MS = 30_000;
+
 let armRegistration: (() => void) | undefined;
+let registerNow: (() => void) | undefined;
+
+/** Registers the worker now: Office conversion needs it to isolate the page (ADR-0035, PF-20). */
+export function registerServiceWorkerNow(): void {
+  registerNow?.();
+}
 
 /** The Library is showing: start the fallback clock for the worker's registration (PF-20). */
 export function armServiceWorkerRegistration(): void {
@@ -201,7 +216,10 @@ export function startServiceWorker(): void {
     usePwaStore.setState({ status: 'ready' });
     warmEngineCache();
   };
-  armRegistration = runAfterFirstPage(register, REGISTER_FALLBACK_MS);
+  const deferred = runAfterFirstPage(register, REGISTER_FALLBACK_MS);
+  armRegistration = deferred.arm;
+  registerNow = deferred.now;
+  setTimeout(deferred.now, REGISTER_CEILING_MS);
 
   function register(): void {
     updateServiceWorker = registerSW({

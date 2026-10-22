@@ -47,7 +47,7 @@ export interface OfficeDeps {
   readonly install: (options: InstallOptions) => Promise<void>;
   readonly downloadBytes: () => number;
   readonly isolated: () => boolean;
-  readonly canIsolate: () => boolean;
+  readonly canIsolate: () => Promise<boolean>;
   readonly refresh: () => Promise<boolean>;
   readonly stash: (files: readonly File[]) => Promise<void>;
   readonly takeStash: () => Promise<File[]>;
@@ -179,7 +179,7 @@ export function cancelOffice(): void {
 
 async function convertFiles(files: readonly File[], reloaded: boolean, token: number) {
   if (!deps.isolated()) {
-    if (reloaded || !deps.canIsolate()) {
+    if (reloaded || !(await deps.canIsolate())) {
       fail('isolation');
       return;
     }

@@ -42,7 +42,7 @@ function fakes(overrides: Partial<OfficeDeps> = {}) {
     install: () => Promise.resolve(),
     downloadBytes: () => 79_000_000,
     isolated: () => true,
-    canIsolate: () => true,
+    canIsolate: () => Promise.resolve(true),
     refresh: () => Promise.resolve(true),
     stash: vi.fn(() => Promise.resolve()),
     takeStash: () => Promise.resolve([]),
@@ -173,7 +173,7 @@ describe('the Office flow (ADR-0035 §5)', () => {
   });
 
   it('cannot isolate without a service worker', async () => {
-    const { deps } = fakes({ isolated: () => false, canIsolate: () => false });
+    const { deps } = fakes({ isolated: () => false, canIsolate: () => Promise.resolve(false) });
     openOffice([docx()]);
     await beginOffice();
     expect(step()).toMatchObject({ kind: 'failed', reason: 'isolation', retry: null });
