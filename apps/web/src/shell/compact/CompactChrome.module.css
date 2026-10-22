@@ -365,6 +365,11 @@
   transition:
     transform var(--hide-ms, var(--spring-quick)) var(--hide-ease, var(--ease-spring)),
     opacity var(--hide-fade, var(--duration-base)) var(--ease-out) var(--hide-fade-delay, 0ms);
+  /* Kept while its glass settles after the edit morph (`materials.css`, `data-glass-settle`):
+     a scroll in that moment still moves the capsule on its spring. */
+  --mat-settle-keep:
+    transform var(--hide-ms, var(--spring-quick)) var(--hide-ease, var(--ease-spring)),
+    opacity var(--hide-fade, var(--duration-base)) var(--ease-out) var(--hide-fade-delay, 0ms);
 }
 
 /* The edit island has the row to itself: the edit button has folded into it. */
@@ -550,6 +555,11 @@
   touch-action: manipulation;
   /* Hide on scroll as the capsule (MOT-16). */
   transition:
+    transform var(--hide-ms, var(--spring-quick)) var(--hide-ease, var(--ease-spring)),
+    opacity var(--hide-fade, var(--duration-base)) var(--ease-out) var(--hide-fade-delay, 0ms),
+    scale var(--spring-press) var(--ease-spring);
+  /* Kept while its glass settles after the edit morph, as the capsule's. */
+  --mat-settle-keep:
     transform var(--hide-ms, var(--spring-quick)) var(--hide-ease, var(--ease-spring)),
     opacity var(--hide-fade, var(--duration-base)) var(--ease-out) var(--hide-fade-delay, 0ms),
     scale var(--spring-press) var(--ease-spring);

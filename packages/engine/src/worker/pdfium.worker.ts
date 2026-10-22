@@ -261,12 +261,28 @@ const api: PdfiumWorkerApi = {
       return null;
     });
   },
-  renderPage(id, pageIndex, options, abortPort) {
+  renderPage(id, pageIndex, { asPixels, ...options }, abortPort) {
+    if (asPixels !== true) {
+      return call(
+        abortPort,
+        (signal) =>
+          onSource(id, signal, (a) => a.renderPage(id, pageIndex, withSignal(options, signal))),
+        (result) => [result.bitmap],
+      );
+    }
+    // WebKit (PF-22): the pixels cross and the caller makes the bitmap.
     return call(
       abortPort,
       (signal) =>
-        onSource(id, signal, (a) => a.renderPage(id, pageIndex, withSignal(options, signal))),
-      (result) => [result.bitmap],
+        onSource(id, signal, async (a) => {
+          const { data, width, height } = await a.renderPagePixels(
+            id,
+            pageIndex,
+            withSignal(options, signal),
+          );
+          return { pixels: data.buffer, width, height };
+        }),
+      (result) => [result.pixels],
     );
   },
   getPageText(id, pageIndex, options, abortPort) {

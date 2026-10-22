@@ -33,6 +33,24 @@
   letter-spacing: var(--track-body);
 }
 
+/* `?home=search`: the search well grows, the sort sits after it; they stack when narrow. */
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2) var(--space-2);
+}
+
+.search {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.sort {
+  flex: none;
+}
+
 .list {
   display: grid;
   gap: 2px;

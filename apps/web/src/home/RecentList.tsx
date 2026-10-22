@@ -19,6 +19,9 @@ import { Menu } from '@base-ui/react/menu';
 import type { SourceId } from '@pdf-editor/document-model';
 import {
   type KeyboardEvent,
+  lazy,
+  Suspense,
+  useCallback,
   useEffect,
   useId,
   useLayoutEffect,
@@ -39,12 +42,19 @@ import { RowButton } from '../ui/RowButton';
 import menuStyles from '../ui/Menu.module.css';
 import { confirm } from '../ui/sheet';
 import { openRecent, removeRecentEntry } from './home-actions';
+import type { RecentSearchView } from './RecentSearchTools';
+import { HOME_SEARCH_FLAG, homeFlagEnabled } from './home-flags';
 import { formatFileSize, middleTruncate, relativeTime, visibleRecents } from './home-model';
 import lit from './lit.module.css';
 import { RECENT_THUMB, recentThumb } from './recent-thumbs';
 import styles from './RecentList.module.css';
 
 const RECENT_NAME_LENGTH = 48;
+/** The search and sort show once Recents lists six files or more (`?home=search`). */
+const SEARCH_FROM = 5;
+
+/** The search tools, a chunk of their own that loads only when they show. */
+const RecentSearchTools = lazy(() => import('./RecentSearchTools'));
 
 /** The current time, refreshed every minute while mounted ("5 minutes ago" moves on). */
 function useNow(): number {
@@ -105,7 +115,17 @@ export function RecentList({ variant }: { readonly variant: 'cards' | 'empty' })
   const clearFailed = useRecentsStore((s) => s.clearFailed);
   const keeping = useSessionStore((s) => s.keeping);
   const open = useOpenFiles();
-  const visible = useMemo(() => keptFirst(visibleRecents(entries, open)), [entries, open]);
+  // `?home=search` (Epic 3, 3d): a search field and a sort over the file names.
+  const searchOn = useMemo(() => homeFlagEnabled(HOME_SEARCH_FLAG), []);
+  const [view, setView] = useState<RecentSearchView | null>(null);
+  const onView = useCallback((next: RecentSearchView) => setView(next), []);
+  const listed = useMemo(() => visibleRecents(entries, open), [entries, open]);
+  const searching = searchOn && listed.length > SEARCH_FROM;
+  const query = searching && view !== null ? view.query.trim() : '';
+  const visible = useMemo(() => {
+    if (!searching || view === null) return keptFirst(listed);
+    return view.sort === 'recent' ? keptFirst(view.found) : [...view.found];
+  }, [searching, listed, view]);
   const [focused, setFocused] = useState<string | null>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const headingId = useId();
@@ -117,8 +137,9 @@ export function RecentList({ variant }: { readonly variant: 'cards' | 'empty' })
   }, []);
 
   // A Clear that could not delete the stored copy keeps the section, to say so.
-  if (visible.length === 0 && !clearFailed) return null;
+  if (listed.length === 0 && !clearFailed) return null;
   const tabbable = visible.some((e) => e.id === focused) ? focused : (visible[0]?.id ?? null);
+  const noMatch = query !== '' && visible.length === 0;
   const anyKept = visible.some((e) => e.kept !== undefined);
 
   const focusRow = (id: string | undefined) => {
@@ -196,6 +217,16 @@ export function RecentList({ variant }: { readonly variant: 'cards' | 'empty' })
           {m.recents_clear()}
         </Button>
       </div>
+      {searching ? (
+        <Suspense fallback={null}>
+          <RecentSearchTools listed={listed} onView={onView} />
+        </Suspense>
+      ) : null}
+      {noMatch ? (
+        <p className={styles.note} role="status">
+          {m.recents_search_none({ query })}
+        </p>
+      ) : null}
       {visible.length > 0 ? (
         <ul
           ref={listRef}
@@ -234,7 +265,7 @@ export function RecentList({ variant }: { readonly variant: 'cards' | 'empty' })
           <Icon name="warning" className={styles.footnoteIcon} />
           {m.session_not_kept()}
         </p>
-      ) : anyKept ? (
+      ) : anyKept && !noMatch ? (
         <p className={styles.footnote} data-testid="recent-kept-footnote">
           {m.recents_kept_footnote()} ·{' '}
           <Button
