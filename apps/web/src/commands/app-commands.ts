@@ -56,6 +56,7 @@ import {
 import { SIDEBAR_ID } from '../shell/frame/ids';
 import { requestSidebarFocus } from '../shell/sidebar/sidebar-focus';
 import { useAuthorPrompt } from '../shell/comment-author';
+import { targetPages } from '../stage/arrange-data';
 import { enterGrid, leaveGrid } from '../stage/grid/grid-transition';
 import { openImagesAsDocument } from '../stage/section-operations';
 import {
@@ -122,7 +123,13 @@ export async function openDocuments(all: readonly File[]): Promise<readonly Docu
   await openTextFiles(text);
   if (files.length === 0) return [];
   const { pdfs, images } = partitionFiles(files);
-  if (images.length > 0) await openImagesAsDocument(images);
+  // Opened images: one new unsaved document, each page fitted to A4 or Letter (PRD-24).
+  if (images.length > 0) {
+    await openImagesAsDocument(images, {
+      sizing: 'fit-paper',
+      manyTitle: m.images_document_title(),
+    });
+  }
   if (pdfs.length === 0) return [];
   const { opened, skipped } = await model().openFiles(pdfs);
   rememberOpened(pdfs, opened);
@@ -218,27 +225,6 @@ export async function textToPdfFromPicker(): Promise<void> {
   showOpened(await openDocuments(files), { wasEmpty });
   const active = model().workspace.activeDocument;
   if (active && ui().destination !== 'home') focusOpenedPage(active, before);
-}
-
-/**
- * Pages the page commands act on: the selection; in Arrange mode, the keyboard-focused
- * page when nothing is selected.
- */
-export function targetPages(): PageId[] {
-  const { selected, focused } = selection();
-  if (selected.size > 0) {
-    // Keep document order so announcements and moves read naturally.
-    const ws = model().workspace;
-    const ordered: PageId[] = [];
-    for (const id of ws.documentOrder) {
-      for (const page of ws.documents[id]?.pages ?? []) {
-        if (selected.has(page.id)) ordered.push(page.id);
-      }
-    }
-    return ordered;
-  }
-  if (focused !== null && stageView(ui()) === 'grid') return [focused];
-  return [];
 }
 
 const hasTargets = () => targetPages().length > 0;

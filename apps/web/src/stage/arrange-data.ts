@@ -12,7 +12,8 @@ import {
   type Workspace,
 } from '@pdf-editor/document-model';
 
-import { type GridScope, useUiStore } from '../state/ui-store';
+import { useSelectionStore } from '../state/selection-store';
+import { type GridScope, stageView, useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 
 export interface ShownSection {
@@ -118,4 +119,25 @@ export function outlineTargets(doc: VirtualDocument): ReadonlySet<PageId> {
     outlineCache.set(doc.outline, set);
   }
   return set;
+}
+
+/**
+ * Pages the page commands act on: the selection; in Arrange mode, the keyboard-focused
+ * page when nothing is selected.
+ */
+export function targetPages(): PageId[] {
+  const { selected, focused } = useSelectionStore.getState();
+  if (selected.size > 0) {
+    // Keep document order so announcements and moves read naturally.
+    const ws = useWorkspaceStore.getState().workspace;
+    const ordered: PageId[] = [];
+    for (const id of ws.documentOrder) {
+      for (const page of ws.documents[id]?.pages ?? []) {
+        if (selected.has(page.id)) ordered.push(page.id);
+      }
+    }
+    return ordered;
+  }
+  if (focused !== null && stageView(useUiStore.getState()) === 'grid') return [focused];
+  return [];
 }

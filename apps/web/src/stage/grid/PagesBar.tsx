@@ -44,11 +44,11 @@ import {
   useState,
 } from 'react';
 
-import { targetPages } from '../../commands/app-commands';
 import { commandRegistry } from '../../commands/registry';
 import { useCommands } from '../../commands/use-commands';
 import { m } from '../../i18n';
 import { announce } from '../../shell/announcer';
+import { targetPages } from '../arrange-data';
 import { useRovingTabindex } from '../../markup/roving';
 import dockStyles from '../../shell/frame/Dock.module.css';
 import { openTitleMenu } from '../../shell/frame/frame-store';

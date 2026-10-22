@@ -17,12 +17,12 @@ import {
   type Workspace,
 } from '@pdf-editor/document-model';
 
-import { targetPages } from '../commands/app-commands';
 import { currentPlatform } from '../commands/shortcuts';
 import { inDocumentOrder, insertFilesAt, transferPages } from '../dnd/drop';
 import { pickFiles } from '../files/open-files';
 import { m } from '../i18n';
 import { announce } from '../shell/announcer';
+import { targetPages } from './arrange-data';
 import { type PageClipboard, useSelectionStore } from '../state/selection-store';
 import { stageView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';

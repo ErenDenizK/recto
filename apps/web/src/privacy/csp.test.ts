@@ -26,6 +26,10 @@ describe('index.html Content Security Policy', () => {
     expect(csp.get('object-src')).toEqual(["'none'"]);
   });
 
+  it('frames only local blobs (Print… prints the exported PDF in a frame, PRD-25)', () => {
+    expect(parseCsp(shippedPolicy()).get('frame-src')).toEqual(['blob:']);
+  });
+
   // Browsers ignore these in a meta policy and log an error on every load (CSP3 §6.1);
   // GitHub Pages cannot send them as headers (ADR-0004).
   it.each([

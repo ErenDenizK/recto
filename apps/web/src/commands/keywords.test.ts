@@ -382,10 +382,11 @@ describe('synonym corpus (Epic 4)', () => {
 describe('score floor (Epic 4)', () => {
   it('never offers an unrelated row for a word with no command', () => {
     const registry = allCommands();
-    // There is no print command yet (Epic 5); the junk match was "Toggle pen draws in Edit".
-    expect(search(registry, 'print')).toEqual([]);
-    expect(search(registry, 'yazdır')).toEqual([]);
-    for (const query of ['printer', 'xyzzy', 'blockchain', 'qwerty', 'kahve']) {
+    // Print… (PRD-25) is the only row for print; the junk match was "Toggle pen draws in Edit".
+    for (const query of ['print', 'yazdır', 'printer']) {
+      expect(search(registry, query), query).toEqual(['file.print']);
+    }
+    for (const query of ['xyzzy', 'blockchain', 'qwerty', 'kahve']) {
       expect(search(registry, query), query).toEqual([]);
     }
   });

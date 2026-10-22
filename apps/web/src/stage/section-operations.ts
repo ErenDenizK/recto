@@ -30,13 +30,14 @@ import {
   type Workspace,
 } from '@pdf-editor/document-model';
 
-import { targetPages } from '../commands/app-commands';
 import { currentPlatform } from '../commands/shortcuts';
 import { inDocumentOrder } from '../dnd/drop';
 import {
   decodeImageFile,
+  IMAGE_MAX_SIDE,
   imagePageSize,
   type ImageSizing,
+  localPaper,
   shouldAskImageSizing,
 } from '../files/images';
 import { m } from '../i18n';
@@ -52,7 +53,7 @@ import {
   type StoredBlob,
   useWorkspaceStore,
 } from '../state/workspace-store';
-import { shownInGridNow, showsAllDocuments } from './arrange-data';
+import { shownInGridNow, showsAllDocuments, targetPages } from './arrange-data';
 import { askImageSizing } from './operation-dialogs-store';
 import { type TitleProblem, validateTitle } from './operation-plans';
 
@@ -339,7 +340,13 @@ export async function prepareImagePages(
   const decoded = await Promise.all(
     files.map(async (file) => {
       try {
-        return { file, blob: await decodeImageFile(file) };
+        return {
+          file,
+          blob: await decodeImageFile(
+            file,
+            sizing === 'fit-paper' ? { maxSide: IMAGE_MAX_SIDE } : {},
+          ),
+        };
       } catch {
         return { file, blob: undefined };
       }
@@ -365,7 +372,7 @@ export async function prepareImagePages(
   const images = ok.map(({ file, blob }) => ({
     file,
     blob: store.addBlob(blob, lease),
-    size: imagePageSize(blob.width, blob.height, sizingChoice),
+    size: imagePageSize(blob.width, blob.height, sizingChoice, localPaper()),
   }));
   return { images, failed };
 }
@@ -458,20 +465,26 @@ export async function insertImagesInto(
 
 /** Title of a document made of images: the first image's name ("scan-1.png" → "scan-1"). */
 export function imagesDocumentTitle(files: readonly File[]): string {
-  return documentTitleFromName((files[0]?.name ?? '').replace(/\.(png|jpe?g|webp)$/i, '.pdf'));
+  return documentTitleFromName(
+    (files[0]?.name ?? '').replace(/\.(png|jpe?g|webp|heic|heif)$/i, '.pdf'),
+  );
 }
 
 /** Images opened on their own (picker, drop on the tab bar): one new document. */
 export async function openImagesAsDocument(
   files: readonly File[],
+  options: { readonly sizing?: ImageSizing; readonly manyTitle?: string } = {},
 ): Promise<DocumentId | undefined> {
   if (files.length === 0) return undefined;
-  const title = imagesDocumentTitle(files);
+  const title =
+    files.length > 1 && options.manyTitle !== undefined
+      ? options.manyTitle
+      : imagesDocumentTitle(files);
   let created: DocumentId | undefined;
   let failed: readonly string[] = [];
   const committed = await model().applyComposed(
     async (lease) => {
-      const prepared = await prepareImagePages(files, lease);
+      const prepared = await prepareImagePages(files, lease, options.sizing);
       failed = prepared?.failed ?? [];
       return prepared !== undefined && prepared.images.length > 0 ? prepared : undefined;
     },
