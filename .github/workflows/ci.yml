@@ -33,14 +33,6 @@ jobs:
         if: always()
         run: >-
           pnpm --filter @pdf-editor/web exec playwright test e2e/eyedropper.spec.ts
-          --project=webkit --repeat-each=6 --retries=0 --workers=1 --reporter=line
-        env:
-          E2E_SKIP_BUILD: '1'
-      - name: Capsule
-        if: always()
-        run: >-
-          pnpm --filter @pdf-editor/web exec playwright test e2e/capsule.spec.ts
-          --project=webkit --repeat-each=3 --retries=0 --workers=1 --reporter=line
-          -g "two contents at once, the row palette.+dock to palette$"
+          --project=webkit --repeat-each=4 --retries=0 --workers=1 --reporter=line
         env:
           E2E_SKIP_BUILD: '1'

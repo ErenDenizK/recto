@@ -121,9 +121,29 @@ export const samplePagePixels: PixelSampler = (clientX, clientY, size = 11) => {
         })
       : [];
     const chosen = canvas ? canvas.getBoundingClientRect() : null;
+    let sig = '';
+    if (canvas) {
+      const img = canvas.getContext('2d')?.getImageData(0, 0, canvas.width, canvas.height);
+      let minX = 1e9, minY = 1e9, maxX = -1, maxY = -1, count = 0;
+      if (img) {
+        for (let yy = 0; yy < img.height; yy += 4) {
+          for (let xx = 0; xx < img.width; xx += 4) {
+            const k = (yy * img.width + xx) * 4;
+            if ((img.data[k] ?? 0) < 250 || (img.data[k + 1] ?? 0) < 250 || (img.data[k + 2] ?? 0) < 250) {
+              count++;
+              if (xx < minX) minX = xx;
+              if (yy < minY) minY = yy;
+              if (xx > maxX) maxX = xx;
+              if (yy > maxY) maxY = yy;
+            }
+          }
+        }
+      }
+      sig = ` ink=${count} bbox=${minX},${minY}-${maxX},${maxY}`;
+    }
     const vp = document.querySelector('[data-read-viewport]');
     console.log(
-      `PROBE-SAMPLE at ${clientX},${clientY} page=${page?.dataset.pageId ?? 'none'} chosen=${canvas ? `${canvas.closest(TILES) ? 'tile' : 'base'} ${canvas.width}x${canvas.height} @${chosen?.left.toFixed(1)},${chosen?.top.toFixed(1)} ${chosen?.width.toFixed(1)}x${chosen?.height.toFixed(1)}` : 'none'} centre=${out?.centre} rgba=${out ? [...out.data].join(',') : '-'} scroll=${vp?.scrollLeft},${vp?.scrollTop} dpr=${devicePixelRatio}\n  ${all.join('\n  ')}`,
+      `PROBE-SAMPLE at ${clientX},${clientY} page=${page?.dataset.pageId ?? 'none'} chosen=${canvas ? `${canvas.closest(TILES) ? 'tile' : 'base'} ${canvas.width}x${canvas.height} @${chosen?.left.toFixed(1)},${chosen?.top.toFixed(1)} ${chosen?.width.toFixed(1)}x${chosen?.height.toFixed(1)}` : 'none'} centre=${out?.centre}${sig} rgba=${out ? [...out.data].join(',') : '-'} scroll=${vp?.scrollLeft},${vp?.scrollTop} dpr=${devicePixelRatio}\n  ${all.join('\n  ')}`,
     );
   }
   return out;

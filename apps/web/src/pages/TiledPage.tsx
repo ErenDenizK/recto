@@ -257,6 +257,26 @@ function TileCanvas({
         canvas.height = bitmap.height;
         canvas.getContext('2d')?.drawImage(bitmap, 0, 0);
         canvas.dataset.state = 'rendered';
+        {
+          const ctx2 = canvas.getContext('2d');
+          const img = ctx2?.getImageData(0, 0, canvas.width, canvas.height);
+          let minX = 1e9, minY = 1e9, maxX = -1, maxY = -1, count = 0;
+          if (img) {
+            for (let yy = 0; yy < img.height; yy += 4) {
+              for (let xx = 0; xx < img.width; xx += 4) {
+                const k = (yy * img.width + xx) * 4;
+                if ((img.data[k] ?? 0) < 250 || (img.data[k + 1] ?? 0) < 250 || (img.data[k + 2] ?? 0) < 250) {
+                  count++;
+                  if (xx < minX) minX = xx;
+                  if (yy < minY) minY = yy;
+                  if (xx > maxX) maxX = xx;
+                  if (yy > maxY) maxY = yy;
+                }
+              }
+            }
+          }
+          console.log(`PROBE-TILE ${col},${row} t=${performance.now().toFixed(0)} rev=${revision} bucket=${bucket} clip=${JSON.stringify(clip)} bitmap=${bitmap.width}x${bitmap.height} result=${result.value.width}x${result.value.height} key=${result.value.key} fresh=${fresh} ink=${count} bbox=${minX},${minY}-${maxX},${maxY}`);
+        }
         // A new tile fades in over the capped bitmap (motion-2026-10 viewer.md §3).
         if (fresh) fadeIn(canvas);
       });
