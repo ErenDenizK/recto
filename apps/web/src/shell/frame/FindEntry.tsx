@@ -33,6 +33,7 @@ import {
   searchStep,
   selectHit,
   focusFindField,
+  modalOpen,
   setFindEntry,
   setSearchQuery,
   useSearchStore,
@@ -131,6 +132,9 @@ export function FindEntry({ form = 'auto' }: { readonly form?: 'auto' | 'button'
       event.preventDefault();
       openSearchPanel();
     } else if (event.key === 'Escape') {
+      // A dialog opened from here (Save a copy by Mod+Shift+S) takes Esc, also before it has
+      // taken the focus (WebKit moves it a frame later).
+      if (modalOpen()) return;
       pending.current = false;
       event.preventDefault();
       event.stopPropagation();

@@ -269,8 +269,11 @@ test.describe('Ctrl and ⌘ shortcuts work from inside Find (INK-12)', () => {
     await field.press('ControlOrMeta+Shift+S');
     const saveCopy = page.getByTestId('save-copy-sheet');
     await expect(saveCopy).toBeVisible();
-    await page.keyboard.press('Escape');
+    // Esc pressed while Find still has the focus (WebKit moves it into the sheet a frame
+    // later): the sheet takes it and closes; Find keeps its query.
+    await field.dispatchEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
     await expect(saveCopy).toHaveCount(0);
+    await expect(field).toHaveValue('lorem');
 
     await field.focus();
     await field.press('ControlOrMeta+,');

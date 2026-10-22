@@ -462,6 +462,12 @@ export function setFindEntry(entry: FindEntryHandle | undefined): void {
   findEntry = entry;
 }
 
+/**
+ * A modal dialog is up: Find's fields leave Esc to it (a sheet a Mod+ key opened from the field
+ * dismisses on Esc even before it has moved the focus in, INK-12).
+ */
+export const modalOpen = (): boolean => document.querySelector('[aria-modal="true"]') !== null;
+
 /** Whether the document's strip has the Find entry: all but the tight bar, which folds into ⋯. */
 const stripHasFind = () => !frameClassOf(window.innerWidth, window.innerHeight).tight;
 
