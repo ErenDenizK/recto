@@ -73,6 +73,7 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PRD-14](decisions/product.md) | W0-q findings are assigned to waves: signed fixture opens locked and saves byte-identical (W1-a/W1-b), truncated.pdf… | In force; W1-b and W1-g merged | 2026-10-09 |
 | [PF-18](decisions/product.md) | A closed document's source is parked; the engine worker ends when none is open | In force | 2026-10-22 |
 | [PF-19](decisions/product.md) | Read mode's whole-page bitmap is capped at 4 MP on every edition; tiles keep the visible page 1:1 | In force | 2026-10-22 |
+| [PF-21](decisions/product.md) | Sheets opened from menus load on first use behind a lazy host; commands and stores never import the sheet module | In force | 2026-10-22 |
 | [PF-22](decisions/product.md) | In WebKit page renders leave the worker as RGBA pixels and the main thread makes the bitmap (a transferred ImageBitmap can carry a later same-size tile's pixels); other engines keep the transferred bitmap | In force | 2026-10-22 |
 
 ## Design

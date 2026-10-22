@@ -14,7 +14,7 @@
  */
 import { useState } from 'react';
 
-import { CropDialog, CropDrawBanner } from '../crop';
+import { CropDialog } from '../crop/CropDialog';
 import { CombineSheet } from '../pages-sheets/CombineSheet';
 import { ExtractSheet } from '../pages-sheets/ExtractSheet';
 import { InsertImagesSheet } from '../pages-sheets/InsertImagesSheet';
@@ -39,7 +39,7 @@ function useLastOfEach(dialog: OperationDialog | null): Last {
   return dialog === null ? last : { ...last, [dialog.kind]: dialog };
 }
 
-export function OperationDialogs() {
+export default function OperationDialogs() {
   const dialog = useOperationDialogStore((s) => s.dialog);
   const last = useLastOfEach(dialog);
   const close = () => closeOperationDialog();
@@ -103,17 +103,13 @@ function CropHost({ dialog }: { readonly dialog: Of<'crop'> | null }) {
     if (open) setOpens(opens + 1);
   }
   const shown = dialog ?? last;
+  if (shown === null) return null;
   return (
-    <>
-      {shown === null ? null : (
-        <CropDialog
-          key={`${shown.documentId}:${opens}`}
-          documentId={shown.documentId}
-          pageIds={shown.pageIds}
-          open={open}
-        />
-      )}
-      <CropDrawBanner />
-    </>
+    <CropDialog
+      key={`${shown.documentId}:${opens}`}
+      documentId={shown.documentId}
+      pageIds={shown.pageIds}
+      open={open}
+    />
   );
 }
