@@ -35,11 +35,21 @@ import { useSessionStore } from '../session/session-store';
 import { pagesPhrase, useWorkspaceStore } from '../state/workspace-store';
 import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
+import { SearchField } from '../ui/SearchField';
+import { Segmented } from '../ui/Segmented';
 import { RowButton } from '../ui/RowButton';
 import menuStyles from '../ui/Menu.module.css';
 import { confirm } from '../ui/sheet';
 import { openRecent, removeRecentEntry } from './home-actions';
-import { formatFileSize, middleTruncate, relativeTime, visibleRecents } from './home-model';
+import { HOME_SEARCH_FLAG, homeFlagEnabled } from './home-flags';
+import {
+  formatFileSize,
+  middleTruncate,
+  type RecentSort,
+  relativeTime,
+  searchSortRecents,
+  visibleRecents,
+} from './home-model';
 import lit from './lit.module.css';
 import { RECENT_THUMB, recentThumb } from './recent-thumbs';
 import styles from './RecentList.module.css';
@@ -105,7 +115,16 @@ export function RecentList({ variant }: { readonly variant: 'cards' | 'empty' })
   const clearFailed = useRecentsStore((s) => s.clearFailed);
   const keeping = useSessionStore((s) => s.keeping);
   const open = useOpenFiles();
-  const visible = useMemo(() => keptFirst(visibleRecents(entries, open)), [entries, open]);
+  // `?home=search` (Epic 3, 3d): a search field and a sort over the file names.
+  const searchOn = useMemo(() => homeFlagEnabled(HOME_SEARCH_FLAG), []);
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState<RecentSort>('recent');
+  const listed = useMemo(() => visibleRecents(entries, open), [entries, open]);
+  const visible = useMemo(() => {
+    if (!searchOn) return keptFirst(listed);
+    const found = searchSortRecents(listed, query, sort);
+    return sort === 'recent' ? keptFirst(found) : found;
+  }, [searchOn, listed, query, sort]);
   const [focused, setFocused] = useState<string | null>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const headingId = useId();
@@ -117,7 +136,7 @@ export function RecentList({ variant }: { readonly variant: 'cards' | 'empty' })
   }, []);
 
   // A Clear that could not delete the stored copy keeps the section, to say so.
-  if (visible.length === 0 && !clearFailed) return null;
+  if (listed.length === 0 && !clearFailed) return null;
   const tabbable = visible.some((e) => e.id === focused) ? focused : (visible[0]?.id ?? null);
   const anyKept = visible.some((e) => e.kept !== undefined);
 
@@ -196,6 +215,28 @@ export function RecentList({ variant }: { readonly variant: 'cards' | 'empty' })
           {m.recents_clear()}
         </Button>
       </div>
+      {searchOn && listed.length > 0 ? (
+        <div className={styles.tools} data-testid="recent-tools">
+          <SearchField
+            className={styles.search}
+            value={query}
+            onValueChange={setQuery}
+            label={m.recents_search_label()}
+            noResults={query.trim() !== '' && visible.length === 0}
+            data-testid="recent-search"
+          />
+          <Segmented
+            label={m.recents_sort_label()}
+            value={sort}
+            onValueChange={setSort}
+            options={[
+              { value: 'recent', label: m.recents_sort_recent() },
+              { value: 'name', label: m.recents_sort_name() },
+              { value: 'size', label: m.recents_sort_size() },
+            ]}
+          />
+        </div>
+      ) : null}
       {visible.length > 0 ? (
         <ul
           ref={listRef}

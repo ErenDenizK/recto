@@ -3255,5 +3255,10 @@
   "cmd_file_text_to_pdf_keywords": "metinden pdf, txt’den pdf, txt to pdf, txt, metin, dönüştür, metin dosyasından pdf, text to pdf, convert",
   "file_picker_text": "Metin dosyaları",
   "text_to_pdf_failed": "{name} PDF’ye dönüştürülemedi",
-  "text_to_pdf_too_large": "{name} PDF’ye dönüştürülemeyecek kadar büyük (2 MB’tan fazla)."
+  "text_to_pdf_too_large": "{name} PDF’ye dönüştürülemeyecek kadar büyük (2 MB’tan fazla).",
+  "recents_search_label": "Son dosyalarda ara",
+  "recents_sort_label": "Son dosyaları sırala",
+  "recents_sort_recent": "Son açılan",
+  "recents_sort_name": "Ad",
+  "recents_sort_size": "Boyut"
 }

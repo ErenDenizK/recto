@@ -22,7 +22,10 @@ import {
   movedOrder,
   rangeBetween,
   relativeTime,
+  foldName,
+  nameMatches,
   sampleOnScreen,
+  searchSortRecents,
   toggleSelection,
   visibleRecents,
 } from './home-model';
@@ -295,5 +298,52 @@ describe('sampleOnScreen (Try the sample)', () => {
       false,
     );
     expect(sampleOnScreen([], [])).toBe(false);
+  });
+});
+
+describe('Recents search and sort (Epic 3, 3d)', () => {
+  const file = (name: string, size: number, openedAt: number) => ({ name, size, openedAt });
+
+  it('folds Turkish case: İ to i, I to ı', () => {
+    expect(foldName('İZMİR')).toBe('izmir');
+    expect(foldName('ISPARTA')).toBe('ısparta');
+    expect(nameMatches('izmir raporu.pdf', 'İZMİR')).toBe(true);
+    expect(nameMatches('Isparta.pdf', 'ısp')).toBe(true);
+    expect(nameMatches('Isparta.pdf', 'isp')).toBe(false);
+    expect(nameMatches('anything.pdf', '  ')).toBe(true);
+  });
+
+  it('sorts by recent, name (digits by value) and size', () => {
+    const list = [file('b10.pdf', 5, 1), file('b2.pdf', 9, 3), file('Çay.pdf', 1, 2)];
+    expect(searchSortRecents(list, '', 'recent').map((f) => f.name)).toEqual([
+      'b2.pdf',
+      'Çay.pdf',
+      'b10.pdf',
+    ]);
+    expect(searchSortRecents(list, '', 'name').map((f) => f.name)).toEqual([
+      'b2.pdf',
+      'b10.pdf',
+      'Çay.pdf',
+    ]);
+    expect(searchSortRecents(list, '', 'size').map((f) => f.name)).toEqual([
+      'b2.pdf',
+      'b10.pdf',
+      'Çay.pdf',
+    ]);
+  });
+
+  it('keeps the incoming order for ties and filters by the query', () => {
+    const list = [file('a.pdf', 5, 1), file('b.pdf', 5, 1), file('c.pdf', 5, 1)];
+    expect(searchSortRecents(list, '', 'size').map((f) => f.name)).toEqual([
+      'a.pdf',
+      'b.pdf',
+      'c.pdf',
+    ]);
+    expect(searchSortRecents(list, '', 'recent').map((f) => f.name)).toEqual([
+      'a.pdf',
+      'b.pdf',
+      'c.pdf',
+    ]);
+    expect(searchSortRecents(list, 'B.', 'name').map((f) => f.name)).toEqual(['b.pdf']);
   });
 });
