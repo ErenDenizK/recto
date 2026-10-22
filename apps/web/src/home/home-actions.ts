@@ -47,6 +47,7 @@ import { useUiStore } from '../state/ui-store';
 import { addLoadedSource, type LoadedSources, useWorkspaceStore } from '../state/workspace-store';
 import { toast } from '../ui/Toast/toast';
 import { combinedTitle, combineOrder, compareOrder, liveSelection, movedOrder } from './home-model';
+import { homeFlagEnabled, OPEN_PAGE_FLAG } from './home-flags';
 import { backToLibraryMorph } from './library-morph';
 import { resetLibraryStore, setSelecting } from './library-store';
 
@@ -121,7 +122,8 @@ export function selectOnHome(ids: readonly DocumentId[], anchor?: DocumentId | n
  * the Library with the new cards checked (Select mode, the bar up) when two or more arrive on
  * an empty workspace or any arrive while the Library shows, with focus on the first new card;
  * one file opened on an empty workspace goes to its page. Two or more opened over a document
- * open as tabs and stay there, with "Opened 3 files · Show in Library" (02.19).
+ * open as tabs and stay there, with "Opened 3 files · Show in Library" (02.19). Behind
+ * `?open=page`, one file opened on the Library goes to its page, not Select mode (Epic 3, 3a).
  */
 export function showOpened(
   ids: readonly DocumentId[],
@@ -131,6 +133,12 @@ export function showOpened(
   const onHome = ui().destination === 'home';
   if (context.wasEmpty && ids.length === 1) {
     if (onHome) ui().showSurface('page');
+    return;
+  }
+  // `?open=page` (Epic 3, 3a): one file opened from the Library opens on its page.
+  const [only] = ids;
+  if (onHome && ids.length === 1 && only !== undefined && homeFlagEnabled(OPEN_PAGE_FLAG)) {
+    openInRead(only);
     return;
   }
   if (onHome || context.wasEmpty) {

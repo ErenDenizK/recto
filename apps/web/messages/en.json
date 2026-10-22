@@ -4991,5 +4991,12 @@
   "palette_intent_reversed": "Put the smaller page first, like 3–7",
   "palette_intent_no_pages": "No pages match that",
   "palette_intent_all_pages": "That would remove every page",
-  "palette_intent_ambiguous": "Say a range, like 2–3"
+  "palette_intent_ambiguous": "Say a range, like 2–3",
+  "recents_search_label": "Search recent files",
+  "recents_sort_label": "Sort recent files",
+  "recents_sort_recent": "Last opened",
+  "recents_sort_name": "Name",
+  "recents_sort_size": "Size",
+  "recents_search_placeholder": "Search",
+  "recents_search_none": "No recent files match “{query}”."
 }
