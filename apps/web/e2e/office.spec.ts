@@ -136,6 +136,30 @@ test('a Word file converts on the device and opens as a PDF', async ({ page }) =
   const stopSampling = sampleMemory();
   const requested: string[] = [];
   page.on('request', (request) => requested.push(request.url()));
+  // PROBE (temporary): what the page did, with times.
+  const t0 = Date.now();
+  const log = (...a: unknown[]) => console.log(`[probe +${Date.now() - t0}ms]`, ...a);
+  page.on('console', (msg) => log('console', msg.type(), msg.text().slice(0, 200)));
+  page.on('pageerror', (e) => log('pageerror', String(e.stack ?? e).slice(0, 1500)));
+  page.on('requestfailed', (r) => log('requestfailed', r.url(), r.failure()?.errorText));
+  page.on('dialog', (d) => log('dialog', d.type()));
+  page.on('load', () => log('load', page.url()));
+  page.on('crash', () => log('crash'));
+  page.on('worker', (w) => log('worker', w.url()));
+  const pending = new Map<object, string>();
+  let watching = false;
+  page.on('request', (r) => {
+    if (watching) log('req', r.url(), r.resourceType(), r.serviceWorker() ? 'sw' : '');
+    pending.set(r, r.url());
+  });
+  page.on('requestfinished', (r) => {
+    pending.delete(r);
+  });
+  page.on('requestfailed', (r) => pending.delete(r));
+  page.on('response', (r) => {
+    if (watching) log('res', r.status(), r.url(), r.fromServiceWorker() ? 'fromSW' : '');
+  });
+  page.context().on('serviceworker', (w) => log('sw', w.url()));
 
   await useFileInputPicker(page);
   await useDownloadPath(page);
@@ -260,8 +284,48 @@ test('a Word file converts on the device and opens as a PDF', async ({ page }) =
   await expect(confirmation).toBeVisible();
   await confirmation.getByRole('button', { name: 'Remove', exact: true }).click();
   await expect(row).toBeDisabled();
+  log('final reload');
+  pending.clear();
+  watching = true;
   await page.reload();
-  await booted(page);
+  log('reloaded');
+  try {
+    await expect(page.getByTestId('app-shell')).toBeVisible({ timeout: 30_000 });
+    log('booted');
+  } catch (error) {
+    log('BOOT FAILED; pending requests', [...pending.values()]);
+    const dump = await page
+      .evaluate(async () => {
+        const nav = performance.getEntriesByType('navigation')[0] as
+          | PerformanceNavigationTiming
+          | undefined;
+        const registration = await navigator.serviceWorker?.getRegistration();
+        return {
+          root: document.getElementById('root')?.innerHTML.slice(0, 500),
+          html: Object.fromEntries(Object.entries(document.documentElement.dataset)),
+          readyState: document.readyState,
+          nav: nav && {
+            type: nav.type,
+            duration: nav.duration,
+            worker: nav.workerStart,
+            status: nav.responseStatus,
+          },
+          resources: performance.getEntriesByType('resource').map((e) => {
+            const r = e as PerformanceResourceTiming;
+            return `${new URL(r.name).pathname} ${Math.round(r.startTime)}+${Math.round(r.duration)} ${r.responseStatus}`;
+          }),
+          controller: navigator.serviceWorker?.controller?.scriptURL,
+          active: registration?.active?.scriptURL,
+          session: sessionStorage.length,
+          keys: Object.keys(sessionStorage),
+          caches: await caches.keys(),
+        };
+      })
+      .catch((e: unknown) => String(e));
+    log('BOOT FAILED dump', JSON.stringify(dump));
+    throw error;
+  }
+  await atRest(page.getByTestId('app-shell'));
   expect(await page.evaluate(() => crossOriginIsolated)).toBe(false);
 
   const peak = stopSampling();
