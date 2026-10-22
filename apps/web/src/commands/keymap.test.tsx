@@ -5,7 +5,7 @@
  * ones bound, no bound key runs while focus is in a field, and the `1` notice is said once,
  * only on a device that ran M8.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { registerDocumentCommands } from '../document/document-commands';
 import { registerOutlineCommands } from '../outline/outline-commands';
@@ -14,9 +14,10 @@ import { registerAppearanceCommands } from '../shell/appearance-commands';
 import { registerFocusCommands } from '../shell/frame/focus-mode';
 import { registerSignatureCommands } from '../signatures/signature-commands';
 import { registerArrangeCommands } from '../stage/arrange-commands';
-import { V2_LAYOUT_STORAGE_KEY } from '../state/ui-store';
+import { useUiStore, V2_LAYOUT_STORAGE_KEY } from '../state/ui-store';
 import { hasToast } from '../ui/Toast/toast';
 import { resetToasts } from '../ui/Toast/toast-store';
+import { openFind, useSearchStore } from '../viewer/search';
 import { registerAppCommands } from './app-commands';
 import {
   bindingKey,
@@ -28,9 +29,10 @@ import {
   SHARED_KEYS,
 } from './keymap';
 import { KEYMAP_NOTICE_STORAGE_KEY, noteKeyOneChanged } from './keymap-notice';
-import { type Command, type CommandRegistry, commandRegistry } from './registry';
+import { handKeysTo } from './key-handoff';
+import { type Command, CommandRegistry, commandRegistry } from './registry';
 import { parseShortcut } from './shortcuts';
-import { dispatchShortcut } from './use-shortcuts';
+import { dispatchShortcut, FIELD_SHORTCUTS, fieldKeepsKey } from './use-shortcuts';
 
 /** Every command set the app registers (`app.tsx`, `shell/AppShell.tsx`). */
 function registerEverything(registry: CommandRegistry): () => void {
@@ -202,7 +204,7 @@ describe('the registry is the key map’s one source', () => {
     expect(rows.filter((r) => r.keys.some((k) => bindingKey(k) === 'J'))).toHaveLength(1);
   });
 
-  it('runs no bound key while focus is in a field, unless the command opts in', () => {
+  it('runs no bound key while focus is in a field, unless the command opts in or is allowed', () => {
     const input = document.createElement('input');
     input.type = 'text';
     const textarea = document.createElement('textarea');
@@ -211,19 +213,11 @@ describe('the registry is the key map’s one source', () => {
     document.body.append(input, textarea, editable);
     try {
       for (const command of bound()) {
-        if (command.allowInInputs) continue;
+        // The allowlist runs from a field (INK-12; below).
+        if (command.allowInInputs || FIELD_SHORTCUTS.has(command.id)) continue;
         for (const shortcut of command.shortcuts) {
           for (const target of [input, textarea, editable]) {
-            const event = new KeyboardEvent('keydown', {
-              bubbles: true,
-              cancelable: true,
-              key: shortcut.key === ' ' ? ' ' : shortcut.key,
-              ctrlKey: shortcut.ctrl || shortcut.mod,
-              metaKey: shortcut.meta,
-              altKey: shortcut.alt,
-              shiftKey: shortcut.shift,
-            });
-            Object.defineProperty(event, 'target', { value: target });
+            const event = press(bindingKey(shortcut), target);
             expect(dispatchShortcut(event, commandRegistry, 'other'), command.id).toBe(false);
             expect(event.defaultPrevented, command.id).toBe(false);
           }
@@ -234,6 +228,285 @@ describe('the registry is the key map’s one source', () => {
       textarea.remove();
       editable.remove();
     }
+  });
+});
+
+/** A keydown on `target` for the binding `spelling` (`Mod+Shift+S`), as the 'other' platform. */
+function press(spelling: string, target: EventTarget, altGraph = false): KeyboardEvent {
+  const shortcut = parseShortcut(spelling);
+  const event = new KeyboardEvent('keydown', {
+    bubbles: true,
+    cancelable: true,
+    key: shortcut.key,
+    ctrlKey: shortcut.ctrl || shortcut.mod,
+    metaKey: shortcut.meta,
+    altKey: shortcut.alt,
+    shiftKey: shortcut.shift,
+  });
+  Object.defineProperty(event, 'target', { value: target });
+  // Windows reports AltGr as Ctrl+Alt, with AltGraph in the modifier state.
+  if (altGraph) {
+    Object.defineProperty(event, 'getModifierState', { value: (k: string) => k === 'AltGraph' });
+  }
+  return event;
+}
+
+describe('Ctrl and ⌘ shortcuts in a field (INK-12)', () => {
+  /** The app's bindings of `ids`, on a registry of spies (running the real ones opens sheets). */
+  function spies(ids: readonly string[]) {
+    const registry = new CommandRegistry();
+    const runs = new Map<string, ReturnType<typeof vi.fn>>();
+    for (const id of ids) {
+      const command = commandRegistry.get(id);
+      expect(command?.shortcuts.length ?? 0, id).toBeGreaterThan(0);
+      const run = vi.fn();
+      runs.set(id, run);
+      registry.register({
+        id,
+        title: id,
+        group: 'G',
+        act: null,
+        shortcut: command?.shortcuts.map(bindingKey) ?? [],
+        run,
+      });
+    }
+    return { registry, runs };
+  }
+
+  /** The allowlist (Save a copy and Settings are not `allowInInputs`, so not in dialogs). */
+  const allowed = [
+    'file.save',
+    'file.export',
+    'settings.open',
+    'view.palette',
+    'search.open',
+    'file.open',
+  ];
+  /** Ctrl/⌘ keys that stay the field's or the browser's, the text ones and the others. */
+  const kept = [
+    'pages.selectAll',
+    'edit.undo',
+    'edit.redo',
+    'pages.copy',
+    'pages.paste',
+    'pages.duplicate',
+    'tab.close',
+    'pages.extract',
+    'zoom.in',
+    'view.toggleLeftPanel',
+    'nav.goToPage',
+  ];
+
+  it('runs Save, Save a copy, Settings, the command bar, Find and Open from a field', () => {
+    expect([...FIELD_SHORTCUTS].sort()).toEqual([...allowed].sort());
+    const input = document.createElement('input');
+    input.type = 'search';
+    document.body.append(input);
+    try {
+      const { registry, runs } = spies(allowed);
+      for (const id of allowed) {
+        for (const shortcut of commandRegistry.get(id)?.shortcuts ?? []) {
+          const event = press(bindingKey(shortcut), input);
+          expect(dispatchShortcut(event, registry, 'other'), id).toBe(true);
+          expect(event.defaultPrevented, id).toBe(true);
+        }
+        expect(runs.get(id), id).toHaveBeenCalled();
+      }
+    } finally {
+      input.remove();
+    }
+  });
+
+  it('leaves every other Ctrl or ⌘ key to the field or the browser (⌘A, ⌘Z, ⌘D, ⌘W…)', () => {
+    const input = document.createElement('input');
+    const editable = document.createElement('div');
+    editable.contentEditable = 'true';
+    document.body.append(input, editable);
+    try {
+      const { registry, runs } = spies(kept);
+      for (const target of [input, editable]) {
+        for (const id of kept) {
+          for (const shortcut of commandRegistry.get(id)?.shortcuts ?? []) {
+            const event = press(bindingKey(shortcut), target);
+            expect(dispatchShortcut(event, registry, 'other'), id).toBe(false);
+            expect(event.defaultPrevented, id).toBe(false);
+          }
+        }
+      }
+      for (const run of runs.values()) expect(run).not.toHaveBeenCalled();
+      // Off a field the same keys are the app's.
+      expect(dispatchShortcut(press('Mod+A', document.body), registry, 'other')).toBe(true);
+    } finally {
+      input.remove();
+      editable.remove();
+    }
+  });
+
+  it('keeps a key typed with AltGr (Ctrl+Alt on Windows) to the field', () => {
+    const input = document.createElement('input');
+    document.body.append(input);
+    try {
+      const registry = new CommandRegistry();
+      const run = vi.fn();
+      // An allowlisted command on Ctrl+Alt+Q: Turkish AltGr+Q types @, never the command.
+      registry.register({
+        id: 'file.save',
+        title: 'Save',
+        group: 'G',
+        act: null,
+        shortcut: 'Mod+Alt+Q',
+        run,
+      });
+      const altGr = press('Mod+Alt+Q', input, true);
+      expect(fieldKeepsKey(altGr)).toBe(true);
+      expect(dispatchShortcut(altGr, registry, 'other')).toBe(false);
+      expect(altGr.defaultPrevented).toBe(false);
+      expect(run).not.toHaveBeenCalled();
+      // The same keys without AltGr are the shortcut.
+      expect(fieldKeepsKey(press('Mod+Alt+Q', input))).toBe(false);
+      expect(dispatchShortcut(press('Mod+Alt+Q', input), registry, 'other')).toBe(true);
+    } finally {
+      input.remove();
+    }
+  });
+
+  it('keeps a dialog’s field to the dialog', () => {
+    const dialog = document.createElement('div');
+    dialog.setAttribute('aria-modal', 'true');
+    const input = document.createElement('input');
+    dialog.append(input);
+    document.body.append(dialog);
+    try {
+      const { registry, runs } = spies(['file.export', 'settings.open']);
+      expect(dispatchShortcut(press('Mod+Shift+S', input), registry, 'other')).toBe(false);
+      expect(dispatchShortcut(press('Mod+,', input), registry, 'other')).toBe(false);
+      for (const run of runs.values()) expect(run).not.toHaveBeenCalled();
+    } finally {
+      dialog.remove();
+    }
+  });
+});
+
+describe('keys typed during a view change go where focus is going (MOT-17)', () => {
+  /** A key typed now, at the window (where focus has nowhere better to be). */
+  function type(key: string): KeyboardEvent {
+    const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+    window.dispatchEvent(event);
+    return event;
+  }
+
+  let field: HTMLInputElement;
+  let typed: string[];
+  beforeEach(() => {
+    field = document.createElement('input');
+    field.type = 'search';
+    field.value = 'old';
+    typed = [];
+    field.addEventListener('input', () => typed.push(field.value));
+    document.body.append(field);
+    return () => {
+      field.remove();
+      (document.activeElement as HTMLElement | null)?.blur();
+    };
+  });
+
+  it('focuses a field that can take the focus at once, selected, and holds nothing', () => {
+    handKeysTo(() => field, { onFocus: () => field.select() });
+    expect(document.activeElement).toBe(field);
+    expect(field.selectionStart).toBe(0);
+    expect(field.selectionEnd).toBe(3);
+    expect(type('t').defaultPrevented).toBe(false);
+  });
+
+  it('holds the text typed until the field shows, then types it in over its selection', async () => {
+    field.hidden = true;
+    const ready = vi.fn(() => field.select());
+    handKeysTo(() => field, { onFocus: ready });
+    const keys = ['t', 'e', 'x', 'Backspace', 'm', 'p'].map(type);
+    // None reaches the view being left (no tool arms, no place opens).
+    expect(keys.every((event) => event.defaultPrevented)).toBe(true);
+    // A Ctrl or ⌘ key passes: it is the app's shortcut.
+    expect(
+      (() => {
+        const event = new KeyboardEvent('keydown', { key: 's', ctrlKey: true, cancelable: true });
+        window.dispatchEvent(event);
+        return event.defaultPrevented;
+      })(),
+    ).toBe(false);
+    expect(document.activeElement).not.toBe(field);
+    field.hidden = false;
+    await expect.poll(() => document.activeElement).toBe(field);
+    expect(ready).toHaveBeenCalledOnce();
+    expect(field.value).toBe('temp');
+    expect(typed).toEqual(['temp']);
+    // Done: the next key is the field's own.
+    expect(type('o').defaultPrevented).toBe(false);
+  });
+
+  it('a field that mounts later takes the keys once it is there', async () => {
+    field.remove();
+    let mounted: HTMLInputElement | null = null;
+    handKeysTo(() => mounted);
+    type('a');
+    type('b');
+    mounted = field;
+    document.body.append(field);
+    field.value = '';
+    await expect.poll(() => field.value).toBe('ab');
+    expect(document.activeElement).toBe(field);
+  });
+
+  it('holds macOS Option characters too (a German Mac types @ with Option+L)', async () => {
+    field.hidden = true;
+    handKeysTo(() => field, { onFocus: () => field.select() });
+    type('a');
+    const option = new KeyboardEvent('keydown', { key: '@', altKey: true, cancelable: true });
+    window.dispatchEvent(option);
+    expect(option.defaultPrevented).toBe(true);
+    type('b');
+    field.hidden = false;
+    await expect.poll(() => field.value).toBe('a@b');
+  });
+
+  it('Tab ends it, as Esc does', () => {
+    field.hidden = true;
+    handKeysTo(() => field);
+    type('a');
+    expect(type('Tab').defaultPrevented).toBe(false);
+    expect(type('b').defaultPrevented).toBe(false);
+    field.hidden = false;
+    expect(field.value).toBe('old');
+  });
+
+  it('Mod+F with no Find entry in the strip opens the Search panel at once and holds nothing', () => {
+    const height = Object.getOwnPropertyDescriptor(window, 'innerHeight');
+    // The tight bar (under 352 px high) folds Find into ⋯; leaving the Library, no entry comes.
+    Object.defineProperty(window, 'innerHeight', { value: 300, configurable: true });
+    const before = useSearchStore.getState().focusSerial;
+    useUiStore.setState({ destination: 'home' });
+    try {
+      openFind();
+      expect(useSearchStore.getState().focusSerial).toBe(before + 1);
+      expect(useUiStore.getState().leftPanelView).toBe('find');
+      expect(type('t').defaultPrevented).toBe(false);
+    } finally {
+      if (height) Object.defineProperty(window, 'innerHeight', height);
+      useUiStore.setState({ destination: 'document' });
+    }
+  });
+
+  it('Esc or a press ends it, with the held text', () => {
+    field.hidden = true;
+    handKeysTo(() => field);
+    type('a');
+    expect(type('Escape').defaultPrevented).toBe(false);
+    expect(type('b').defaultPrevented).toBe(false);
+    handKeysTo(() => field);
+    type('c');
+    window.dispatchEvent(new PointerEvent('pointerdown'));
+    expect(type('d').defaultPrevented).toBe(false);
+    field.hidden = false;
+    expect(field.value).toBe('old');
   });
 });
 
