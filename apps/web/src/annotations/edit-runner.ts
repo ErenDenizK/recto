@@ -639,6 +639,13 @@ async function reconcileNow(ctx: EngineContext): Promise<boolean> {
     // A source out of the workspace (its document closed) keeps its engine state: undo
     // may bring it back, and then nothing needs replaying.
     if (ws.sources[source] === undefined) continue;
+    // A parked source (its document closed, PF-18) opens again from its original bytes.
+    const reopened = await getEngineService().ensureOpen(source);
+    if (!reopened.ok) {
+      console.warn(`Reopening ${source} failed`, reopened.error);
+      failed = true;
+      continue;
+    }
     const current = applied.get(source) ?? [];
     const wanted = target.get(source) ?? [];
     let common = 0;
@@ -913,6 +920,12 @@ function forgetSource(source: SourceId): void {
 }
 
 getEngineService().onSourceClosed(forgetSource);
+// A parked source has no engine document either: undo reopens it and replays its edits.
+getEngineService().onSourceParked(forgetSource);
+// The ended worker took the editor proxy with it.
+getEngineService().onWorkerEnded(() => {
+  context = undefined;
+});
 
 /** Ids of the edits the engine holds for a source (diagnostics and tests). */
 export function appliedEditIds(source: SourceId): string[] {

@@ -66,6 +66,7 @@ import { create } from 'zustand';
 
 import { type EngineFailure, getEngineService, type OpenedSource } from '../engine/engine-service';
 import { m } from '../i18n';
+import { startJob } from '../jobs/job-store';
 import { lockedChange, reportLockRefusal } from './lock-check';
 import { lockOpened } from './lock-store';
 
@@ -453,6 +454,27 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => {
     return true;
   };
 
+  /**
+   * A parked source is back in the workspace (undo of a close): opens it in the engine and
+   * has the edit runner replay its edits. The job capsule shows after its 400 ms gate.
+   */
+  const reopenParked = async (id: SourceId): Promise<void> => {
+    const job = startJob({ label: m.job_reopening() });
+    try {
+      const reopened = await getEngineService().ensureOpen(id);
+      if (!reopened.ok) {
+        console.warn(`Reopening ${id} failed`, reopened.error);
+        return;
+      }
+      if (get().workspace.engineEdits.some((edit) => edit.source === id)) {
+        const { scheduleReconcile } = await import('../annotations/edit-runner');
+        await scheduleReconcile();
+      }
+    } finally {
+      job.finish();
+    }
+  };
+
   /** Closes engine sources (and drops blobs) that no history entry references any more. */
   const collectGarbage = (): void => {
     const { history, files, blobs } = get();
@@ -461,14 +483,17 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => {
     for (const entry of entries) {
       for (const id of Object.keys(entry.workspace.sources)) live.add(id);
     }
-    // Sources only history references (a closed document undo can bring back) keep their
-    // engine document but give their rendered bitmaps back.
-    const shown = new Set<string>();
-    for (const doc of Object.values(history.present.workspace.documents)) {
-      for (const page of doc.pages) if (page.ref.kind === 'source') shown.add(page.ref.source);
-    }
+    // Sources only history references (a closed document undo can bring back) are parked:
+    // closed in the engine, bytes kept (PF-18). Undo opens them again from those bytes.
+    const shown = new Set<string>(Object.keys(history.present.workspace.sources));
+    const engine = getEngineService();
     for (const id of Object.keys(files) as SourceId[]) {
-      if (!shown.has(id) && !protections.has(id)) getEngineService().releaseBitmaps(id);
+      if (protections.has(id)) continue;
+      if (!shown.has(id)) {
+        if (live.has(id)) void engine.park(id);
+      } else if (engine.isParked(id)) {
+        void reopenParked(id);
+      }
     }
     const dead = (Object.keys(files) as SourceId[]).filter((id) => !live.has(id));
     if (dead.length > 0) {

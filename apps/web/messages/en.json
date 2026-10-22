@@ -3957,6 +3957,7 @@
   "job_stopping": "Stopping…",
   "job_cancel": "Cancel",
   "job_in_document": "{name} · {label}",
+  "job_reopening": "Reopening the document…",
   "update_ready": "Update ready",
   "update_kept": "Your documents reopen where they were.",
   "update_not_kept": "Reloading closes open documents.",

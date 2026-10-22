@@ -6,7 +6,7 @@
  */
 import { getActiveDocument, historyEntries, type SourceId } from '@pdf-editor/document-model';
 import type { NewAnnotation } from '@pdf-editor/engine';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import { fixtureFile, pngBlob } from '../../test/store-harness';
@@ -68,6 +68,36 @@ describe('edit runner robustness', () => {
   afterEach(async () => {
     await whenIdle();
     resetWorkspace();
+  });
+
+  it('undo of a close opens the parked source again and replays its edits (PF-18)', async () => {
+    const { source, target, doc } = await open();
+    await createAnnotations(target, [text(700, 'Kept')]);
+    await whenIdle();
+    expect(appliedEditIds(source)).toHaveLength(1);
+    const service = getEngineService();
+    model().closeDocument(doc as never);
+    await vi.waitFor(() => {
+      expect(service.isParked(source)).toBe(true);
+    });
+    // The engine document is gone, and with it what was applied to it.
+    expect(appliedEditIds(source)).toEqual([]);
+    model().undo();
+    await vi.waitFor(() => {
+      expect(appliedEditIds(source)).toHaveLength(1);
+    });
+    await whenIdle();
+    expect(service.isParked(source)).toBe(false);
+    const list = await readAnnotations(source, 0);
+    expect(list).toHaveLength(1);
+    const bitmap = await service.renderPage({
+      sourceId: source,
+      index: 0,
+      rotation: 0,
+      bucket: 0.25,
+      priority: 3,
+    });
+    expect(bitmap.ok).toBe(true);
   });
 
   it('export right after undo waits for the engine to follow the model', async () => {

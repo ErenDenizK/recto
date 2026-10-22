@@ -600,3 +600,90 @@ describe('EngineService invalidatePage', () => {
     expect(closed).toEqual([s]);
   });
 });
+
+describe('EngineService parking and the idle worker (PF-18)', () => {
+  const opened = { pageCount: 1 } as unknown as OpenedDocument;
+  const file = () => new File([new Uint8Array([37, 80, 68, 70])], 'a.pdf');
+
+  function setup(idleMs = 20) {
+    const open = vi.fn<RendererLike['open']>(() => Promise.resolve(opened));
+    const { renderer, closed } = mockRenderer(open);
+    const destroy = vi.fn(() => Promise.resolve());
+    const created = vi.fn(() => ({ ...renderer, destroy }));
+    const service = new EngineService({ createRenderer: created, timings: false, idleMs });
+    return { service, open, closed, destroy, created };
+  }
+
+  it('park() closes the engine document but keeps the original bytes', async () => {
+    const { service, open, closed } = setup();
+    const result = await service.open(file());
+    if (!result.ok) throw new Error('open failed');
+    const id = result.value.id;
+    await service.park(id);
+    expect(closed).toEqual([id]);
+    expect(service.isParked(id)).toBe(true);
+    const bytes = await service.sourceBytes(id);
+    expect(bytes.ok && bytes.value.byteLength).toBe(4);
+    expect(open).toHaveBeenCalledTimes(1);
+  });
+
+  it('ensureOpen() opens a parked source again from the kept bytes, once for many callers', async () => {
+    const { service, open } = setup();
+    const result = await service.open(file());
+    if (!result.ok) throw new Error('open failed');
+    const id = result.value.id;
+    await service.park(id);
+    const [a, b] = await Promise.all([service.ensureOpen(id), service.ensureOpen(id)]);
+    expect(a.ok && b.ok).toBe(true);
+    expect(service.isParked(id)).toBe(false);
+    expect(open).toHaveBeenCalledTimes(2);
+    expect(open.mock.calls[1]?.[0]).toBe(id);
+  });
+
+  it('a render of a parked source opens it first', async () => {
+    const { service, open } = setup();
+    const result = await service.open(file());
+    if (!result.ok) throw new Error('open failed');
+    const id = result.value.id;
+    await service.park(id);
+    void service.renderPage({ ...request(0, 1), sourceId: id });
+    await vi.waitFor(() => {
+      expect(open).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('ends the worker when no source is open and starts a new one on the next open', async () => {
+    const { service, destroy, created } = setup(20);
+    const first = await service.open(file());
+    if (!first.ok) throw new Error('open failed');
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(destroy).not.toHaveBeenCalled(); // a source is open
+    await service.park(first.value.id);
+    await vi.waitFor(() => {
+      expect(destroy).toHaveBeenCalledTimes(1);
+    });
+    expect(service.workerRunning).toBe(false);
+    const second = await service.open(file());
+    if (!second.ok) throw new Error('open failed');
+    expect(created).toHaveBeenCalledTimes(2);
+    expect(service.workerRunning).toBe(true);
+    // A parked source opens again on a new worker.
+    await service.park(second.value.id);
+    await vi.waitFor(() => {
+      expect(destroy).toHaveBeenCalledTimes(2);
+    });
+    expect((await service.ensureOpen(second.value.id)).ok).toBe(true);
+    expect(created).toHaveBeenCalledTimes(3);
+  });
+
+  it('close() of a parked source does not touch the engine', async () => {
+    const { service, closed } = setup();
+    const result = await service.open(file());
+    if (!result.ok) throw new Error('open failed');
+    await service.park(result.value.id);
+    closed.length = 0;
+    expect((await service.close(result.value.id)).ok).toBe(true);
+    expect(closed).toEqual([]);
+    expect(service.isParked(result.value.id)).toBe(false);
+  });
+});

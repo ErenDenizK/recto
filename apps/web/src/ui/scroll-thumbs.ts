@@ -103,15 +103,10 @@ function start(): () => void {
   const layer = document.createElement('div');
   layer.className = styles.layer ?? '';
   layer.setAttribute('aria-hidden', 'true');
-  const styleOf = new WeakMap<Element, CSSStyleDeclaration>();
-  const computed = (el: Element) => {
-    let style = styleOf.get(el);
-    if (!style) {
-      style = getComputedStyle(el);
-      styleOf.set(el, style);
-    }
-    return style;
-  };
+  // Not cached per element: a WeakMap from an element to its computed style (which refers back
+  // to the element) is never collected, and kept a closed document's page canvases alive (R25
+  // memory baseline, heap snapshot after three closes).
+  const computed = (el: Element) => getComputedStyle(el);
 
   /** Whether `el` scrolls along `axis` now (its extent first: most elements stop there). */
   const scrolls = (el: Element, axis: Axis): boolean => {
@@ -126,6 +121,8 @@ function start(): () => void {
   const optedOut = (el: Element) => computed(el).getPropertyValue('--scroll-bar').trim() === 'none';
 
   const resize = new ResizeObserver((entries) => {
+    // A removed scroller reports its collapse here: let go of it (`letGoOfDetached`).
+    for (const bar of bars) if (bar.target && !bar.target.isConnected) hide(bar);
     for (const bar of bars) {
       if (!bar.shown || !bar.target) continue;
       const target = bar.target;
@@ -249,9 +246,20 @@ function start(): () => void {
     measure(bar);
   };
 
+  // A scroller removed from the page (a closed document's viewport) is let go of, or the bar and
+  // the pointer's `under` list keep its whole subtree, page canvases included, alive.
+  const letGoOfDetached = (bar: Bar) => {
+    if (!bar.target || bar.target.isConnected) return;
+    resize.unobserve(bar.target);
+    bar.target = null;
+    bar.hot = false;
+    bar.drag = null;
+    under = under.filter((entry) => entry.el.isConnected);
+  };
   const hide = (bar: Bar) => {
     bar.shown = false;
     delete bar.el.dataset.shown;
+    letGoOfDetached(bar);
   };
   const linger = (bar: Bar) => {
     clearTimeout(bar.timer);
