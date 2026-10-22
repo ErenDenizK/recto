@@ -181,6 +181,11 @@
   color: var(--text-disabled);
 }
 
+/* An intent that cannot run keeps a readable title; the reason beside it carries the why. */
+.option[data-intent-invalid] .title {
+  color: var(--text-secondary);
+}
+
 .title {
   flex: 1;
   min-width: 0;
