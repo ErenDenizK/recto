@@ -66,7 +66,6 @@ import {
   readHeaderFooter,
   readPageNumbers,
   readWatermark,
-  removeFurniture,
   SLOTS,
   type TextStyle,
   type WatermarkSettings,
@@ -78,6 +77,7 @@ import {
   setFurniturePreview,
   useFurnitureStore,
 } from './furniture-store';
+import { furnitureName, removeFurnitureFrom } from './furniture-names';
 import own from './FurnitureDialogs.module.css';
 import { dropPreviewBlob, isPreviewBlob, putPreviewBlob, takePreviewBlob } from './preview-blobs';
 
@@ -120,41 +120,6 @@ function Content({
     case 'watermark':
       return <WatermarkDialog documentId={documentId} open={open} />;
   }
-}
-
-export function furnitureName(kind: FurnitureKind): string {
-  switch (kind) {
-    case 'page-numbers':
-      return m.furniture_title_page_numbers();
-    case 'header-footer':
-      return m.furniture_title_header_footer();
-    case 'bates':
-      return m.furniture_title_bates();
-    case 'watermark':
-      return m.furniture_title_watermark();
-  }
-}
-
-export function removeLabel(kind: FurnitureKind): string {
-  switch (kind) {
-    case 'page-numbers':
-      return m.cmd_remove_page_numbers();
-    case 'header-footer':
-      return m.cmd_remove_header_footer();
-    case 'bates':
-      return m.cmd_remove_bates();
-    case 'watermark':
-      return m.cmd_remove_watermark();
-  }
-}
-
-/** Removes one kind of furniture from a document as one history entry. */
-export function removeFurnitureFrom(documentId: DocumentId, kind: FurnitureKind): boolean {
-  const done = useWorkspaceStore
-    .getState()
-    .applyOperation((ws) => removeFurniture(ws, documentId, kind), removeLabel(kind));
-  if (done) announce(m.announce_furniture_removed({ name: furnitureName(kind) }));
-  return done;
 }
 
 // ---------------------------------------------------------------------------

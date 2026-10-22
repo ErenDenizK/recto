@@ -3975,6 +3975,7 @@
   "error_engine_stopped": "The PDF engine stopped.",
   "error_engine_stopped_spoken": "The PDF engine stopped. Reload to continue.",
   "error_reload": "Reload",
+  "error_load_failed": "This could not be loaded. Check your connection, then open it again or reload.",
   "error_try_again": "Try again",
   "sheet_close": "Close",
   "sheet_back": "Back",
