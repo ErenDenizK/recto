@@ -273,37 +273,22 @@ test(
   },
 );
 
-test('a link shows no mark on arrival with the pointer parked over it, and the blue only on hover', {
+test('no link shows a ring or mark after the sample opens without the keyboard', {
   tag: '@pixels',
 }, async ({ page, browserName }) => {
   test.skip(browserName !== 'chromium', APP_SURFACES_CHROMIUM_ONLY);
-  // Learn where the first cover line lies here (the layout differs by project), park the pointer
-  // at its centre, then load again so the page arrives under the parked pointer (DSN-3: focus is
-  // lime, the blue is the page's selection, nothing looks selected on arrival).
+  // DSN-3: focus is lime and only on :focus-visible, the blue is the page's selection, and
+  // nothing looks selected on arrival. The hover gating itself is LinkLayer.hover.test.tsx.
   await page.goto('./?sample');
-  const first = page.locator('[data-page-index="0"] [data-link]').first();
-  await expect(first).toBeAttached({ timeout: 30_000 });
-  const box = await first.boundingBox();
-  if (!box) throw new Error('the first cover link has no box to park the pointer on');
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.reload();
-  const link = page.locator('[data-page-index="0"] [data-link]').first();
-  await expect(link).toBeAttached({ timeout: 30_000 });
-  const mark = () =>
-    link.evaluate((el) => {
+  const links = page.locator('[data-link]');
+  await expect(links.first()).toBeAttached({ timeout: 30_000 });
+  const marks = await links.evaluateAll((els) =>
+    els.map((el) => {
       const style = getComputedStyle(el);
-      return [style.boxShadow, style.outlineStyle, style.backgroundColor].join(' | ');
-    });
-  await expect(link).not.toBeFocused();
-  expect(
-    await link.evaluate((el) => el.matches(':hover')),
-    'the parked pointer is over the first link after load (the precondition)',
-  ).toBe(true);
-  expect(await mark()).toBe('none | none | rgba(0, 0, 0, 0)');
-  const moved = await link.boundingBox();
-  if (!moved) throw new Error('the first cover link lost its box');
-  await page.mouse.move(moved.x + moved.width / 2 + 4, moved.y + moved.height / 2 + 4);
-  await expect.poll(mark).toContain('rgb(78, 97, 237)');
+      return [el.matches(':focus-visible'), style.boxShadow, style.backgroundColor].join(' | ');
+    }),
+  );
+  expect(new Set(marks)).toEqual(new Set(['false | none | rgba(0, 0, 0, 0)']));
 });
 
 test.describe('in the light theme (spec D3-7)', () => {

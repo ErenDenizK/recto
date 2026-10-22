@@ -42,7 +42,7 @@ const MAX_CACHED_PAGES = 300;
  * arrival). `:hover` alone also matches a pointer parked where the page opens, which drew the
  * selection blue box on the sample's first link before anything was touched.
  */
-const hoverMark = {
+export const hoverMark = {
   onPointerMove: (event: ReactPointerEvent<HTMLElement>) => {
     if (event.pointerType === 'mouse') event.currentTarget.dataset.hover = '';
   },
