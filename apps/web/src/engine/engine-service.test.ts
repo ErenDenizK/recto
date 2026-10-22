@@ -611,6 +611,25 @@ describe('EngineService parking and the idle worker (PF-18)', () => {
     expect(open).toHaveBeenCalledTimes(1);
   });
 
+  it('park() closes the cached bitmaps and cancels pending renders of the source', async () => {
+    const bitmap = fakeBitmap(10, 10);
+    const { renderer } = mockRenderer(() => Promise.resolve(opened));
+    const made: RendererLike = {
+      ...renderer,
+      renderPage: () => Promise.resolve({ bitmap, width: 10, height: 10 }),
+      destroy: () => Promise.resolve(),
+    };
+    const service = new EngineService({ createRenderer: () => made, timings: false, idleMs: 20 });
+    const result = await service.open(file());
+    if (!result.ok) throw new Error('open failed');
+    const id = result.value.id;
+    expect((await service.renderPage({ ...request(0, 1), sourceId: id })).ok).toBe(true);
+    expect(service.peek(id, 0, 0, 1)).toBeDefined();
+    await service.park(id);
+    expect(bitmap.closed).toBe(true);
+    expect(service.peek(id, 0, 0, 1)).toBeUndefined();
+  });
+
   it('ensureOpen() opens a parked source again from the kept bytes, once for many callers', async () => {
     const { service, open } = setup();
     const result = await service.open(file());
