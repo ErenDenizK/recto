@@ -3297,8 +3297,8 @@
       "declarations": ["input count", "input pages", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=one": "{pages}. sayfayı ters çevir",
-        "countPlural=*": "{pages}. sayfaları ters çevir"
+        "countPlural=one": "{pages}. sayfayı 180° döndür",
+        "countPlural=*": "{pages}. sayfaları 180° döndür"
       }
     }
   ],

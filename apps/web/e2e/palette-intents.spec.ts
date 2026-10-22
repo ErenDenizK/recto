@@ -66,6 +66,22 @@ test.describe('palette intents', () => {
     await expect.poll(() => shape(page, 1)).toBe('portrait');
   });
 
+  test('"rotate 2-3 180" is one rotation, and one undo restores it', async ({ page }) => {
+    await openSample(page);
+    await type(page, 'rotate 2-3 180');
+    await expect(intentRow(page)).toContainText('Rotate pages 2–3 180°');
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('dialog', { name: 'Command palette' })).toHaveCount(0);
+    await expect(page.getByRole('status').filter({ hasText: '180°' })).toHaveCount(1);
+    // One undo takes the half turn back: the next step down is opening the sample, not a
+    // second half of the turn.
+    const undo = page.getByTestId('undo-button');
+    await expect(page.getByText(/^Undo rotate 2 pages/)).toBeAttached();
+    await undo.click();
+    await expect(page.getByText(/^Undo open Recto sample/)).toBeAttached();
+    await expect(page.getByRole('button', { name: 'Redo', exact: true })).toBeEnabled();
+  });
+
   test('a heading from the outline jumps to its page', async ({ page }) => {
     await openSample(page);
     await type(page, 'go to Contributor agreement');

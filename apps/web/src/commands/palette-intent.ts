@@ -14,6 +14,7 @@ import { useRecentsStore } from '../files/recents';
 import { useSelectionStore } from '../state/selection-store';
 import { useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { rotateDocumentPages } from '../shell/frame/TitleMenuItems';
 import { goToPageIndex } from '../viewer/navigation';
 import { commandRegistry } from './registry';
 import type { InvalidReason, PagesAction, QueryContext, QueryIntent } from './query';
@@ -48,6 +49,19 @@ export interface IntentView {
   /** The quiet text at the row's end ("5 pages", "Page 12"), or why it cannot run. */
   readonly detail: string | undefined;
   readonly runnable: boolean;
+}
+
+/** "Rotate pages 3–7 right": the row text of a page action, shared by valid and invalid rows. */
+function pagesLabel(
+  action: PagesAction,
+  turns: -1 | 1 | 2 | undefined,
+  count: number,
+  pages: string,
+): string {
+  const input = { count, pages: dashed(pages) };
+  return action === 'rotate'
+    ? ROTATE_LABEL[String(turns ?? 1) as keyof typeof ROTATE_LABEL](input)
+    : ACTION_LABEL[action](input);
 }
 
 /** "3-7" as it is read: an en dash. */
@@ -103,15 +117,10 @@ export function describeIntent(intent: QueryIntent, query: string): IntentView[]
         },
       ];
     case 'pages': {
-      const input = { count: intent.pages.length, pages: dashed(intent.pagesLabel) };
-      const label =
-        intent.action === 'rotate'
-          ? ROTATE_LABEL[String(intent.turns ?? 1) as keyof typeof ROTATE_LABEL](input)
-          : ACTION_LABEL[intent.action](input);
       return [
         {
           key: 'intent-pages',
-          label,
+          label: pagesLabel(intent.action, intent.turns, intent.pages.length, intent.pagesLabel),
           detail: m.palette_intent_count({ count: intent.pages.length }),
           runnable: true,
         },
@@ -138,7 +147,14 @@ export function describeIntent(intent: QueryIntent, query: string): IntentView[]
           label:
             intent.for === 'page' && intent.page !== undefined
               ? m.palette_intent_go_page({ page: intent.page })
-              : query.trim(),
+              : intent.action !== undefined && intent.pagesLabel !== undefined
+                ? pagesLabel(
+                    intent.action,
+                    intent.turns,
+                    /[,-]/.test(intent.pagesLabel) ? 2 : 1,
+                    intent.pagesLabel,
+                  )
+                : query.trim(),
           detail: reasonText(intent.reason, intent.pageCount),
           runnable: false,
         },
@@ -194,9 +210,9 @@ async function runPagesIntent(intent: Extract<QueryIntent, { kind: 'pages' }>): 
   selection.apply({ selected: new Set(ids), anchor: ids[0] ?? null, focused: ids[0] ?? null });
   selection.setNavigatorDocument(doc.id);
   try {
-    // A half turn is two right turns; the command has no other way to turn.
-    const times = intent.turns === 2 ? 2 : 1;
-    for (let i = 0; i < times; i += 1) await commandRegistry.execute(intent.commandId);
+    // A half turn is one 180° rotation, so one undo takes it back (the menu's own helper).
+    if (intent.turns === 2) rotateDocumentPages(180);
+    else await commandRegistry.execute(intent.commandId);
   } finally {
     const now = useSelectionStore.getState();
     now.setNavigatorDocument(navigator);

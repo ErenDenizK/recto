@@ -56,6 +56,8 @@ interface ListRow {
   readonly title: string;
   readonly positions: readonly number[];
   readonly enabled: boolean;
+  /** An intent that cannot run: its title stays legible, only its detail explains. */
+  readonly invalidIntent?: boolean;
   /** Can be the active row (an invalid intent can, so Enter on it does nothing). */
   readonly focusable: boolean;
   /** Why it cannot run, or the intent's quiet detail. */
@@ -271,6 +273,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
           title: view.label,
           positions: [],
           enabled: view.runnable,
+          invalidIntent: !view.runnable,
           focusable: true,
           reason: view.detail,
           hint: undefined,
@@ -434,6 +437,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
                     aria-selected={selected}
                     aria-disabled={!row.enabled || undefined}
                     aria-describedby={reasonId}
+                    data-intent-invalid={row.invalidIntent ? '' : undefined}
                     className={styles.option}
                     data-stagger=""
                     style={staggerStyle(first + i)}

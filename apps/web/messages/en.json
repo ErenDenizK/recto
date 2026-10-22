@@ -4937,8 +4937,8 @@
       "declarations": ["input count", "input pages", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=one": "Turn page {pages} upside down",
-        "countPlural=*": "Turn pages {pages} upside down"
+        "countPlural=one": "Rotate page {pages} 180°",
+        "countPlural=*": "Rotate pages {pages} 180°"
       }
     }
   ],

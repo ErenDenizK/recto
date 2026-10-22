@@ -336,6 +336,23 @@ describe('what an intent carries', () => {
       for: 'pages',
       pageCount: 100,
       page: 120,
+      action: 'delete',
+      turns: undefined,
+      pagesLabel: '90-120',
+    });
+  });
+
+  it('carries the verb and the typed pages of an invalid rotation', () => {
+    expect(parseQuery('rotate 2-99 right', { ...ctx, pageCount: 50 })).toMatchObject({
+      kind: 'invalid',
+      action: 'rotate',
+      turns: 1,
+      pagesLabel: '2-99',
+    });
+    expect(parseQuery('rotate 2-99 180', { ...ctx, pageCount: 50 })).toMatchObject({ turns: 2 });
+    expect(parseQuery('delete all', ctx)).toMatchObject({
+      action: 'delete',
+      pagesLabel: undefined,
     });
   });
 

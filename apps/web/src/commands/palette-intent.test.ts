@@ -41,6 +41,9 @@ describe('intent rows', () => {
     expect(rows('120')).toEqual([['Go to page 120', 'This document has 12 pages', false]]);
     expect(rows('delete 2 pages')).toEqual([['delete 2 pages', 'Say a range, like 2–3', false]]);
     expect(rows('delete 7-3')[0]?.[2]).toBe(false);
+    expect(rows('rotate 2-99 right')).toEqual([
+      ['Rotate pages 2–99 right', 'This document has 12 pages', false],
+    ]);
   });
 
   it('reads in Turkish', () => {
