@@ -1,0 +1,38 @@
+/* Print… (PRD-25, export/print.ts): the hidden frame and the print-only sheet of pages. */
+
+.frame {
+  position: fixed;
+  inset-block-end: 0;
+  inset-inline-end: 0;
+  inline-size: 0;
+  block-size: 0;
+  border: 0;
+  visibility: hidden;
+}
+
+.sheet {
+  display: none;
+}
+
+@media print {
+  /* Only the sheet prints while it is there. */
+  :global(body):has(> .sheet) > :not(.sheet) {
+    display: none !important;
+  }
+
+  .sheet {
+    display: block;
+  }
+
+  .sheet img {
+    display: block;
+    inline-size: 100vw;
+    block-size: 100vh;
+    object-fit: contain;
+    break-after: page;
+  }
+
+  .sheet img:last-child {
+    break-after: auto;
+  }
+}

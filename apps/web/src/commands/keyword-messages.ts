@@ -26,6 +26,7 @@ export {
   cmd_file_clear_recents_keywords,
   cmd_file_export_keywords,
   cmd_file_open_keywords,
+  cmd_file_print_keywords,
   cmd_file_revert_keywords,
   cmd_file_sample_keywords,
   cmd_file_text_to_pdf_keywords,
