@@ -3255,5 +3255,96 @@
   "cmd_file_text_to_pdf_keywords": "metinden pdf, txt’den pdf, txt to pdf, txt, metin, dönüştür, metin dosyasından pdf, text to pdf, convert",
   "file_picker_text": "Metin dosyaları",
   "text_to_pdf_failed": "{name} PDF’ye dönüştürülemedi",
-  "text_to_pdf_too_large": "{name} PDF’ye dönüştürülemeyecek kadar büyük (2 MB’tan fazla)."
+  "text_to_pdf_too_large": "{name} PDF’ye dönüştürülemeyecek kadar büyük (2 MB’tan fazla).",
+  "palette_intent_group": "Önerilen",
+  "palette_recent_files": "Son dosyalar",
+  "palette_intent_go_page": "{page}. sayfaya git",
+  "palette_intent_go_heading": "‘{title}’ başlığına git",
+  "palette_intent_page_n": "Sayfa {page}",
+  "palette_intent_open_recent": "‘{name}’ dosyasını aç",
+  "palette_intent_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 sayfa",
+        "countPlural=*": "{count} sayfa"
+      }
+    }
+  ],
+  "palette_intent_rotate_right": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{pages}. sayfayı sağa döndür",
+        "countPlural=*": "{pages}. sayfaları sağa döndür"
+      }
+    }
+  ],
+  "palette_intent_rotate_left": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{pages}. sayfayı sola döndür",
+        "countPlural=*": "{pages}. sayfaları sola döndür"
+      }
+    }
+  ],
+  "palette_intent_rotate_half": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{pages}. sayfayı ters çevir",
+        "countPlural=*": "{pages}. sayfaları ters çevir"
+      }
+    }
+  ],
+  "palette_intent_delete": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{pages}. sayfayı sil",
+        "countPlural=*": "{pages}. sayfaları sil"
+      }
+    }
+  ],
+  "palette_intent_duplicate": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{pages}. sayfayı çoğalt",
+        "countPlural=*": "{pages}. sayfaları çoğalt"
+      }
+    }
+  ],
+  "palette_intent_extract": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{pages}. sayfayı ayıkla",
+        "countPlural=*": "{pages}. sayfaları ayıkla"
+      }
+    }
+  ],
+  "palette_intent_no_document": "Önce bir belge açın",
+  "palette_intent_out_of_range": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Bu belgede 1 sayfa var",
+        "countPlural=*": "Bu belgede {count} sayfa var"
+      }
+    }
+  ],
+  "palette_intent_reversed": "Küçük sayfa numarası önce gelmeli, örneğin 3–7",
+  "palette_intent_no_pages": "Buna uyan sayfa yok",
+  "palette_intent_all_pages": "Bu, tüm sayfaları kaldırırdı",
+  "palette_intent_ambiguous": "Bir aralık yazın, örneğin 2–3"
 }
