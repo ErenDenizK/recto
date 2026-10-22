@@ -10,7 +10,7 @@
  * - A browser without a controlling service worker (Firefox private windows, some managed
  *   browsers) cannot be isolated: that is the `isolation` failure, never a reload.
  */
-import { askServiceWorker, serviceWorkerControls } from '../pwa/office-worker';
+import { askServiceWorker, whenServiceWorkerControls } from '../pwa/office-worker';
 import { OFFICE_RELOAD_KEY } from './flag';
 import { OFFICE_CACHE, OFFICE_REFRESH_MESSAGE, pendingRoot } from './package';
 
@@ -20,9 +20,12 @@ export function isIsolated(): boolean {
   return (globalThis as { crossOriginIsolated?: boolean }).crossOriginIsolated === true;
 }
 
-/** Whether a service worker controls the page, so a reload can be isolated. */
-export function canIsolate(): boolean {
-  return serviceWorkerControls();
+/**
+ * Whether a service worker controls the page, so a reload can be isolated. The worker
+ * registers after the first page (PF-20), so a first-time visitor waits for it to claim the page.
+ */
+export function canIsolate(timeoutMs = 15_000): Promise<boolean> {
+  return whenServiceWorkerControls(timeoutMs);
 }
 
 /** Asks the service worker to read the install marker again; resolves to what it found. */

@@ -10,6 +10,31 @@ export function serviceWorkerControls(): boolean {
 }
 
 /**
+ * Resolves true once a service worker controls the page: at once when one does, else after the
+ * worker registered late (PF-20) has activated and claimed the page, false past `timeoutMs` or
+ * without service worker support.
+ */
+export async function whenServiceWorkerControls(timeoutMs: number): Promise<boolean> {
+  if (!('serviceWorker' in navigator)) return false;
+  const container = navigator.serviceWorker;
+  if (container.controller !== null) return true;
+  return new Promise((resolve) => {
+    const done = (value: boolean) => {
+      clearTimeout(timer);
+      container.removeEventListener('controllerchange', onChange);
+      resolve(value);
+    };
+    const onChange = () => done(container.controller !== null);
+    const timer = setTimeout(() => done(false), timeoutMs);
+    container.addEventListener('controllerchange', onChange);
+    // `ready` resolves once a worker is active; check the controller again then.
+    void container.ready.then(() => {
+      if (container.controller !== null) done(true);
+    });
+  });
+}
+
+/**
  * Posts `{ type }` to the controlling worker and resolves with its `installed` answer; false
  * without a worker or when it does not answer in time.
  */

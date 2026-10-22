@@ -10,7 +10,7 @@ import { createRoot } from 'react-dom/client';
 
 import { getLocale } from './i18n/locale';
 import { loadOrReload } from './pwa/boot-reload';
-import { startServiceWorker } from './pwa/register';
+import { armServiceWorkerRegistration, startServiceWorker } from './pwa/register';
 import { launchEdition } from './shell/frame/edition';
 import { useSizeClass } from './shell/frame/size-class';
 
@@ -44,16 +44,14 @@ if (getLocale() === 'tr')
 const Edition =
   launchEdition() === 'compact'
     ? lazy(() =>
-        loadOrReload(() => import('./shell/compact/CompactApp'), 'compact', 'CompactApp').then(
-          (module) => ({
-            default: module.CompactApp,
-          }),
-        ),
+        loadOrReload(() => import('./shell/compact/CompactApp'), 'compact', 'CompactApp')
+          .then((module) => ({ default: module.CompactApp }))
+          .finally(armServiceWorkerRegistration),
       )
     : lazy(() =>
-        loadOrReload(() => import('./app'), 'full', 'App').then((module) => ({
-          default: module.App,
-        })),
+        loadOrReload(() => import('./app'), 'full', 'App')
+          .then((module) => ({ default: module.App }))
+          .finally(armServiceWorkerRegistration),
       );
 
 /** Mirrors the size class on `:root` (`data-size`, `data-short`) in both editions. */

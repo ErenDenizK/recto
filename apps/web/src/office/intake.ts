@@ -10,6 +10,7 @@
  *   Office file is ignored as it always was.
  */
 import { m } from '../i18n';
+import { registerServiceWorkerNow } from '../pwa/register';
 import { getEdition } from '../shell/frame/edition';
 import { toast } from '../ui/Toast/toast';
 import { OFFICE_RELOAD_KEY, officeEnabled } from './flag';
@@ -42,6 +43,8 @@ export function offerOfficeFiles(files: readonly File[]): void {
     showOfficeGuidance();
     return;
   }
+  // Isolating the page needs a controlling worker; do not wait for a page to render (PF-20).
+  registerServiceWorkerNow();
   openOffice(files);
 }
 

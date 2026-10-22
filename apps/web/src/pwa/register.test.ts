@@ -3,11 +3,12 @@
  * on demand (`update-toast.ts`, kept out of the first paint, V1-P1) and still shows once, with
  * Reload and Later, saying whether documents reopen. And which engine wasm each edition warms.
  */
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { setLocale } from '../i18n';
 import { resetSessionStore, useSessionStore } from '../session/session-store';
 import { resetToasts, useToastStore } from '../ui/Toast/toast-store';
+import { runAfterFirstPage } from './register';
 import { dismissUpdate, showUpdateReady, usePwaStore, warmWasmUrls } from './service-worker';
 
 afterEach(() => {
@@ -62,5 +63,55 @@ describe('warmWasmUrls', () => {
   it('warms PDFium only for the compact edition, which runs no qpdf tool', () => {
     const urls = warmWasmUrls('compact');
     expect(urls).toEqual([warmWasmUrls('full')[0]]);
+  });
+});
+
+describe('runAfterFirstPage (PF-20)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.replaceChildren();
+  });
+
+  it('runs once when a page canvas first reads rendered', async () => {
+    const run = vi.fn();
+    const seen = vi.fn();
+    runAfterFirstPage(run, 5_000);
+    // A second watcher on the same attribute is the positive control: it has seen the change.
+    const control = new MutationObserver(seen);
+    control.observe(document.body, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['data-state'],
+    });
+    const canvas = document.body.appendChild(document.createElement('canvas'));
+    canvas.dataset.state = 'preview';
+    await vi.waitFor(() => expect(seen).toHaveBeenCalledTimes(1));
+    expect(run).not.toHaveBeenCalled();
+    canvas.dataset.state = 'rendered';
+    await vi.waitFor(() => expect(seen).toHaveBeenCalledTimes(2));
+    expect(run).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(run).toHaveBeenCalledTimes(1), { timeout: 6_000 });
+    control.disconnect();
+  });
+
+  it('runs after the fallback once armed, and not before', () => {
+    vi.useFakeTimers();
+    const run = vi.fn();
+    const { arm } = runAfterFirstPage(run, 5_000);
+    vi.advanceTimersByTime(60_000);
+    expect(run).not.toHaveBeenCalled();
+    arm();
+    vi.advanceTimersByTime(4_999);
+    expect(run).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
+  it('runs at once on demand, and once', () => {
+    const run = vi.fn();
+    const { now } = runAfterFirstPage(run, 5_000);
+    now();
+    now();
+    expect(run).toHaveBeenCalledTimes(1);
   });
 });

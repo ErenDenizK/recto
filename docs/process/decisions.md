@@ -349,6 +349,7 @@ Full rows: [`decisions/process.md`](decisions/process.md).
 | [PRC-27](decisions/process.md) | Company reports in English; one small HQ improvement a day | In force | 2026-10-21 |
 | [PRC-28](decisions/process.md) | Major work runs as epics; deep cycles, heartbeats and lane-sized check-ins; a daily fresh-eyes check | In force | 2026-10-21 |
 | [PRC-29](decisions/process.md) | Agent skills adopted as our own texts (lean-change, verify-before-done, root-cause); Graphify skipped | In force | 2026-10-21 |
+| [PF-20](decisions/process.md) | The service worker registers after the first page has rendered, or 5 s after the Library shows | In force | 2026-10-22 |
 
 ## Foundations (ADR titles)
 
