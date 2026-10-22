@@ -23,9 +23,9 @@ import {
 } from './annotation-store';
 import {
   appliedEditIds,
+  engineContext,
   readAnnotations,
   resetEditRunner,
-  scheduleReconcile,
   whenIdle,
 } from './edit-runner';
 
@@ -107,30 +107,38 @@ describe('edit runner robustness', () => {
   });
 
   it('a source parked during a replay records nothing, so the next replay is not skipped (PF-18)', async () => {
-    const { source, target } = await open();
+    const { source, target, doc } = await open();
     await createAnnotations(target, [text(700, 'Kept')]);
+    await createAnnotations(target, [text(600, 'Redone')]);
     await whenIdle();
     model().undo();
     await whenIdle();
-    expect(appliedEditIds(source)).toEqual([]);
+    expect(appliedEditIds(source)).toHaveLength(1);
     const service = getEngineService();
-    // Redo starts a replay of the edit; the source is parked once the replay has begun.
-    const ensure = service.ensureOpen.bind(service);
-    const spy = vi.spyOn(service, 'ensureOpen').mockImplementation(async (id) => {
-      const result = await ensure(id);
-      void service.park(id);
-      return result;
+    // Redo replays the second edit; once the engine has executed it, the document closes and
+    // its source is parked, before the replay records its state. Only a source the workspace
+    // no longer shows is ever parked: a parked source still shown is reopened by garbage
+    // collection's lazy parking decision (reopen-parked.ts), which would race this replay.
+    const { editor } = await engineContext();
+    const create = editor.createAnnotation.bind(editor);
+    const spy = vi.spyOn(editor, 'createAnnotation').mockImplementationOnce(async (...args) => {
+      const created = await create(...args);
+      model().closeDocument(doc as never);
+      await service.park(source);
+      return created;
     });
     model().redo();
     await whenIdle();
     spy.mockRestore();
     expect(service.isParked(source)).toBe(true);
+    // Neither edit: the engine document holding them is gone.
     expect(appliedEditIds(source)).toEqual([]);
-    // The next replay opens the source again and applies the edit.
-    await scheduleReconcile();
+    // Undoing the close opens the source again, and the next replay applies both edits.
+    model().undo();
     await whenIdle();
-    expect(appliedEditIds(source)).toHaveLength(1);
-    expect(await readAnnotations(source, 0)).toHaveLength(1);
+    expect(service.isParked(source)).toBe(false);
+    expect(appliedEditIds(source)).toHaveLength(2);
+    expect(await readAnnotations(source, 0)).toHaveLength(2);
   });
 
   it('export right after undo waits for the engine to follow the model', async () => {

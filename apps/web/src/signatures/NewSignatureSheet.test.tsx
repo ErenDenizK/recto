@@ -155,7 +155,10 @@ describe('New signature', () => {
       text: 'Ada Lovelace',
       name: 'Full name',
     });
-    await waitFor(() => expect(useSheetStore.getState().open).toBeNull());
+    // The sheet closes once the stamp is drawn (`submit`: the typed name rendered and encoded
+    // after the save), longer than waitFor's 1 s default on a loaded runner; as the test of six
+    // signatures waits for the same thing.
+    await waitFor(() => expect(useSheetStore.getState().open).toBeNull(), { timeout: 5000 });
   });
 
   it('with Save for next time off, keeps nothing', async () => {

@@ -1035,10 +1035,11 @@ describe('tokens.css', () => {
       expect(live.get('--text-secondary')).toBe('var(--glass-text-secondary)');
       expect(live.get('--danger')).toBe('var(--glass-danger)');
       // Filters never animate (language.md §2.1 rule 5): the one transition is a grown surface's
-      // tint and shadow clearing once it rests, its filter back at once (MOT-12).
+      // tint and shadow clearing once it rests, its filter back at once (MOT-12); the element's
+      // own moves ride through it (`--mat-settle-keep`, the compact chrome's hide on scroll).
       expect(materials).not.toMatch(/animation/);
       expect(materials.match(/transition:[^;]*;/g)).toEqual([
-        'transition:\n    background-color var(--duration-fast) var(--ease-out),\n    box-shadow var(--duration-fast) var(--ease-out) !important;',
+        'transition:\n    background-color var(--duration-fast) var(--ease-out),\n    box-shadow var(--duration-fast) var(--ease-out),\n    var(--mat-settle-keep, background-color var(--duration-fast) var(--ease-out)) !important;',
       ]);
     });
 

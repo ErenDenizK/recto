@@ -33,6 +33,7 @@ import {
   sampleFile,
   sizeProblems,
 } from './sample-fixture.ts';
+import { COPY } from './sample/copy.ts';
 import { NO_BREAK, lineProblems, mayBreakAt } from './sample/kit.ts';
 
 let built: Awaited<ReturnType<typeof buildSamples>>;
@@ -141,6 +142,15 @@ describe('the four samples', () => {
   it('match the committed manifest', () => {
     // Regenerate with `pnpm --filter @pdf-editor/fixtures-tool sample` after a change.
     expect(readFileSync(SAMPLE_MANIFEST, 'utf8')).toBe(manifestText(built.manifest));
+  });
+
+  it('send the feature page through Edit text, never a double-click (TXT-20)', () => {
+    // In viewing a double-click selects a word (ADR-0029 §2.3), so a full-cut try slip that
+    // promised one left the reader with a selected word and letters that ran as tool keys.
+    expect(COPY.en.feature.tryLine.full).toMatch(/^Choose Edit text \(E\), then any paragraph/);
+    expect(COPY.tr.feature.tryLine.full).toMatch(/^Metni düzenle’yi \(E\), ardından/);
+    const fullLines = JSON.stringify(SAMPLE_LOCALES.map((l) => COPY[l])).match(/"full":"[^"]*"/g);
+    expect(fullLines?.join('\n')).not.toMatch(/double-click|çift tıkla/i);
   });
 });
 
