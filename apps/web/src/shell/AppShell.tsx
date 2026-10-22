@@ -32,7 +32,7 @@ import { useShortcuts } from '../commands/use-shortcuts';
 import type { NamedFile } from '../files/file-filters';
 import { dragHasFiles, filesFromDataTransfer, isOpenableFile } from '../files/open-files';
 import { isTextFile } from '../files/text-files';
-import { FurnitureDialogs } from '../furniture';
+import { FurnitureHost } from '../furniture/FurnitureHost';
 import { Aura } from '../home/Aura';
 import { DocumentDropOverlay } from '../home/DropOverlay';
 import { showOpened } from '../home/home-actions';
@@ -42,7 +42,7 @@ import { officeEnabled } from '../office/flag';
 import { resumeOfficeAfterReload } from '../office/intake';
 import { isOfficeFile } from '../office/office-files';
 import { OfficeSheetHost } from '../office/OfficeSheetHost';
-import { ApplyRedactionsSheet } from '../redaction/ApplySheet';
+import { ApplySheetHost } from '../redaction/ApplySheetHost';
 import { registerSettingsCommands } from '../settings/settings-commands';
 import { SettingsHost } from '../settings/SettingsHost';
 import { NewSignatureHost } from '../signatures/NewSignatureHost';
@@ -242,8 +242,8 @@ export function AppShell() {
       <BatchSheetHost />
       <OcrSheetHost />
       <OfficeSheetHost />
-      <ApplyRedactionsSheet />
-      <FurnitureDialogs />
+      <ApplySheetHost />
+      <FurnitureHost />
       <ReplacePopover />
       <UnlockPopover />
       <ToastRegion />

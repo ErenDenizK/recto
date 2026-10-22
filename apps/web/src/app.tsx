@@ -3,7 +3,7 @@ import { useLayoutEffect } from 'react';
 import { registerAppCommands } from './commands/app-commands';
 import { commandRegistry } from './commands/registry';
 import { registerDocumentCommands } from './document/document-commands';
-import { DocumentSheets } from './document/DocumentSheets';
+import { DocumentSheetsHost } from './document/DocumentSheetsHost';
 import { getEngineService } from './engine/engine-service';
 import { SaveCopyHost } from './export/SaveCopyHost';
 import { useLocale } from './i18n';
@@ -14,7 +14,7 @@ import { AppShell } from './shell/AppShell';
 import { openSample, registerSampleCommands } from './sample/open-sample';
 import { openSampleFromLink } from './sample/sample-link';
 import { registerArrangeCommands } from './stage/arrange-commands';
-import { OperationDialogs } from './stage/OperationDialogs';
+import { OperationDialogsHost } from './stage/OperationDialogsHost';
 import { startSession } from './session/session';
 import { watchSessionNotice } from './session/session-toast';
 import { registerSignatureCommands } from './signatures/signature-commands';
@@ -58,9 +58,9 @@ export function App() {
     <LocaleBoundary>
       <AppShell />
       <SaveCopyHost />
-      <DocumentSheets />
+      <DocumentSheetsHost />
       <CertificateSheet />
-      <OperationDialogs />
+      <OperationDialogsHost />
     </LocaleBoundary>
   );
 }
