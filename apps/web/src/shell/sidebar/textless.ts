@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { documentTargets } from '../../ocr/ocr-model';
 import { ocrDependencies } from '../../ocr/ocr-deps';
 import { useWorkspaceStore } from '../../state/workspace-store';
+import { useSearchStore } from '../../viewer/search';
 
 export interface Textless {
   /** Document page indices without searchable text. */
@@ -20,6 +21,36 @@ export interface Textless {
 }
 
 const cache = new Map<string, Promise<Textless>>();
+
+/** How long Find must have been calm before the page facts are read. */
+const CALM_MS = 1000;
+
+/**
+ * Resolves once Find has been calm for `CALM_MS`: no query, or a search that has finished. The
+ * facts walk every page of the file in the one engine worker and, on a long file, hold it for
+ * seconds; read at once when Find gets the focus they ran ahead of the first search, which
+ * showed nothing until they were done (R25 Epic 1 lane 5, DSN-61).
+ */
+function whenFindCalm(): Promise<void> {
+  return new Promise((resolve) => {
+    let timer: number | undefined;
+    const calm = () => {
+      const { status, query } = useSearchStore.getState();
+      return query.trim() === '' || status === 'done' || status === 'error';
+    };
+    const arm = () => {
+      window.clearTimeout(timer);
+      if (calm()) {
+        timer = window.setTimeout(() => {
+          unsubscribe();
+          resolve();
+        }, CALM_MS);
+      }
+    };
+    const unsubscribe = useSearchStore.subscribe(arm);
+    arm();
+  });
+}
 
 /** What invalidates the facts: the document's sources and the engine edits on them. */
 function cacheKey(doc: VirtualDocument, editsRevision: unknown): string {
@@ -49,9 +80,12 @@ export function textlessPages(doc: VirtualDocument): Promise<Textless> {
   if (known) return known;
   const targets = documentTargets(doc);
   const sources = [...new Set(targets.map((t) => t.source))];
-  const promise = Promise.all(
-    sources.map(async (source) => [source, await ocrDependencies().facts(source)] as const),
-  )
+  const promise = whenFindCalm()
+    .then(() =>
+      Promise.all(
+        sources.map(async (source) => [source, await ocrDependencies().facts(source)] as const),
+      ),
+    )
     .then((entries) => {
       const facts = new Map(entries);
       const pages = targets

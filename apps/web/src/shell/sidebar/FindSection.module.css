@@ -167,6 +167,10 @@
   margin-inline-start: calc(-1 * var(--space-2));
 }
 
+.scan {
+  padding: 0 var(--space-4) var(--space-2);
+}
+
 .scroll {
   flex: 1;
   min-height: 0;

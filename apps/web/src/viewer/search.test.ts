@@ -235,3 +235,43 @@ describe('searching many-pages.pdf in the engine', () => {
     expect(hits.map((h) => h.pageIndex)).toEqual([398]);
   }, 30_000);
 });
+
+describe('the scan while results stream', () => {
+  it('counts scanned pages, shows the first hit early and aborts when the query changes', async () => {
+    const d = doc([page('p0', A, 0), page('p1', A, 1), page('p2', A, 2), page('p3', A, 3)]);
+    const signals: AbortSignal[] = [];
+    const releases: (() => void)[] = [];
+    const spy = vi
+      .spyOn(getEngineService(), 'search')
+      .mockImplementation(async (_source, _query, _options, signal, onHits) => {
+        if (signal) signals.push(signal);
+        onHits?.([hit(0, 'first')]);
+        onHits?.([]);
+        await new Promise<void>((resolve) => releases.push(resolve));
+        return { ok: true, value: [hit(0, 'first')] };
+      });
+    try {
+      setSearchOptions({ matchCase: false, wholeWord: false });
+      setSearchQuery('x');
+      const running = runSearch(d, 0);
+      // The first hit is in the store while the scan is still going.
+      await vi.waitFor(() => expect(useSearchStore.getState().hits).toHaveLength(1));
+      let state = useSearchStore.getState();
+      expect(state.status).toBe('searching');
+      expect(state.scan.total).toBe(4);
+      // A new query cancels the running scan and starts its own.
+      setSearchQuery('xy');
+      const second = runSearch(d, 0);
+      expect(signals[0]?.aborted).toBe(true);
+      expect(signals[1]?.aborted).toBe(false);
+      releases.forEach((release) => release());
+      await Promise.all([running, second]);
+      state = useSearchStore.getState();
+      expect(state.status).toBe('done');
+      expect(state.scan).toEqual({ done: 4, total: 4 });
+    } finally {
+      spy.mockRestore();
+      clearSearch();
+    }
+  });
+});

@@ -33,6 +33,7 @@ import { EmptyNote } from '../../ui/EmptyNote';
 import { Icon } from '../../ui/Icon';
 import { IconButton } from '../../ui/IconButton';
 import menuStyles from '../../ui/Menu.module.css';
+import { Progress } from '../../ui/Progress';
 import { toast } from '../../ui/Toast/toast';
 import { useCanChangeActive } from '../../viewer/input-state';
 import { documentLabels, hasCustomLabels, navigationBase } from '../../viewer/navigation';
@@ -47,11 +48,11 @@ import {
   selectHit,
   setSearchOptions,
   setSearchQuery,
-  splitContext,
   useSearchStore,
 } from '../../viewer/search';
 import { useCommandShortcut } from '../use-command-shortcut';
 import styles from './FindSection.module.css';
+import { cutSnippet } from './snippet';
 import { useTextless } from './textless';
 
 /** Pause after typing before the search restarts. */
@@ -78,6 +79,7 @@ function FindView({ doc }: { readonly doc: VirtualDocument }) {
   const status = useSearchStore((s) => s.status);
   const hits = useSearchStore((s) => s.hits);
   const current = useSearchStore((s) => s.current);
+  const scan = useSearchStore((s) => s.scan);
   const focusSerial = useSearchStore((s) => s.focusSerial);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -240,6 +242,18 @@ function FindView({ doc }: { readonly doc: VirtualDocument }) {
           >
             {m.find_recognize()}
           </Button>
+        </div>
+      ) : null}
+      {hasQuery && ours && status === 'searching' && scan.total > 0 ? (
+        <div className={styles.scan} data-testid="find-scanning">
+          <Progress
+            value={(scan.done / scan.total) * 100}
+            hideValue
+            label={m.find_scanning({
+              done: formatNumber(scan.done),
+              total: formatNumber(scan.total),
+            })}
+          />
         </div>
       ) : null}
       {noMatches ? <p className={styles.hint}>{m.find_no_matches({ title: doc.title })}</p> : null}
@@ -423,7 +437,7 @@ function ResultList({
               </div>
             );
           }
-          const parts = splitContext(row.hit, query, matchCase);
+          const parts = cutSnippet(row.hit, query, matchCase);
           const isCurrent = row.index === current;
           return (
             <div
