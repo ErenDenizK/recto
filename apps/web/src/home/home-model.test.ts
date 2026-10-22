@@ -6,6 +6,7 @@
 import type { DocumentId } from '@pdf-editor/document-model';
 import { describe, expect, it } from 'vitest';
 
+import { foldName, nameMatches, searchSortRecents } from './recent-search';
 import { setLocale } from '../i18n';
 import { MAX_TITLE_LENGTH } from '../stage/operation-plans';
 import {
@@ -22,10 +23,7 @@ import {
   movedOrder,
   rangeBetween,
   relativeTime,
-  foldName,
-  nameMatches,
   sampleOnScreen,
-  searchSortRecents,
   toggleSelection,
   visibleRecents,
 } from './home-model';
