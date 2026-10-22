@@ -142,7 +142,10 @@ test('a Word file converts on the device and opens as a PDF', async ({ page }) =
   page.on('console', (msg) => log('console', msg.type(), msg.text().slice(0, 200)));
   page.on('pageerror', (e) => log('pageerror', String(e.stack ?? e).slice(0, 1500)));
   page.on('requestfailed', (r) => log('requestfailed', r.url(), r.failure()?.errorText));
-  page.on('dialog', (d) => log('dialog', d.type()));
+  page.on('dialog', (d) => {
+    log('dialog', d.type());
+    void d.accept();
+  });
   page.on('load', () => log('load', page.url()));
   page.on('crash', () => log('crash'));
   page.on('worker', (w) => log('worker', w.url()));
