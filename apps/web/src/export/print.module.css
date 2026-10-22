@@ -14,10 +14,6 @@
   display: none;
 }
 
-@page {
-  margin: 0;
-}
-
 @media print {
   /* Only the sheet prints while it is there. */
   :global(body):has(> .sheet) > :not(.sheet) {
