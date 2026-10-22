@@ -115,6 +115,23 @@ describe('a mark drawn over an applied redaction', () => {
     expect(failing(report)).not.toContain('no-annotations-in-areas');
   });
 
+  test('a /Redact mark is never excused, even when named', async () => {
+    const id = `later-mark-${++counter}` as SourceId;
+    await adapter.open(id, applied.bytes.slice(0));
+    const created = await adapter.createAnnotation(id, {
+      kind: 'redact',
+      pageIndex: 0,
+      rect: AREA,
+      quads: [AREA],
+    });
+    const bytes = await adapter.save(id);
+    await adapter.close(id);
+    const report = await verify(bytes, [{ ...applied.plan, laterMarks: [created.id] }]);
+    const check = report.checks.find((c) => c.id === 'no-annotations-in-areas');
+    expect(check?.passed).toBe(false);
+    expect(check?.findings.map((f) => f.detail)).toEqual(['Redact intersects an area']);
+  });
+
   test('an annotation not named in the area still fails', async () => {
     const { bytes } = await withStrokeAcross();
     const report = await verify(bytes, [{ ...applied.plan, laterMarks: ['someone-else'] }]);

@@ -45,7 +45,7 @@ export interface ScratchDocument {
     pageIndex: number,
     rect: Rect,
     scale: number,
-    annotations?: boolean,
+    withAnnotations?: boolean,
   ): Promise<ForensicPixels>;
   close(): Promise<void>;
 }
@@ -111,14 +111,14 @@ export async function openScratch(
         rects: hit.rects.map((r) => deviceToUserRect(pageGeometry(page(hit.pageIndex)), r)),
       }));
     },
-    async renderArea(pageIndex, rect, scale, annotations = true) {
+    async renderArea(pageIndex, rect, scale, withAnnotations = true) {
       const p = page(pageIndex);
       const image = await runTask(
         engine.renderPageRectRaw(doc, p, userToDeviceRect(pageGeometry(p), rect), {
           scaleFactor: scale,
           rotation: 0,
-          withAnnotations: annotations,
-          withForms: annotations,
+          withAnnotations,
+          withForms: withAnnotations,
         }),
         signal,
         { op: 'redaction render' },
@@ -153,8 +153,8 @@ export function forensicDepsOf(scratch: ScratchDocument): ForensicDeps {
         rects: hit.rects,
         context: '',
       })),
-    renderArea: (pageIndex, rect, scale, annotations) =>
-      scratch.renderArea(pageIndex, rect, scale, annotations),
+    renderArea: (pageIndex, rect, scale, withAnnotations) =>
+      scratch.renderArea(pageIndex, rect, scale, withAnnotations),
   };
 }
 

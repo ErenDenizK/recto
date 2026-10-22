@@ -168,6 +168,53 @@ describe('export plan', () => {
     expect(planExport(ws, documentId as never).redaction?.plans[0]?.laterMarks).toBeUndefined();
   });
 
+  test('laterMarksInAreas: only a later mark lying on an area counts (RED-1)', () => {
+    const applyEdit = ws.engineEdits[0]!;
+    const ink = (id: string, y: number, pageIndex = 0): EngineEdit => ({
+      id: `create-${id}`,
+      source: S,
+      pageIndex,
+      kind: 'annotation.create',
+      payload: {
+        annotation: {
+          id,
+          kind: 'ink',
+          pageIndex,
+          rect: { x: 0, y: 0, width: 0, height: 0 },
+          paths: [
+            [
+              { x: 140, y },
+              { x: 280, y },
+            ],
+          ],
+          strokeWidth: 3,
+        },
+      },
+    });
+    const flag = (...after: EngineEdit[]) =>
+      planExport({ ...ws, engineEdits: [applyEdit, ...after] }, documentId as never).redaction
+        ?.laterMarksInAreas;
+    // Across area 0 (y 675.7 to 693.55): on it.
+    expect(flag(ink('across', 684))).toBe(true);
+    // Between the lines, and well below them: not on any area.
+    expect(flag(ink('between', 620), ink('below', 300))).toBe(false);
+    // Created before the apply: not a later mark at all.
+    expect(
+      planExport({ ...ws, engineEdits: [ink('before', 684), applyEdit] }, documentId as never)
+        .redaction?.laterMarksInAreas,
+    ).toBe(false);
+    // A note's /Rect on an area counts as well.
+    const note: EngineEdit = {
+      id: 'create-note',
+      source: S,
+      pageIndex: 0,
+      kind: 'annotation.create',
+      payload: { annotation: { id: 'note', kind: 'note', rect: rect(200, 680) } },
+    };
+    expect(flag(note)).toBe(true);
+    expect(flag()).toBe(false);
+  });
+
   test('only well-formed redaction.apply payloads count', () => {
     const edit = (kind: EngineEdit['kind'], payload: unknown): EngineEdit => ({
       id: 'x',

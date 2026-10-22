@@ -1668,13 +1668,13 @@ export interface ForensicDeps {
   search(query: string): Promise<readonly SearchHit[]>;
   /**
    * Renders exactly `rect` (user space) of a page at `scale`, with annotations and forms
-   * unless `annotations` is false (`PdfRenderer.renderPage` with `clip`).
+   * unless `withAnnotations` is false (`PdfRenderer.renderPage` with `clip`).
    */
   renderArea(
     pageIndex: number,
     rect: Rect,
     scale: number,
-    annotations?: boolean,
+    withAnnotations?: boolean,
   ): Promise<ForensicPixels>;
 }
 // ---------------------------------------------------------------------------

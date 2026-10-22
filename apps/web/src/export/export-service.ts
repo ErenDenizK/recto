@@ -876,9 +876,10 @@ async function prepareExportNow(
         );
         // A mark drawn over a redaction after its apply is excused only while it stays an
         // annotation (RED-1): flattened, it is page content the pixel check cannot tell apart.
+        // Only when such a mark lies on an area; otherwise the generic refusal stands.
         const flattenedMarks =
           flatten &&
-          redaction.plans.some((p) => (p.laterMarks ?? []).length > 0) &&
+          redaction.laterMarksInAreas &&
           check.checks.some((c) => c.id === 'fill-pixels' && !c.passed);
         verification = {
           ok: false,
