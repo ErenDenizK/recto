@@ -5,8 +5,8 @@
  * and `PdfImageEditor`.
  *
  * - `open` *transfers* its ArrayBuffer (detached in the caller), as `PdfRenderer` documents;
- *   `verify` copies. Saved bytes are transferred back; a page render comes back as its pixels,
- *   transferred, and its bitmap is made on this thread (`WireRenderPixels`).
+ *   `verify` copies. Render bitmaps and saved bytes are transferred back; in WebKit a page
+ *   render comes back as its pixels and its bitmap is made on this thread (PF-22).
  * - Cancellation mirrors the adapter: when the signal fires, the call rejects at once with
  *   `EngineError('aborted')` and the worker is told on a MessagePort; a bitmap that still
  *   arrives for an aborted render is closed.
@@ -37,6 +37,7 @@ import {
   type RenderResult,
   type SourceInspector,
 } from '../types';
+import { isWebKit } from '../webkit';
 import {
   type InspectorBridge,
   PDFIUM_ABORT_MESSAGE,
@@ -67,6 +68,12 @@ export interface PdfiumProxyOptions {
    * transferred on both hops.
    */
   readonly inspector?: SourceInspector;
+  /**
+   * Page renders cross as pixels and the bitmap is made here (PF-22). Defaults to WebKit only,
+   * where a transferred bitmap can arrive with another render's pixels; elsewhere the worker
+   * transfers the bitmap, at no cost to this thread.
+   */
+  readonly renderAsPixels?: boolean;
 }
 
 export interface PdfiumProxy
@@ -169,6 +176,7 @@ function inspectorBridge(inspector: SourceInspector): InspectorBridge {
 export function createPdfiumProxy(worker: Worker, options: PdfiumProxyOptions): PdfiumProxy {
   const remote = wrap<PdfiumWorkerApi>(worker);
   const { inspector } = options;
+  const asPixels = options.renderAsPixels ?? isWebKit();
   const configure = (wasmModule?: WebAssembly.Module) =>
     remote.configure(
       {
@@ -294,12 +302,23 @@ export function createPdfiumProxy(worker: Worker, options: PdfiumProxyOptions): 
     },
     async renderPage(id, pageIndex, renderOptions) {
       const { signal, wire } = split(renderOptions);
-      const { pixels, width, height } = await invoke<WireRenderPixels>(
+      const reply = await invoke<RenderResult | WireRenderPixels>(
         'renderPage',
         signal,
-        (port) => remote.renderPage(id, pageIndex, wire, withPort(port, port)),
+        (port) =>
+          remote.renderPage(
+            id,
+            pageIndex,
+            asPixels ? { ...wire, asPixels } : wire,
+            withPort(port, port),
+          ),
+        (late) => {
+          if ('bitmap' in late) late.bitmap.close();
+        },
       );
-      // The bitmap is made here, from the transferred pixels (`WireRenderPixels`).
+      if ('bitmap' in reply) return reply;
+      // WebKit (PF-22): the bitmap is made here, from the transferred pixels.
+      const { pixels, width, height } = reply;
       const bitmap = await createImageBitmap(
         new ImageData(new Uint8ClampedArray(pixels), width, height),
       );
