@@ -37,6 +37,9 @@ async function blackPenColour(page: Page): Promise<string> {
 test.use({ viewport: { width: 1440, height: 900 } });
 
 test.beforeEach(async ({ page }) => {
+  page.on('console', (msg) => {
+    if (msg.text().startsWith('PROBE')) console.log(msg.text());
+  });
   await useFileInputPicker(page);
 });
 
@@ -69,11 +72,13 @@ test('the eyedropper picks each page colour within 1/255', async ({ page }) => {
     const scale = box.width / PAGE_WIDTH;
     const x = box.x + (swatch.left + SIDE / 2) * scale;
     const y = box.y + (TOP + SIDE / 2) * scale;
+    console.log(`PROBE-TEST ${swatch.hex} target ${x.toFixed(1)},${y.toFixed(1)} layer ${JSON.stringify(box)} before ${await blackPenColour(page)}`);
     await page.mouse.move(x, y, { steps: 4 });
     await page.mouse.down();
     await page.mouse.up();
     await expect(panel).toBeVisible();
     await expect.poll(() => blackPenColour(page)).not.toBe('');
+    console.log(`PROBE-TEST ${swatch.hex} after layer ${JSON.stringify(await layer.boundingBox())} stored ${await blackPenColour(page)}`);
     const picked = channels(await blackPenColour(page));
     const want = channels(swatch.hex);
     picked.forEach((value, i) => {

@@ -715,6 +715,7 @@ async function overlapsDuring(
           );
       const overlaps = new Set<string>();
       let moving = 0;
+      const log: string[] = [];
       const start = performance.now();
       const since = () => performance.now() - start;
       let pending = [...steps];
@@ -733,6 +734,12 @@ async function overlapsDuring(
         }
         await frame();
         if (morphing()) moving++;
+        log.push(
+          `${since().toFixed(0)}ms morph=${morphing()} anims=${capsule
+            .getAnimations({ subtree: true })
+            .map((a) => `${a.playState}:${Number(a.currentTime).toFixed(0)}/${Number(a.effect?.getComputedTiming().endTime).toFixed(0)}`)
+            .join(' ')}`,
+        );
         const pieces = read();
         for (const [i, a] of pieces.entries()) {
           for (const b of pieces.slice(i + 1)) {
@@ -746,6 +753,7 @@ async function overlapsDuring(
           }
         }
       }
+      console.log(`PROBE-CAPSULE ${JSON.stringify(steps)} moving=${moving}\n  ${log.join('\n  ')}`);
       return { moving, rested: !morphing(), overlaps: [...overlaps] };
     },
     { steps, ms, limit, trace: 0.1 },
@@ -762,6 +770,9 @@ async function overlapsDuring(
 for (const palette of PALETTES) {
   test.describe(`the capsule morph never prints two contents at once, the ${palette} palette`, () => {
     test.beforeEach(async ({ page }) => {
+      page.on('console', (msg) => {
+        if (msg.text().startsWith('PROBE')) console.log(msg.text());
+      });
       await usePalette(page, palette);
     });
 

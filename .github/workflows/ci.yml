@@ -1,380 +1,46 @@
-# Continuous integration: every push to any branch and every pull request.
-# Actions are pinned to major tags here; Renovate (helpers:pinGitHubActionDigests) rewrites
-# them to commit digests with the tag kept as a comment.
+# Throwaway CI probe (r25/ci-probe-*): WebKit eyedropper and capsule morph diagnostics only.
 name: CI
 
 on:
   push:
-    branches: ['**']
-  pull_request:
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+    branches: ['r25/ci-probe-*']
 
 permissions:
   contents: read
 
 jobs:
-  verify:
-    name: Format, lint, typecheck, test, build
+  probe:
+    name: WebKit probe
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    # The Playwright image tag must match @playwright/test in package.json (Renovate groups
-    # both). It carries the browsers that Vitest browser mode (engine and web tests)
-    # launches. Running as the runner's uid keeps the workspace writable and lets Firefox
-    # start. --ipc=host and --init follow Playwright's Docker guide: the host IPC namespace
-    # keeps Chromium from running out of shared memory, and --init reaps browser child
-    # processes.
+    timeout-minutes: 40
     container:
       image: mcr.microsoft.com/playwright:v1.63.0-noble
       options: --user 1001 --ipc=host --init
     steps:
       - uses: actions/checkout@v7
-
-      - uses: pnpm/action-setup@v6 # version read from "packageManager"
-
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: pnpm
-
       - name: Install
         run: pnpm install --frozen-lockfile
-
-      - name: Format
-        run: pnpm format:check
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Unit and browser-mode tests
-        run: pnpm test
-
-      # Two independent renderers (our PDFium build, pdf.js) check every annotation of the
-      # committed sample; the sample is regenerated first and must match what is committed.
-      - name: Annotation cross-viewer matrix (PDFium, pdf.js)
-        run: pnpm --filter @pdf-editor/qa-tool matrix:fresh
-        env:
-          QA_MATRIX_EVIDENCE_DIR: ${{ runner.temp }}/qa-matrix
-
-      - name: Committed annotation sample and matrix are current
-        run: git diff --exit-code -- docs/qa/samples/annotations-sample.pdf docs/qa/annotations-matrix.md
-
-      - name: Upload matrix evidence
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: qa-matrix
-          path: |
-            ${{ runner.temp }}/qa-matrix
-            docs/qa/annotations-matrix.md
-            docs/qa/samples/annotations-matrix-*.png
-          retention-days: 14
-
-      # OCR files (ADR-0012 §3): the committed language packs and tesseract's worker (with its
-      # pnpm patch) and cores from node_modules must match packages/engine/ocr/langs.lock.json.
-      # Offline; the web build re-checks every file it emits into dist/ocr/.
-      - name: OCR files match their lock
-        run: pnpm --filter @pdf-editor/engine ocr:verify
-
-      # The Office conversion package (PRC-26): a cache hit verifies offline, a miss downloads,
-      # checks the sha512, patches and gzips it (curl is in the Playwright image).
-      - name: Restore Office package
-        uses: actions/cache@v4
-        with:
-          path: packages/engine/office/vendor
-          key: office-vendor-${{ hashFiles('packages/engine/office/office.lock.json', 'packages/engine/office/fetch.ts') }}
-
-      - name: Fetch Office package
-        run: node --experimental-strip-types --no-warnings=ExperimentalWarning packages/engine/office/fetch.ts
-
       - name: Build
-        run: pnpm build
-        # The e2e jobs below test this build: it compiles the test-only render override in
-        # (docs/specs/redesign.md X36). deploy.yml and release.yml build without it.
+        run: pnpm --filter @pdf-editor/web build
         env:
           RECTO_RENDER_OVERRIDE: '1'
-          RECTO_OFFICE_REQUIRED: '1'
-
-      # Bundle budgets (docs/plan/v1/PLAN.md §2.3, PF-14): absolute gates and a 1 % growth cap
-      # over the baseline in tools/qa/bundle-budget.json, and every emitted chunk precached
-      # (PF-17). No dependencies, so it runs on the build above.
-      - name: Bundle budgets
-        run: node --experimental-strip-types --no-warnings=ExperimentalWarning tools/qa/bundle-budget.ts
-
-      # Downloadable preview of this commit's build (ADR-0004); also reused by e2e below.
-      - name: Upload build
-        uses: actions/upload-artifact@v7
-        with:
-          name: web-dist
-          path: |
-            apps/web/dist
-            !apps/web/dist/convert
-          if-no-files-found: error
-          retention-days: 7
-
-      # The Office package on its own, so the regular e2e jobs do not download 79 MB each
-      # (PRC-26); the e2e-office job downloads it next to web-dist.
-      - name: Upload Office package
-        uses: actions/upload-artifact@v7
-        with:
-          name: office-package
-          path: apps/web/dist/convert
-          if-no-files-found: error
-          retention-days: 7
-
-  # The engine's OCR tests in Firefox and WebKit (spec recognize-and-compare §8.5, M5-b); the
-  # `verify` job runs them in Chromium with the rest of the engine suite. The projects exist only
-  # when ENGINE_OCR_BROWSERS names them (packages/engine/vitest.config.ts).
-  ocr-engines:
-    name: OCR engine tests (${{ matrix.browser }})
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    container:
-      image: mcr.microsoft.com/playwright:v1.63.0-noble
-      options: --user 1001 --ipc=host --init
-    strategy:
-      fail-fast: false
-      matrix:
-        browser: [firefox, webkit]
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: pnpm/action-setup@v6
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-
-      - name: Install
-        run: pnpm install --frozen-lockfile
-
-      - name: OCR tests
-        run: pnpm --filter @pdf-editor/engine exec vitest run --project ocr-${{ matrix.browser }}
-        env:
-          ENGINE_OCR_BROWSERS: ${{ matrix.browser }}
-
-  e2e:
-    name: E2E (${{ matrix.project }} ${{ matrix.shard }}/${{ matrix.shards || 3 }})
-    needs: verify
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    container:
-      image: mcr.microsoft.com/playwright:v1.63.0-noble
-      options: --user 1001 --ipc=host --init
-    strategy:
-      fail-fast: false
-      matrix:
-        project: [chromium, firefox, webkit]
-        # Three shards per desktop engine: with the V2 specs and the rendered-pixel harness, a
-        # shard of two ran 17 min in Chromium and past the 20 min limit in Firefox and WebKit.
-        shard: [1, 2, 3]
-        # Rendered glass pixels without the GPU (the @pixels specs only, docs/specs/redesign.md
-        # D0-1): a handful of tests, one shard.
-        include:
-          - project: chromium-nogpu
-            shard: 1
-            shards: 1
-          # The compact edition on phones and the full edition on a tablet (ADR-0033): their own
-          # specs only (playwright.config.ts), one shard each.
-          - project: phone
-            shard: 1
-            shards: 1
-          - project: phone-land
-            shard: 1
-            shards: 1
-          - project: tablet
-            shard: 1
-            shards: 1
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: pnpm/action-setup@v6
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-
-      - name: Install
-        run: pnpm install --frozen-lockfile
-
-      - name: Download build
-        uses: actions/download-artifact@v8
-        with:
-          name: web-dist
-          path: apps/web/dist
-
-      - name: Playwright
-        run: >-
-          pnpm --filter @pdf-editor/web test:e2e
-          --project=${{ matrix.project }}
-          --shard=${{ matrix.shard }}/${{ matrix.shards || 3 }}
-        env:
-          E2E_SKIP_BUILD: '1'
-
-      # Every test's duration (the JSON reporter, playwright.config.ts), so slow specs can be
-      # listed and the shards balanced: the ten slowest print here, and the report is kept.
-      - name: Slowest specs
+      - name: Eyedropper
         if: always()
         run: >-
-          test ! -f apps/web/playwright-timings/results.json ||
-          node --experimental-strip-types --no-warnings=ExperimentalWarning
-          tools/qa/slowest-specs.ts apps/web/playwright-timings/results.json
-
-      - name: Upload test timings
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: e2e-timings-${{ matrix.project }}-${{ matrix.shard }}
-          path: apps/web/playwright-timings/results.json
-          if-no-files-found: ignore
-          retention-days: 14
-
-      - name: Upload Playwright report
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: playwright-report-${{ matrix.project }}-${{ matrix.shard }}
-          path: |
-            apps/web/playwright-report
-            apps/web/test-results
-          retention-days: 14
-
-  # On-device Office conversion on every engine (PRC-26, EDN-20): the real package from
-  # `office-package` next to the build from `web-dist`. Chromium, Firefox and the tablet are
-  # required; WebKit and the iPad project are Playwright's WebKit on Linux, which may not
-  # isolate through the service worker (apps/web/e2e/office.spec.ts header), so they may fail
-  # without failing the run; the iPad check list (docs/qa/office-ipad-checklist.md) carries
-  # the claim. Its own job, since every run downloads about 70 MB.
-  e2e-office:
-    name: E2E Office (${{ matrix.project }})
-    needs: verify
-    runs-on: ubuntu-24.04
-    timeout-minutes: 25
-    continue-on-error: ${{ matrix.experimental == true }}
-    container:
-      image: mcr.microsoft.com/playwright:v1.63.0-noble
-      options: --user 1001 --ipc=host --init
-    strategy:
-      fail-fast: false
-      matrix:
-        project: [chromium, firefox, tablet]
-        include:
-          - project: webkit
-            experimental: true
-          - project: ipad
-            experimental: true
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: pnpm/action-setup@v6
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-
-      - name: Install
-        run: pnpm install --frozen-lockfile
-
-      - name: Download build
-        uses: actions/download-artifact@v8
-        with:
-          name: web-dist
-          path: apps/web/dist
-
-      - name: Download Office package
-        uses: actions/download-artifact@v8
-        with:
-          name: office-package
-          path: apps/web/dist/convert
-
-      - name: Playwright
-        run: >-
-          pnpm --filter @pdf-editor/web test:e2e
-          --project=${{ matrix.project }}
-          e2e/office.spec.ts
+          pnpm --filter @pdf-editor/web exec playwright test e2e/eyedropper.spec.ts
+          --project=webkit --repeat-each=6 --retries=0 --workers=1 --reporter=line
         env:
           E2E_SKIP_BUILD: '1'
-
-      - name: Upload Playwright report
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: playwright-report-office-${{ matrix.project }}
-          path: |
-            apps/web/playwright-report
-            apps/web/test-results
-          retention-days: 14
-
-  # Public copy and links (docs/specs/presentation.md §1.3, §8 "Links"). A plain runner: no
-  # browsers. After `verify`, so the built about page (base path `/`) can be checked too.
-  docs:
-    name: Copy and links
-    needs: verify
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-
-      # Banned words, phrases and structures, exclamation marks and emoji (presentation spec
-      # §1.3, brand plan §7) in README.md, apps/web/about/, .github/release-notes.md and the
-      # message catalogs in EN and TR; and the source bans under apps/web/src (no inline or
-      # background PNGs in CSS, quality-bar Q-12; no native colour or range inputs outside
-      # ui/, 10-ink §7). No dependencies, so no install.
-      - name: Copy check
-        run: node --experimental-strip-types --no-warnings=ExperimentalWarning tools/copy-check/check.ts
-
-      - name: Decisions index
-        run: node --experimental-strip-types --no-warnings=ExperimentalWarning tools/qa/decisions-index.ts
-
-      # lychee's configuration (lychee.toml) is written for this version. The research
-      # snapshots are dated and cite hundreds of third-party pages that rot by design, so
-      # they are checked offline (local files and anchors); the public documents online.
-      - name: Links in the documentation
-        uses: lycheeverse/lychee-action@v2
-        with:
-          lycheeVersion: v0.24.2
-          fail: true
-          args: >-
-            --config lychee.toml --no-progress
-            README.md CONTRIBUTING.md SECURITY.md
-            'docs/*.md' 'docs/adr/*.md' 'docs/specs/*.md' 'docs/design/*.md' 'docs/qa/*.md'
-
-      - name: Local links in the research snapshots
-        uses: lycheeverse/lychee-action@v2
-        with:
-          lycheeVersion: v0.24.2
-          fail: true
-          args: >-
-            --config lychee.toml --no-progress --offline
-            'docs/research/*.md'
-
-      - name: Download build
-        uses: actions/download-artifact@v8
-        with:
-          name: web-dist
-          path: apps/web/dist
-
-      # Root-relative links in the built page resolve against dist/; the media it shows are
-      # built by the deploy workflow only and are excluded in lychee.toml.
-      - name: Links in the built about page
-        if: hashFiles('apps/web/dist/about/index.html') != ''
-        uses: lycheeverse/lychee-action@v2
-        with:
-          lycheeVersion: v0.24.2
-          fail: true
-          args: >-
-            --config lychee.toml --no-progress
-            --root-dir ${{ github.workspace }}/apps/web/dist
-            apps/web/dist/about/index.html
+      - name: Capsule
+        if: always()
+        run: >-
+          pnpm --filter @pdf-editor/web exec playwright test e2e/capsule.spec.ts
+          --project=webkit --repeat-each=3 --retries=0 --workers=1 --reporter=line
+          -g "two contents at once, the row palette.+dock to palette$"
+        env:
+          E2E_SKIP_BUILD: '1'
