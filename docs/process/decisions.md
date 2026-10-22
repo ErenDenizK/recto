@@ -70,7 +70,7 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PRD-21](decisions/product.md) | Settings removes the Office package; About lists its licences | In force | 2026-10-21 |
 | [PRD-22](decisions/product.md) | What must be true before `?office=1` goes on desktop and tablet; then the owner decides | In force; the switch is the owner's | 2026-10-21 |
 | [PRD-23](decisions/product.md) | The palette reads a query with a rule grammar (typed intents carrying resolved pages), a score floor and catalog synonyms; no model | In force; the owner reads the corpus through | 2026-10-21 |
-| [PRD-26](decisions/product.md) | A launch whose edition chunk fails to load reloads once (a second failure within 60 s is thrown, no loop) | In force | 2026-10-22 |
+| [PRD-26](decisions/product.md) | A launch whose edition chunk fails is imported again under a fresh URL, then the page reloads once (no loop) | In force | 2026-10-22 |
 | [PRD-14](decisions/product.md) | W0-q findings are assigned to waves: signed fixture opens locked and saves byte-identical (W1-a/W1-b), truncated.pdf… | In force; W1-b and W1-g merged | 2026-10-09 |
 
 ## Design

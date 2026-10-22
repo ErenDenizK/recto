@@ -9,7 +9,9 @@ import {
   BOOT_RELOAD_WINDOW_MS,
   type BootWindow,
   loadOrReload,
+  moduleWith,
   reloadForFailedBoot,
+  retryUrl,
 } from './boot-reload';
 
 function fakeWindow(stored?: string, throws = false) {
@@ -42,6 +44,12 @@ function fakeWindow(stored?: string, throws = false) {
     onLoad?.();
   };
   return { win, items, document, load, reloads: () => reloads };
+}
+
+/** A loader whose source reads as the build writes it (`main.tsx` after the build). */
+function built<T>(load: () => Promise<T>): () => Promise<T> {
+  const source = '()=>o(()=>import(`./app-AbCd1234.js`).then(e=>e.t),__vite__mapDeps([1,2]))';
+  return Object.assign(load, { toString: () => source });
 }
 
 describe('reloadForFailedBoot', () => {
@@ -84,14 +92,16 @@ describe('reloadForFailedBoot', () => {
 describe('loadOrReload', () => {
   it('passes a loaded module through', async () => {
     const fake = fakeWindow();
-    await expect(loadOrReload(() => Promise.resolve('module'), fake.win)).resolves.toBe('module');
+    await expect(loadOrReload(() => Promise.resolve('module'), 'App', fake.win)).resolves.toBe(
+      'module',
+    );
     expect(fake.reloads()).toBe(0);
   });
 
   it('reloads on a failed load and never settles', async () => {
     const fake = fakeWindow();
     let settled = false;
-    void loadOrReload(() => Promise.reject(new TypeError('Failed to fetch')), fake.win).then(
+    void loadOrReload(() => Promise.reject(new TypeError('Failed to fetch')), 'App', fake.win).then(
       () => {
         settled = true;
       },
@@ -107,7 +117,51 @@ describe('loadOrReload', () => {
   it('throws the failure when it already reloaded', async () => {
     const fake = fakeWindow(String(Date.now()));
     const failure = new TypeError('Failed to fetch');
-    await expect(loadOrReload(() => Promise.reject(failure), fake.win)).rejects.toBe(failure);
+    await expect(loadOrReload(() => Promise.reject(failure), 'App', fake.win)).rejects.toBe(
+      failure,
+    );
     expect(fake.reloads()).toBe(0);
+  });
+
+  it('imports the chunk again under a fresh URL before it reloads', async () => {
+    const fake = fakeWindow();
+    const app = { App: 'the app' };
+    const asked: string[] = [];
+    // What the build writes: the emitted chunk, its module re-exported under a short name.
+    const load = built(() => Promise.reject(new TypeError('failed')));
+    const loaded = await loadOrReload(load, 'App', fake.win, (url) => {
+      asked.push(url);
+      return Promise.resolve({ t: app });
+    });
+    expect(loaded).toBe(app);
+    expect(asked).toHaveLength(1);
+    expect(asked[0]).toMatch(/\/app-AbCd1234\.js\?r=\d+$/);
+    expect(fake.reloads()).toBe(0);
+  });
+
+  it('reloads when the fresh URL fails too', async () => {
+    const fake = fakeWindow();
+    const load = built(() => Promise.reject(new TypeError('failed')));
+    void loadOrReload(load, 'App', fake.win, () => Promise.reject(new TypeError('again')));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(fake.reloads()).toBe(1);
+  });
+});
+
+describe('retryUrl and moduleWith', () => {
+  it('reads the emitted chunk from the loader and adds a fresh query', () => {
+    const load = built(() => Promise.resolve({}));
+    expect(retryUrl(load, 42, 'https://example.test/assets/main-x.js')).toBe(
+      'https://example.test/assets/app-AbCd1234.js?r=42',
+    );
+    expect(retryUrl(() => Promise.resolve({}), 42)).toBeUndefined();
+  });
+
+  it('finds the module in the chunk or in the namespace it is re-exported under', () => {
+    const app = { App: 1 };
+    expect(moduleWith(app, 'App')).toBe(app);
+    expect(moduleWith({ t: app, n: 2 }, 'App')).toBe(app);
+    expect(moduleWith({ t: {} }, 'App')).toBeUndefined();
+    expect(moduleWith(undefined, 'App')).toBeUndefined();
   });
 });
