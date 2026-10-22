@@ -556,20 +556,30 @@ for (const palette of PALETTES) {
           const capsule = document.querySelector('[data-capsule]') as HTMLElement;
           (capsule.querySelector('[data-task-group="comment"]') as HTMLElement).click();
           await new Promise((resolve) => requestAnimationFrame(resolve));
-          return capsule.getAnimations({ subtree: true }).map((a) => {
-            const effect = a.effect as KeyframeEffect;
-            const props = new Set(effect.getKeyframes().flatMap((f) => Object.keys(f)));
-            for (const meta of ['offset', 'computedOffset', 'easing', 'composite'])
-              props.delete(meta);
-            return [...props];
-          });
+          return {
+            width: capsule.getBoundingClientRect().width,
+            props: capsule.getAnimations({ subtree: true }).map((a) => {
+              const effect = a.effect as KeyframeEffect;
+              const props = new Set(effect.getKeyframes().flatMap((f) => Object.keys(f)));
+              for (const meta of ['offset', 'computedOffset', 'easing', 'composite'])
+                props.delete(meta);
+              return [...props];
+            }),
+          };
         });
-        expect(seen.length).toBeGreaterThan(0);
         // Motion is a change of size or place; a name's colour may still ease under reduced
         // motion, which keeps fades and colour (A-9).
-        const moving = seen.flat().filter((prop) => GEOMETRY.test(prop));
-        if (reduced) expect(moving).toEqual([]);
-        else expect(moving.length).toBeGreaterThan(0);
+        const moving = seen.props.flat().filter((prop) => GEOMETRY.test(prop));
+        if (reduced) {
+          // Same content, so nothing fades: the size changes at once, on the frame after the
+          // press. The only animations that may run are CSS colour transitions, which an engine
+          // reports at its own time (WebKit: none yet on that frame), so none is required.
+          expect(moving).toEqual([]);
+          expect(seen.width).toBeLessThan(drawWidth - 40);
+        } else {
+          expect(seen.props.length).toBeGreaterThan(0);
+          expect(moving.length).toBeGreaterThan(0);
+        }
         await expect(bar.locator('[data-task-group="comment"]')).toHaveAttribute(
           'aria-expanded',
           'true',
