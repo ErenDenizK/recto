@@ -136,6 +136,7 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-56](decisions/design.md) | On the phone, toasts step aside for a scrim sheet | In force; taste settled by DSN-57 | 2026-10-17 |
 | [DSN-57](decisions/design.md) | R22's open taste questions, settled by the lead under the owner's delegation | In force | 2026-10-18 |
 | [DSN-58](decisions/design.md) | Modal sheets and dialogs say `aria-modal` (DSN-56's finding); toasts keep off a modal sheet | In force | 2026-10-19 |
+| [DSN-60](decisions/design.md) | Reading zoom stays uncapped on laptops (the R25 proposal to hold the page near 900 px is declined) | In force | 2026-10-22 |
 
 ## Motion
 
