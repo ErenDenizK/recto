@@ -5,7 +5,8 @@
  * and `PdfImageEditor`.
  *
  * - `open` *transfers* its ArrayBuffer (detached in the caller), as `PdfRenderer` documents;
- *   `verify` copies. Render bitmaps and saved bytes are transferred back.
+ *   `verify` copies. Saved bytes are transferred back; a page render comes back as its pixels,
+ *   transferred, and its bitmap is made on this thread (`WireRenderPixels`).
  * - Cancellation mirrors the adapter: when the signal fires, the call rejects at once with
  *   `EngineError('aborted')` and the worker is told on a MessagePort; a bitmap that still
  *   arrives for an aborted render is closed.
@@ -41,6 +42,7 @@ import {
   PDFIUM_ABORT_MESSAGE,
   type PdfiumWorkerApi,
   type Wire,
+  type WireRenderPixels,
 } from './pdfium-protocol';
 
 export interface PdfiumProxyOptions {
@@ -290,16 +292,22 @@ export function createPdfiumProxy(worker: Worker, options: PdfiumProxyOptions): 
     close(id) {
       return invoke('close', undefined, async () => remote.close(id)).then(() => undefined);
     },
-    renderPage(id, pageIndex, renderOptions) {
+    async renderPage(id, pageIndex, renderOptions) {
       const { signal, wire } = split(renderOptions);
-      return invoke<RenderResult>(
+      const { pixels, width, height } = await invoke<WireRenderPixels>(
         'renderPage',
         signal,
         (port) => remote.renderPage(id, pageIndex, wire, withPort(port, port)),
-        (late) => {
-          late.bitmap.close();
-        },
       );
+      // The bitmap is made here, from the transferred pixels (`WireRenderPixels`).
+      const bitmap = await createImageBitmap(
+        new ImageData(new Uint8ClampedArray(pixels), width, height),
+      );
+      if (signal?.aborted) {
+        bitmap.close();
+        throw abortedError('renderPage', signal.reason);
+      }
+      return { bitmap, width, height } satisfies RenderResult;
     },
     getPageText(id, pageIndex, callOptions) {
       const { signal, wire } = split(callOptions);

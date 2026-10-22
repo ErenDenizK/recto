@@ -265,8 +265,15 @@ const api: PdfiumWorkerApi = {
     return call(
       abortPort,
       (signal) =>
-        onSource(id, signal, (a) => a.renderPage(id, pageIndex, withSignal(options, signal))),
-      (result) => [result.bitmap],
+        onSource(id, signal, async (a) => {
+          const { data, width, height } = await a.renderPagePixels(
+            id,
+            pageIndex,
+            withSignal(options, signal),
+          );
+          return { pixels: data.buffer, width, height };
+        }),
+      (result) => [result.pixels],
     );
   },
   getPageText(id, pageIndex, options, abortPort) {

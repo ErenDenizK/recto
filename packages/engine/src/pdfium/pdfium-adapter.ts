@@ -556,13 +556,30 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
 
   /**
    * Renders a page (or `clip`, in user space) to an ImageBitmap. The bitmap is created fresh
-   * for the caller and not retained; when this adapter sits behind Comlink, the caller's
-   * wrapper should transfer it (`Comlink.transfer(result, [result.bitmap])`).
+   * for the caller and not retained. Behind the worker, `renderPagePixels` crosses instead and
+   * the caller's thread makes the bitmap (`pdfium-proxy.ts`).
+   */
+  async renderPage(id: SourceId, pageIndex: number, options: RenderOptions): Promise<RenderResult> {
+    const { data, width, height } = await this.renderPagePixels(id, pageIndex, options);
+    const bitmap = await createImageBitmap(new ImageData(data, width, height));
+    return { bitmap, width, height };
+  }
+
+  /**
+   * The RGBA pixels `renderPage` makes its bitmap from, in a buffer of their own (transferable).
    * Defaults: annotations on, form fields drawn with them (PDFium leaves widgets out of the
    * annotation pass once a form environment exists, so they need `FPDF_FFLDraw`), white
    * background.
    */
-  async renderPage(id: SourceId, pageIndex: number, options: RenderOptions): Promise<RenderResult> {
+  async renderPagePixels(
+    id: SourceId,
+    pageIndex: number,
+    options: RenderOptions,
+  ): Promise<{
+    readonly data: Uint8ClampedArray<ArrayBuffer>;
+    readonly width: number;
+    readonly height: number;
+  }> {
     const engine = await this.engine();
     const { doc, page } = this.page(id, pageIndex);
     const renderOptions: PdfRenderPageOptions = {
@@ -585,8 +602,9 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
         )
       : await this.run(engine.renderPageRaw(doc, page, renderOptions), options, 'renderPage');
     throwIfAborted(options.signal, 'renderPage');
-    const bitmap = await createImageBitmap(new ImageData(raw.data, raw.width, raw.height));
-    return { bitmap, width: raw.width, height: raw.height };
+    // EmbedPDF copies the pixels out of the wasm heap into an array of their own.
+    const data = raw.data as Uint8ClampedArray<ArrayBuffer>;
+    return { data, width: raw.width, height: raw.height };
   }
 
   /**
