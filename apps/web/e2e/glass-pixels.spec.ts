@@ -277,11 +277,16 @@ test('a link shows no mark on arrival with the pointer parked over it, and the b
   tag: '@pixels',
 }, async ({ page, browserName }) => {
   test.skip(browserName !== 'chromium', APP_SURFACES_CHROMIUM_ONLY);
-  // Where the sample's first cover line will be, before the page exists (DSN-3: focus is lime,
-  // the blue is the page's selection, and nothing looks selected on arrival).
-  await page.goto('./?lang=en');
-  await page.mouse.move(640, 600);
+  // Learn where the first cover line lies here (the layout differs by project), park the pointer
+  // at its centre, then load again so the page arrives under the parked pointer (DSN-3: focus is
+  // lime, the blue is the page's selection, nothing looks selected on arrival).
   await page.goto('./?sample');
+  const first = page.locator('[data-page-index="0"] [data-link]').first();
+  await expect(first).toBeAttached({ timeout: 30_000 });
+  const box = await first.boundingBox();
+  if (!box) throw new Error('the first cover link has no box to park the pointer on');
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.reload();
   const link = page.locator('[data-page-index="0"] [data-link]').first();
   await expect(link).toBeAttached({ timeout: 30_000 });
   const mark = () =>
@@ -290,9 +295,14 @@ test('a link shows no mark on arrival with the pointer parked over it, and the b
       return [style.boxShadow, style.outlineStyle, style.backgroundColor].join(' | ');
     });
   await expect(link).not.toBeFocused();
-  expect(await link.evaluate((el) => el.matches(':hover'))).toBe(true);
+  expect(
+    await link.evaluate((el) => el.matches(':hover')),
+    'the parked pointer is over the first link after load (the precondition)',
+  ).toBe(true);
   expect(await mark()).toBe('none | none | rgba(0, 0, 0, 0)');
-  await page.mouse.move(650, 604);
+  const moved = await link.boundingBox();
+  if (!moved) throw new Error('the first cover link lost its box');
+  await page.mouse.move(moved.x + moved.width / 2 + 4, moved.y + moved.height / 2 + 4);
   await expect.poll(mark).toContain('rgb(78, 97, 237)');
 });
 
