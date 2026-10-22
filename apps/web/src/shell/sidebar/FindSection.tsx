@@ -40,6 +40,7 @@ import {
   clearSearch,
   type DocumentHit,
   groupHitsByPage,
+  modalOpen,
   revealHit,
   runSearch,
   searchStep,
@@ -116,6 +117,8 @@ function FindView({ doc }: { readonly doc: VirtualDocument }) {
       event.preventDefault();
       listRef.current?.querySelector<HTMLElement>('[role="option"][tabindex="0"]')?.focus();
     } else if (event.key === 'Escape') {
+      // A dialog opened from here takes Esc, also before it has the focus (`FindEntry`).
+      if (modalOpen()) return;
       event.preventDefault();
       event.stopPropagation();
       if (useSearchStore.getState().query !== '') {
