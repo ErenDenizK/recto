@@ -22,13 +22,12 @@ import {
 } from 'react';
 
 import { fuzzyFilter } from '../commands/fuzzy';
-import { describeIntent, gatherQueryContext, runIntent } from '../commands/palette-intent';
-import { parseQuery } from '../commands/query';
 import { type Command, commandRegistry, groupCommands } from '../commands/registry';
 import { parseShortcut } from '../commands/shortcuts';
 import { useCommands } from '../commands/use-commands';
 import { loadRecents, type RecentEntry, useRecentsStore } from '../files/recents';
 import { openRecent } from '../home/home-actions';
+import type * as PaletteIntent from '../commands/palette-intent';
 import { m } from '../i18n';
 import { animateStyle, type Motion } from '../motion/animate';
 import { useUiStore } from '../state/ui-store';
@@ -239,12 +238,32 @@ export function CommandPalette() {
   );
 }
 
+/**
+ * The intent parser, its rows and their strings load on the palette's first open, in a chunk of
+ * their own, so they stay out of the editor's initial bundle (V1-P2). A keystroke that comes
+ * before the chunk does ranks commands as before.
+ */
+type IntentModule = Pick<
+  typeof PaletteIntent,
+  'parseQuery' | 'gatherQueryContext' | 'describeIntent' | 'runIntent'
+>;
+let intentModule: IntentModule | null = null;
+let intentLoading: Promise<IntentModule> | null = null;
+function loadIntents(): Promise<IntentModule> {
+  intentLoading ??= import('../commands/palette-intent').then((loaded) => {
+    intentModule = loaded;
+    return loaded;
+  });
+  return intentLoading;
+}
+
 function PalettePopup({ onClose }: { readonly onClose: () => void }) {
   const commands = useCommands();
   const recents = useUiStore((s) => s.recents);
   const pushRecent = useUiStore((s) => s.pushRecent);
   const recentFiles = useRecentsStore((s) => s.entries);
   const [query, setQuery] = useState('');
+  const [intents, setIntents] = useState<IntentModule | null>(intentModule);
   const deferredQuery = useDeferredValue(query);
   // The active option is tracked by row key and derived into an index, so it survives
   // re-ranking and falls back to the first enabled row when filtered out.
@@ -255,6 +274,11 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
 
   useEffect(() => {
     void loadRecents();
+    loadIntents()
+      .then(setIntents)
+      .catch((error: unknown) => {
+        console.error('Palette intents failed to load', error);
+      });
   }, []);
 
   const sections = useMemo<ListSection[]>(() => {
@@ -262,13 +286,14 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
     const result: ListSection[] = [];
     // A query that reads as an intent (a page, a range, a heading, a file) shows it first, with
     // what it will do; nothing runs unseen (Epic 4).
-    const intent = empty ? null : parseQuery(deferredQuery, gatherQueryContext());
-    if (intent) {
+    const intent =
+      empty || !intents ? null : intents.parseQuery(deferredQuery, intents.gatherQueryContext());
+    if (intent && intents) {
       result.push({
         id: 'intent',
         label: undefined,
         ariaLabel: m.palette_intent_group(),
-        rows: describeIntent(intent, deferredQuery).map((view, index) => ({
+        rows: intents.describeIntent(intent, deferredQuery).map((view, index) => ({
           key: view.key,
           title: view.label,
           positions: [],
@@ -282,7 +307,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
           run: () => {
             if (!view.runnable) return;
             onClose();
-            runIntent(intent, index).catch((error: unknown) => {
+            intents.runIntent(intent, index).catch((error: unknown) => {
               console.error('Palette intent failed', error);
             });
           },
@@ -314,7 +339,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
       });
     }
     return result;
-  }, [deferredQuery, commands, recents, recentFiles, pushRecent, onClose]);
+  }, [deferredQuery, commands, recents, recentFiles, pushRecent, onClose, intents]);
   const rows = useMemo(() => sections.flatMap((s) => s.rows), [sections]);
   const matchedIndex = rows.findIndex((r) => r.key === activeId && r.focusable);
   const activeIndex = matchedIndex >= 0 ? matchedIndex : rows.findIndex((r) => r.focusable);

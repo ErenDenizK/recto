@@ -17,7 +17,11 @@ import { useWorkspaceStore } from '../state/workspace-store';
 import { rotateDocumentPages } from '../shell/frame/TitleMenuItems';
 import { goToPageIndex } from '../viewer/navigation';
 import { commandRegistry } from './registry';
+import { parseQuery } from './query';
 import type { InvalidReason, PagesAction, QueryContext, QueryIntent } from './query';
+
+// One chunk for the parser and its rows: the palette loads this module lazily.
+export { parseQuery };
 
 /** The facts the parser reads, taken from the stores now. */
 export function gatherQueryContext(): QueryContext {
