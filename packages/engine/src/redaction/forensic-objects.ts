@@ -207,10 +207,21 @@ export function objectStringFindings(
   return { findings, notSearched };
 }
 
-/** Check 7: annotations (widgets included) intersecting an area, and any /Redact left. */
+/** The /NM of an annotation, when it has a text one. */
+function annotationName(doc: PDFDocument, annot: PDFDict): string | undefined {
+  const nm = doc.context.lookup(annot.get(PDFName.of('NM')));
+  return nm instanceof PDFString || nm instanceof PDFHexString ? nm.decodeText() : undefined;
+}
+
+/**
+ * Check 7: annotations (widgets included) intersecting an area, and any /Redact left. An
+ * annotation whose /NM is in `laterMarks` (made after the apply, RED-1) may lie in an
+ * area, unless it is a /Redact mark.
+ */
 export function annotationFindings(
   doc: PDFDocument,
   areasByPage: ReadonlyMap<number, readonly Rect[]>,
+  laterMarks: ReadonlySet<string> = new Set(),
 ): ForensicFinding[] {
   const findings: ForensicFinding[] = [];
   for (const { pageIndex, annots } of pageAnnotations(doc)) {
@@ -222,6 +233,7 @@ export function annotationFindings(
       const subtype = annotationSubtype(doc, annot) ?? 'unknown';
       const inArea = areas.length > 0 && annotationInAreas(doc.context, annot, areas);
       if (!inArea && subtype !== 'Redact') continue;
+      if (subtype !== 'Redact' && laterMarks.has(annotationName(doc, annot) ?? '')) continue;
       const objectNumber = entry instanceof PDFRef ? entry.objectNumber : undefined;
       findings.push({
         where: `page ${pageIndex + 1}, /Annots[${i}]${objectNumber === undefined ? '' : ` (object ${objectNumber})`}`,

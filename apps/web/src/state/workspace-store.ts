@@ -457,10 +457,30 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => {
   const collectGarbage = (): void => {
     const { history, files, blobs } = get();
     const entries = [...history.past, history.present, ...history.future];
-    const live = new Set<string>(protections.keys());
-    for (const entry of entries) {
-      for (const id of Object.keys(entry.workspace.sources)) live.add(id);
-    }
+    const liveSources = (): Set<string> => {
+      const state = get().history;
+      const ids = new Set<string>(protections.keys());
+      for (const entry of [...state.past, state.present, ...state.future]) {
+        for (const id of Object.keys(entry.workspace.sources)) ids.add(id);
+      }
+      return ids;
+    };
+    const held = new Set<string>(protections.keys());
+    const live = liveSources();
+    // Sources only history references (a closed document undo can bring back) are parked, and
+    // parked ones shown again are reopened (PF-18); the lazy module decides. The module loads
+    // later, so the decision reads the workspace as it is then, not as it was here: a stale
+    // snapshot would park a document a later undo or redo already showed again. Sources
+    // protected here stay protected: their operation may have finished meanwhile.
+    void import('./reopen-parked').then((m) => {
+      const now = get();
+      m.syncParking(
+        Object.keys(now.files) as SourceId[],
+        liveSources(),
+        now.history.present.workspace.sources,
+        new Set([...held, ...protections.keys()]),
+      );
+    });
     const dead = (Object.keys(files) as SourceId[]).filter((id) => !live.has(id));
     if (dead.length > 0) {
       for (const id of dead) void getEngineService().close(id);

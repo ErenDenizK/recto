@@ -2513,6 +2513,7 @@
     }
   ],
   "export_redaction_pending_marks": "Redaction marks that were not applied are still in the file: apply or delete them, then export again.",
+  "export_redaction_flattened_marks": "A mark drawn over a redacted area cannot be flattened into the page: save without flattening annotations, or move or delete the mark.",
   "redaction_apply_none": "Tick at least one mark to apply",
   "redaction_apply_busy": "Redactions are already being applied.",
   "redaction_apply_failed": "Applying redactions failed; the document is unchanged.",
@@ -3957,6 +3958,7 @@
   "job_stopping": "Stopping…",
   "job_cancel": "Cancel",
   "job_in_document": "{name} · {label}",
+  "job_reopening": "Reopening the document…",
   "update_ready": "Update ready",
   "update_kept": "Your documents reopen where they were.",
   "update_not_kept": "Reloading closes open documents.",
