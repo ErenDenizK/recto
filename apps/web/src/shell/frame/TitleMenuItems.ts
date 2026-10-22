@@ -15,7 +15,7 @@
  * - **Static** (RA-21): rows stay where they are and dim with their reason ("Locked · unlock
  *   first", "Nothing changed since opening"); only the "Remove …" twins of page furniture and
  *   the repair rows appear just while there is something to remove or repair, as before.
- * - **Rows today's app has no command for** (Print…, Share…, Apply redactions…) are left out
+ * - **Rows today's app has no command for** (Share…, Apply redactions…) are left out
  *   until their packages bring them; every command of the "Document" group that no section names
  *   and no other home holds joins the last section, so tools registered elsewhere still appear.
  *
@@ -74,6 +74,7 @@ export const TITLE_MENU_SECTIONS: readonly TitleMenuSection[] = [
     entries: [
       command('file.save', { narrowOnly: true }),
       command('file.export'),
+      command('file.print'),
       command('file.revert'),
       command('tab.close', { label: m.common_close, narrowOnly: true }),
     ],
@@ -158,6 +159,7 @@ const HOMED_ELSEWHERE = new Set([
 const ROW_GLYPHS: Readonly<Record<string, IconName>> = {
   'file.save': 'tray-arrow-down',
   'file.export': 'copy',
+  'file.print': 'printer',
   'file.revert': 'arrow-counter-clockwise',
   'tab.close': 'x',
   'pages.insertFromFile': 'files',

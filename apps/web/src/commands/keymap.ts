@@ -129,6 +129,7 @@ export const KEYMAP_ENTRIES: Readonly<Record<string, KeymapEntry>> = {
   'file.open': { group: 'files' },
   'file.save': { group: 'files' },
   'file.export': { group: 'files' },
+  'file.print': { group: 'files' },
   'tab.close': { group: 'files' },
   // View, with the steps through lists.
   'search.open': { group: 'view' },
