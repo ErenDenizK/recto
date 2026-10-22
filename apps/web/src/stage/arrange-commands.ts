@@ -16,12 +16,13 @@ import {
   reversePages,
 } from '@pdf-editor/document-model';
 
-import { targetDocuments, targetPages } from '../commands/app-commands';
+import { targetDocuments } from '../commands/app-commands';
 import { type CommandRegistry, commandRegistry } from '../commands/registry';
 import { pickFiles } from '../files/open-files';
 import { combineWithPicker } from '../pages-sheets/combine-files';
 import { m } from '../i18n';
 import { announce } from '../shell/announcer';
+import { targetPages } from './arrange-data';
 import { useSelectionStore } from '../state/selection-store';
 import { stageView, useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';

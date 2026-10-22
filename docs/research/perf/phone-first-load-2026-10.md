@@ -133,6 +133,18 @@ warms both wasm files, and it passes (Chromium). A phone check on the branch bui
 one online visit (`pdf-editor-wasm` then holds only PDFium), then offline, reload, **Try the
 sample**, and page 1 renders in the compact edition.
 
+## Changes made (R25, P4)
+
+- `targetPages` moved from `commands/app-commands` to `stage/arrange-data`. `stage/section-operations`
+  and the page-drag code no longer import `app-commands`, which pulled `FurnitureDialogs`,
+  `forms/create/*` and most desktop modules into the shared chunk the phone loads with the
+  sample. The `editionGroups` split (PRD-26) did not cover this: the shared chunk
+  `PinchDetentChip.module` was 77.5 KB gzip; it is now 7.6 KB. No `vite.config.ts` change.
+- Bundle budget, before to after: first paint 74.0 to 73.9 KB; editor initial 777.0 to
+  770.1 KB (50 to 44 files); compact edition 285.0 to 284.6 KB; precache 210 to 203 entries.
+- Phone, unthrottled, service worker blocked, by the sample's first page: 572 KB gzip of JS
+  and CSS (workers and wasm excluded); `PinchDetentChip.module` is 7.6 KB of it.
+
 ## Proposals (not done: each changes a recorded decision or needs a lane)
 
 - **P1. Precache by edition** (needs a PF-17 amendment; owner/lead). Precache what both editions
