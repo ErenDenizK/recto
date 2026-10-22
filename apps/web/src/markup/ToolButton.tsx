@@ -33,6 +33,8 @@ export function armedTooltip(text: string, armed: boolean, choices = false): str
 export interface PaletteButtonProps extends Omit<ComponentPropsWithRef<'button'>, 'children'> {
   /** Accessible name; the visible label with `showLabel`. */
   readonly label: string;
+  /** The visible label when it is not the name (the grouped palette's group names). */
+  readonly text?: ReactNode;
   readonly icon: ReactNode;
   /** Tooltip when it says more than the name. */
   readonly tooltip?: string | undefined;
@@ -49,6 +51,7 @@ export interface PaletteButtonProps extends Omit<ComponentPropsWithRef<'button'>
 
 export function PaletteButton({
   label,
+  text,
   icon,
   tooltip,
   command,
@@ -62,7 +65,7 @@ export function PaletteButton({
   const labelled = showLabel ? (
     <>
       {icon}
-      <span data-label="">{label}</span>
+      <span data-label="">{text ?? label}</span>
       {caret ? <Icon name="caret-down" className={styles.caret} /> : null}
     </>
   ) : (

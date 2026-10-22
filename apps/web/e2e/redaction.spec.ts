@@ -13,7 +13,8 @@
  * attachment still holds the token), and nothing changes until attachments are removed.
  * While applying, Esc and a click on the backdrop do not close the dialog: the blocked
  * outcome is shown there and announced in the live region; the mark checkboxes have
- * unique accessible names.
+ * unique accessible names. A pen stroke drawn across an applied redaction is the user's new
+ * mark: Save a copy keeps it and passes the self-check (RED-1).
  */
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -28,6 +29,7 @@ import {
   openSaveCopy,
   inHistory,
   historyStep,
+  saveCopyBytes,
   useDownloadPath,
   useFileInputPicker,
   markAllMatches,
@@ -534,4 +536,82 @@ test('Save a copy asks about an unapplied mark; Apply and save removes the text 
   expect(await redactAnnotations(bytes)).toHaveLength(0);
   await expect(layer(page).locator('[data-annotation-kind="redact"]')).toHaveCount(0);
   await expect(page.getByTestId('save-copy-toast').last()).toContainText(/^Downloaded /);
+});
+
+/** Applies a redaction of "quick brown fox" (Save a copy's Apply and save), then draws a pen
+ * stroke straight across its black box. */
+async function strokeAcrossAppliedRedaction(page: Page): Promise<void> {
+  await useDownloadPath(page);
+  await useFileInputPicker(page);
+  await page.goto('./?lang=en');
+  await openFixtures(page, ['redact-text-runs.pdf']);
+  await enterEdit(page);
+  await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
+    timeout: 20_000,
+  });
+  await selectText(page, 'quick brown fox');
+  const line = await page.evaluate(() => {
+    const r = window.getSelection()?.getRangeAt(0).getBoundingClientRect();
+    return r ? { x: r.x, y: r.y, width: r.width, height: r.height } : undefined;
+  });
+  if (!line) throw new Error('no selection');
+  await page.keyboard.press('x');
+  await expect(layer(page).locator('[data-annotation-kind="redact"]')).toHaveCount(1);
+  await page.keyboard.press('Escape');
+
+  // Apply (through Save a copy's question), then draw over the black box with the pen.
+  const sheet = await openSaveCopy(page);
+  await sheet.getByRole('button', { name: 'Download copy' }).click();
+  const applied = page.waitForEvent('download', { timeout: 60_000 });
+  await sheet
+    .getByTestId('save-copy-marks')
+    .getByRole('button', { name: 'Apply and save' })
+    .click();
+  await applied;
+  await expect(layer(page).locator('[data-annotation-kind="redact"]')).toHaveCount(0);
+  await page.locator('body').press('p');
+  const y = line.y + line.height / 2;
+  await page.mouse.move(line.x - 30, y);
+  await page.mouse.down();
+  await page.mouse.move(line.x + line.width + 30, y + 2, { steps: 12 });
+  await page.mouse.up();
+  await expect(layer(page).locator('[data-annotation-kind="ink"]')).toHaveCount(1);
+  await page.locator('body').press('Escape');
+}
+
+test('a pen stroke drawn across an applied redaction does not stop Save a copy (RED-1)', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await strokeAcrossAppliedRedaction(page);
+
+  // The copy is offered and its check passed: the stroke is the user's new mark, kept as is.
+  const bytes = await saveCopyBytes(page);
+  await expect(page.getByTestId('save-copy-toast').last()).toContainText(/^Downloaded /);
+  const summary = await (await copySummary(page)).locator(':scope > li').allTextContents();
+  expect(summary[0]).toContain('self-check passed (9 checks)');
+  const pdf = await PDFDocument.load(bytes, { updateMetadata: false });
+  const subtypes = (pdf.getPage(0).node.Annots()?.asArray() ?? []).map((ref) =>
+    String((pdf.context.lookup(ref) as PDFDict).get(PDFName.of('Subtype'))),
+  );
+  expect(subtypes).toEqual(['/Ink']);
+  expect(bytes.toString('latin1')).not.toContain('quick brown fox');
+});
+
+test('flattened, a stroke across an applied redaction is refused with the reason (RED-1)', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await strokeAcrossAppliedRedaction(page);
+  const sheet = await openSaveCopy(page);
+  await sheet.getByRole('button', { name: /^Flatten/ }).click();
+  await sheet.getByRole('checkbox', { name: /^Annotations/ }).check();
+  await sheet.getByRole('button', { name: 'Download copy' }).click();
+  await expect(
+    page
+      .getByText(
+        'A mark drawn over a redacted area cannot be flattened into the page: save without flattening annotations, or move or delete the mark.',
+      )
+      .first(),
+  ).toBeVisible({ timeout: 60_000 });
 });

@@ -11,11 +11,19 @@
  *   Apply). The mouse path's 6 goes through the pending-marks bar's "Mark area", which D1-6
  *   builds; until then Apply sits in the Redact tool's strip.
  *
- * Each count is of real presses, drags and keys (`presses`).
+ * Each count is of real presses, drags and keys (`presses`), and holds on today's row and on the
+ * grouped palette (`?palette=groups`, epic R25-7: Markup opens on Draw, Fill & sign on its own group).
  */
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
-import { atRest, openFixtures, sessionSettled, useFileInputPicker } from './helpers';
+import {
+  atRest,
+  openFixtures,
+  PALETTES,
+  sessionSettled,
+  useFileInputPicker,
+  usePalette,
+} from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await useFileInputPicker(page);
@@ -73,8 +81,13 @@ async function open(page: Page, fixture = 'simple-text.pdf'): Promise<void> {
   });
 }
 
-for (const size of ['large', 'tablet'] as const) {
-  test.describe(`at ${size}`, () => {
+for (const [size, variant] of (['large', 'tablet'] as const).flatMap((size) =>
+  PALETTES.map((variant) => [size, variant] as const),
+)) {
+  test.describe(`at ${size}, the ${variant} palette`, () => {
+    test.beforeEach(async ({ page }) => {
+      await usePalette(page, variant);
+    });
     test.skip(
       ({ browserName, isMobile }) => browserName !== 'chromium' || (size === 'tablet') !== isMobile,
       'Large runs in the desktop Chromium project, tablet in the tablet project',
@@ -184,6 +197,38 @@ for (const size of ['large', 'tablet'] as const) {
       });
       await expect(stamps).toHaveCount(2, { timeout: 10_000 });
       expect(again.count).toBe(3);
+    });
+
+    test('the grouped palette: a name opens its group by press or keys, the armed tool names it', async ({
+      page,
+    }) => {
+      test.skip(variant !== 'groups', 'the grouped palette only (epic R25-7)');
+      await open(page);
+      await page.keyboard.press('2');
+      const bar = palette(page);
+      const group = (name: string) => bar.locator(`[data-task-group="${name}"]`);
+      // Markup opens on Draw: the pens are one press away (INK-2).
+      await expect(group('draw')).toHaveAttribute('aria-expanded', 'true');
+      await expect(bar.getByRole('button', { name: 'Black pen, 1.5 pt' })).toBeVisible();
+      // A press (a tap on the tablet) on Comment opens it in place; Draw's tools leave.
+      if (size === 'tablet') await group('comment').tap();
+      else await group('comment').click();
+      await expect(group('comment')).toHaveAttribute('aria-expanded', 'true');
+      await expect(group('draw')).toHaveAttribute('aria-expanded', 'false');
+      await expect(bar.getByRole('button', { name: 'Black pen, 1.5 pt' })).toHaveCount(0);
+      // Keys (INK-7): the arrows reach Change page, Enter opens it.
+      await group('comment').focus();
+      await page.keyboard.press('End');
+      await page.keyboard.press('ArrowLeft');
+      await expect(group('change')).toBeFocused();
+      await page.keyboard.press('Enter');
+      await expect(group('change')).toHaveAttribute('aria-expanded', 'true');
+      await expect(bar.locator('[data-item="redact"]')).toBeVisible();
+      // A tool's key opens its group, and the group shows the armed tool's name.
+      await page.locator('body').press('n');
+      await expect(group('comment')).toHaveAttribute('aria-expanded', 'true');
+      await expect(group('comment')).toHaveAccessibleName('Comment: Note armed');
+      await expect(group('comment').locator('[data-shown]')).toHaveText('Note');
     });
 
     test('J10 by keys in 6: select · X · X · drag · Apply · Apply', async ({ page }) => {
