@@ -143,12 +143,14 @@ const MAX_BUCKET = 16;
 /** Largest bitmap we render in one piece (~64 MB). Beyond this, tiles (`TiledPage`) help. */
 export const MAX_BITMAP_PIXELS = 4096 * 4096;
 /**
- * The compact reader's whole-page budget (4 MP, 16 MB a page): on a DPR 3 phone a page at 2×
- * would otherwise be a 6–16 MP bitmap for every mounted page, offscreen ones included, and
- * phone browsers cap the canvas memory of a tab. Above it the base bitmap is capped and the
- * visible page is covered by exact-scale tiles (`TiledPage`).
+ * Read mode's whole-page budget on every edition (4 MP, 16 MB a page; PF-19): a fit-width
+ * page at 1440 × 900 and DPR 2 would otherwise be a 9.35 MP bitmap for every mounted page,
+ * offscreen ones included, and on a DPR 3 phone a page at 2× is 6–16 MP, where browsers cap
+ * the canvas memory of a tab. Above it the base bitmap is capped and the visible page is
+ * covered by exact-scale tiles (`TiledPage`), so what is in view stays 1:1. A Letter or A4
+ * page at 100% on a DPR 2 screen (3.5 MP) is under it and drawn whole, as before.
  */
-export const COMPACT_BITMAP_PIXELS = 2048 * 2048;
+export const READ_BITMAP_PIXELS = 2048 * 2048;
 
 function roundScale(value: number): number {
   return Math.round(value * 10_000) / 10_000;
@@ -196,7 +198,7 @@ export function exactScaleKey(scale: number): number {
  * The scale to render a Read-mode page at: exactly `scale` (`exactScaleKey`) so the bitmap
  * is drawn 1:1, or, when that would exceed `maxPixels` (at most `MAX_BITMAP_PIXELS`), the
  * largest bucket below the cap (the page is then capped and `TiledPage` covers it with
- * exact-scale tiles). The compact reader passes a smaller budget (`COMPACT_BITMAP_PIXELS`).
+ * exact-scale tiles). Read mode passes a smaller budget (`READ_BITMAP_PIXELS`).
  */
 export function chooseScale(
   scale: number,

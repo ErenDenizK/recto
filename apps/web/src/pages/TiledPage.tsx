@@ -1,8 +1,8 @@
 /**
- * Sharp rendering at high zoom. When a page's full bitmap would exceed the engine
- * service's single-bitmap cap (`MAX_BITMAP_PIXELS`, 16 MP), `PageCanvas` draws a capped,
- * slightly soft bitmap and this layer covers the visible part of the page with tiles
- * rendered at the page's exact device scale through the engine's `clip` option.
+ * Sharp rendering of large pages. When a page's full bitmap would exceed its budget (Read
+ * mode's `READ_BITMAP_PIXELS`, 4 MP, PF-19; at most `MAX_BITMAP_PIXELS`), `PageCanvas`
+ * draws a capped, slightly soft bitmap and this layer covers the visible part of the page
+ * with tiles rendered at the page's exact device scale through the engine's `clip` option.
  *
  * Tiles are TILE_PX device pixels square in displayed-page space; each is mapped back to an
  * unrotated user-space clip (viewer/geometry.ts, which applies rotation and the CropBox
