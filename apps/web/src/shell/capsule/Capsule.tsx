@@ -24,7 +24,8 @@
  *   (`width: max-content`; set the height you need, such as `calc(var(--bar-h) - 2px)` for a
  *   bar inside the 1 px rim), and the capsule rests at that size plus its border, never wider
  *   than the band less 16 px each side. Nothing to pass: fold or wrap inside your content.
- * - `morphKey` asks for a morph inside one content (a group shown, an options chip growing).
+ * - `morphKey` asks for a morph inside one content (a group shown, an options chip growing);
+ *   a content can ask for one itself through `content-morph.ts` (the grouped palette's groups).
  *   Any other size change (a resize, the locale, a fold, labels stacking) is followed at once,
  *   without motion (F10 §7: "label form changes on resize without animation").
  * - Mark the pieces of a content `data-capsule-item="<key>"` (buttons, groups, separators). A
@@ -49,6 +50,7 @@
 import { Component, type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
 
 import type { CapsuleShape } from './capsule-content';
+import { useContentMorphKey } from './content-morph';
 import { CAPSULE_ITEM, CapsuleMorph, type CapsuleSnapshot, snapshotCapsule } from './capsule-morph';
 import styles from './Capsule.module.css';
 
@@ -102,6 +104,8 @@ export function Capsule({ shape, morphKey, stroking = false, children }: Capsule
   useEffect(() => () => morph.dispose(), [morph]);
 
   const shown = ORDER.filter((s) => s === shape || leaving.includes(s));
+  const contentKey = useContentMorphKey(shape);
+  const fullKey = contentKey === undefined ? morphKey : `${String(morphKey)}|${contentKey}`;
   return (
     <div
       ref={ref}
@@ -116,13 +120,7 @@ export function Capsule({ shape, morphKey, stroking = false, children }: Capsule
         pressed.current = key ? { key, at: event.timeStamp } : null;
       }}
     >
-      <MorphBoundary
-        capsule={ref}
-        morph={morph}
-        shape={shape}
-        morphKey={morphKey}
-        pressed={pressed}
-      >
+      <MorphBoundary capsule={ref} morph={morph} shape={shape} morphKey={fullKey} pressed={pressed}>
         {shown.map((s) => {
           const away = s !== shape;
           return (

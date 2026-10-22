@@ -13,7 +13,7 @@ roadmap stay proposals until the owner marks a row.
 the row it names. *Open*: asked, not yet answered. Do not act on an open row; keep its safe
 default.
 
-**Ids.** Rows carry a log id (PRD, DSN, MOT, GLS, INK, EDN, PRC, TXT, MOB, RED) so they never clash with the
+**Ids.** Rows carry a log id (PRD, DSN, MOT, GLS, INK, EDN, PRC, TXT, MOB, PF, RED) so they never clash with the
 sources' own ids (R12's D-1 to D-5, PLAN's P-1 to P-8, the feedback's F and G items), which each
 row quotes.
 
@@ -70,8 +70,10 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PRD-21](decisions/product.md) | Settings removes the Office package; About lists its licences | In force | 2026-10-21 |
 | [PRD-22](decisions/product.md) | What must be true before `?office=1` goes on desktop and tablet; then the owner decides | In force; the switch is the owner's | 2026-10-21 |
 | [PRD-23](decisions/product.md) | The palette reads a query with a rule grammar (typed intents carrying resolved pages), a score floor and catalog synonyms; no model | In force; the owner reads the corpus through | 2026-10-21 |
-| [PRD-26](decisions/product.md) | A launch whose edition chunk fails is imported again under a fresh URL, then the page reloads once (no loop) | In force | 2026-10-22 |
+| [PRD-26](decisions/product.md) | A launch whose edition chunk fails to load reloads once (a second failure within 60 s is thrown, no loop) | In force | 2026-10-22 |
 | [PRD-14](decisions/product.md) | W0-q findings are assigned to waves: signed fixture opens locked and saves byte-identical (W1-a/W1-b), truncated.pdf… | In force; W1-b and W1-g merged | 2026-10-09 |
+| [PF-18](decisions/product.md) | A closed document's source is parked; the engine worker ends when none is open | In force | 2026-10-22 |
+| [PF-19](decisions/product.md) | Read mode's whole-page bitmap is capped at 4 MP on every edition; tiles keep the visible page 1:1 | In force | 2026-10-22 |
 
 ## Design
 
@@ -137,6 +139,8 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-56](decisions/design.md) | On the phone, toasts step aside for a scrim sheet | In force; taste settled by DSN-57 | 2026-10-17 |
 | [DSN-57](decisions/design.md) | R22's open taste questions, settled by the lead under the owner's delegation | In force | 2026-10-18 |
 | [DSN-58](decisions/design.md) | Modal sheets and dialogs say `aria-modal` (DSN-56's finding); toasts keep off a modal sheet | In force | 2026-10-19 |
+| [DSN-59](decisions/design.md) | The grouped Markup palette (four labelled groups) is a prototype behind `?palette=groups` | Prototype; board question 3 | 2026-10-22 |
+| [DSN-60](decisions/design.md) | Reading zoom stays uncapped on laptops (the R25 proposal to hold the page near 900 px is declined) | In force | 2026-10-22 |
 
 ## Motion
 
