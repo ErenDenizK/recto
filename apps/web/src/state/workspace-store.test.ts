@@ -140,31 +140,6 @@ describe('workspace store: protection of work in progress', () => {
     expect(fileNames()).toEqual(['first.pdf']);
   });
 
-  it('closing a document parks its source and undo opens it again', async () => {
-    const engine = gateEngine([]);
-    const report = await model().openFiles([await fixtureFile(simpleUrl, 'gone.pdf')]);
-    const docId = report.opened[0]?.documentId;
-    if (docId === undefined) throw new Error('gone.pdf did not open');
-    const id = Object.keys(model().workspace.sources)[0] as SourceId;
-    await expectUsable(id);
-    const service = getEngineService();
-    const park = vi.spyOn(service, 'park');
-    model().closeDocument(docId);
-    await vi.waitFor(() => {
-      expect(park).toHaveBeenCalledWith(id);
-    });
-    await vi.waitFor(() => {
-      expect(service.isParked(id)).toBe(true);
-    });
-    // Parked, not closed: the store did not ask the engine to close it for good.
-    expect(engine.closed).toEqual([]);
-    // Undo brings the document back and the source renders again.
-    model().undo();
-    expect(Object.keys(model().workspace.documents)).toContain(docId);
-    await expectUsable(id);
-    expect(service.isParked(id)).toBe(false);
-  });
-
   it('a blob added by a prelude that is cancelled is dropped with it', async () => {
     const blob = await pngBlob('cancelled.png');
     let stored: BlobId | undefined;

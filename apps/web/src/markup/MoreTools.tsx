@@ -23,7 +23,7 @@ import { m } from '../i18n';
 import { openNewSignature } from '../signatures/new-signature';
 import { Icon, type IconName } from '../ui/Icon';
 import menuStyles from '../ui/Menu.module.css';
-import { SHAPE_MODES, type ToolMode, useToolStore } from '../viewer/tool-store';
+import { type PaletteGroup, SHAPE_MODES, type ToolMode, useToolStore } from '../viewer/tool-store';
 import { GROUP_LABEL, ITEM_GROUP, type PaletteItem } from './palette-groups';
 import { abovePalette } from './anchor';
 import styles from './MarkupPalette.module.css';
@@ -181,17 +181,7 @@ function OutlinesItem() {
   );
 }
 
-export function MoreTools({
-  folded,
-  groupLabel = (item) => {
-    const group = ITEM_GROUP[item];
-    return group === 'done' || group === 'more' ? undefined : GROUP_LABEL[group]();
-  },
-}: {
-  readonly folded: readonly PaletteItem[];
-  /** The heading an item goes under (the grouped palette names its own groups). */
-  readonly groupLabel?: ((item: PaletteItem) => string | undefined) | undefined;
-}) {
+export function MoreTools({ folded }: { readonly folded: readonly PaletteItem[] }) {
   const [trigger, setTrigger] = useState<HTMLElement | null>(null);
   const mode = useToolStore((s) => s.mode);
   const highlighter = useAnnotationStore((s) => isHighlighter(s.pen.presets[s.pen.active]));
@@ -207,10 +197,10 @@ export function MoreTools({
       ? 'highlighter'
       : toolDefinition(mode).icon
     : 'plus';
-  const groups = new Map<string, PaletteItem[]>();
+  const groups = new Map<PaletteGroup, PaletteItem[]>();
   for (const item of folded) {
-    const group = groupLabel(item);
-    if (group === undefined || item === 'chips') continue;
+    const group = ITEM_GROUP[item];
+    if (group === 'done' || group === 'more' || item === 'chips') continue;
     groups.set(group, [...(groups.get(group) ?? []), item]);
   }
   const label = armedTool ? m.markup_more_tools_armed({ tool: armedTool }) : m.markup_more_tools();
@@ -240,7 +230,9 @@ export function MoreTools({
           <Menu.Popup className={menuStyles.popup} data-annotation-keep="" data-more-menu="">
             {[...groups.entries()].map(([group, items]) => (
               <Menu.Group key={group}>
-                <Menu.GroupLabel className={styles.menuHeading}>{group}</Menu.GroupLabel>
+                <Menu.GroupLabel className={styles.menuHeading}>
+                  {GROUP_LABEL[group]()}
+                </Menu.GroupLabel>
                 {items.map((item) => (
                   <Fragment key={item}>{entries(item)}</Fragment>
                 ))}

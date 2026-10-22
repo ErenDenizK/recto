@@ -21,7 +21,7 @@ import { join } from 'node:path';
 import { type CDPSession, expect, type Page, test } from '@playwright/test';
 
 import { expectGlassClean, walkGlass } from './support/glass-walker';
-import { atRest, openFixtures, PAGE_CANVAS, pastDeadline, useFileInputPicker } from './helpers';
+import { atRest, openFixtures, pastDeadline, useFileInputPicker } from './helpers';
 
 const SHOTS = process.env.CAPTURE_SCREENSHOTS;
 
@@ -39,7 +39,7 @@ async function open(page: Page, name: string): Promise<void> {
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   await openFixtures(page, [name]);
-  await expect(page.locator(`[data-page-index="0"] ${PAGE_CANVAS}`)).toHaveAttribute(
+  await expect(page.locator('[data-page-index="0"] canvas')).toHaveAttribute(
     'data-state',
     'rendered',
   );

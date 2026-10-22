@@ -16,7 +16,6 @@ import {
   fixturePath,
   openFixtures,
   openSaveCopyFromMenu,
-  PAGE_CANVAS,
   showSidebar,
   stableBox,
   useFileInputPicker,
@@ -354,7 +353,7 @@ test.describe('the compact edition', () => {
     const chooser = page.waitForEvent('filechooser');
     await page.getByRole('button', { name: /^(Open PDF|PDF aç)$/ }).click();
     await (await chooser).setFiles(fixturePath(name));
-    await expect(page.locator(`[data-page-index="0"] ${PAGE_CANVAS}`)).toHaveAttribute(
+    await expect(page.locator('[data-page-index="0"] canvas')).toHaveAttribute(
       'data-state',
       'rendered',
     );

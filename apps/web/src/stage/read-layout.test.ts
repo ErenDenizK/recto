@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { bitmapSide, exactScale } from '../engine/engine-service';
+import { exactScale } from '../engine/engine-service';
 import { needsTiles, pageDeviceScale, tilesFor, TILE_PX } from '../pages/TiledPage';
 import { computeRows } from './ReadView';
 
@@ -82,25 +82,5 @@ describe('tiling', () => {
     expect(
       tilesFor({ width: 612, height: 792 }, bucket, { left: 700, top: 0, right: 800, bottom: 10 }),
     ).toEqual([]);
-  });
-
-  it('lays tiles on whole pixels of the rounded page bitmap, not of the exact scale (PF-19)', () => {
-    // Fit width at 1440 x 900, DPR 1, on a 612 x 1584 pt page: 2.1961 px/pt; the page bitmap
-    // is 1344 x 3479 px, so its vertical scale is 3479 / 1584, not 2.1961.
-    const size = { width: 612, height: 1584 };
-    const bucket = 2.1961;
-    const sx = bitmapSide(612, bucket) / 612;
-    const sy = bitmapSide(1584, bucket) / 1584;
-    expect(sy).not.toBe(bucket);
-    const tiles = tilesFor(size, bucket, { left: 0, top: 1400, right: 612, bottom: 1584 });
-    for (const t of tiles) {
-      // Each clip's pixel box is whole pixels of the page bitmap, so EmbedPDF draws it with the
-      // page's own matrix: x / sx, y / sy, and its size rounds back to the same pixels.
-      expect(t.left * sx).toBeCloseTo(t.col * TILE_PX, 6);
-      expect(t.top * sy).toBeCloseTo(t.row * TILE_PX, 6);
-      expect(bitmapSide(t.width, bucket)).toBe(Math.min(TILE_PX, 1344 - t.col * TILE_PX));
-      expect(bitmapSide(t.height, bucket)).toBe(Math.min(TILE_PX, 3479 - t.row * TILE_PX));
-    }
-    expect(tiles.at(-1)?.top).toBeCloseTo((3 * TILE_PX) / sy, 6);
   });
 });

@@ -1,6 +1,6 @@
 /**
  * One page of the compact reader: the engine's bitmap at the page's exact device scale (as
- * Read mode draws it) within Read mode's budget (`READ_BITMAP_PIXELS`), exact tiles over the
+ * Read mode draws it) within a phone's budget (`COMPACT_BITMAP_PIXELS`), exact tiles over the
  * visible page above it, and the reading layers: text (long-press
  * selection), Find hits, links and notes. Forms, annotations and signatures are in the
  * bitmap.
@@ -21,7 +21,7 @@ import {
   type Workspace,
 } from '@pdf-editor/document-model';
 
-import { READ_BITMAP_PIXELS, RENDER_PRIORITY } from '../../engine/engine-service';
+import { COMPACT_BITMAP_PIXELS, RENDER_PRIORITY } from '../../engine/engine-service';
 import { m } from '../../i18n';
 import { PageCanvas } from '../../pages/PageCanvas';
 import { rotationPhrase } from '../../pages/page-geometry';
@@ -81,7 +81,7 @@ export function CompactPage({
     sourceId !== undefined &&
     visible &&
     frame === undefined &&
-    needsTiles(contentScale, contentPt.width, contentPt.height, READ_BITMAP_PIXELS);
+    needsTiles(contentScale, contentPt.width, contentPt.height, COMPACT_BITMAP_PIXELS);
   const name = `${m.cell_label({ position: index + 1, count: doc.pages.length })}${rotationPhrase(total)}`;
   const overlay: PageOverlayProps = {
     page,
@@ -115,7 +115,7 @@ export function CompactPage({
           exact={frame === undefined}
           priority={visible ? RENDER_PRIORITY.page : RENDER_PRIORITY.offscreen}
           delayMs={ZOOM_RENDER_DELAY_MS}
-          maxPixels={READ_BITMAP_PIXELS}
+          maxPixels={COMPACT_BITMAP_PIXELS}
         />
         {tiled && sourceId !== undefined ? (
           <TiledPage

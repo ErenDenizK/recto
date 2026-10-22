@@ -21,7 +21,6 @@ import { type CDPSession, expect, type Locator, type Page, test } from '@playwri
 import {
   atRest,
   openFixtures,
-  PAGE_CANVAS,
   quiet,
   saveCopyBytes,
   stableBox,
@@ -444,7 +443,7 @@ for (const locked of [false, true]) {
     }) => {
       await openDoc(page, 'simple-text.pdf');
       const first = page.locator('[data-page-index="0"]');
-      await expect(first.locator(`${PAGE_CANVAS}[data-state="rendered"]`)).toBeAttached({
+      await expect(first.locator('canvas[data-state="rendered"]')).toBeAttached({
         timeout: 20_000,
       });
       const pages = await page.locator('[data-read-viewport] [data-page-id]').count();

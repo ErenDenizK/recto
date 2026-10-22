@@ -61,12 +61,7 @@ import type { PdfAssembler } from '@pdf-editor/engine';
 import { hasExportAdditions } from '../compare/document-pages';
 import { convertWorkspaceDocument, outputFile } from '../convert/convert-run';
 import { getAssembler } from '../engine/assembler-client';
-import {
-  type EngineFailureCode,
-  type EngineResult,
-  getEngineService,
-  toFailure,
-} from '../engine/engine-service';
+import { type EngineFailureCode, type EngineResult, toFailure } from '../engine/engine-service';
 import {
   type ExportDependencies,
   type ExportOptions,
@@ -278,21 +273,6 @@ export async function runRecipe(
   files: readonly File[],
   options: BatchRunOptions = {},
   deps: BatchRunnerDependencies = defaultBatchDependencies(),
-): Promise<BatchRunResult> {
-  // The engine worker lives for the whole run (PF-18), whatever waits between its steps.
-  const release = getEngineService().hold();
-  try {
-    return await runRecipeHeld(plan, files, options, deps);
-  } finally {
-    release();
-  }
-}
-
-async function runRecipeHeld(
-  plan: RecipeRunPlan,
-  files: readonly File[],
-  options: BatchRunOptions,
-  deps: BatchRunnerDependencies,
 ): Promise<BatchRunResult> {
   if (plan.blocked.length > 0) throw new BatchRunError(m.batch_error_plan_blocked());
   const values: RecipeRuntimeValues = options.values ?? new Map();

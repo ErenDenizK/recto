@@ -267,37 +267,3 @@
 :global(:root[data-motion='reduced']) .row [data-tool][aria-pressed='true'] svg:not(.caret) {
   animation: none;
 }
-
-/* --- The grouped palette (`?palette=groups`, task-groups.ts) ----------------------------- */
-
-/* The open group: its name and its tools on one tray, the control fill at the pill radius, so
-   the tools read as the group's (no padding: the measured widths stay the row's). */
-.group[data-open] {
-  border-radius: var(--palette-radius);
-  background: var(--control-fill);
-}
-
-/* A group's name: secondary while closed, primary while open or holding the armed tool. */
-.taskHeader.taskHeader {
-  color: var(--text-secondary);
-}
-
-.taskHeader.taskHeader[aria-expanded='true'],
-.taskHeader.taskHeader[data-holds-armed] {
-  color: var(--text-primary);
-}
-
-/* Every name a group can show in one cell, only one drawn: the width is the longest's, so the
-   armed tool's name replaces the group's without moving anything. */
-.names {
-  display: inline-grid;
-}
-
-.names > span {
-  grid-area: 1 / 1;
-  visibility: hidden;
-}
-
-.names > [data-shown] {
-  visibility: visible;
-}

@@ -8,7 +8,7 @@ import '../styles/tokens.css';
 import '../styles/reset.css';
 import '../styles/global.css';
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { installScrollThumbs, setScrollLabel } from './scroll-thumbs';
 
@@ -114,20 +114,6 @@ describe('the app-wide scroll bar', () => {
     pointer('pointerup', y, 393, 497);
     expect(y).not.toHaveAttribute('data-drag');
     expect(label.hidden).toBe(true);
-  });
-
-  it('lets go of a scroller removed from the page, so its subtree can be freed', async () => {
-    const unobserve = vi.spyOn(ResizeObserver.prototype, 'unobserve');
-    scroller.scrollTop = 1800;
-    await frame();
-    await frame();
-    expect(bar('y')).toHaveAttribute('data-shown');
-    scroller.remove();
-    await vi.waitFor(() => {
-      expect(unobserve).toHaveBeenCalledWith(scroller);
-    });
-    expect(bar('y')).not.toHaveAttribute('data-shown');
-    unobserve.mockRestore();
   });
 
   it('leaves a scroller with --scroll-bar: none alone', async () => {

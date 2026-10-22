@@ -15,12 +15,6 @@ import { type Download, expect, type Locator, type Page } from '@playwright/test
 
 export const FIXTURES = new URL('../../../test/fixtures/', import.meta.url);
 
-/**
- * A page's own bitmap canvas, not the exact-scale tiles `TiledPage` lays over it above Read
- * mode's 4 MP budget (PF-19), which also carry `data-state`.
- */
-export const PAGE_CANVAS = 'canvas[data-layer="page"]';
-
 export function fixturePath(name: string): string {
   return fileURLToPath(new URL(name, FIXTURES));
 }
@@ -323,27 +317,6 @@ function escapeRegExp(text: string): string {
  * in viewing, where the capsule is the dock; in Markup it is the palette (spec X1, D2-2: the
  * frame has no mode switch since D2-1, so the capsule is what tells).
  */
-/**
- * The Markup palettes the palette specs run on (`markup/palette-variant.ts`, epic R25-7): today's
- * row and the grouped one behind `?palette=groups`.
- */
-export const PALETTES = ['row', 'groups'] as const;
-export type Palette = (typeof PALETTES)[number];
-
-/**
- * Call before the first `page.goto`: the page opens on `palette`, as `?palette=…` would leave it
- * (the flag's stored choice, so every address the spec opens keeps it).
- */
-export async function usePalette(page: Page, palette: Palette): Promise<void> {
-  await page.addInitScript((value) => {
-    try {
-      localStorage.setItem('pdf-editor:palette:v1', value);
-    } catch {
-      // Storage refused: the row shows, as it would for a visitor.
-    }
-  }, palette);
-}
-
 export async function enterEdit(page: Page): Promise<void> {
   // `2` toggles Markup, as M does (key map v2, flows §7.3): pressed only when it is closed.
   const palette = page.locator('[data-capsule="palette"]');
