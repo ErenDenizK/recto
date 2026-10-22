@@ -5,7 +5,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { animate, animateStyle } from './animate';
-import { springs } from './springs';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -45,34 +44,54 @@ describe('animate: numbers on one requestAnimationFrame loop', () => {
   });
 
   it('retargets from the present position and velocity, with no jump and no restart', async () => {
-    // Frames as drawn: the time each was computed at (the loop's clock), value and velocity.
+    // On a clock of its own: the loop and `retarget()` read `performance.now()`, and frames run
+    // when this test says, some 16 ms apart and some late, as on a busy runner. Stamping frames
+    // with the real clock from `onUpdate` measured the runner (a pause between the loop reading
+    // the clock and the stamp shrank a gap the value had already moved over), not the motion.
+    let clock = 1000;
+    vi.spyOn(performance, 'now').mockImplementation(() => clock);
+    let queued: FrameRequestCallback[] = [];
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      queued.push(callback);
+      return queued.length;
+    });
+    const frameAt = (ms: number) => {
+      clock = ms;
+      const run = queued;
+      queued = [];
+      for (const callback of run) callback(ms);
+    };
+    // Frames as drawn: the loop's time for each, value and velocity.
     const samples: [time: number, value: number, velocity: number][] = [];
     const motion = animate(0, 400, {
       spring: 'glide',
-      onUpdate: (value, velocity) => samples.push([performance.now(), value, velocity]),
+      onUpdate: (value, velocity) => samples.push([clock, value, velocity]),
     });
-    // 100 ms in, held on the main thread: a busy runner can stall a real wait until it settles.
-    const start = performance.now();
-    while (performance.now() - start < 100);
-    const t1 = performance.now();
+    for (let t = 1016; t <= 1096; t += 16) frameAt(t);
+    // 100 ms in, between two frames.
+    clock = 1100;
     const before = { value: motion.value, velocity: motion.velocity };
     motion.retarget(0);
     const after = { value: motion.value, velocity: motion.velocity };
-    const dt = (performance.now() - t1) / 1000;
     // Moving forward fast when it is sent back.
     expect(before.velocity).toBeGreaterThan(300);
-    // Continuous in position and velocity: they differ only by the motion in `dt`, bounded by
-    // the spring's largest acceleration (k · 400 px + c · 2000 px/s), where a restart would drop
-    // the velocity to zero.
-    expect(Math.abs(after.value - before.value)).toBeLessThan(2000 * dt + 0.5);
-    const maxAcceleration = springs.glide.stiffness * 400 + springs.glide.damping * 2000;
-    expect(Math.abs(after.velocity - before.velocity)).toBeLessThan(maxAcceleration * dt + 1);
+    // Continuous in position and velocity at the moment of the turn: a restart would drop the
+    // velocity to zero, a jump would move the value.
+    expect(after.value).toBeCloseTo(before.value, 6);
+    expect(after.velocity).toBeCloseTo(before.velocity, 6);
     // It carries its speed through the turn (research 18 §6.2): 8 ms later it is still further
-    // along than where it was sent back (read analytically, so frame timing does not matter).
-    const t2 = performance.now();
-    while (performance.now() - t2 < 8);
+    // along than where it was sent back.
+    clock = 1108;
     expect(motion.value).toBeGreaterThan(after.value);
-    await motion.finished;
+    // To rest, with late frames among the regular ones.
+    let settled = false;
+    void motion.finished.then(() => (settled = true));
+    for (let t = 1112, i = 0; !settled && i < 400; i++) {
+      frameAt(t);
+      await Promise.resolve();
+      t += i % 7 === 3 ? 90 : 16;
+    }
+    expect(settled).toBe(true);
     expect(motion.value).toBe(0);
     // The drawn frames never jump: each step is within the fastest speed seen over its time.
     // The spring's true peak can fall between two drawn frames, a few per cent above the

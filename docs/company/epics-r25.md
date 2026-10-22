@@ -147,14 +147,14 @@ Recents stay on the device.
 **Lanes.**
 
 - 3a. _Builder_: one opened file goes to its page (`home/home-actions.ts`), built behind
-  `?open=page` until the board answers. Check: `library.spec.ts` covers both behaviours.
+  `?open=page` until the board answers (built; `home/home-flags.ts`, sticky in localStorage, `?open=0` clears). Check: `library.spec.ts` covers both behaviours.
 - 3b. _Design director, then builder_: Continue and the unified grid (`home/LibraryView.tsx`,
   `RecentList.tsx`, `LibraryCard.tsx`, `recent-thumbs.ts`). Done: the owner approves 1440, 1180 and
   390 screenshots. Check: axe; `library.spec.ts`; Q-8 for Turkish at 390.
 - 3c. _Builder_: exact resume from Recents and from Continue, to the right page, zoom and offset
   within ±2 px (E8's acceptance). Check: an e2e test that reopens at page 63.
 - 3d. _Builder_: Library search and sort over names, with Turkish case folding (İ/ı). Check: unit
-  tests in `home-model.test.ts`.
+  tests in `home-model.test.ts`. Built behind `?home=search` (Recents only: a search field and Recent / Name / Size) until the design director has seen it.
 - 3e. _Builder_: Continue on the phone, loaded on demand (EDN-10). Check: `compact.spec.ts`.
 
 **Risks.** The compact bundle cap (DSN-51 had 24 B of room) means phone parts load on demand. OPFS

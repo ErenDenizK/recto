@@ -3973,6 +3973,7 @@
   "error_engine_stopped": "The PDF engine stopped.",
   "error_engine_stopped_spoken": "The PDF engine stopped. Reload to continue.",
   "error_reload": "Reload",
+  "error_load_failed": "This could not be loaded. Check your connection, then open it again or reload.",
   "error_try_again": "Try again",
   "sheet_close": "Close",
   "sheet_back": "Back",
@@ -4991,5 +4992,12 @@
   "palette_intent_reversed": "Put the smaller page first, like 3–7",
   "palette_intent_no_pages": "No pages match that",
   "palette_intent_all_pages": "That would remove every page",
-  "palette_intent_ambiguous": "Say a range, like 2–3"
+  "palette_intent_ambiguous": "Say a range, like 2–3",
+  "recents_search_label": "Search recent files",
+  "recents_sort_label": "Sort recent files",
+  "recents_sort_recent": "Last opened",
+  "recents_sort_name": "Name",
+  "recents_sort_size": "Size",
+  "recents_search_placeholder": "Search",
+  "recents_search_none": "No recent files match “{query}”."
 }

@@ -2544,6 +2544,7 @@
   "error_engine_stopped": "PDF motoru durdu.",
   "error_engine_stopped_spoken": "PDF motoru durdu. Devam etmek için yeniden yükleyin.",
   "error_reload": "Yeniden yükle",
+  "error_load_failed": "Bu bölüm yüklenemedi. Bağlantınızı denetleyin, sonra yeniden açın ya da sayfayı yeniden yükleyin.",
   "error_try_again": "Yeniden dene",
   "sheet_close": "Kapat",
   "sheet_back": "Geri",
@@ -3351,5 +3352,12 @@
   "palette_intent_reversed": "Küçük sayfa numarası önce gelmeli, örneğin 3–7",
   "palette_intent_no_pages": "Buna uyan sayfa yok",
   "palette_intent_all_pages": "Bu, tüm sayfaları kaldırırdı",
-  "palette_intent_ambiguous": "Bir aralık yazın, örneğin 2–3"
+  "palette_intent_ambiguous": "Bir aralık yazın, örneğin 2–3",
+  "recents_search_label": "Son dosyalarda ara",
+  "recents_sort_label": "Son dosyaları sırala",
+  "recents_sort_recent": "Son açılma",
+  "recents_sort_name": "Ad",
+  "recents_sort_size": "Boyut",
+  "recents_search_placeholder": "Ara",
+  "recents_search_none": "“{query}” ile eşleşen son dosya yok."
 }

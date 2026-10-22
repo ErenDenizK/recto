@@ -112,8 +112,10 @@ cost is neutral wording on the shared pages, plus the risks in point 2.
 - **Full cut:** the verbs are *choose*, *select*, *drag*, *type*. A shortcut goes in
   parentheses after the command name, e.g. "choose Edit text (E)", "press 3", "⌘F / Ctrl+F". A
   tablet user reads past the parentheses, and every line stays true with a finger.
-  Double-clicking to edit text is the desktop hover hint (`edit_text_hint`); the tablet
-  equivalent must be checked by hand (§7, R-21).
+  Double-clicking to edit text is the desktop hover hint (`edit_text_hint`) in Markup only;
+  in viewing a double-click selects a word (ADR-0029 §2.3), so no try slip promises one: the
+  feature page names Edit text (E) (TXT-20). The tablet equivalent must be checked by hand
+  (§7, R-21).
 - **Phone cut:** the verbs are *tap*, *press and hold*, *pinch*. Tools are named as the edit
   island names them (Edit, then Pen, Highlight, Text, Sign, Edit text), and the overview uses
   Select, Add and Share (MOB-3, MOB-9).
@@ -456,7 +458,7 @@ The Turkish copy contains ğ, ş, ç, ö, ü, ı, â and the capitals İ and I. 
 
 | Cut | EN | TR |
 |---|---|---|
-| Full | Double-click any paragraph to change its words. Put your name in the byline, or add a sentence to the end of the first column and watch it reflow. | Sözcüklerini değiştirmek için herhangi bir paragrafa çift tıklayın. Künyeye kendi adınızı yazın ya da ilk sütunun sonuna bir cümle ekleyip metnin yeniden dizilişini izleyin. |
+| Full | Choose Edit text (E), then any paragraph, to change its words. Put your name in the byline, or add a sentence to the end of the first column and watch it reflow. | Metni düzenle’yi (E), ardından bir paragrafı seçip sözcüklerini değiştirin. Künyeye kendi adınızı yazın ya da ilk sütunun sonuna bir cümle ekleyip metnin yeniden dizilişini izleyin. |
 | Phone | Tap Edit, choose Edit text, then tap any paragraph. Put your name in the byline, or add a sentence and watch the column reflow. | Düzenle’ye dokunun, Metni düzenle’yi seçin ve bir paragrafa dokunun. Künyeye kendi adınızı yazın ya da bir cümle ekleyip sütunun yeniden dizilişini izleyin. |
 
 **Edit targets, in the order a person will meet them:**
