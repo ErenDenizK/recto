@@ -8,6 +8,11 @@
  *   window, storage refused) it says reloading closes them (FB4 issue 9). The toast lives in
  *   `update-toast.ts`, loaded when a worker waits, so the first paint does not carry the
  *   toast API and what it reaches (V1-P1, PRC-11).
+ * - The worker registers after the first document's first page has drawn, or
+ *   `REGISTER_FALLBACK_MS` after the edition has loaded and the Library shows, whichever comes
+ *   first, not at boot: its precache would otherwise share a phone's link with the sample that
+ *   is opening (PF-20, docs/research/perf/phone-first-load-2026-10.md P5). Offline-ready and
+ *   the update toast behave as before, only later on a first visit.
  * - Update checks run on window focus (throttled) in addition to the browser's own checks.
  * - Once the app shell is cached, the engine wasm is fetched in idle time so the runtime
  *   cache holds it (CacheFirst) and the first offline session can open files: PDFium first,
@@ -134,6 +139,51 @@ function watchForUpdates(registration: ServiceWorkerRegistration): void {
   document.addEventListener('visibilitychange', check);
 }
 
+/** How long the Library may sit with no document before the worker registers anyway (PF-20). */
+const REGISTER_FALLBACK_MS = 5_000;
+
+/**
+ * Calls `run` once: when a page canvas first reaches `data-state="rendered"` (the first
+ * document's first page, `PageCanvas`/`TiledPage`), or `fallbackMs` after the returned `arm`
+ * is called, whichever comes first. Watching the attribute keeps this module free of the
+ * viewer's components.
+ */
+export function runAfterFirstPage(run: () => void, fallbackMs: number): () => void {
+  let done = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const observer = new MutationObserver((records) => {
+    for (const record of records) {
+      const target = record.target;
+      if (target instanceof HTMLCanvasElement && target.dataset.state === 'rendered') {
+        go();
+        return;
+      }
+    }
+  });
+  function go(): void {
+    if (done) return;
+    done = true;
+    observer.disconnect();
+    clearTimeout(timer);
+    run();
+  }
+  observer.observe(document.documentElement, {
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['data-state'],
+  });
+  return () => {
+    if (!done) timer ??= setTimeout(go, fallbackMs);
+  };
+}
+
+let armRegistration: (() => void) | undefined;
+
+/** The Library is showing: start the fallback clock for the worker's registration (PF-20). */
+export function armServiceWorkerRegistration(): void {
+  armRegistration?.();
+}
+
 /** Registers the service worker once. Safe to call more than once. */
 export function startServiceWorker(): void {
   if (started) return;
@@ -151,16 +201,20 @@ export function startServiceWorker(): void {
     usePwaStore.setState({ status: 'ready' });
     warmEngineCache();
   };
-  updateServiceWorker = registerSW({
-    immediate: true,
-    onNeedRefresh: () => void showUpdateReady(),
-    onOfflineReady: ready,
-    onRegisteredSW: (_url, registration) => {
-      if (!registration) return;
-      // Installed on an earlier visit: onOfflineReady does not fire again.
-      if (registration.active) ready();
-      watchForUpdates(registration);
-    },
-    onRegisterError: () => usePwaStore.setState({ status: 'error' }),
-  });
+  armRegistration = runAfterFirstPage(register, REGISTER_FALLBACK_MS);
+
+  function register(): void {
+    updateServiceWorker = registerSW({
+      immediate: true,
+      onNeedRefresh: () => void showUpdateReady(),
+      onOfflineReady: ready,
+      onRegisteredSW: (_url, registration) => {
+        if (!registration) return;
+        // Installed on an earlier visit: onOfflineReady does not fire again.
+        if (registration.active) ready();
+        watchForUpdates(registration);
+      },
+      onRegisterError: () => usePwaStore.setState({ status: 'error' }),
+    });
+  }
 }

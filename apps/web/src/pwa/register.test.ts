@@ -3,12 +3,18 @@
  * on demand (`update-toast.ts`, kept out of the first paint, V1-P1) and still shows once, with
  * Reload and Later, saying whether documents reopen. And which engine wasm each edition warms.
  */
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { setLocale } from '../i18n';
 import { resetSessionStore, useSessionStore } from '../session/session-store';
 import { resetToasts, useToastStore } from '../ui/Toast/toast-store';
-import { dismissUpdate, showUpdateReady, usePwaStore, warmWasmUrls } from './register';
+import {
+  dismissUpdate,
+  runAfterFirstPage,
+  showUpdateReady,
+  usePwaStore,
+  warmWasmUrls,
+} from './register';
 
 afterEach(() => {
   resetToasts();
@@ -62,5 +68,40 @@ describe('warmWasmUrls', () => {
   it('warms PDFium only for the compact edition, which runs no qpdf tool', () => {
     const urls = warmWasmUrls('compact');
     expect(urls).toEqual([warmWasmUrls('full')[0]]);
+  });
+});
+
+describe('runAfterFirstPage (PF-20)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.replaceChildren();
+  });
+
+  it('runs once when a page canvas first reads rendered', async () => {
+    const run = vi.fn();
+    runAfterFirstPage(run, 5_000);
+    const canvas = document.body.appendChild(document.createElement('canvas'));
+    canvas.dataset.state = 'preview';
+    await Promise.resolve();
+    expect(run).not.toHaveBeenCalled();
+    canvas.dataset.state = 'rendered';
+    await vi.waitFor(() => expect(run).toHaveBeenCalledTimes(1));
+    canvas.dataset.state = 'placeholder';
+    canvas.dataset.state = 'rendered';
+    await Promise.resolve();
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
+  it('runs after the fallback once armed, and not before', () => {
+    vi.useFakeTimers();
+    const run = vi.fn();
+    const arm = runAfterFirstPage(run, 5_000);
+    vi.advanceTimersByTime(60_000);
+    expect(run).not.toHaveBeenCalled();
+    arm();
+    vi.advanceTimersByTime(4_999);
+    expect(run).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(run).toHaveBeenCalledTimes(1);
   });
 });

@@ -9,7 +9,7 @@ import { lazy, StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { getLocale } from './i18n/locale';
-import { startServiceWorker } from './pwa/register';
+import { armServiceWorkerRegistration, startServiceWorker } from './pwa/register';
 import { launchEdition } from './shell/frame/edition';
 import { useSizeClass } from './shell/frame/size-class';
 
@@ -41,9 +41,17 @@ if (getLocale() === 'tr')
 const Edition =
   launchEdition() === 'compact'
     ? lazy(() =>
-        import('./shell/compact/CompactApp').then((module) => ({ default: module.CompactApp })),
+        import('./shell/compact/CompactApp').then((module) => {
+          armServiceWorkerRegistration();
+          return { default: module.CompactApp };
+        }),
       )
-    : lazy(() => import('./app').then((module) => ({ default: module.App })));
+    : lazy(() =>
+        import('./app').then((module) => {
+          armServiceWorkerRegistration();
+          return { default: module.App };
+        }),
+      );
 
 /** Mirrors the size class on `:root` (`data-size`, `data-short`) in both editions. */
 function FrameClass() {

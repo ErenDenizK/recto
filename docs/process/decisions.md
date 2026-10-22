@@ -13,7 +13,7 @@ roadmap stay proposals until the owner marks a row.
 the row it names. *Open*: asked, not yet answered. Do not act on an open row; keep its safe
 default.
 
-**Ids.** Rows carry a log id (PRD, DSN, MOT, GLS, INK, EDN, PRC, TXT, MOB, RED) so they never clash with the
+**Ids.** Rows carry a log id (PRD, DSN, MOT, GLS, INK, EDN, PRC, TXT, MOB, RED, PF) so they never clash with the
 sources' own ids (R12's D-1 to D-5, PLAN's P-1 to P-8, the feedback's F and G items), which each
 row quotes.
 
@@ -337,6 +337,7 @@ Full rows: [`decisions/process.md`](decisions/process.md).
 | [PRC-27](decisions/process.md) | Company reports in English; one small HQ improvement a day | In force | 2026-10-21 |
 | [PRC-28](decisions/process.md) | Major work runs as epics; deep cycles, heartbeats and lane-sized check-ins; a daily fresh-eyes check | In force | 2026-10-21 |
 | [PRC-29](decisions/process.md) | Agent skills adopted as our own texts (lean-change, verify-before-done, root-cause); Graphify skipped | In force | 2026-10-21 |
+| [PF-20](decisions/process.md) | The service worker registers after the first page has rendered, or 5 s after the Library shows | In force | 2026-10-22 |
 
 ## Foundations (ADR titles)
 
