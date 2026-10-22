@@ -25,3 +25,16 @@ export function getAssembler(): Promise<AssemblerProxy> {
   }
   return shared;
 }
+
+/**
+ * Ends the assembly worker (the engine service does so with the PDFium worker when no source
+ * is open); the next `getAssembler()` starts a new one.
+ */
+export function endAssembler(): void {
+  const ended = shared;
+  shared = undefined;
+  void ended?.then(
+    (proxy) => proxy.dispose(),
+    () => undefined,
+  );
+}
