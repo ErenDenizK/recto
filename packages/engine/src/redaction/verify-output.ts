@@ -3,10 +3,11 @@
  * compression and encryption), for every redacted source's plan mapped to output pages
  * (`ExportPlan.redaction.plans`).
  *
- * Plans are grouped by what the pixel check compares against (fill and overlay colour);
- * each group runs once, with every plan-level overlay text moved onto its areas. Redacted
- * strings are document-wide, so they are checked once, with the first group. The reports
- * are merged check by check: a check passes when it passed in every run.
+ * Plans are grouped by what the pixel check compares against (fill and overlay colour) and
+ * by the marks made after their apply (`laterMarks`, RED-1); each group runs once, with
+ * every plan-level overlay text moved onto its areas. Redacted strings are document-wide,
+ * so they are checked once, with the first group. The reports are merged check by check: a
+ * check passes when it passed in every run.
  *
  * Attachment removal is enforced when a redaction is applied; at export, embedded files
  * (which other sources of the output may bring) are listed as unverified, never a failure,
@@ -25,10 +26,12 @@ import { BLACK, contrastingColor, parseColor } from './pdf-util';
 
 const MAX_FINDINGS = 50;
 
-function colourKey(plan: RedactionPlan): string {
+/** Plans with the same key share a run: same fill and overlay colour, same later marks. */
+function groupKey(plan: RedactionPlan): string {
   const fill = parseColor(plan.fillColor) ?? BLACK;
   const overlay = parseColor(plan.overlayColor) ?? contrastingColor(fill);
-  return [...fill, ...overlay].map((c) => Math.round(c * 255)).join(',');
+  const colours = [...fill, ...overlay].map((c) => Math.round(c * 255)).join(',');
+  return JSON.stringify([colours, [...(plan.laterMarks ?? [])].sort()]);
 }
 
 /** Merges reports of the same bytes: one entry per check id, in the first report's order. */
@@ -72,7 +75,7 @@ export async function verifyRedactedOutput(
   const strings = [...new Set(plans.flatMap((p) => p.strings))];
   const groups = new Map<string, { plan: RedactionPlan; areas: RedactionArea[] }>();
   for (const plan of plans) {
-    const key = colourKey(plan);
+    const key = groupKey(plan);
     const group = groups.get(key) ?? { plan, areas: [] };
     for (const area of plan.areas) {
       const overlayText = area.overlayText ?? plan.overlayText;
@@ -90,6 +93,7 @@ export async function verifyRedactedOutput(
     keepAttachments: true,
     ...(plan.fillColor === undefined ? {} : { fillColor: plan.fillColor }),
     ...(plan.overlayColor === undefined ? {} : { overlayColor: plan.overlayColor }),
+    ...(plan.laterMarks === undefined ? {} : { laterMarks: plan.laterMarks }),
   }));
   if (runs.length === 0) runs.push({ areas: [], strings, keepAttachments: true });
   const reports: ForensicReport[] = [];

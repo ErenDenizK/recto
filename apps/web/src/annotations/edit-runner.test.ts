@@ -6,7 +6,7 @@
  */
 import { getActiveDocument, historyEntries, type SourceId } from '@pdf-editor/document-model';
 import type { NewAnnotation } from '@pdf-editor/engine';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import { fixtureFile, pngBlob } from '../../test/store-harness';
@@ -21,7 +21,13 @@ import {
   resetAnnotationStore,
   useAnnotationStore,
 } from './annotation-store';
-import { appliedEditIds, readAnnotations, resetEditRunner, whenIdle } from './edit-runner';
+import {
+  appliedEditIds,
+  readAnnotations,
+  resetEditRunner,
+  scheduleReconcile,
+  whenIdle,
+} from './edit-runner';
 
 const model = () => useWorkspaceStore.getState();
 
@@ -68,6 +74,63 @@ describe('edit runner robustness', () => {
   afterEach(async () => {
     await whenIdle();
     resetWorkspace();
+  });
+
+  it('undo of a close opens the parked source again and replays its edits (PF-18)', async () => {
+    const { source, target, doc } = await open();
+    await createAnnotations(target, [text(700, 'Kept')]);
+    await whenIdle();
+    expect(appliedEditIds(source)).toHaveLength(1);
+    const service = getEngineService();
+    model().closeDocument(doc as never);
+    await vi.waitFor(() => {
+      expect(service.isParked(source)).toBe(true);
+    });
+    // The engine document is gone, and with it what was applied to it.
+    expect(appliedEditIds(source)).toEqual([]);
+    model().undo();
+    await vi.waitFor(() => {
+      expect(appliedEditIds(source)).toHaveLength(1);
+    });
+    await whenIdle();
+    expect(service.isParked(source)).toBe(false);
+    const list = await readAnnotations(source, 0);
+    expect(list).toHaveLength(1);
+    const bitmap = await service.renderPage({
+      sourceId: source,
+      index: 0,
+      rotation: 0,
+      bucket: 0.25,
+      priority: 3,
+    });
+    expect(bitmap.ok).toBe(true);
+  });
+
+  it('a source parked during a replay records nothing, so the next replay is not skipped (PF-18)', async () => {
+    const { source, target } = await open();
+    await createAnnotations(target, [text(700, 'Kept')]);
+    await whenIdle();
+    model().undo();
+    await whenIdle();
+    expect(appliedEditIds(source)).toEqual([]);
+    const service = getEngineService();
+    // Redo starts a replay of the edit; the source is parked once the replay has begun.
+    const ensure = service.ensureOpen.bind(service);
+    const spy = vi.spyOn(service, 'ensureOpen').mockImplementation(async (id) => {
+      const result = await ensure(id);
+      void service.park(id);
+      return result;
+    });
+    model().redo();
+    await whenIdle();
+    spy.mockRestore();
+    expect(service.isParked(source)).toBe(true);
+    expect(appliedEditIds(source)).toEqual([]);
+    // The next replay opens the source again and applies the edit.
+    await scheduleReconcile();
+    await whenIdle();
+    expect(appliedEditIds(source)).toHaveLength(1);
+    expect(await readAnnotations(source, 0)).toHaveLength(1);
   });
 
   it('export right after undo waits for the engine to follow the model', async () => {
