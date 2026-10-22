@@ -10,7 +10,7 @@
  */
 import { type CDPSession, expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, quiet, trackEngine, useFileInputPicker } from './helpers';
+import { openFixtures, PAGE_CANVAS, quiet, trackEngine, useFileInputPicker } from './helpers';
 
 type Phase = 'start' | 'end';
 
@@ -59,7 +59,9 @@ test('a long press on a page opens the page menu at the press, once', async ({
   await page.goto('./');
   await openFixtures(page, ['simple-text.pdf']);
   const first = page.locator('[data-page-index="0"]');
-  await expect(first.locator('canvas[data-state="rendered"]')).toBeAttached({ timeout: 20_000 });
+  await expect(first.locator(`${PAGE_CANVAS}[data-state="rendered"]`)).toBeAttached({
+    timeout: 20_000,
+  });
   const box = await first.boundingBox();
   if (!box) throw new Error('page 1 not laid out');
   // The top margin: paper, not a text run (a press on text selects natively).

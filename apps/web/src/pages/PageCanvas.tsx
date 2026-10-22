@@ -399,5 +399,14 @@ export function PageCanvas({
     };
   }, [sourceId, index, rotation, bucket, priority, delayMs, revision, exact, bare]);
 
-  return <canvas ref={ref} className={styles.canvas} data-state="placeholder" aria-hidden="true" />;
+  // `data-layer="page"` tells the page's own bitmap from the tiles over it (`TiledPage`, PF-19).
+  return (
+    <canvas
+      ref={ref}
+      className={styles.canvas}
+      data-layer="page"
+      data-state="placeholder"
+      aria-hidden="true"
+    />
+  );
 }

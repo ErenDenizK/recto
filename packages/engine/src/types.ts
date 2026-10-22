@@ -1535,6 +1535,14 @@ export interface RedactionPlan {
   readonly keepAttachments?: boolean;
   /** Replacement for redacted strings in document-level strings; default "[redacted]". */
   readonly placeholder?: string;
+  /**
+   * Export only (RED-1): /NM of the annotations the user created after this redaction was
+   * applied, such as an ink stroke across the box. They are new content, not redacted
+   * content, so the area checks ignore them (`no-annotations-in-areas`; `fill-pixels`
+   * renders the areas without annotations); every other check still covers them, and a
+   * /Redact mark is never excused.
+   */
+  readonly laterMarks?: readonly string[];
 }
 
 /** What the tagged-PDF repair did: nothing to do, tree kept, tree pruned, or removed. */
@@ -1660,9 +1668,14 @@ export interface ForensicDeps {
   search(query: string): Promise<readonly SearchHit[]>;
   /**
    * Renders exactly `rect` (user space) of a page at `scale`, with annotations and forms
-   * (`PdfRenderer.renderPage` with `clip`).
+   * unless `withAnnotations` is false (`PdfRenderer.renderPage` with `clip`).
    */
-  renderArea(pageIndex: number, rect: Rect, scale: number): Promise<ForensicPixels>;
+  renderArea(
+    pageIndex: number,
+    rect: Rect,
+    scale: number,
+    withAnnotations?: boolean,
+  ): Promise<ForensicPixels>;
 }
 // ---------------------------------------------------------------------------
 // Redaction: engine pass, blank-region gate and the whole apply (research 06 §3)
