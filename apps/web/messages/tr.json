@@ -1690,6 +1690,7 @@
   "redaction_mark_selected": "Seçili {countText} öğeyi işaretle",
   "redaction_mark_matches": "Tüm sonuçları karartma için işaretle ({countText})",
   "export_redaction_pending_marks": "Uygulanmamış karartma işaretleri hâlâ dosyada: bunları uygulayın ya da silin, sonra yeniden dışa aktarın.",
+  "export_redaction_flattened_marks": "Karartılmış bir alanın üzerine çizilen işaret sayfaya işlenemez: ek açıklamaları düzleştirmeden kaydedin ya da işareti taşıyın veya silin.",
   "redaction_apply_none": "Uygulamak için en az bir işareti seçin",
   "redaction_apply_busy": "Karartmalar zaten uygulanıyor.",
   "redaction_apply_failed": "Karartmalar uygulanamadı; belge değişmedi.",
