@@ -16,6 +16,43 @@ export function isEditableTarget(target: EventTarget | null): boolean {
   return false;
 }
 
+/** Keys that, with Ctrl or ⌘, edit a field's text or move its caret (select all, undo…). */
+const FIELD_KEYS = new Set([
+  'a',
+  'c',
+  'v',
+  'x',
+  'z',
+  'y',
+  'arrowleft',
+  'arrowright',
+  'arrowup',
+  'arrowdown',
+  'home',
+  'end',
+  'pageup',
+  'pagedown',
+  'backspace',
+  'delete',
+]);
+/** Bold, italic and underline, which a rich text field (contenteditable) keeps as well. */
+const RICH_TEXT_KEYS = new Set(['b', 'i', 'u']);
+
+/**
+ * Whether a text field keeps `event` as text (INK-12): a key without Ctrl or ⌘ (a letter,
+ * Shift, Alt, which types characters on macOS) and the Ctrl or ⌘ keys that edit text or move
+ * the caret. Any other Ctrl or ⌘ key cannot mean text, so the app's shortcut runs from the
+ * field (Save a copy, Settings, Zoom).
+ */
+export function fieldKeepsKey(event: KeyboardEvent): boolean {
+  if (!event.ctrlKey && !event.metaKey) return true;
+  const key = event.key.toLowerCase();
+  if (FIELD_KEYS.has(key)) return true;
+  return (
+    event.target instanceof HTMLElement && event.target.isContentEditable && RICH_TEXT_KEYS.has(key)
+  );
+}
+
 function isInsideModal(target: EventTarget | null): boolean {
   return target instanceof Element && target.closest('[aria-modal="true"]') !== null;
 }
@@ -42,7 +79,10 @@ export function dispatchShortcut(
   platform: Platform = currentPlatform,
 ): boolean {
   if (event.defaultPrevented || event.isComposing || event.key === 'Process') return false;
-  const guarded = isEditableTarget(event.target) || isInsideModal(event.target);
+  // In a field (outside a dialog) a Ctrl or ⌘ key the field does not keep is the app's.
+  const modal = isInsideModal(event.target);
+  const editable = isEditableTarget(event.target);
+  const guarded = modal || (editable && fieldKeepsKey(event));
   for (const command of registry.list()) {
     if (guarded && !command.allowInInputs) continue;
     if (!command.shortcuts.some((s) => matchShortcut(event, s, platform))) continue;

@@ -32,7 +32,8 @@ import {
   runSearch,
   searchStep,
   selectHit,
-  setFindEntryOpener,
+  focusFindField,
+  setFindEntry,
   setSearchQuery,
   useSearchStore,
 } from '../../viewer/search';
@@ -56,7 +57,6 @@ export function FindEntry({ form = 'auto' }: { readonly form?: 'auto' | 'button'
   const status = useSearchStore((s) => s.status);
   const searchedDoc = useSearchStore((s) => s.documentId);
   const open = useFrameStore((s) => s.findOpen);
-  const focusSerial = useFrameStore((s) => s.findFocus);
   // The sidebar's Find section runs the search while it shows (laid over the page on medium,
   // it shows only once asked for).
   const findShown = useUiStore((s) => s.leftPanelOpen && s.leftPanelView === 'find');
@@ -69,24 +69,18 @@ export function FindEntry({ form = 'auto' }: { readonly form?: 'auto' | 'button'
   const byKey = useRef(false);
   const countId = useId();
 
-  // Mod+F reaches this field while it is mounted.
+  // Mod+F reaches this field while it is mounted; it focuses and selects the field, at once
+  // or as soon as it shows, with the keys typed meanwhile (`openFind`, MOT-17).
   useEffect(() => {
-    setFindEntryOpener(() => {
-      byKey.current = true;
-      focusFindEntry();
+    setFindEntry({
+      open: () => {
+        byKey.current = true;
+        focusFindEntry();
+      },
+      field: () => inputRef.current,
     });
-    return () => setFindEntryOpener(undefined);
+    return () => setFindEntry(undefined);
   }, []);
-
-  // Each Mod+F (or ⌕) focuses and selects the field, once it shows.
-  useEffect(() => {
-    if (focusSerial === 0) return;
-    const frame = requestAnimationFrame(() => {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [focusSerial]);
 
   // Restart after typing, unless the sidebar's Find section runs the same search.
   useEffect(() => {
@@ -167,6 +161,7 @@ export function FindEntry({ form = 'auto' }: { readonly form?: 'auto' | 'button'
         onClick={() => {
           byKey.current = false;
           focusFindEntry();
+          focusFindField(() => inputRef.current);
         }}
       />
       <div role="search" className={styles.findWell}>

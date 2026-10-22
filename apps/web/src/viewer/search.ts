@@ -15,6 +15,7 @@ import type {
 import type { SearchHit } from '@pdf-editor/engine';
 import { create } from 'zustand';
 
+import { handKeysTo } from '../commands/key-handoff';
 import { getEngineService } from '../engine/engine-service';
 import { revealWhenShown } from '../motion/catalogue';
 import { reducedMotion } from '../motion/reduced-motion';
@@ -23,6 +24,7 @@ import { EASE, SPRING_CSS_MS } from '../motion/tokens';
 import { showOverlaySidebar } from '../shell/frame/frame-store';
 import { isPageView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
+import { useWorkspaceStore } from '../state/workspace-store';
 import { afterJump } from './jump-landed';
 
 export interface DocumentHit {
@@ -446,20 +448,62 @@ function pulseHit(hit: Element | null): void {
 // ---------------------------------------------------------------------------
 
 /** The strip's Find entry while it is mounted (`shell/frame/FindEntry.tsx`, 01-frame F6). */
-let findEntryOpener: (() => void) | undefined;
-
-/** The Find entry registers how Mod+F reaches it; undefined when it unmounts. */
-export function setFindEntryOpener(opener: (() => void) | undefined): void {
-  findEntryOpener = opener;
+export interface FindEntryHandle {
+  /** Opens the entry (laid over the strip below 1280 px) as Mod+F does: Esc returns to the page. */
+  readonly open: () => void;
+  readonly field: () => HTMLInputElement | null;
 }
 
+let findEntry: FindEntryHandle | undefined;
+
+/** The Find entry registers how Mod+F reaches it; undefined when it unmounts. */
+export function setFindEntry(entry: FindEntryHandle | undefined): void {
+  findEntry = entry;
+}
+
+/** The field takes the focus with its query selected, so typing replaces it (F6 §6). */
+const selectQuery = (field: HTMLElement) => {
+  if (field instanceof HTMLInputElement) field.select();
+};
+
 /**
- * Mod+F (01-frame F6 §6): focuses the frame's Find entry, opening it over the strip below
- * 1280 px; without one (component tests), the Search panel as before.
+ * Mod+F (01-frame F6 §6): focuses and selects the frame's Find entry, opening it over the strip
+ * below 1280 px; without one (component tests), the Search panel as before. From the Library it
+ * opens the active document, whose strip has the entry. The keys typed meanwhile go into the
+ * field, however long the view change takes (MOT-17, `commands/key-handoff.ts`).
  */
 export function openFind(): void {
-  if (findEntryOpener) findEntryOpener();
-  else openSearchPanel();
+  const ui = useUiStore.getState();
+  const library = ui.destination === 'home';
+  const id = useWorkspaceStore.getState().workspace.activeDocument;
+  if (library && id !== undefined) ui.showDocument(id);
+  // From the command palette Find takes over: the palette closes, and the field waits until it
+  // has gone, as it hands the focus back where it was when it closes.
+  const palette = ui.paletteOpen;
+  if (palette) ui.setPaletteOpen(false);
+  if (!findEntry && !library) {
+    openSearchPanel();
+    return;
+  }
+  // Leaving the Library, the entry mounts with the document's strip: it opens once it is there.
+  let opened = false;
+  handKeysTo(
+    () => {
+      if (!findEntry) return null;
+      if (palette && document.querySelector('[aria-modal="true"]')) return null;
+      if (!opened) {
+        opened = true;
+        findEntry.open();
+      }
+      return findEntry.field();
+    },
+    { onFocus: selectQuery },
+  );
+}
+
+/** ⌕'s press (F6 §2): its field takes the focus and the keys once it shows, as Mod+F's. */
+export function focusFindField(field: () => HTMLInputElement | null): void {
+  handKeysTo(field, { onFocus: selectQuery });
 }
 
 /** Shows the Search panel in the left rail and focuses its field. */
