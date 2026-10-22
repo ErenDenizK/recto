@@ -3,20 +3,11 @@
  * its code (the flow, the download manager and the converter host) loads then, outside the
  * editor's initial chunks (PRC-11). It stays mounted afterwards, so the sheet plays its exit.
  */
-import { lazy, Suspense, useState } from 'react';
+import { createSheetHost } from '../ui/sheet-host';
+import { closeOffice, useOfficeStore } from './office-store';
 
-import { useOfficeStore } from './office-store';
-
-const OfficeSheet = lazy(() => import('./OfficeSheet'));
-
-export function OfficeSheetHost() {
-  const open = useOfficeStore((s) => s.files !== null);
-  const [asked, setAsked] = useState(open);
-  if (open && !asked) setAsked(true);
-  if (!asked) return null;
-  return (
-    <Suspense fallback={null}>
-      <OfficeSheet />
-    </Suspense>
-  );
-}
+export const OfficeSheetHost = createSheetHost(
+  () => import('./OfficeSheet'),
+  () => useOfficeStore((s) => s.files !== null),
+  closeOffice,
+);

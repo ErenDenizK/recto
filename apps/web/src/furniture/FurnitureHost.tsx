@@ -3,22 +3,11 @@
  * quality-bar Q-11: sheets load on first use); their code loads then, outside the editor's
  * initial bundle. They stay mounted afterwards, so a sheet plays its exit.
  */
-import { lazy, Suspense, useState } from 'react';
+import { createSheetHost } from '../ui/sheet-host';
+import { closeFurnitureDialog, useFurnitureStore } from './furniture-store';
 
-import { useFurnitureStore } from './furniture-store';
-
-const FurnitureDialogs = lazy(() =>
-  import('./FurnitureDialogs').then((module) => ({ default: module.FurnitureDialogs })),
+export const FurnitureHost = createSheetHost(
+  () => import('./FurnitureDialogs').then((module) => ({ default: module.FurnitureDialogs })),
+  () => useFurnitureStore((s) => s.dialog !== null),
+  closeFurnitureDialog,
 );
-
-export function FurnitureHost() {
-  const open = useFurnitureStore((s) => s.dialog !== null);
-  const [asked, setAsked] = useState(open);
-  if (open && !asked) setAsked(true);
-  if (!asked) return null;
-  return (
-    <Suspense fallback={null}>
-      <FurnitureDialogs />
-    </Suspense>
-  );
-}
