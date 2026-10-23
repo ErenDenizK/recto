@@ -153,6 +153,7 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-65](decisions/design.md) | The find map: hit ticks that show a card (page, thumbnail, sentence) and jump on click or tap, a phone rail, and thumbnails in the Find results (`?findmap=1` for ticks and phone) | In force | 2026-10-23 |
 | [DSN-63](decisions/design.md) | The page strip: hold or slide on the page pill (phone: the capsule's number) opens a glass strip of every page, release jumps; a prototype behind `?strip=1` | Prototype; owner taste open | 2026-10-23 |
 | [DSN-64](decisions/design.md) | Opening in light: no Read page is ever bare white (cached bitmap, else a soft quarter-scale render, else paper tone); behind `?open=light` a card's sheet grows on `glide` and the light pulses once per session | In force; flag | 2026-10-23 |
+| [DSN-67](decisions/design.md) | The save receipt: Save a copy's sizes show at once (approximate, then exact); behind `?receipt=1` the changed pages, size bars, the page's flight to the tab and the "never left this device" toast | Size fix in force; receipt behind `?receipt=1` | 2026-10-23 |
 
 ## Motion
 

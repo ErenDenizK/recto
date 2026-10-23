@@ -120,6 +120,7 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:open-page:v1',
       // The Markup palette flag, ?palette=groups|labels|row (markup/palette-variant.ts, R25-7).
       'pdf-editor:palette:v1',
+      'pdf-editor:receipt:v1',
       'pdf-editor:recents:v1',
       // "Don't ask again for this file" on Save's Replace question (files/save.ts, ADR-0032 §2.1).
       'pdf-editor:save:replace-ok:v1',
