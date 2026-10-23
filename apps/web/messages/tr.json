@@ -2832,7 +2832,7 @@
       }
     }
   ],
-  "save_receipt_original": "Özgün",
+  "save_receipt_original": "Açılan dosya",
   "save_receipt_copy": "Bu kopya",
   "save_receipt_sizes": "Özgün {before}, bu kopya {after}",
   "save_receipt_written": "Bu cihazda yazıldı, cihazdan çıkmadı · {name} · {size}",

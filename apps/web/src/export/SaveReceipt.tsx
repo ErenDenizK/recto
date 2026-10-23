@@ -66,23 +66,25 @@ function Thumb({
       data-testid="save-receipt-page"
       data-kinds={changed.kinds.join(' ')}
     >
-      <div
-        className={styles.thumb}
-        style={{ width: box.width, height: box.height }}
-        {...(first ? { [FLIGHT_SOURCE_ATTRIBUTE]: '' } : {})}
-      >
-        <ResizedContent frame={frame}>
-          <PageCanvas
-            sourceId={page.ref.kind === 'source' ? page.ref.source : undefined}
-            blobId={page.ref.kind === 'image' ? page.ref.blob : undefined}
-            index={page.ref.kind === 'source' ? page.ref.index : 0}
-            rotation={page.rotation}
-            widthPt={frame?.widthPt ?? size.width}
-            heightPt={frame?.heightPt ?? size.height}
-            cssWidth={box.width * (frame?.width ?? 1)}
-            priority={RENDER_PRIORITY.visible}
-          />
-        </ResizedContent>
+      <div className={styles.slot}>
+        <div
+          className={styles.thumb}
+          style={{ width: box.width, height: box.height }}
+          {...(first ? { [FLIGHT_SOURCE_ATTRIBUTE]: '' } : {})}
+        >
+          <ResizedContent frame={frame}>
+            <PageCanvas
+              sourceId={page.ref.kind === 'source' ? page.ref.source : undefined}
+              blobId={page.ref.kind === 'image' ? page.ref.blob : undefined}
+              index={page.ref.kind === 'source' ? page.ref.index : 0}
+              rotation={page.rotation}
+              widthPt={frame?.widthPt ?? size.width}
+              heightPt={frame?.heightPt ?? size.height}
+              cssWidth={box.width * (frame?.width ?? 1)}
+              priority={RENDER_PRIORITY.visible}
+            />
+          </ResizedContent>
+        </div>
       </div>
       <span className={styles.meta} aria-hidden="true" title={kinds}>
         <span className={styles.number}>{changed.position}</span>
@@ -111,19 +113,21 @@ function Bar({
 }) {
   const track = useRef<HTMLDivElement>(null);
   const fill = useRef<HTMLDivElement>(null);
-  const shown = useRef(0);
+  const shown = useRef<number | null>(null);
+  // The fill is always the track's full width and slides left by what it lacks: a transform,
+  // so the rounded end stays round and nothing relayouts (Q-10).
   useLayoutEffect(() => {
     const el = fill.current;
     const width = track.current?.clientWidth ?? 0;
     if (!el || share === null || width === 0) return;
-    const to = Math.max(2, Math.round(width * share));
-    const from = shown.current === 0 ? 0 : shown.current;
+    const to = -Math.round(width * (1 - Math.max(share, 0.01)));
+    const from = shown.current ?? -width;
     shown.current = to;
     if (reducedMotion() || from === to) {
-      el.style.width = `${to}px`;
+      el.style.transform = `translateX(${to}px)`;
       return;
     }
-    animateStyle(el, 'width', from, to, { spring: 'smooth', keep: true });
+    animateStyle(el, 'transform', [from, 0, 1, 1], [to, 0, 1, 1], { spring: 'smooth', keep: true });
   }, [share]);
   return (
     <div className={styles.barRow} data-testid={testId}>

@@ -2,7 +2,8 @@
  * The work Save a copy does while it is open (components/07-sheets.md §4.4, §4.6):
  *
  * - `useSizeAnalysis`: the document assembled as it would be saved, analysed by the compress
- *   worker at once, so every Size preset shows its estimate before anything runs (INV-18). One analysis per document and history step, kept while the step stays.
+ *   worker at once, so every Size preset shows its estimate before anything runs (INV-18). One
+ *   analysis per document and history step, kept while the step stays.
  * - `useTextPreview`: the Markdown or text conversion, run on open and again 250 ms after each
  *   change (the run before is cancelled), so the preview shows and Save copy writes exactly
  *   what was previewed.

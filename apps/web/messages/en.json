@@ -4273,7 +4273,7 @@
       }
     }
   ],
-  "save_receipt_original": "Original",
+  "save_receipt_original": "Opened file",
   "save_receipt_copy": "This copy",
   "save_receipt_sizes": "Original {before}, this copy {after}",
   "save_receipt_written": "Written on this device, never left it · {name} · {size}",

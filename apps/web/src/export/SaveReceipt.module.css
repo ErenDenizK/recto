@@ -26,6 +26,19 @@
   min-width: 0;
 }
 
+.page {
+  width: 48px;
+}
+
+/* A fixed slot with the thumbnail on its floor, so every meta row sits on one line. */
+.slot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 48px;
+  height: 62px;
+}
+
 .thumb {
   position: relative;
   overflow: hidden;
@@ -54,15 +67,21 @@
   gap: var(--space-half);
 }
 
+.kinds svg {
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+}
+
 .more,
 .removed {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  min-height: var(--space-8);
+  /* Centred on the thumbnails' slot; a label, not a button: an outline, no fill. */
+  height: 62px;
   padding-inline: var(--space-3);
   border-radius: var(--radius-control);
-  background: var(--field-well);
+  box-shadow: inset 0 0 0 1px var(--border-hairline);
   color: var(--text-secondary);
   font-size: var(--type-footnote);
   line-height: var(--type-footnote-lh);
@@ -101,6 +120,7 @@
 }
 
 .fill {
+  width: 100%;
   height: 100%;
   border-radius: inherit;
   background: var(--text-tertiary);
@@ -114,7 +134,7 @@
 
 /* A size not known yet: a still, quiet bar, never a number. */
 .fill[data-state='unknown'] {
-  width: 40%;
+  transform: translateX(-60%);
   background: var(--border-hairline);
 }
 

@@ -449,7 +449,8 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
       subtitle={copySubtitle(
         exportFileName(title),
         pageCount,
-        analysis?.state === 'ready' ? analysis.analysis.totalBytes : quick,
+        // With the receipt the size is told once, in its bars.
+        receiptOn() ? null : analysis?.state === 'ready' ? analysis.analysis.totalBytes : quick,
         analysis?.state !== 'ready',
       )}
       restored={restored}
