@@ -114,7 +114,10 @@ async function scrolledToRest(scroller: Locator): Promise<void> {
   );
 }
 
-/** Dark pixels of the first page's bitmap inside `area` (page coordinates), as a share. */
+/**
+ * Inked (not near-white) pixels of the first page's bitmap inside `area` (page coordinates), as
+ * a share; the pen starts blue, not black (INK-13), so the cut-off is not a dark one.
+ */
 async function inkIn(page: Page, area: { x: number; y: number; w: number; h: number }) {
   return page.locator('[data-page-index="0"]').evaluate((el, a) => {
     const canvas = el.querySelector('canvas');
@@ -133,7 +136,7 @@ async function inkIn(page: Page, area: { x: number; y: number; w: number; h: num
     const data = ctx.getImageData(0, 0, w, h).data;
     let dark = 0;
     for (let i = 0; i < data.length; i += 4) {
-      if ((data[i] ?? 255) + (data[i + 1] ?? 255) + (data[i + 2] ?? 255) < 300) dark++;
+      if ((data[i] ?? 255) + (data[i + 1] ?? 255) + (data[i + 2] ?? 255) < 600) dark++;
     }
     return dark / (w * h);
   }, area);
