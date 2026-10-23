@@ -37,7 +37,7 @@ import {
   useRecentsStore,
 } from '../files/recents';
 import { m } from '../i18n';
-import { type ResumePoint, applyResumeZoom, settleResume } from '../session/resume';
+import type { ResumePoint } from '../session/resume';
 import { reopenFromSnapshot } from '../session/session';
 import { announce } from '../shell/announcer';
 import { openOperationDialog } from '../stage/operation-dialogs-store';
@@ -183,10 +183,11 @@ export function openInRead(id: DocumentId): void {
  * Opens a document where it was left (Epic 3, 3c; DSN-66): its zoom first, so the page view
  * mounts at it, then its page, then the scroll offset once the rows are measured.
  */
-export function resumeDocument(id: DocumentId, point: ResumePoint): void {
-  applyResumeZoom(point);
+export async function resumeDocument(id: DocumentId, point: ResumePoint): Promise<void> {
+  const view = await import('../session/resume-view');
+  view.applyResumeZoom(point);
   openInRead(id);
-  settleResume(id, point);
+  view.settleResume(id, point);
 }
 
 /** Combine with open documents (S15), pre-ordered: the selection, a card drop's pair. */
@@ -486,7 +487,7 @@ export async function openRecent(entry: RecentEntry): Promise<void> {
       // Behind `?home=continue` a kept document opens at its zoom and offset too (3c).
       if (place.resume !== undefined && homeFlagEnabled(HOME_CONTINUE_FLAG)) {
         const total = kept.record.pages;
-        resumeDocument(kept.documentId, {
+        await resumeDocument(kept.documentId, {
           ...place.resume,
           page: place.page,
           total,

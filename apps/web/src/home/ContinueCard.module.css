@@ -20,6 +20,7 @@
   padding: var(--space-4);
   border-radius: var(--radius-xl);
   color: var(--text-primary);
+  text-align: start;
 }
 
 .thumb {
@@ -30,6 +31,7 @@
   min-width: 88px;
 }
 
+.sheet,
 .kept {
   position: relative;
   overflow: hidden;
@@ -46,6 +48,7 @@
 .text {
   grid-area: text;
   display: grid;
+  align-content: start;
   gap: var(--space-half);
   min-width: 0;
 }

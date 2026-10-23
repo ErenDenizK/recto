@@ -44,7 +44,7 @@ import { useViewStore } from '../state/view-store';
 import { readJson, writeJson } from '../state/safe-storage';
 import { documentSources, type SourceFileInfo, useWorkspaceStore } from '../state/workspace-store';
 import type { DocumentPlace, KeptRecordV1 } from './format';
-import { useResumeStore, watchResume } from './resume';
+import { useResumeStore } from './resume';
 import {
   claimTabLock,
   keptRecordsOf,
@@ -308,7 +308,12 @@ export function startSession(options: StartOptions): () => void {
   let unwatch: (() => void) | undefined;
   setDataset('session', 'restoring');
   // Where each document was left, for the Library's Continue (DSN-66), behind its flag.
-  const stopResume = homeFlagEnabled(HOME_CONTINUE_FLAG) ? watchResume() : undefined;
+  let stopResume: (() => void) | undefined;
+  if (homeFlagEnabled(HOME_CONTINUE_FLAG)) {
+    void import('./resume-view').then((view) => {
+      if (!stopped) stopResume = view.watchResume();
+    });
+  }
   window.addEventListener('beforeunload', onBeforeUnload);
   const offlineUnsub = useWorkspaceStore.subscribe((state) =>
     offlineTracker.observe(state.workspace),

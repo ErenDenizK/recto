@@ -7,13 +7,13 @@
 import type { DocumentId } from '@pdf-editor/document-model';
 
 import { HOME_CONTINUE_FLAG, homeFlagEnabled } from '../../home/home-flags';
+import type { ResumePoint } from '../../session/resume';
 import {
   applyResumeZoom,
   captureResume,
-  type ResumePoint,
   setResumeZoom,
   settleResume,
-} from '../../session/resume';
+} from '../../session/resume-view';
 import { setZoom, showReader, useCompactStore } from './compact-store';
 
 if (homeFlagEnabled(HOME_CONTINUE_FLAG)) {

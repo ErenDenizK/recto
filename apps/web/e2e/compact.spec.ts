@@ -915,11 +915,15 @@ test.describe('the compact edition', () => {
     await expect(page.getByTestId('compact-library')).toBeVisible();
     await page.getByRole('button', { name: 'Try the sample' }).click();
     await expect(page.getByTestId('compact-reader')).toBeVisible();
+    await expect(page.locator('[data-page-index="0"] canvas').first()).toHaveAttribute(
+      'data-state',
+      'rendered',
+    );
     const centre = await readerCentre(page);
-    await idle(page);
-    await page.touchscreen.tap(centre.x, centre.y);
-    await page.touchscreen.tap(centre.x, centre.y);
-    await expect.poll(() => zoomOf(page)).toBe(2);
+    const cdp = await page.context().newCDPSession(page);
+    await pinch(cdp, centre, 80, 200);
+    await expect.poll(() => zoomOf(page)).toBeGreaterThan(1.5);
+    await page.waitForTimeout(400);
     const zoom = await zoomOf(page);
     // Page 4, 90 px into it.
     await pages(page).evaluate(async (el) => {
@@ -943,13 +947,15 @@ test.describe('the compact edition', () => {
     const offset = await offsetOf();
     expect(offset).not.toBeNull();
     await page.waitForTimeout(400);
+    // Scrolling hid the chrome; a tap on the page brings it back.
+    await page.touchscreen.tap(centre.x, centre.y);
     await page.getByRole('button', { name: 'Library' }).click();
     const card = page.getByTestId('continue-card');
     await expect(card).toBeVisible({ timeout: 20_000 });
     await expect(card.getByTestId('continue-page')).toHaveText(/^Page 4 of \d+$/);
     await card.getByTestId('continue-resume').click();
     await expect(page.getByTestId('compact-reader')).toBeVisible();
-    await expect.poll(() => zoomOf(page)).toBe(zoom);
+    await expect.poll(async () => Math.abs((await zoomOf(page)) - zoom)).toBeLessThan(0.01);
     await expect.poll(offsetOf, { timeout: 20_000 }).toBeGreaterThanOrEqual((offset ?? 0) - 2);
     expect(await offsetOf()).toBeLessThanOrEqual((offset ?? 0) + 2);
   });

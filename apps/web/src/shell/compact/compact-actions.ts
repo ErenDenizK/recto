@@ -41,7 +41,7 @@ import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
 import { useViewStore } from '../../state/view-store';
 import { clearSearch } from '../../viewer/search';
 import { announce } from '../announcer';
-import { settleResume } from '../../session/resume';
+import { settleResume } from '../../session/resume-view';
 import { showReader, useCompactStore } from './compact-store';
 import './compact-resume';
 

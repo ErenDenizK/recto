@@ -18,15 +18,11 @@
  * Line 2 is "12 pages · 2.4 MB" (`formatFileSize`, locale decimals, tabular numerals). The
  * accessible name says all three lines ("report, 12 pages, 2.4 MB, edited, locked").
  */
-import type { VirtualPage, Workspace } from '@pdf-editor/document-model';
-import type { CSSProperties, MouseEvent, PointerEvent, ReactNode, Ref } from 'react';
+import type { Workspace } from '@pdf-editor/document-model';
+import type { CSSProperties, MouseEvent, PointerEvent, Ref } from 'react';
 
-import { RENDER_PRIORITY } from '../engine/engine-service';
 import { m, useLocale } from '../i18n';
-import { PageCanvas } from '../pages/PageCanvas';
-import { displaySize, fitInBox } from '../pages/page-geometry';
 import { InlineTitleEditor } from '../stage/InlineTitleEditor';
-import { contentFrame, ResizedContent } from '../stage/ResizedContent';
 import type { LockReason } from '../state/lock-store';
 import { pagesPhrase } from '../state/workspace-store';
 import { CheckBadge } from '../ui/CheckBadge';
@@ -34,6 +30,7 @@ import { Icon, type IconName } from '../ui/Icon';
 import { formatFileSize, type HomeCardData } from './home-model';
 import styles from './LibraryCard.module.css';
 import lit from './lit.module.css';
+import { PageThumb } from './PageThumb';
 import { ProgressBar } from './ProgressBar';
 
 /** The thumbnail box (L5 §2): 160 × 200 fine, 176 × 220 coarse. */
@@ -149,9 +146,9 @@ export function LibraryCard({
           reaches the corner; the option carries the state, and Space is its key (the grid's). */}
       <div className={styles.thumbBox} style={{ height: thumb.height }}>
         {thumbPage ? (
-          <LibraryThumb workspace={workspace} page={thumbPage} box={thumb}>
+          <PageThumb workspace={workspace} page={thumbPage} box={thumb} className={styles.sheet}>
             <CardCheck selected={selected} onCheck={onCheck} />
-          </LibraryThumb>
+          </PageThumb>
         ) : (
           <CardCheck selected={selected} onCheck={onCheck} />
         )}
@@ -204,43 +201,5 @@ function CardCheck({
     >
       <CheckBadge checked={selected} className={styles.badge} />
     </span>
-  );
-}
-
-/** The first page through the shared thumbnail renderer, fitted into the card's box. */
-export function LibraryThumb({
-  workspace,
-  page,
-  box,
-  children,
-}: {
-  readonly workspace: Workspace;
-  readonly page: VirtualPage;
-  readonly box: { readonly width: number; readonly height: number };
-  readonly children?: ReactNode;
-}) {
-  const size = displaySize(workspace, page);
-  const fitted = fitInBox(size, box.width, box.height);
-  const frame = contentFrame(workspace, page);
-  return (
-    <div
-      className={styles.sheet}
-      data-library-sheet=""
-      style={{ width: fitted.width, height: fitted.height }}
-    >
-      <ResizedContent frame={frame}>
-        <PageCanvas
-          sourceId={page.ref.kind === 'source' ? page.ref.source : undefined}
-          blobId={page.ref.kind === 'image' ? page.ref.blob : undefined}
-          index={page.ref.kind === 'source' ? page.ref.index : 0}
-          rotation={page.rotation}
-          widthPt={frame?.widthPt ?? size.width}
-          heightPt={frame?.heightPt ?? size.height}
-          cssWidth={fitted.width * (frame?.width ?? 1)}
-          priority={RENDER_PRIORITY.visible}
-        />
-      </ResizedContent>
-      {children}
-    </div>
   );
 }

@@ -49,13 +49,13 @@ import { SelectionBarPresence } from './SelectionBar';
 import { useDragFileCount } from './use-drag-file-count';
 
 /** Continue, a chunk of its own that loads only behind `?home=continue` (DSN-66). */
-const ContinueCard = lazy(() => import('./ContinueCard'));
+const ContinueDesk = lazy(() => import('./ContinueDesk'));
 
 function Continue() {
   if (!homeFlagEnabled(HOME_CONTINUE_FLAG)) return null;
   return (
     <Suspense fallback={null}>
-      <ContinueCard />
+      <ContinueDesk />
     </Suspense>
   );
 }
