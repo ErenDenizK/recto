@@ -367,6 +367,8 @@ interface MoreEntry {
 const MORE_ITEMS: readonly MoreEntry[] = [
   { id: 'tool.edit-text', label: m.dock_more_edit_text, icon: 'edit-text' },
   { id: 'tool.redact', label: m.dock_more_redact, icon: 'redact' },
+  // DSN-68: the one door to Save a copy outside the title menu (first-session test, item 1).
+  { id: 'file.export', label: m.save_a_copy, icon: 'export' },
 ];
 const MORE_APP_ITEMS: readonly MoreEntry[] = [
   { id: 'view.palette', label: m.dock_more_commands, icon: 'list-magnifying-glass' },

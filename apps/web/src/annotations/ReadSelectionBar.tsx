@@ -1,7 +1,7 @@
 /**
  * The contextual bar of a text selection (ADR-0019 §3 item 4 and §4, craft spec §3.4–§3.5).
  *
- * - **Read** (the Read row): Copy; "Edit text", which switches the document to Edit and opens
+ * - **Read** (the Read row): Copy; Highlight (H over the selection, ADR-0029 §2.1); "Edit text", which switches the document to Edit and opens
  *   the paragraph editor at the start of the selection (`openTextEditorAt`, review finding
  *   15), the way from reading a sentence to changing it; and "Mark up…", which switches the
  *   document to Edit and keeps the selection, so the Edit bar below takes over (and H, U or S
@@ -294,6 +294,17 @@ export function TextSelectionBar(props: PageOverlayProps) {
                   onClick={() => void copy()}
                 >
                   {m.action_copy()}
+                </Button>
+                {/* ADR-0029 §2.1: Highlight is a viewing act; the button is H over the selection. */}
+                <Button
+                  variant="quiet"
+                  icon={<Icon name="highlighter" />}
+                  data-markup="highlight"
+                  aria-keyshortcuts="H"
+                  onPointerDown={keep}
+                  onClick={() => void commandRegistry.execute('tool.highlighter')}
+                >
+                  {m.tool_highlight()}
                 </Button>
                 <Tooltip label={m.selection_edit_text_tooltip()} side="top">
                   <Button
