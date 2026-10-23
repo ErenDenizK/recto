@@ -82,6 +82,44 @@ function hasCode(blocks: readonly MdBlock[]): boolean {
   });
 }
 
+/**
+ * Wraps one code line to `columns` characters: at the last space before the edge, by character
+ * only inside an unbroken run; continuation lines keep the source line's own leading indent.
+ */
+export function wrapCode(chars: readonly string[], columns: number): string[] {
+  if (chars.length === 0) return [''];
+  let lead = 0;
+  while (chars[lead] === ' ') lead++;
+  const pad = new Array<string>(Math.min(lead, Math.floor(columns / 2))).fill(' ');
+  const out: string[] = [];
+  let seg = [...chars];
+  while (seg.length > columns) {
+    let segLead = 0;
+    while (seg[segLead] === ' ') segLead++;
+    let cut = -1;
+    for (let k = columns; k > segLead; k--) {
+      if (seg[k] === ' ') {
+        cut = k;
+        break;
+      }
+    }
+    let rest: string[];
+    if (cut > 0) {
+      out.push(seg.slice(0, cut).join('').trimEnd());
+      let next = cut;
+      while (seg[next] === ' ') next++;
+      rest = seg.slice(next);
+    } else {
+      out.push(seg.slice(0, columns).join(''));
+      rest = seg.slice(columns);
+    }
+    if (rest.length === 0) return out;
+    seg = [...pad, ...rest];
+  }
+  out.push(seg.join(''));
+  return out;
+}
+
 /** Converts the bytes of a Markdown file to PDF bytes. */
 export async function markdownToPdf(
   bytes: Uint8Array,
@@ -112,6 +150,10 @@ export async function markdownToPdf(
   let y = top;
   /** The gap the next element wants above it; dropped at the top of a page. */
   let pending = 0;
+  /** What the last block ended with: text lines, or a box edge (code box, quote bar, rule). */
+  let prev: 'none' | 'text' | 'box' = 'none';
+  /** Half the leading of a body line: the white inside a text line box above and below the ink. */
+  const tuck = (TEXT_FONT_SIZE * TEXT_LINE_HEIGHT - TEXT_FONT_SIZE) / 2;
   /** Called when a page break happens inside a decorated block (the quote bar). */
   const breakListeners: ((bottom: number) => void)[] = [];
 
@@ -252,6 +294,7 @@ export async function markdownToPdf(
       combined += value;
     }
     if (combined.trim() === '' || spans.length === 0) return;
+    if (prev === 'box' && pending <= BLOCK_GAP) pending = Math.max(0, pending - tuck);
     const first = spans[0] as { style: string };
     const layout = layoutParagraph(
       {
@@ -275,6 +318,7 @@ export async function markdownToPdf(
       }
       y -= lineHeight;
     });
+    prev = 'text';
   };
 
   const body = (
@@ -326,6 +370,7 @@ export async function markdownToPdf(
 
   const renderCode = (lines: readonly string[], ctx: Context) => {
     if (lines.length === 0) return;
+    if (prev === 'text') pending = Math.max(0, pending - tuck);
     const face = mono ?? sans;
     const size = Math.round(TEXT_FONT_SIZE * 0.9 * 2) / 2;
     const lineHeight = size * TEXT_LINE_HEIGHT;
@@ -334,12 +379,7 @@ export async function markdownToPdf(
     const advance = face.font.widthOfTextAtSize('0', size);
     const columns = Math.max(1, Math.floor(inner / advance));
     const wrapped: string[] = [];
-    for (const raw of lines) {
-      const chars = Array.from(safeText(face, raw));
-      if (chars.length === 0) wrapped.push('');
-      for (let i = 0; i < chars.length; i += columns)
-        wrapped.push(chars.slice(i, i + columns).join(''));
-    }
+    for (const raw of lines) wrapped.push(...wrapCode(Array.from(safeText(face, raw)), columns));
     let done = 0;
     while (done < wrapped.length) {
       let available = Math.floor(
@@ -376,6 +416,7 @@ export async function markdownToPdf(
       if (done < wrapped.length) newPage();
     }
     pending = BLOCK_GAP;
+    prev = 'box';
   };
 
   const renderBlocks = (list: readonly MdBlock[], ctx: Context) => {
@@ -406,6 +447,7 @@ export async function markdownToPdf(
           renderCode(block.lines, ctx);
           break;
         case 'quote': {
+          if (prev === 'text') pending = Math.max(0, pending - tuck);
           let barTop = y < top ? y - pending : top;
           let started = false;
           const bar = (bottom: number) => {
@@ -424,14 +466,16 @@ export async function markdownToPdf(
           };
           breakListeners.push(listener);
           started = true;
+          prev = 'none';
           renderBlocks(block.blocks, { indent: ctx.indent + QUOTE_INDENT, color: 0.3 });
           breakListeners.pop();
           bar(y);
           space(BLOCK_GAP);
+          prev = 'box';
           break;
         }
         case 'rule':
-          space(BLOCK_GAP);
+          space(prev === 'text' ? BLOCK_GAP - tuck : BLOCK_GAP);
           reserve(0.75);
           page.drawLine({
             start: { x: TEXT_MARGIN + ctx.indent, y },
@@ -440,9 +484,11 @@ export async function markdownToPdf(
             color: grayscale(0.8),
           });
           pending = BLOCK_GAP;
+          prev = 'box';
           break;
         case 'pagebreak':
           newPage();
+          prev = 'none';
           break;
       }
     }

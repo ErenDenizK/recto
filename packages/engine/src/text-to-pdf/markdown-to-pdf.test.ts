@@ -11,7 +11,8 @@ import { createLocalAnalysisBackend } from '../analysis/backend';
 import { convertDocument, pdfiumConvertSource } from '../convert/pipeline';
 import { createImageHarness, type ImageHarness } from '../image-objects/test-helpers';
 import type { TextRun } from '../types';
-import { markdownToPdf } from './markdown-to-pdf';
+import { inflatedContent } from '../text-edit/test-helpers';
+import { markdownToPdf, wrapCode } from './markdown-to-pdf';
 import { TEXT_MARGIN, TEXT_PAGE_SIZE } from './text-to-pdf';
 
 let h: ImageHarness;
@@ -158,5 +159,46 @@ describe('markdownToPdf', () => {
     expect(lines).toContain('## Section');
     expect(lines).toContain('- one');
     expect(result.text).toContain('[a link](https://example.com/a)');
+  });
+});
+
+describe('code wrapping and block gaps', () => {
+  test('wrapCode breaks at the last space and indents continuations like the source', () => {
+    const line = Array.from('    return the quick brown fox jumps over');
+    expect(wrapCode(line, 20)).toEqual(['    return the quick', '    brown fox jumps', '    over']);
+    expect(wrapCode(Array.from('aaaaaaaaaaaa bb'), 5)).toEqual(['aaaaa', 'aaaaa', 'aa bb']);
+    expect(wrapCode([], 5)).toEqual(['']);
+  });
+
+  test('a wrapped code line keeps whole words and the indent', async () => {
+    const words = Array.from({ length: 40 }, (_, i) => `word${i}`);
+    const [page] = await runsOf(`\`\`\`\n    ${words.join(' ')}\n\`\`\``);
+    const lines = (page ?? []).filter((r) => r.text.includes('word'));
+    expect(lines.length).toBeGreaterThan(1);
+    const got = lines
+      .map((r) => r.text)
+      .join(' ')
+      .split(/\s+/)
+      .filter(Boolean);
+    expect(got).toEqual(words);
+    const firstInk = (run: TextRun) => run.glyphs.find((g) => g.text !== ' ')?.rect.x ?? 0;
+    expect(firstInk(lines[1] as TextRun)).toBeCloseTo(firstInk(lines[0] as TextRun), 0);
+  });
+
+  test('code box, quote bar and rule are 8 pt apart, edge to edge', async () => {
+    const { pdf } = await open('```\ncode\n```\n\n> quote\n\n---\n\nafter');
+    const content = (await inflatedContent(pdf.slice().buffer, 0)).page;
+    // pdf-lib sets a rectangle as a flipped path under a translating `cm`: top = its y.
+    const rects = [
+      ...content.matchAll(
+        /1 0 0 1 [\d.]+ ([\d.]+) cm[\s\S]*?\n0 0 m\n[\d.]+ 0 l\n[\d.]+ ([\d.]+) l/g,
+      ),
+    ].map((m) => ({ top: Number(m[1]), bottom: Number(m[1]) - Number(m[2]), h: Number(m[2]) }));
+    const lines = [...content.matchAll(/([\d.]+) ([\d.]+) m\n\1 \2 m\n/g)].map((m) => Number(m[2]));
+    const box = rects.find((r) => r.h > 20);
+    const bar = rects.find((r) => r !== box);
+    if (!box || !bar || lines.length === 0) throw new Error(content.slice(0, 1500));
+    expect(box.bottom - bar.top).toBeCloseTo(8, 1);
+    expect(bar.bottom - (lines[0] as number)).toBeCloseTo(8, 1);
   });
 });
