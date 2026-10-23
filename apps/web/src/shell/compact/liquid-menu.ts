@@ -27,8 +27,8 @@
  * (`liquid-ref.ts`), outside the compact chunk.
  */
 import { animateStyle, type Motion } from '../../motion/animate';
-import { openSpring } from '../../motion/springs';
 import { reducedMotion } from '../../motion/reduced-motion';
+import { openSpring } from '../../motion/springs';
 import { clamp } from '../../motion/velocity';
 import { glassMoving, glassSettle } from '../../ui/glass-moving';
 

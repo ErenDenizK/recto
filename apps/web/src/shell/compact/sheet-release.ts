@@ -213,9 +213,17 @@ export function watchSheet(
   let closing: Motion<readonly number[]> | null = null;
   const turned = new MutationObserver(() => {
     if (!panel.hasAttribute('data-ending-style')) {
-      // Opened again while the close ran: the stylesheet takes it from where it is.
-      closing?.stop();
-      closing = null;
+      // Opened again while the close ran: the stylesheet takes it from where the spring was.
+      // `stop()` leaves the stopped transform inline, which would override the sheet's own
+      // (the drawer's snap and drag); it is read as computed, then removed, so the stylesheet's
+      // transition starts from that place.
+      if (closing) {
+        closing.stop();
+        closing = null;
+        void panel.getBoundingClientRect();
+        panel.style.removeProperty('transform');
+        panel.style.removeProperty('will-change');
+      }
       return;
     }
     if (!raf || panel.hasAttribute('data-swiping') || panel.hasAttribute('data-released')) return;
@@ -231,6 +239,10 @@ export function watchSheet(
       keep: true,
       turn: true,
     });
+    const run = closing;
+    void run.finished.then(() => {
+      if (closing === run) closing = null;
+    });
   });
   turned.observe(panel, { attributes: true, attributeFilter: ['data-ending-style'] });
   const started = (event: TransitionEvent) => {
@@ -245,8 +257,10 @@ export function watchSheet(
     const still = panel
       .getAnimations()
       .some((a) => (a as Partial<CSSTransition>).transitionProperty === 'transform');
+    // The spring of a turned close moves the sheet under this transition: still moving (MOT-12).
+    const sprung = still || closing !== null;
     if (!still) untrace();
-    if (!still && !panel.hasAttribute('data-swiping') && panel.hasAttribute('data-glass-moving')) {
+    if (!sprung && !panel.hasAttribute('data-swiping') && panel.hasAttribute('data-glass-moving')) {
       glassSettle(panel);
     }
   };

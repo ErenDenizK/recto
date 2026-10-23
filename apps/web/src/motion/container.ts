@@ -179,7 +179,8 @@ export function containerMotion(
           fill: 'forwards',
         });
       } else {
-        // Open: the press-started bounce (MOT-19); close: `press`, no bounce.
+        // Open: the press-started bounce (MOT-19; a click, Enter or Space on the trigger, or a reopen
+        // during a close; a popup with no trigger never gets a motion here); close: `press`, none.
         const s = next === 1 ? openSpring : springs.press;
         seg = { s, target: next, x0: p - next, v0: v, reduced: false, from: p };
         const settle = energy(s, seg.x0, v) * PRECISION;
