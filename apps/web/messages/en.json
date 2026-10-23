@@ -4168,7 +4168,7 @@
   "settings_section_documents": "Documents and storage",
   "settings_section_privacy": "Privacy",
   "settings_section_more": "More",
-  "settings_language_browser": "Follow the browser ({language})",
+  "settings_language_browser": "Browser ({language})",
   "settings_pen_draws_hint": "Auto turns on when a pen is first used.",
   "settings_kept_documents": "Kept documents",
   "settings_kept_none": "Nothing kept yet",
