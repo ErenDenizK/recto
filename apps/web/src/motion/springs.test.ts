@@ -4,7 +4,17 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { type Spring, settleTime, solve, spring, springs, springToLinear } from './springs';
+import {
+  BEZIER_FALLBACK,
+  preset,
+  type Spring,
+  settleTime,
+  solve,
+  spring,
+  springEasing,
+  springs,
+  springToLinear,
+} from './springs';
 
 /** language.md §7.1: d, bounce, k / c, 90 % and 99 % (ms), CSS duration (ms). */
 const TABLE = {
@@ -227,5 +237,71 @@ describe('springToLinear (language.md §7.2, MO-2)', () => {
     const thrown = springToLinear('quick', 6);
     expect(thrown.easing).not.toBe(still.easing);
     expect(evaluate(thrown.easing, 0.05)).toBeGreaterThan(evaluate(still.easing, 0.05));
+  });
+});
+
+/** Evaluates `cubic-bezier(x1, y1, x2, y2)` at input progress `f` (0–1). */
+function bezier(easing: string, f: number): number {
+  const [x1 = 0, y1 = 0, x2 = 1, y2 = 1] = easing
+    .replace(/^cubic-bezier\(|\)$/g, '')
+    .split(',')
+    .map(Number);
+  const at = (a: number, b: number, t: number) =>
+    3 * (1 - t) ** 2 * t * a + 3 * (1 - t) * t * t * b + t ** 3;
+  let lo = 0;
+  let hi = 1;
+  for (let i = 0; i < 50; i++) {
+    const t = (lo + hi) / 2;
+    if (at(x1, x2, t) < f) lo = t;
+    else hi = t;
+  }
+  return at(y1, y2, (lo + hi) / 2);
+}
+
+describe('physical parameters and the engines without linear() (MOT-18)', () => {
+  it('normalises mass: k, c and m move exactly as k / m and c / m', () => {
+    const heavy: Spring = { stiffness: 2 * 305, damping: 2 * 34.9, mass: 2 };
+    const unit: Spring = { stiffness: 305, damping: 34.9 };
+    for (const t of [0.01, 0.1, 0.3]) {
+      const [xh, vh] = solve(heavy, 1, -4, t);
+      const [xu, vu] = solve(unit, 1, -4, t);
+      expect(xh).toBeCloseTo(xu, 12);
+      expect(vh).toBeCloseTo(vu, 12);
+    }
+    expect(settleTime(heavy)).toBeCloseTo(settleTime(unit), 6);
+  });
+
+  it('publishes each token as stiffness, damping, mass and damping ratio', () => {
+    expect(preset('smooth')).toEqual({ stiffness: 304.6, damping: 34.9, mass: 1, ratio: 1 });
+    expect(preset('fling')).toEqual({ stiffness: 246.7, damping: 26.7, mass: 1, ratio: 0.85 });
+    expect(preset('pop').ratio).toBe(0.75);
+  });
+
+  it('fits the cubic-bezier stand-ins to the curves within 3 %, zero bounce never overshooting', () => {
+    const cases = [
+      ['quick', BEZIER_FALLBACK.spring],
+      ['fling', BEZIER_FALLBACK.fling],
+      ['pop', BEZIER_FALLBACK.pop],
+    ] as const;
+    for (const [name, easing] of cases) {
+      const { duration } = springToLinear(name);
+      for (let i = 0; i <= 100; i++) {
+        const exact = 1 + solve(springs[name], -1, 0, ((i / 100) * duration) / 1000)[0];
+        expect(Math.abs(bezier(easing, i / 100) - exact), `${name} at ${i} %`).toBeLessThan(0.03);
+        if (name === 'quick') expect(bezier(easing, i / 100)).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+
+  it('answers linear() where it works and the stand-in, bent to the release speed, where not', () => {
+    expect(springEasing('glide', 4, true)).toEqual(springToLinear('glide', 4));
+    expect(springEasing('glide', 0, false)).toEqual({
+      easing: BEZIER_FALLBACK.spring,
+      duration: springToLinear('glide').duration,
+    });
+    expect(springEasing('fling', 0, false).easing).toBe(BEZIER_FALLBACK.fling);
+    // A throw starts steeper: the first control point rises with v · duration.
+    const thrown = springEasing('glide', 4, false);
+    expect(bezier(thrown.easing, 0.05)).toBeGreaterThan(bezier(BEZIER_FALLBACK.spring, 0.05));
   });
 });

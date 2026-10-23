@@ -127,3 +127,10 @@
 .numeric {
   font-variant-numeric: tabular-nums;
 }
+
+/* The page strip's rail opens from a hold on the page number (DSN-63). */
+.numeric[data-strip] {
+  touch-action: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+}

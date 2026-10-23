@@ -2813,6 +2813,30 @@
   "save_copy_estimate": "≈ {size}",
   "save_copy_estimate_spoken": "yaklaşık {size}",
   "save_copy_estimating": "Hesaplanıyor…",
+  "save_copy_estimate_failed": "Boyut hesaplanamadı",
+  "save_receipt_title": "Neler değişti",
+  "save_receipt_kind_text": "Metin düzenlendi",
+  "save_receipt_kind_marks": "İşaretler",
+  "save_receipt_kind_signature": "İmza",
+  "save_receipt_kind_added": "Sayfa eklendi",
+  "save_receipt_kind_rotated": "Döndürüldü",
+  "save_receipt_page": "Sayfa {page}: {kinds}",
+  "save_receipt_unchanged": "Değişen sayfa yok.",
+  "save_receipt_deleted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} sayfa çıkarıldı",
+        "countPlural=*": "{count} sayfa çıkarıldı"
+      }
+    }
+  ],
+  "save_receipt_original": "Açılan dosya",
+  "save_receipt_copy": "Bu kopya",
+  "save_receipt_sizes": "Özgün {before}, bu kopya {after}",
+  "save_receipt_written": "Bu cihazda yazıldı, cihazdan çıkmadı · {name} · {size}",
+  "save_receipt_verified": "Doğrulandı",
   "save_copy_compact": "Zaten küçük",
   "save_copy_what_smaller": "Neler küçülür",
   "save_copy_print": "Baskı (300 dpi)",
@@ -2994,6 +3018,8 @@
   "frame_pill_text": "{page} / {total} · {percent}",
   "frame_pill_text_label": "{label} ({page} / {total}) · {percent}",
   "frame_pill_name": "Sayfa {current}/{total}, yakınlaştırma {percent}. Sayfa ve görünüm seçenekleri",
+  "page_strip_label": "Sayfa şeridi",
+  "page_strip_option": "Sayfa {page}/{total}",
   "frame_pill_menu_name": "Sayfa ve görünüm",
   "frame_goto_of": "/ {total}",
   "frame_goto_range": "Sayfa 1–{last} arası",
@@ -3366,6 +3392,7 @@
   "recents_sort_size": "Boyut",
   "recents_search_placeholder": "Ara",
   "recents_search_none": "“{query}” ile eşleşen son dosya yok.",
+  "findmap_matches": "{count} eşleşme",
   "continue_title": "Kaldığın yer",
   "continue_page": "{page}. sayfa / {total}",
   "continue_resume": "Devam et",

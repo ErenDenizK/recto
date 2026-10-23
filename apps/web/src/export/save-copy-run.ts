@@ -39,6 +39,8 @@ import {
 } from './export-store';
 import { type ExportOptions, prepareExport } from './export-service';
 import { computeSaveReceipt } from './receipt';
+import { receiptOn } from './receipt-flag';
+import { flightLanded } from './save-flight';
 import { receiptLine } from './receipt-text';
 import { exportShare, percentOf } from './save-copy-model';
 import { summarizeReport } from './summary';
@@ -372,34 +374,46 @@ export function showCopyDone(
   keepCopySummary(documentId, { ...summary, receipt });
   const size = formatSize(summary.size);
   const name = summary.name;
+  // The receipt (DSN-67, `?receipt=1`): a copy written here says so, and that it never left.
+  const written = receiptOn() && where !== 'shared';
   const text =
     where === 'shared'
       ? m.save_copy_shared({ name })
-      : where === 'saved'
-        ? summary.verified
-          ? m.save_copy_saved_verified({ name, size })
-          : m.save_copy_saved({ name, size })
-        : summary.verified
-          ? m.save_copy_downloaded_verified({ name, size })
-          : m.save_copy_downloaded({ name, size });
-  toast.success(text, {
-    documentId,
-    keepOnClose: true,
-    testId: 'save-copy-toast',
-    ...(receipt ? { detail: receipt } : {}),
-    ...(summary.items.length > 0
-      ? {
-          action: {
-            label: m.save_copy_details(),
-            run: () => {
-              if (useWorkspaceStore.getState().workspace.documents[documentId]) {
-                openSaveCopy(documentId, 'details');
-              }
+      : written
+        ? [
+            m.save_receipt_written({ name, size }),
+            ...(summary.verified ? [m.save_receipt_verified()] : []),
+          ].join(' · ')
+        : where === 'saved'
+          ? summary.verified
+            ? m.save_copy_saved_verified({ name, size })
+            : m.save_copy_saved({ name, size })
+          : summary.verified
+            ? m.save_copy_downloaded_verified({ name, size })
+            : m.save_copy_downloaded({ name, size });
+  // The receipt's page lands in the tab first, then the toast says it (DSN-67).
+  const show = () =>
+    toast.success(text, {
+      documentId,
+      keepOnClose: true,
+      testId: 'save-copy-toast',
+      // "Saved on this device" would say it twice.
+      ...(receipt && !(written && receipt === m.receipt_device()) ? { detail: receipt } : {}),
+      ...(summary.items.length > 0
+        ? {
+            action: {
+              label: m.save_copy_details(),
+              run: () => {
+                if (useWorkspaceStore.getState().workspace.documents[documentId]) {
+                  openSaveCopy(documentId, 'details');
+                }
+              },
             },
-          },
-        }
-      : {}),
-  });
+          }
+        : {}),
+    });
+  if (written) void flightLanded().then(show);
+  else show();
 }
 
 /** The failure toast: "Copy not saved: {reason}", Try again reopening the sheet. */
@@ -489,6 +503,15 @@ export async function runSaveCopy(
 }
 
 /** The sheet's subtitle: "report.pdf · 12 pages · 2.4 MB" (the size once known). */
-export function copySubtitle(name: string, pages: number, size: number | null): string {
-  return [name, pagesPhrase(pages), ...(size === null ? [] : [formatSize(size)])].join(' · ');
+export function copySubtitle(
+  name: string,
+  pages: number,
+  size: number | null,
+  approximate = false,
+): string {
+  const shown =
+    size === null
+      ? []
+      : [approximate ? m.save_copy_estimate({ size: formatSize(size) }) : formatSize(size)];
+  return [name, pagesPhrase(pages), ...shown].join(' · ');
 }

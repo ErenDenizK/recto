@@ -4254,6 +4254,30 @@
   "save_copy_estimate": "≈ {size}",
   "save_copy_estimate_spoken": "about {size}",
   "save_copy_estimating": "Estimating…",
+  "save_copy_estimate_failed": "Size not available",
+  "save_receipt_title": "What changed",
+  "save_receipt_kind_text": "Text edited",
+  "save_receipt_kind_marks": "Marks",
+  "save_receipt_kind_signature": "Signature",
+  "save_receipt_kind_added": "Page added",
+  "save_receipt_kind_rotated": "Rotated",
+  "save_receipt_page": "Page {page}: {kinds}",
+  "save_receipt_unchanged": "No page has changed.",
+  "save_receipt_deleted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} page taken out",
+        "countPlural=*": "{count} pages taken out"
+      }
+    }
+  ],
+  "save_receipt_original": "Opened file",
+  "save_receipt_copy": "This copy",
+  "save_receipt_sizes": "Original {before}, this copy {after}",
+  "save_receipt_written": "Written on this device, never left it · {name} · {size}",
+  "save_receipt_verified": "Verified",
   "save_copy_compact": "Already compact",
   "save_copy_what_smaller": "What gets smaller",
   "save_copy_print": "Print (300 dpi)",
@@ -4472,6 +4496,8 @@
   "frame_pill_text": "{page} / {total} · {percent}",
   "frame_pill_text_label": "{label} ({page} / {total}) · {percent}",
   "frame_pill_name": "Page {current} of {total}, zoom {percent}. Page and view options",
+  "page_strip_label": "Page strip",
+  "page_strip_option": "Page {page} of {total}",
   "frame_pill_menu_name": "Page and view",
   "frame_goto_of": "/ {total}",
   "frame_goto_range": "Pages 1–{last}",
@@ -5006,6 +5032,16 @@
   "recents_sort_size": "Size",
   "recents_search_placeholder": "Search",
   "recents_search_none": "No recent files match “{query}”.",
+  "findmap_matches": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 match",
+        "countPlural=*": "{count} matches"
+      }
+    }
+  ],
   "continue_title": "Where you left off",
   "continue_page": "Page {page} of {total}",
   "continue_resume": "Continue",

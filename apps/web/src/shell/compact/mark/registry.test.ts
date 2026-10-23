@@ -5,6 +5,7 @@
  */
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { INK } from '../../../annotations/palette';
 import { DEFAULT_PEN_SETTINGS, type PenSettings } from '../../../annotations/pen/presets';
 import { swipeCloses } from './drawer-motion';
 import {
@@ -78,6 +79,11 @@ describe('ink presets (README §3 row 2)', () => {
     expect(penToArm(settings(1), 0)).toBe(1);
     expect(penToArm(settings(3), 2)).toBe(2);
     expect(penToArm(settings(3), 3)).toBe(0);
+  });
+
+  it('a phone that never chose a pen starts with blue, not black (INK-13)', () => {
+    expect(penToArm(DEFAULT_PEN_SETTINGS, 0)).toBe(1);
+    expect(DEFAULT_PEN_SETTINGS.presets[1].color).toBe(INK.blue);
   });
 
   it('a width shows as its nearest size', () => {

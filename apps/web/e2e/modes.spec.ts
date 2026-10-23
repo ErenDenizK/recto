@@ -165,7 +165,9 @@ test('double-click on text opens the editor in Edit, not in Read', async ({ page
   await quiet(page);
   await expect(editor).toHaveCount(0);
 
-  // Edit, with Select: the editor opens with the caret at the point.
+  // Edit, with Select: the editor opens with the caret at the point. Esc ends the stand-down
+  // the double-click's selection put on plain keys (TXT-21), so `2` reaches the key map.
+  await page.keyboard.press('Escape');
   await enterEdit(page);
   await page.mouse.move(at.x, at.y);
   await page.mouse.dblclick(at.x, at.y);

@@ -10,7 +10,13 @@ import '../styles/global.css';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { installScrollThumbs, setScrollLabel, setScrollTicks } from './scroll-thumbs';
+import {
+  installScrollThumbs,
+  setScrollLabel,
+  setScrollTicks,
+  setTickPainter,
+  tickGeometry,
+} from './scroll-thumbs';
 
 let stop: () => void = () => undefined;
 let scroller: HTMLDivElement;
@@ -155,8 +161,16 @@ describe('the app-wide scroll bar', () => {
     const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
     const ink = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
     expect(ink.some((v, i) => i % 4 === 3 && v > 0)).toBe(true);
+    // The find map hit-tests against where the canvas lies (R26, DSN-65).
+    expect(tickGeometry()).toMatchObject({ left: 500, top: 103, width: 14 });
+    // The map's painter is handed the mark instead of the plain current tick.
+    const painted = vi.fn();
+    setTickPainter(painted);
+    expect(painted).toHaveBeenCalledWith(expect.any(Function));
+    setTickPainter(null);
     setScrollTicks(null);
     expect(canvas.hidden).toBe(true);
+    expect(tickGeometry()).toBeNull();
     proxy.remove();
   });
 

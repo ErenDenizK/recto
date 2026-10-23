@@ -249,6 +249,29 @@ describe('capsule', () => {
     expect(getComputedStyle(dock as Element).opacity).toBe('1');
   });
 
+  it('follows a content that grows after the morph measured it, from where it is (MOT-18)', async () => {
+    const { rerender } = render(<Harness shape="dock" />);
+    const el = capsule();
+    rerender(<Harness shape="palette" />);
+    const target = () =>
+      morphs()
+        .filter((a) => (a.effect as KeyframeEffect).target === el)
+        .map((a) => (a.effect as KeyframeEffect).getKeyframes().at(-1)?.width)
+        .find((w) => w !== undefined);
+    expect(target()).toBe(`${PALETTE}px`);
+    // A piece of the palette grows by 100 px mid-flight (a group that loads late).
+    const piece = el.querySelector<HTMLElement>(
+      '[data-capsule-layer="palette"] [data-capsule-item="pen"]',
+    ) as HTMLElement;
+    piece.style.width = '160px';
+    // The size springs retarget there, rather than letting go into a jump at rest.
+    await waitFor(() => expect(target()).toBe(`${PALETTE + 100}px`));
+    for (const animation of morphs()) animation.play();
+    await settle();
+    expect(width()).toBeCloseTo(PALETTE + 100, 0);
+    expect(el.style.width).toBe('');
+  });
+
   it('morphs inside one content when its morph key changes, and follows other sizes at once', async () => {
     const { rerender } = render(<Harness shape="palette" morphKey="a" />);
     const el = capsule();
