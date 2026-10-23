@@ -67,9 +67,9 @@
 }
 
 /* Paper, not stark white, only while the bitmap is still to come (DSN-64: nothing yet, a soft
-   thumbnail, or the sharp one fading in); a rendered sheet keeps its exact colour. */
+   thumbnail); a rendered sheet keeps its exact colour. */
 .page:not([data-resized]):has(
-  canvas[data-layer='page']:is([data-state='placeholder'], [data-soft], [data-arriving])
+  canvas[data-layer='page']:is([data-state='placeholder'], [data-soft])
 ) {
   background: var(--page-paper);
 }

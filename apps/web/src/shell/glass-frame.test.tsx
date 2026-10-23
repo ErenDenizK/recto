@@ -142,7 +142,8 @@ describe('the docked frame', () => {
     const root = document.documentElement;
     const sheet = await waitFor(() => {
       const el = document.querySelector<HTMLElement>('[data-page-index="0"]');
-      if (!el?.querySelector('canvas')) throw new Error('no page yet');
+      // Rendered: until then the sheet shows its paper tone (DSN-64), not the page colour.
+      if (el?.querySelector('canvas')?.dataset.state !== 'rendered') throw new Error('no page yet');
       return el;
     });
     const canvas = sheet.querySelector('canvas') as HTMLCanvasElement;

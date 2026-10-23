@@ -63,3 +63,29 @@ export function crossFadeFrom(canvas: HTMLCanvasElement): Animation | undefined 
   fade.onfinish = fade.oncancel = () => ghost.remove();
   return fade;
 }
+
+/**
+ * The first render over a bare sheet (nothing was shown): a copy of the paper tone lies over the
+ * bitmap and fades out, so the page comes up out of the paper while the sheet itself already
+ * has its exact colour (DSN-64: a rendered sheet is never tinted).
+ */
+export function paperFade(canvas: HTMLCanvasElement): Animation | undefined {
+  if (!canvas.isConnected || typeof canvas.animate !== 'function') return undefined;
+  const veil = canvas.ownerDocument.createElement('div');
+  veil.dataset.ghost = '';
+  veil.setAttribute('aria-hidden', 'true');
+  Object.assign(veil.style, {
+    position: 'absolute',
+    inset: '0',
+    background: 'var(--page-paper)',
+    pointerEvents: 'none',
+  });
+  canvas.after(veil);
+  const fade = veil.animate([{ opacity: 1 }, { opacity: 0 }], {
+    duration: duration('base'),
+    easing: EASE.out,
+    fill: 'forwards',
+  });
+  fade.onfinish = fade.oncancel = () => veil.remove();
+  return fade;
+}

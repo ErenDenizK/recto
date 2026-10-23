@@ -115,6 +115,8 @@ describe('names kept by ADR-0015 §3', () => {
       // The Office conversion flag, ?office=1|0 (office/flag.ts, ADR-0035 §6).
       'pdf-editor:office:v1',
       // Open one file from the Library to its page, ?open=page|0 (home/home-flags.ts, Epic 3).
+      // The open moment flag, ?open=light|0 (home/home-flags.ts, R26 concept 2, DSN-64).
+      'pdf-editor:open-light:v1',
       'pdf-editor:open-page:v1',
       // The Markup palette flag, ?palette=groups|labels|row (markup/palette-variant.ts, R25-7).
       'pdf-editor:palette:v1',

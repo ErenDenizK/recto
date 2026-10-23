@@ -269,13 +269,15 @@ function growInto(
     placeAt(clone, end);
     const [dx, dy] = [from.left - end.left, from.top - end.top];
     const [sx, sy] = [from.width / end.width, from.height / end.height];
+    // The whole reader waits, so no neighbouring page shows beside the flying sheet.
+    const hidden = to.closest<HTMLElement>('[data-read-viewport]') ?? to;
     let done = false;
     const finish = () => {
       if (done) return;
       done = true;
       clone.remove();
       veil?.remove();
-      to.style.opacity = '';
+      hidden.style.opacity = '';
       void lightPulse(to);
     };
     const at = (p: number) => {
@@ -286,7 +288,7 @@ function growInto(
       // dissolve; the Library's copy is gone by the middle of the flight.
       const dissolve = clamp((p - 0.85) / 0.12, 0, 1);
       clone.style.opacity = String(1 - dissolve);
-      to.style.opacity = String(dissolve);
+      hidden.style.opacity = String(dissolve);
       if (veil) veil.style.opacity = String(1 - clamp(p / 0.5, 0, 1));
     };
     at(0);

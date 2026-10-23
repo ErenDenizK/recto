@@ -73,7 +73,7 @@ import {
 } from '../viewer/read-controller';
 import { duration, EASE } from '../motion/tokens';
 import styles from './PageCanvas.module.css';
-import { crossFadeFrom, fadeIn } from './paint-fade';
+import { crossFadeFrom, fadeIn, paperFade } from './paint-fade';
 import { isSoft, SOFT_FRACTION, SOFT_OPACITY } from './placeholder';
 
 /** A thumbnail's repaint after an edit waits for idle time at most this long (ms). */
@@ -396,14 +396,7 @@ export function PageCanvas({
               const ghost = sharpening ? crossFadeFrom(canvas) : undefined;
               if (paint()) {
                 painted(result.value);
-                if (was === 'placeholder') {
-                  // The sheet keeps its paper tone while the bitmap fades in over it.
-                  canvas.dataset.arriving = '';
-                  const fade = fadeIn(canvas);
-                  const done = () => delete canvas.dataset.arriving;
-                  if (fade) void fade.finished.then(done, done);
-                  else done();
-                }
+                if (was === 'placeholder') paperFade(canvas);
               } else ghost?.cancel();
             }
           } else if (
