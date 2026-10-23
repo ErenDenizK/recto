@@ -194,6 +194,18 @@ describe('the text selection bar', () => {
     expect(await readAnnotations(source, 0)).toEqual([]);
   });
 
+  it('in Read, Highlight marks the selection as H does, with Markup left closed', async () => {
+    const { container, source } = await mount(false);
+    await selectSomeText(container);
+    const bar = await selectionBar();
+    await userEvent.click(within(bar).getByRole('button', { name: 'Highlight' }));
+    await waitFor(async () =>
+      expect((await readAnnotations(source, 0)).map((a) => a.kind)).toEqual(['highlight']),
+    );
+    const id = useWorkspaceStore.getState().workspace.activeDocument;
+    expect(isMarkupOpen(useUiStore.getState(), id)).toBe(false);
+  });
+
   it('in Read, "Edit text" switches to Edit and opens the editor at the selection', async () => {
     const { container } = await mount(false);
     await selectSomeText(container);

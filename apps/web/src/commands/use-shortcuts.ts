@@ -40,6 +40,23 @@ export function fieldKeepsKey(event: KeyboardEvent): boolean {
   return !event.ctrlKey && !event.metaKey;
 }
 
+/**
+ * After a double-click selected a word, the letters typed next are not tool keys (TXT-21; the
+ * first-session test: the sample's "double-click to edit" tip left a word selected and the
+ * typing that followed armed tools and marked the word). Plain letters and digits stand down
+ * until the next pointer press or Esc; Ctrl/⌘ shortcuts and the other keys (End, arrows) run.
+ */
+let lettersStandDown = false;
+
+/** Clears the stand-down (tests). */
+export function resetLetterStandDown(): void {
+  lettersStandDown = false;
+}
+
+function isPlainLetter(event: KeyboardEvent): boolean {
+  return !event.ctrlKey && !event.metaKey && !event.altKey && /^[\p{L}\p{N}]$/u.test(event.key);
+}
+
 function isInsideModal(target: EventTarget | null): boolean {
   return target instanceof Element && target.closest('[aria-modal="true"]') !== null;
 }
@@ -68,6 +85,7 @@ export function dispatchShortcut(
   if (event.defaultPrevented || event.isComposing || event.key === 'Process') return false;
   const modal = isInsideModal(event.target);
   const editable = isEditableTarget(event.target);
+  if (lettersStandDown && !editable && isPlainLetter(event)) return false;
   // In a field outside a dialog, the allowlisted Ctrl/⌘ shortcuts are the app's too (INK-12).
   const fieldGives = editable && !modal && !fieldKeepsKey(event);
   for (const command of registry.list()) {
@@ -92,11 +110,22 @@ export function dispatchShortcut(
 export function useShortcuts(registry: CommandRegistry = commandRegistry): void {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') lettersStandDown = false;
       dispatchShortcut(event, registry);
     };
+    const onPointerDown = () => {
+      lettersStandDown = false;
+    };
+    const onDoubleClick = () => {
+      lettersStandDown = globalThis.getSelection?.()?.isCollapsed === false;
+    };
     window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('pointerdown', onPointerDown, true);
+    window.addEventListener('dblclick', onDoubleClick, true);
     return () => {
       window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('pointerdown', onPointerDown, true);
+      window.removeEventListener('dblclick', onDoubleClick, true);
     };
   }, [registry]);
 }
