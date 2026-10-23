@@ -2,14 +2,24 @@
  * The pre-analysis of the page in view (`paragraph-precompute.ts`, `?textpre=1`): editable
  * paragraphs are asked for once each, in reading order and one at a time; the queue stops
  * when the tool is left or the page changes, holds at most `PRE_MAX` paragraphs, and an
- * editor opening on a pre-analysed paragraph asks the engine nothing.
+ * editor opening on a pre-analysed paragraph asks the engine nothing. A hovered paragraph
+ * shares the queue's one slot; the hook queues nothing with the flag off, and its cleanup
+ * stops the queue.
  */
 import type { SourceId } from '@pdf-editor/document-model';
 import type { ParagraphBlock, ParagraphLayoutAnalysis, ParagraphRef } from '@pdf-editor/engine';
+import { renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { getEngineService } from '../engine/engine-service';
-import { PRE_MAX, precomputeParagraphs, precomputeQueue } from './paragraph-precompute';
+import {
+  PRE_MAX,
+  precomputeParagraphs,
+  precomputeQueue,
+  prefetchParagraph,
+  setTextPrecomputeForTests,
+  usePrecomputeParagraphs,
+} from './paragraph-precompute';
 import { paragraphLayoutAnalysisOf } from './text-edit-store';
 
 let sources = 0;
@@ -45,7 +55,17 @@ function mockAnalysis() {
   return { spy, asked, most: () => most };
 }
 
+/** A promise held open until `release` is called. */
+function hold(): { held: Promise<void>; release: () => void } {
+  let release: (() => void) | undefined;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  return { held, release: () => release?.() };
+}
+
 afterEach(() => {
+  setTextPrecomputeForTests(null);
   vi.restoreAllMocks();
 });
 
@@ -110,5 +130,68 @@ describe('precomputeParagraphs', () => {
 describe('precomputeQueue', () => {
   it('holds at most PRE_MAX paragraphs', () => {
     expect(precomputeQueue(blocks(PRE_MAX + 10), 1)).toHaveLength(PRE_MAX);
+  });
+});
+
+describe('prefetchParagraph', () => {
+  it("waits for the queue's call in flight, then goes next", async () => {
+    setTextPrecomputeForTests(true);
+    vi.spyOn(getEngineService(), 'pageRevision').mockReturnValue(1);
+    const engine = mockAnalysis();
+    const { held, release } = hold();
+    const analysis = engine.spy.getMockImplementation();
+    if (!analysis) throw new Error('no mock');
+    // The queue's first call is held in flight until the hover has been seen.
+    engine.spy.mockImplementationOnce(async (ref, options) => {
+      const result = analysis(ref, options);
+      await held;
+      return result;
+    });
+    const page = blocks(4);
+    const hovered = page[3];
+    if (!hovered) throw new Error('no paragraph');
+    const run = precomputeParagraphs(page, 1, () => true);
+    await vi.waitFor(() => expect(engine.asked).toEqual([0]));
+    prefetchParagraph(hovered, 1);
+    expect(engine.asked).toEqual([0]);
+    release();
+    await run;
+    expect(engine.most()).toBe(1);
+    expect(engine.asked).toEqual([0, 3, 1, 2]);
+  });
+});
+
+describe('usePrecomputeParagraphs', () => {
+  it('queues nothing with the flag off', async () => {
+    setTextPrecomputeForTests(false);
+    vi.spyOn(getEngineService(), 'pageRevision').mockReturnValue(1);
+    const engine = mockAnalysis();
+    const page = blocks(3);
+    renderHook(() => usePrecomputeParagraphs(page[0]?.ref.source, 0, 1, page, true));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(engine.spy).not.toHaveBeenCalled();
+  });
+
+  it('stops the queue when it is cleaned up', async () => {
+    setTextPrecomputeForTests(true);
+    vi.spyOn(getEngineService(), 'pageRevision').mockReturnValue(1);
+    vi.spyOn(getEngineService(), 'paragraphLayout').mockResolvedValue(
+      {} as Awaited<ReturnType<ReturnType<typeof getEngineService>['paragraphLayout']>>,
+    );
+    const engine = mockAnalysis();
+    const { held, release } = hold();
+    engine.spy.mockImplementation(async (ref) => {
+      engine.asked.push(ref.index);
+      await held;
+      return { ref, text: '' } as unknown as ParagraphLayoutAnalysis;
+    });
+    const page = blocks(6);
+    const hook = renderHook(() => usePrecomputeParagraphs(page[0]?.ref.source, 0, 1, page, true));
+    await waitFor(() => expect(engine.asked).toEqual([0]));
+    // Cleaned up with the first call in flight: it finishes, nothing after it is asked.
+    hook.unmount();
+    release();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(engine.asked).toEqual([0]);
   });
 });

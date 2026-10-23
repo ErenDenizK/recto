@@ -4,15 +4,17 @@
  * (`analyzeParagraphLayout`, craft spec §4.8: the paragraph's model, the metrics of its styles
  * and the substitute faces they need) is asked for ahead, one paragraph at a time at idle, so
  * the first click finds it cached (`paragraphLayoutAnalysisOf`, per paragraph and page
- * revision). A paragraph the pointer comes over is asked for at once. The engine's layout
- * functions (`paragraphLayout`, the main thread's engine chunk) load ahead too: the editor
- * imports them on its first open.
+ * revision). A paragraph the pointer comes over goes to the front of the queue. The engine's
+ * layout functions (`paragraphLayout`, the main thread's engine chunk) load ahead too: the
+ * editor imports them on its first open.
  *
  * Only the page in view is analysed (its neighbours would triple the worker's work), at most
- * `PRE_MAX` paragraphs of it, and one call at a time, so a render waits behind one paragraph
- * at most. Leaving the tool, another revision of the page or the page leaving the view stops
- * the queue; the one call in flight is kept (a click may share it). The worker only reads: a
- * parked source (PF-18) is never in view, and its cached analyses go with its revision.
+ * `PRE_MAX` paragraphs of it, and the pre-analysis never has more than one call in flight
+ * (queue and hover share one slot), so a render waits behind one paragraph at most; only a
+ * click, which never waits, may add its own. Leaving the tool, another revision of the page or
+ * the page leaving the view stops the queue; the one call in flight is kept (a click may share
+ * it). The worker only reads: a parked source (PF-18) is never in view, and its cached analyses
+ * go with its revision.
  */
 import type { SourceId } from '@pdf-editor/document-model';
 import type { ParagraphBlock } from '@pdf-editor/engine';
@@ -28,6 +30,8 @@ export const TEXT_PRE_PARAM = 'textpre';
 /** The most paragraphs of one page analysed ahead (the cache keeps 64 analyses). */
 export const PRE_MAX = 32;
 
+// Read once, when the module loads: the sample's opening (`?sample`) rewrites the address
+// later, and turning the flag on or off takes a reload.
 const flagged = (() => {
   try {
     return new URLSearchParams(location.search).get(TEXT_PRE_PARAM) === '1';
@@ -35,10 +39,16 @@ const flagged = (() => {
     return false;
   }
 })();
+let override: boolean | null = null;
 
-/** Whether the pre-analysis is on (read once, when the module loads). */
+/** Whether the pre-analysis is on (the address, read once when the module loads). */
 export function textPrecomputeEnabled(): boolean {
-  return flagged;
+  return override ?? flagged;
+}
+
+/** Tests only: turns the flag on or off (null: back to the address). */
+export function setTextPrecomputeForTests(on: boolean | null): void {
+  override = on;
 }
 
 /** The paragraphs to analyse ahead, in reading order: editable, not yet asked for. */
@@ -49,6 +59,40 @@ export function precomputeQueue(
   return blocks
     .filter((block) => !block.refusal && !hasParagraphLayoutAnalysis(block.ref, revision))
     .slice(0, PRE_MAX);
+}
+
+/** The one call the pre-analysis has in flight, if any, and the hovered paragraph waiting. */
+let current: Promise<void> | null = null;
+let front: { readonly block: ParagraphBlock; readonly revision: number } | null = null;
+
+/** Whether `block` still wants asking for at `revision`. */
+const wanting = (block: ParagraphBlock, revision: number): boolean =>
+  !block.refusal &&
+  !hasParagraphLayoutAnalysis(block.ref, revision) &&
+  pageRevision(block.ref.source, block.ref.pageIndex) === revision;
+
+/** Asks for one analysis in the single slot; the hovered paragraph goes next. */
+function ask(block: ParagraphBlock, revision: number): Promise<void> {
+  const call = paragraphLayoutAnalysisOf(block.ref, revision).then(
+    () => undefined,
+    // Not kept: a click asks again and reports the failure.
+    () => undefined,
+  );
+  const done = call.then(() => {
+    if (current === done) current = null;
+    const next = front;
+    front = null;
+    if (next && current === null && wanting(next.block, next.revision)) {
+      void ask(next.block, next.revision);
+    }
+  });
+  current = done;
+  return done;
+}
+
+/** Waits until the slot is free (a hovered paragraph may take it first). */
+async function slot(): Promise<void> {
+  while (current) await current;
 }
 
 const idle = (): Promise<void> =>
@@ -72,23 +116,23 @@ export async function precomputeParagraphs(
   let asked = 0;
   for (const block of precomputeQueue(blocks, revision)) {
     await idle();
+    await slot();
     if (!live() || pageRevision(block.ref.source, block.ref.pageIndex) !== revision) break;
-    if (hasParagraphLayoutAnalysis(block.ref, revision)) continue;
+    if (!wanting(block, revision)) continue;
     asked++;
-    try {
-      await paragraphLayoutAnalysisOf(block.ref, revision);
-    } catch {
-      // Not kept: a click asks again and reports the failure.
-    }
+    await ask(block, revision);
   }
   return asked;
 }
 
-/** Asks for one paragraph's analysis now (the pointer came over it). */
+/**
+ * The pointer came over `block`: it is asked for now when the slot is free, else next (a
+ * newer hover replaces an older one still waiting).
+ */
 export function prefetchParagraph(block: ParagraphBlock, revision: number): void {
-  if (!flagged || block.refusal) return;
-  if (pageRevision(block.ref.source, block.ref.pageIndex) !== revision) return;
-  paragraphLayoutAnalysisOf(block.ref, revision).catch(() => undefined);
+  if (!textPrecomputeEnabled() || !wanting(block, revision)) return;
+  if (current) front = { block, revision };
+  else void ask(block, revision);
 }
 
 /**
@@ -103,7 +147,7 @@ export function usePrecomputeParagraphs(
   wanted: boolean,
 ): void {
   useEffect(() => {
-    if (!flagged || !wanted || source === undefined || blocks === null) return;
+    if (!textPrecomputeEnabled() || !wanted || source === undefined || blocks === null) return;
     let live = true;
     getEngineService()
       .paragraphLayout()
@@ -111,6 +155,7 @@ export function usePrecomputeParagraphs(
     void precomputeParagraphs(blocks, revision, () => live);
     return () => {
       live = false;
+      front = null;
     };
   }, [source, pageIndex, revision, blocks, wanted]);
 }
