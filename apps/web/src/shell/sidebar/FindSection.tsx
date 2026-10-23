@@ -52,12 +52,13 @@ import {
 } from '../../viewer/search';
 import { useCommandShortcut } from '../use-command-shortcut';
 import styles from './FindSection.module.css';
+import { FindThumb } from './FindThumb';
 import { cutSnippet } from './snippet';
 import { useTextless } from './textless';
 
 /** Pause after typing before the search restarts. */
 const TYPING_DELAY_MS = 150;
-const HEADER_HEIGHT = 32;
+const HEADER_HEIGHT = 40;
 const HIT_HEIGHT = 52;
 /** The scan's label and bar change at most this often, together (09-primitives §24.6). */
 const SCAN_THROTTLE_MS = 200;
@@ -454,7 +455,9 @@ function ResultList({
                 style={style}
                 data-page-heading=""
               >
-                <span>{heading}</span>
+                {/* 24 x 30 px: the box the page is fitted into. */}
+                <FindThumb doc={doc} pageIndex={row.pageIndex} width={24} height={30} />
+                <span className={styles.pageName}>{heading}</span>
                 <span className={styles.pageCount}>{formatNumber(row.count)}</span>
               </div>
             );

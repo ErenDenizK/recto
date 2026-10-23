@@ -42,11 +42,14 @@ const COMPACT_EDIT_TEXT_SPEC = '**/compact-edit-text.spec.ts';
 const COMPACT_FORMS_SPEC = '**/compact-forms.spec.ts';
 /** The page overview (MOB-2) and the phone's page acts in it (MOB-3). */
 const COMPACT_OVERVIEW_SPEC = '**/compact-{overview,pages}.spec.ts';
+/** The find map's rail on the phone (R26, DSN-65; `?findmap=1`). */
+const COMPACT_FIND_MAP_SPEC = '**/compact-find-map.spec.ts';
 /** GPU glass on the phone reader (GLS-7, `src/glass-gpu/`), forced under SwiftShader. */
 const COMPACT_GPU_GLASS_SPEC = '**/compact-gpu-glass.spec.ts';
 /** What only the phones run. */
 const PHONE_SPECS = [
   COMPACT_GPU_GLASS_SPEC,
+  COMPACT_FIND_MAP_SPEC,
   COMPACT_SPEC,
   COMPACT_EDIT_SPEC,
   COMPACT_TEXT_SPEC,
@@ -206,6 +209,8 @@ export default defineConfig({
         '**/paragraph-mirror.spec.ts',
         // Office conversion under the service worker's isolation on the tablet (EDN-20).
         OFFICE_SPEC,
+        // The find map's ticks by touch: the card, the tap that jumps (R26, DSN-65).
+        '**/find-map.spec.ts',
       ],
       use: touchDevice(TABLET, devices['Galaxy Tab S4'].userAgent, 2),
     },
