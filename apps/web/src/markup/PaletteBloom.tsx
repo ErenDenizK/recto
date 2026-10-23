@@ -28,6 +28,7 @@ type Phase = 'open' | 'fade' | 'idle';
 
 interface Label {
   readonly text: string;
+  readonly full: string;
   readonly left: number;
   readonly width: number;
 }
@@ -40,24 +41,87 @@ interface Layout {
 /** Press travel that still counts as holding in place (the 10 px slop of `ui/IconButton`). */
 const HOLD_SLOP = 10;
 
-/** The buttons without a name of their own and the hairlines between groups, in content space. */
+interface Cell {
+  readonly text: string | null;
+  readonly need: number;
+  readonly full: string;
+  readonly left: number;
+  readonly right: number;
+  readonly mid: number;
+}
+
+/** The widest a label may grow (the slot is the room to its neighbours, up to this). */
+const MAX_SLOT = 96;
+/** Air between a label and a neighbour's label or a group hairline. */
+const SLOT_AIR = 3;
+
+/**
+ * A pen's short name: the group already says pen, so "Black pen, Medium" shows "Black". A
+ * numbered preset ("Pen 2") keeps its number.
+ */
+function shortName(el: HTMLElement, name: string): string {
+  if (!el.hasAttribute('data-pen-preset')) return name;
+  const head = (name.split(',')[0] ?? name).trim();
+  return /\d/.test(head) ? head : (head.split(/\s+/)[0] ?? head);
+}
+
+/**
+ * The buttons without a name of their own and the hairlines between groups, in content space.
+ * A label's slot is centred under its icon and reaches the midpoint to a neighbouring label (or,
+ * for a button that names itself, up to its edge), never across a group hairline, at most
+ * MAX_SLOT; only a name longer than that truncates.
+ */
 function measure(content: HTMLElement): Layout {
   const origin = content.getBoundingClientRect();
-  const labels: Label[] = [];
   const gap = Number.parseFloat(getComputedStyle(content).getPropertyValue('--palette-gap')) || 4;
-  for (const el of content.querySelectorAll<HTMLElement>(
-    '[role="toolbar"] button[data-size="bar"]:not([data-labelled])',
-  )) {
-    if (el.closest('[data-item="stepper"]')) continue;
-    const text = el.getAttribute('aria-label') ?? '';
-    if (text === '') continue;
-    const box = el.getBoundingClientRect();
-    if (box.width === 0) continue;
-    labels.push({ text, left: box.left - origin.left - gap / 2, width: box.width + gap });
-  }
   const seps = [...content.querySelectorAll<HTMLElement>('[data-sep]')].map((el) => {
     const box = el.getBoundingClientRect();
     return box.left - origin.left + box.width / 2;
+  });
+  const font = `500 11px ${getComputedStyle(content).fontFamily}`;
+  const ruler = document.createElement('canvas').getContext('2d');
+  if (ruler) ruler.font = font;
+  const cells: Cell[] = [];
+  for (const el of content.querySelectorAll<HTMLElement>(
+    '[role="toolbar"] button[data-size="bar"]',
+  )) {
+    if (el.closest('[data-item="stepper"]')) continue;
+    const box = el.getBoundingClientRect();
+    if (box.width === 0) continue;
+    const name = el.getAttribute('aria-label') ?? '';
+    const named = el.hasAttribute('data-labelled') || name === '';
+    const left = box.left - origin.left;
+    const text = named ? null : shortName(el, name);
+    cells.push({
+      text,
+      full: name,
+      need: text === null ? 0 : (ruler?.measureText(text).width ?? 0) / 2 + SLOT_AIR,
+      left,
+      right: left + box.width,
+      mid: left + box.width / 2,
+    });
+  }
+  // Room between two neighbouring labels is shared by what each name needs, not halved.
+  const share = (a: Cell, b: Cell) => {
+    const need = a.need + b.need;
+    return a.mid + (need === 0 ? (b.mid - a.mid) / 2 : ((b.mid - a.mid) * a.need) / need);
+  };
+  const labels: Label[] = [];
+  cells.forEach((cell, i) => {
+    if (cell.text === null) return;
+    const prev = cells[i - 1];
+    const next = cells[i + 1];
+    const lo0 = prev ? (prev.text === null ? prev.right : share(prev, cell)) : cell.left - gap;
+    const hi0 = next ? (next.text === null ? next.left : share(cell, next)) : cell.right + gap;
+    let lo = lo0;
+    let hi = hi0;
+    for (const x of seps) {
+      if (x < cell.mid && x > lo - SLOT_AIR) lo = x + SLOT_AIR;
+      if (x > cell.mid && x < hi + SLOT_AIR) hi = x - SLOT_AIR;
+    }
+    const half = Math.min(cell.mid - lo, hi - cell.mid, MAX_SLOT / 2);
+    const width = Math.max(2 * half, cell.right - cell.left);
+    labels.push({ text: cell.text, full: cell.full, left: cell.mid - width / 2, width });
   });
   return { labels, seps };
 }
@@ -176,7 +240,7 @@ export default function PaletteBloom({
             key={`${label.left}`}
             className={styles.label}
             style={{ left: label.left, width: label.width }}
-            title={label.text}
+            title={label.full}
           >
             {label.text}
           </span>

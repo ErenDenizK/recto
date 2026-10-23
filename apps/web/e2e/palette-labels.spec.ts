@@ -5,25 +5,31 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-async function openMarkup(page: Page, query: string): Promise<void> {
-  await page.goto(`./?sample&lang=en${query}`);
+const DOOR: Record<string, string> = { en: 'Markup', tr: 'İşaretle' };
+const BAR: Record<string, string> = { en: 'Markup', tr: 'İşaretleme' };
+
+async function openMarkup(page: Page, query: string, lang = 'en'): Promise<void> {
+  await page.goto(`./?sample${query}`);
   await expect(page.locator('main canvas[data-state="rendered"]').first()).toBeVisible({
     timeout: 20_000,
   });
-  await page.getByRole('button', { name: 'Markup', exact: true }).click();
-  await expect(page.getByRole('toolbar', { name: 'Markup', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: DOOR[lang] ?? 'Markup', exact: true }).click();
+  await expect(
+    page.getByRole('toolbar', { name: BAR[lang] ?? 'Markup', exact: true }),
+  ).toBeVisible();
 }
 
 const shots = process.env.LABELS_SHOTS;
 
-async function bloomAndSettle(page: Page, name: string): Promise<void> {
-  await openMarkup(page, '&labels=1');
+async function bloomAndSettle(page: Page, name: string, lang = 'en'): Promise<void> {
+  await openMarkup(page, `&lang=${lang}&labels=1`, lang);
   const bloom = page.locator('[data-bloom]');
   await expect(bloom).toBeVisible({ timeout: 5000 });
-  await expect(bloom.getByText('Lasso', { exact: true })).toBeVisible();
-  await expect(bloom.getByText('Text box', { exact: true })).toBeVisible();
+  const first = bloom.locator('[title]').first();
+  await expect(first).toBeVisible();
+  expect(await bloom.locator('[title]').count()).toBeGreaterThan(8);
   // Q-8: a label is never under 11 px.
-  const label = await bloom.getByText('Lasso', { exact: true }).evaluate((el) => {
+  const label = await first.evaluate((el) => {
     return Number.parseFloat(getComputedStyle(el).fontSize);
   });
   expect(label).toBeGreaterThanOrEqual(11);
@@ -41,7 +47,7 @@ test.describe('labels that bloom', () => {
   });
 
   test('is off by default and with ?labels=0', async ({ page }) => {
-    await openMarkup(page, '&labels=0');
+    await openMarkup(page, '&lang=en&labels=0');
     await page.waitForTimeout(1500);
     await expect(page.locator('[data-bloom]')).toHaveCount(0);
   });
@@ -52,5 +58,9 @@ test.describe('labels that bloom on a tablet', () => {
 
   test('the same on a touch screen', async ({ page }) => {
     await bloomAndSettle(page, '1180x820-touch');
+  });
+
+  test('and in Turkish', async ({ page }) => {
+    await bloomAndSettle(page, '1180x820-touch-tr', 'tr');
   });
 });
