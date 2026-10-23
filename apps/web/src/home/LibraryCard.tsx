@@ -34,6 +34,7 @@ import { Icon, type IconName } from '../ui/Icon';
 import { formatFileSize, type HomeCardData } from './home-model';
 import styles from './LibraryCard.module.css';
 import lit from './lit.module.css';
+import { ProgressBar } from './ProgressBar';
 
 /** The thumbnail box (L5 §2): 160 × 200 fine, 176 × 220 coarse. */
 export const THUMB_FINE = { width: 160, height: 200 } as const;
@@ -110,10 +111,15 @@ export function LibraryCard({
     size,
     edited ? m.library_card_name_edited() : undefined,
     locked?.text,
+    card.reachedPage === undefined
+      ? undefined
+      : m.library_card_progress({ page: card.reachedPage, total: card.pageCount }),
   ]
     .filter(Boolean)
     .join(', ');
   const thumb = coarse ? THUMB_COARSE : THUMB_FINE;
+  // Behind `?home=continue` (DSN-66): the page the reader left, once past the first.
+  const thumbPage = card.leftPage ?? card.firstPage;
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- the listbox owns the keys
     <div
@@ -142,8 +148,8 @@ export function LibraryCard({
       {/* The ○: the check badge in the page's corner, an S control whose hit area (32, 44 coarse)
           reaches the corner; the option carries the state, and Space is its key (the grid's). */}
       <div className={styles.thumbBox} style={{ height: thumb.height }}>
-        {card.firstPage ? (
-          <LibraryThumb workspace={workspace} page={card.firstPage} box={thumb}>
+        {thumbPage ? (
+          <LibraryThumb workspace={workspace} page={thumbPage} box={thumb}>
             <CardCheck selected={selected} onCheck={onCheck} />
           </LibraryThumb>
         ) : (
@@ -169,6 +175,9 @@ export function LibraryCard({
         <span className={styles.details} aria-hidden="true">
           {details}
         </span>
+        {card.progress === undefined ? null : (
+          <ProgressBar value={card.progress} className={styles.progress} />
+        )}
         <span className={styles.state} aria-hidden="true">
           {locked ? <Icon name={locked.icon} className={styles.stateIcon} /> : null}
           <span className={styles.stateText}>{state.join(' · ')}</span>
@@ -199,7 +208,7 @@ function CardCheck({
 }
 
 /** The first page through the shared thumbnail renderer, fitted into the card's box. */
-function LibraryThumb({
+export function LibraryThumb({
   workspace,
   page,
   box,

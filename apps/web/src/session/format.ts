@@ -50,6 +50,15 @@ export interface DocumentPlace {
    * the document unsaved). Absent in snapshots from before it was kept: unknown, read as true.
    */
   readonly writtenOver?: boolean;
+  /**
+   * The page view's zoom and scroll offset for "Continue" (R26, DSN-66), beside `page`. Absent
+   * in snapshots from before it was kept and while the Library's Continue flag is off.
+   */
+  readonly resume?: {
+    readonly zoom: number;
+    readonly fit: 'width' | 'page' | null;
+    readonly offset: number;
+  };
 }
 
 /** A source's file facts and its kept bytes (`sources/<id>.pdf`). */
@@ -187,6 +196,16 @@ function readPlace(value: unknown, path: string): DocumentPlace {
       ? {}
       : { writtenOver: bool(o.writtenOver, `${path}.writtenOver`) }),
     ...(o.lock === undefined ? {} : { lock: oneOf(o.lock, LOCK_REASONS, `${path}.lock`) }),
+    ...(o.resume === undefined ? {} : { resume: readResume(o.resume, `${path}.resume`) }),
+  };
+}
+
+function readResume(value: unknown, path: string): NonNullable<DocumentPlace['resume']> {
+  const o = obj(value, path);
+  return {
+    zoom: num(o.zoom, `${path}.zoom`),
+    fit: o.fit === null ? null : oneOf(o.fit, ['width', 'page'] as const, `${path}.fit`),
+    offset: num(o.offset, `${path}.offset`),
   };
 }
 

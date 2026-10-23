@@ -47,6 +47,7 @@ import {
   useWorkspaceStore,
 } from '../state/workspace-store';
 import { documentFingerprint, rememberPosition } from '../viewer/navigation';
+import { seedResume } from './resume';
 import {
   type BlobFacts,
   type DocumentPlace,
@@ -346,6 +347,8 @@ export function applyPlaces(
     // The page view returns to the remembered page on mount (ReadView, CompactReader).
     const fingerprint = documentFingerprint(ws, doc);
     if (fingerprint !== undefined) rememberPosition(fingerprint, place.page);
+    // Where it was left, for the Library's Continue and its cards (DSN-66).
+    seedResume(doc.id, place, doc.pages.length);
   }
   // Each document takes back the lock it was kept with, or none (redesign spec §7).
   restoreLocks(places.filter((place) => ws.documents[place.id] !== undefined));

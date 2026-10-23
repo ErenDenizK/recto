@@ -3365,5 +3365,14 @@
   "recents_sort_name": "Ad",
   "recents_sort_size": "Boyut",
   "recents_search_placeholder": "Ara",
-  "recents_search_none": "“{query}” ile eşleşen son dosya yok."
+  "recents_search_none": "“{query}” ile eşleşen son dosya yok.",
+  "continue_title": "Kaldığın yer",
+  "continue_page": "{page}. sayfa / {total}",
+  "continue_resume": "Devam et",
+  "continue_resume_named": "Devam et: {name}, {page}. sayfa, toplam {total}",
+  "continue_progress": "Okuma ilerlemesi",
+  "continue_pending_unsaved": "Kaydedilmemiş değişiklikler",
+  "continue_pending_signature": "{count} imza alanı imzalanmadı",
+  "continue_pending_comments": "{count} açık yorum",
+  "library_card_progress": "{page}. sayfa / {total}"
 }

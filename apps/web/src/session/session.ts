@@ -38,11 +38,13 @@ import { m } from '../i18n';
 import { isSampleFile } from '../sample/sample-file';
 import { lockOf, useLockStore } from '../state/lock-store';
 import { adoptFileFacts, fileFactsOf } from '../state/saved-store';
+import { homeFlagEnabled, HOME_CONTINUE_FLAG } from '../home/home-flags';
 import { documentUi, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { readJson, writeJson } from '../state/safe-storage';
 import { documentSources, type SourceFileInfo, useWorkspaceStore } from '../state/workspace-store';
 import type { DocumentPlace, KeptRecordV1 } from './format';
+import { useResumeStore, watchResume } from './resume';
 import {
   claimTabLock,
   keptRecordsOf,
@@ -103,6 +105,13 @@ function snapshotState(): SnapshotState {
 /** The page shown last in each document (the view store knows only the active one's). */
 const pages = new Map<DocumentId, number>();
 
+/** The zoom and offset the Continue flag keeps beside the page (`DocumentPlace.resume`). */
+function resumeOf(id: DocumentId): Pick<DocumentPlace, 'resume'> {
+  const point = useResumeStore.getState().points[id];
+  if (point === undefined) return {};
+  return { resume: { zoom: point.zoom, fit: point.fit, offset: point.offset } };
+}
+
 function placeState(tracker: ChangeTracker): PlaceState {
   const ui = useUiStore.getState();
   const ws = useWorkspaceStore.getState().workspace;
@@ -122,6 +131,7 @@ function placeState(tracker: ChangeTracker): PlaceState {
         view: surface === 'grid' ? 'arrange' : 'read',
         mode: 'read',
         ...(lock === undefined ? {} : { lock }),
+        ...resumeOf(id),
         ...fileFactsOf(id),
       };
     },
@@ -254,6 +264,9 @@ function watch(ctl: Controller): () => void {
     pages.set(id, state.currentPage);
     writer.noteChange('view');
   });
+  const offResume = useResumeStore.subscribe((state, previous) => {
+    if (state.points !== previous.points) writer.noteChange('view');
+  });
   const flushNow = () => void writer.flush();
   const onVisibility = () => {
     if (document.visibilityState === 'hidden') flushNow();
@@ -265,6 +278,7 @@ function watch(ctl: Controller): () => void {
     offUi();
     offLocks();
     offView();
+    offResume();
     document.removeEventListener('visibilitychange', onVisibility);
     window.removeEventListener('pagehide', flushNow);
   };
@@ -293,6 +307,8 @@ export function startSession(options: StartOptions): () => void {
   let stopped = false;
   let unwatch: (() => void) | undefined;
   setDataset('session', 'restoring');
+  // Where each document was left, for the Library's Continue (DSN-66), behind its flag.
+  const stopResume = homeFlagEnabled(HOME_CONTINUE_FLAG) ? watchResume() : undefined;
   window.addEventListener('beforeunload', onBeforeUnload);
   const offlineUnsub = useWorkspaceStore.subscribe((state) =>
     offlineTracker.observe(state.workspace),
@@ -367,6 +383,7 @@ export function startSession(options: StartOptions): () => void {
   })();
   return () => {
     stopped = true;
+    stopResume?.();
     unwatch?.();
     offlineUnsub();
     window.removeEventListener('beforeunload', onBeforeUnload);

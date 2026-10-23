@@ -30,11 +30,13 @@
  * selection bar (A-12).
  */
 import type { DocumentId } from '@pdf-editor/document-model';
-import { useEffect, useMemo } from 'react';
+import { lazy, Suspense, useEffect, useMemo } from 'react';
 
 import { m } from '../i18n';
+import { useResumeStore } from '../session/resume';
 import { useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { HOME_CONTINUE_FLAG, homeFlagEnabled } from './home-flags';
 import { type HomeCardData, homeCards, liveSelection } from './home-model';
 import { Launcher } from './Launcher';
 import { LibraryGrid } from './LibraryGrid';
@@ -46,11 +48,29 @@ import { SampleCard } from './SampleCard';
 import { SelectionBarPresence } from './SelectionBar';
 import { useDragFileCount } from './use-drag-file-count';
 
+/** Continue, a chunk of its own that loads only behind `?home=continue` (DSN-66). */
+const ContinueCard = lazy(() => import('./ContinueCard'));
+
+function Continue() {
+  if (!homeFlagEnabled(HOME_CONTINUE_FLAG)) return null;
+  return (
+    <Suspense fallback={null}>
+      <ContinueCard />
+    </Suspense>
+  );
+}
+
 function useLibraryCards(): HomeCardData[] {
   const workspace = useWorkspaceStore((s) => s.workspace);
   const files = useWorkspaceStore((s) => s.files);
   const colors = useWorkspaceStore((s) => s.documentColors);
-  return useMemo(() => homeCards(workspace, files, colors), [workspace, files, colors]);
+  const points = useResumeStore((s) => s.points);
+  // Behind `?home=continue`: how far each document was read (DSN-66).
+  const reached = useMemo(() => (homeFlagEnabled(HOME_CONTINUE_FLAG) ? points : {}), [points]);
+  return useMemo(
+    () => homeCards(workspace, files, colors, reached),
+    [workspace, files, colors, reached],
+  );
 }
 
 export function LibraryView({ dragging }: { readonly dragging: boolean }) {
@@ -68,6 +88,7 @@ export function LibraryView({ dragging }: { readonly dragging: boolean }) {
         <div className={styles.scroller}>
           <div className={`${styles.column} ${styles.empty}`}>
             <div className={styles.welcome}>
+              <Continue />
               <Launcher variant="card" dragging={dragging} dragCount={dragCount} />
               <RecentList variant="empty" />
               <SampleCard align="centre" />
@@ -125,6 +146,7 @@ function LibraryWithCards({
     >
       <div className={styles.scroller}>
         <div className={styles.column}>
+          <Continue />
           <Launcher
             variant="row"
             dragging={dragging}

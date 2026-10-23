@@ -31,6 +31,7 @@ import {
   useRecentsStore,
 } from '../../files/recents';
 import { getLocale, m } from '../../i18n';
+import { HOME_CONTINUE_FLAG, homeFlagEnabled } from '../../home/home-flags';
 import { officeEnabled } from '../../office/flag';
 import { offerOfficeFiles } from '../../office/intake';
 import { isOfficeFile } from '../../office/office-files';
@@ -40,7 +41,9 @@ import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
 import { useViewStore } from '../../state/view-store';
 import { clearSearch } from '../../viewer/search';
 import { announce } from '../announcer';
+import { settleResume } from '../../session/resume';
 import { showReader, useCompactStore } from './compact-store';
+import './compact-resume';
 
 const set = (patch: Partial<ReturnType<typeof useCompactStore.getState>>) =>
   useCompactStore.setState(patch);
@@ -236,13 +239,20 @@ async function openKept(
     if (doc === undefined) return 'gone';
     setRecentNote(null);
     // A document with changes is not the file as opened: its copy goes through the export.
+    const { place } = result.record;
+    // Behind `?home=continue` it opens at the zoom and offset it was left at (DSN-66).
+    const resume =
+      place.resume !== undefined && homeFlagEnabled(HOME_CONTINUE_FLAG)
+        ? { ...place.resume, page: place.page, total: doc.pages.length, at: Date.now() }
+        : undefined;
     set({
       openedDocument: isDocumentChanged(doc.id) ? null : doc,
-      zoom: 1,
+      zoom: resume?.zoom ?? 1,
       findOpen: false,
       sheet: null,
     });
     showReader();
+    if (resume !== undefined) settleResume(doc.id, resume);
     announce(m.announce_opened({ name: result.record.title }));
     return 'opened';
   } finally {

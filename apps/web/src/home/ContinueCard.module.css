@@ -1,0 +1,148 @@
+/*
+ * The Continue card (ContinueCard.tsx; R26 concept 4, DSN-66): one lit card at the head of the
+ * Library, at most 720 wide on the column's edge. The page you left stands at the start (88 × 116,
+ * the page's own colours and hairline, as a Library card's), the text beside it, and "Continue",
+ * the view's one lime, under the text. On the phone (`data-variant='phone'`) the page is 68 × 90
+ * and the button spans the card's width on a 52 px hit. The lit material, radius and padding
+ * follow the Sample card (--radius-xl, --space-3/4), so the two read as one family.
+ */
+.card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    'thumb text'
+    'thumb go';
+  align-items: start;
+  column-gap: var(--space-4);
+  row-gap: var(--space-3);
+  box-sizing: border-box;
+  width: min(720px, 100%);
+  padding: var(--space-4);
+  border-radius: var(--radius-xl);
+  color: var(--text-primary);
+}
+
+.thumb {
+  grid-area: thumb;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 88px;
+}
+
+.kept {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-page);
+  background: var(--page-background);
+  box-shadow: var(--page-shadow);
+}
+
+.kept canvas {
+  display: block;
+  border-radius: var(--radius-page);
+}
+
+.text {
+  grid-area: text;
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-weight: var(--weight-medium);
+  line-height: var(--type-footnote-lh);
+  letter-spacing: var(--track-footnote);
+}
+
+.name {
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--type-title3);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-title3-lh);
+  letter-spacing: var(--track-body);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page {
+  margin: 0 0 var(--space-1h);
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  letter-spacing: var(--track-footnote);
+  font-variant-numeric: tabular-nums;
+}
+
+.pending {
+  display: grid;
+  gap: var(--space-half);
+  margin: var(--space-1h) 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  letter-spacing: var(--track-footnote);
+}
+
+.pending li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1h);
+  min-width: 0;
+}
+
+.dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin-inline: calc((var(--icon-sm) - 6px) / 2);
+  border-radius: var(--radius-capsule);
+  background: var(--text-primary);
+}
+
+.glyph {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+.go {
+  grid-area: go;
+  justify-self: start;
+}
+
+.card[data-variant='phone'] {
+  grid-template-areas:
+    'thumb text'
+    'go go';
+  width: 100%;
+  padding: var(--space-3);
+  column-gap: var(--space-3);
+}
+
+.card[data-variant='phone'] .thumb {
+  min-width: 68px;
+}
+
+.card[data-variant='phone'] .go {
+  justify-self: stretch;
+}
+
+@media (max-width: 480px) {
+  .card[data-variant='desk'] {
+    grid-template-areas:
+      'thumb text'
+      'go go';
+  }
+
+  .card[data-variant='desk'] .go {
+    justify-self: stretch;
+  }
+}

@@ -5005,5 +5005,32 @@
   "recents_sort_name": "Name",
   "recents_sort_size": "Size",
   "recents_search_placeholder": "Search",
-  "recents_search_none": "No recent files match “{query}”."
+  "recents_search_none": "No recent files match “{query}”.",
+  "continue_title": "Where you left off",
+  "continue_page": "Page {page} of {total}",
+  "continue_resume": "Continue",
+  "continue_resume_named": "Continue {name}, page {page} of {total}",
+  "continue_progress": "Reading progress",
+  "continue_pending_unsaved": "Unsaved changes",
+  "continue_pending_signature": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} signature field to sign",
+        "countPlural=*": "{count} signature fields to sign"
+      }
+    }
+  ],
+  "continue_pending_comments": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} open comment",
+        "countPlural=*": "{count} open comments"
+      }
+    }
+  ],
+  "library_card_progress": "page {page} of {total}"
 }

@@ -29,7 +29,7 @@
  *
  * A file that did not open leaves one line saying why (`role="alert"`), under the sample.
  */
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 
 import { BrandMark } from '../../brand/BrandMark';
 import {
@@ -38,6 +38,7 @@ import {
   type RecentEntry,
   useRecentsStore,
 } from '../../files/recents';
+import { HOME_CONTINUE_FLAG, homeFlagEnabled } from '../../home/home-flags';
 import { formatFileSize, middleTruncate, relativeTime } from '../../home/home-model';
 import { getLocale, m } from '../../i18n';
 import { SampleCover } from '../../sample/SampleCover';
@@ -48,6 +49,7 @@ import { announce } from '../announcer';
 import { PRODUCT_NAME } from '../about/build-info';
 import { CompactSheets } from './CompactSheets';
 import { isOpenEntry, openRecentEntry, pickAndOpen, trySample } from './compact-actions';
+import { resumeCompact } from './compact-resume';
 import { openSheet, useCompactStore } from './compact-store';
 import controls from './controls.module.css';
 import styles from './CompactLibrary.module.css';
@@ -91,6 +93,7 @@ export function CompactLibrary() {
         <Icon name="gear-six" />
       </button>
       <div className={styles.body}>
+        <ContinueSlot />
         <div className={styles.intro}>
           <p className={styles.promise}>{m.compact_library_promise()}</p>
           <Tools />
@@ -119,6 +122,18 @@ export function CompactLibrary() {
       </div>
       <CompactSheets />
     </main>
+  );
+}
+
+/** Continue, "Where you left off", loaded only behind `?home=continue` (DSN-66, EDN-10). */
+const ContinueCard = lazy(() => import('../../home/ContinueCard'));
+
+function ContinueSlot() {
+  if (!homeFlagEnabled(HOME_CONTINUE_FLAG)) return null;
+  return (
+    <Suspense fallback={null}>
+      <ContinueCard variant="phone" onResume={resumeCompact} />
+    </Suspense>
   );
 }
 

@@ -907,6 +907,52 @@ test.describe('the compact edition', () => {
       'away',
     );
   });
+
+  test('R26: Continue returns to page 4 at the same zoom and offset (?home=continue)', async ({
+    page,
+  }) => {
+    await page.goto('./?lang=en&home=continue');
+    await expect(page.getByTestId('compact-library')).toBeVisible();
+    await page.getByRole('button', { name: 'Try the sample' }).click();
+    await expect(page.getByTestId('compact-reader')).toBeVisible();
+    const centre = await readerCentre(page);
+    await idle(page);
+    await page.touchscreen.tap(centre.x, centre.y);
+    await page.touchscreen.tap(centre.x, centre.y);
+    await expect.poll(() => zoomOf(page)).toBe(2);
+    const zoom = await zoomOf(page);
+    // Page 4, 90 px into it.
+    await pages(page).evaluate(async (el) => {
+      const frame = () => new Promise((r) => requestAnimationFrame(r));
+      for (let i = 0; i < 200; i += 1) {
+        const target = el.querySelector<HTMLElement>('[data-page-index="3"]');
+        if (target) {
+          const gap = target.getBoundingClientRect().top - el.getBoundingClientRect().top;
+          if (Math.abs(gap + 90) < 1) return;
+          el.scrollTop += gap + 90;
+        } else el.scrollTop += el.clientHeight * 0.8;
+        await frame();
+      }
+    });
+    const offsetOf = () =>
+      pages(page).evaluate((el) => {
+        const target = el.querySelector<HTMLElement>('[data-page-index="3"]');
+        if (!target) return null;
+        return Math.round(el.getBoundingClientRect().top - target.getBoundingClientRect().top);
+      });
+    const offset = await offsetOf();
+    expect(offset).not.toBeNull();
+    await page.waitForTimeout(400);
+    await page.getByRole('button', { name: 'Library' }).click();
+    const card = page.getByTestId('continue-card');
+    await expect(card).toBeVisible({ timeout: 20_000 });
+    await expect(card.getByTestId('continue-page')).toHaveText(/^Page 4 of \d+$/);
+    await card.getByTestId('continue-resume').click();
+    await expect(page.getByTestId('compact-reader')).toBeVisible();
+    await expect.poll(() => zoomOf(page)).toBe(zoom);
+    await expect.poll(offsetOf, { timeout: 20_000 }).toBeGreaterThanOrEqual((offset ?? 0) - 2);
+    expect(await offsetOf()).toBeLessThanOrEqual((offset ?? 0) + 2);
+  });
 });
 
 test.describe('the compact edition in the light theme (spec D3-7)', () => {

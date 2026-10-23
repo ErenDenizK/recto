@@ -103,6 +103,8 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:edition:v1',
       // Not stored: the window event an applied undo or redo fires (history/history-applied.ts).
       'pdf-editor:history-applied',
+      // The Library's Continue flag, ?home=continue|0 (home/home-flags.ts, DSN-66).
+      'pdf-editor:home-continue:v1',
       // The Library's recents search flag, ?home=search|0 (home/home-flags.ts, Epic 3).
       'pdf-editor:home-search:v1',
       // Today's edit-policy:v1, migrated once (state/input-policy-store.ts, redesign spec §7).
