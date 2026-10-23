@@ -19,6 +19,7 @@ const pkg = fileURLToPath(new URL(`../dist/convert/${lock.directory}/`, import.m
 const ENV = process.env.PROBE_ENV ?? '';
 const CYCLES = Number(process.env.PROBE_CYCLES ?? 8);
 const COUNT = Number(process.env.PROBE_COUNT ?? 3);
+const WARM = process.env.PROBE_WARM === '1';
 const PORT = 4475;
 
 const WRAPPER = `
@@ -40,7 +41,7 @@ importScripts('/convert/browser.worker.global.js');
 
 const PAGE = `<!doctype html><meta charset="utf-8"><title>probe</title><script>
 const base = location.origin + '/convert/';
-window.cycle = async function (env, count) {
+window.cycle = async function (env, count, warm) {
   const url = env ? '/wrapper.js?env=' + encodeURIComponent(env) : base + 'browser.worker.global.js';
   const w = new Worker(url, { name: 'office-converter' });
   const out = { events: [], crash: null };
@@ -62,6 +63,11 @@ window.cycle = async function (env, count) {
   const init = await ask({ type: 'init', sofficeJs: base + 'soffice.js', sofficeWasm: base + 'soffice.wasm',
     sofficeData: base + 'soffice.data', sofficeWorkerJs: base + 'soffice.worker.js' }, 180000);
   out.events.push(Object.assign({ step: 'init' }, init));
+  if (init.type === 'ready' && warm) {
+    const start = at();
+    const r = await ask({ type: 'convert', inputData: new TextEncoder().encode('Recto'), inputExt: 'txt', outputFormat: 'pdf' }, 150000);
+    out.events.push(Object.assign({ step: 'warm', start }, r));
+  }
   if (init.type === 'ready') {
     const bytes = new Uint8Array(await (await fetch('/report.docx')).arrayBuffer());
     for (let i = 0; i < count; i++) {
@@ -143,11 +149,11 @@ test('probe: fresh converter workers', async ({ browser }) => {
       console.log(`[probe #${i} +${Date.now() - t0}] pageerror ${e.message}`),
     );
     await page.goto(`http://localhost:${PORT}/`);
-    const out = await page.evaluate(([env, count]) => (window as any).cycle(env, count), [
-      ENV,
-      COUNT,
-    ] as const);
-    const line = `[probe-result #${i}] env=${ENV || 'none'} ${JSON.stringify(out)}`;
+    const out = await page.evaluate(
+      ([env, count, warm]) => (window as any).cycle(env, count, warm),
+      [ENV, COUNT, WARM] as const,
+    );
+    const line = `[probe-result #${i}] env=${ENV || 'none'} warm=${WARM} ${JSON.stringify(out)}`;
     console.log(line);
     summary.push(line);
     await page.close();

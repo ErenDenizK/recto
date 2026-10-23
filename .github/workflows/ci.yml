@@ -270,8 +270,8 @@ jobs:
       fail-fast: false
       matrix:
         project: [chromium]
-        env: ["", '{"MAX_CONCURRENCY":"1"}']
-        shard: [1, 2, 3]
+        env: [""]
+        shard: [1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/checkout@v7
 
@@ -305,8 +305,9 @@ jobs:
         env:
           E2E_SKIP_BUILD: "1"
           PROBE_ENV: ${{ matrix.env }}
-          PROBE_CYCLES: "8"
-          PROBE_COUNT: "3"
+          PROBE_CYCLES: "12"
+          PROBE_COUNT: "2"
+          PROBE_WARM: "1"
 
       - name: Upload Playwright report
         if: failure()
