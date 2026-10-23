@@ -175,7 +175,8 @@ Full rows: [`decisions/motion.md`](decisions/motion.md).
 | [MOT-15](decisions/motion.md) | The tabs' fill slides by one transform (C-5) | In force | 2026-10-17 |
 | [MOT-16](decisions/motion.md) | The phone chrome hides and returns on a spring the scroll starts (owner, R22 brief C-6) | In force | 2026-10-17 |
 | [MOT-17](decisions/motion.md) | Keys typed during a view change go where focus is going (Epic 2) | In force | 2026-10-21 |
-| [MOT-18](decisions/motion.md) | Physics motion: every spatial move is a spring that keeps its speed (owner, R26) | In force (wave 1) | 2026-10-23 |
+| [MOT-18](decisions/motion.md) | Physics motion: every spatial move is a spring that keeps its speed (owner, R26) | In force (waves 1–2) | 2026-10-23 |
+| [MOT-19](decisions/motion.md) | A move a press starts may carry a very slight bounce, about 3 % (owner, R26) | In force | 2026-10-23 |
 
 ## Glass
 
