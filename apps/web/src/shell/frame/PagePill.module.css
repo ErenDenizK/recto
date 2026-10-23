@@ -34,6 +34,14 @@
     scale var(--spring-press) var(--ease-spring);
 }
 
+/* With the page strip on (DSN-63) a hold or a slide on the pill is the strip's: the touch is
+   its own and the system's long-press callout stays out of it. */
+.pill[data-strip] {
+  touch-action: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
 /* The states' washes over the glass tint (09-primitives §2.3), as a layer of its own so the
    tint, rim and elevation stay the glass recipe's. */
 @media (hover: hover) {

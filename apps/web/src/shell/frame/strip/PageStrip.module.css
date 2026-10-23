@@ -1,0 +1,160 @@
+/*
+ * The page strip (R26 concept 1, DSN-63; PageStrip.tsx). One host over the app; the strip is the
+ * popover's M4 glass (`mat mat-menu s12`, registry `popover`), the preview a solid card (Q-5).
+ * Positions are written inline (fixed client px); the opening, the track and the preview move
+ * by transform and opacity only (Q-7), and nothing is left promoted at rest (Q-2).
+ */
+.host {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+}
+
+.strip {
+  composes: mat mat-menu s12 from global;
+  position: absolute;
+  box-sizing: border-box;
+  border-radius: 28px;
+  outline: none;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.strip[data-axis='y'] {
+  border-radius: 26px;
+}
+
+/* The ends of the run clip the track, along the strip only: a raised thumb and its ring may
+   leave the cross-axis edge of the viewport (they stay inside the glass). */
+.viewport {
+  position: absolute;
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+.strip[data-axis='y'] .viewport {
+  overflow-x: visible;
+  overflow-y: clip;
+}
+
+.track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+}
+
+.strip[data-axis='y'] .track {
+  right: 0;
+  bottom: auto;
+}
+
+/* A cell is one page's slot along the strip; the thumbnail sits in it, bottom-aligned (x) or
+   centred (y). */
+.cell {
+  position: absolute;
+  display: grid;
+  justify-items: center;
+}
+
+.strip[data-axis='x'] .cell {
+  top: 14px;
+  bottom: 0;
+  width: var(--cell);
+  align-items: end;
+  padding-bottom: 30px;
+}
+
+.strip[data-axis='y'] .cell {
+  left: 0;
+  right: 0;
+  height: var(--cell);
+  align-items: center;
+}
+
+.thumb {
+  position: relative;
+  flex: none;
+  background: var(--page-background);
+  box-shadow: var(--page-shadow);
+  border-radius: var(--radius-page);
+  overflow: hidden;
+  transition: transform var(--spring-quick) var(--ease-spring);
+}
+
+/* The page under the pointer rises 8 px and takes the lime ring (DSN-19: selected is lime);
+   the page being read keeps the neutral ring. The ring is an outline, so the sheet's clip does
+   not cut it: it sits on the cell's thumb wrapper below. */
+.cell[data-target] .thumb {
+  transform: translateY(-8px);
+  outline: 2px solid var(--select-ring);
+  outline-offset: 3px;
+}
+
+.strip[data-axis='y'] .cell[data-target] .thumb {
+  transform: translateX(-8px);
+}
+
+.cell[data-current]:not([data-target]) .thumb {
+  outline: 1px solid var(--text-secondary);
+  outline-offset: 3px;
+}
+
+.num {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 6px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.cell[data-current] .num {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cell[data-target] .num {
+  color: var(--text-primary);
+}
+
+/* The enlarged preview: solid, never glass (Q-5), over the strip's glass and the page. */
+.preview {
+  position: absolute;
+  left: 0;
+  top: 0;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  justify-items: center;
+  align-items: center;
+  padding: 8px 8px 6px;
+  border-radius: 14px;
+  background: var(--surface-raised);
+  box-shadow: var(--e5);
+  pointer-events: none;
+}
+
+.big {
+  position: relative;
+  background: var(--page-background);
+  box-shadow: var(--page-shadow);
+  border-radius: var(--radius-page);
+  overflow: hidden;
+}
+
+.previewNum {
+  height: 22px;
+  line-height: 22px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}

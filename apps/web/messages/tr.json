@@ -2994,6 +2994,8 @@
   "frame_pill_text": "{page} / {total} · {percent}",
   "frame_pill_text_label": "{label} ({page} / {total}) · {percent}",
   "frame_pill_name": "Sayfa {current}/{total}, yakınlaştırma {percent}. Sayfa ve görünüm seçenekleri",
+  "page_strip_label": "Sayfa şeridi",
+  "page_strip_option": "Sayfa {page}/{total}",
   "frame_pill_menu_name": "Sayfa ve görünüm",
   "frame_goto_of": "/ {total}",
   "frame_goto_range": "Sayfa 1–{last} arası",

@@ -44,6 +44,8 @@ const COMPACT_FORMS_SPEC = '**/compact-forms.spec.ts';
 const COMPACT_OVERVIEW_SPEC = '**/compact-{overview,pages}.spec.ts';
 /** GPU glass on the phone reader (GLS-7, `src/glass-gpu/`), forced under SwiftShader. */
 const COMPACT_GPU_GLASS_SPEC = '**/compact-gpu-glass.spec.ts';
+/** The page strip's rail on the phone (DSN-63). */
+const COMPACT_PAGE_STRIP_SPEC = '**/compact-page-strip.spec.ts';
 /** What only the phones run. */
 const PHONE_SPECS = [
   COMPACT_GPU_GLASS_SPEC,
@@ -57,6 +59,7 @@ const PHONE_SPECS = [
   COMPACT_TOP_SPLIT_SPEC,
   COMPACT_EDIT_TEXT_SPEC,
   COMPACT_FORMS_SPEC,
+  COMPACT_PAGE_STRIP_SPEC,
 ];
 /** Specs the desktop projects never run: every phone spec, portrait or on its side. */
 const PHONE_ONLY = [...PHONE_SPECS, COMPACT_OVERVIEW_SPEC];
@@ -192,6 +195,8 @@ export default defineConfig({
         // The sidebar laid over the page, S13's touch drags and the section's own Find field
         // (spec D2-4).
         '**/sidebar.spec.ts',
+        // The page strip: hold the pill, scrub, release (DSN-63).
+        '**/page-strip.spec.ts',
         // The Pages grid: J4 by touch, the pinch's sizes and its door to the page (spec D2-5).
         '**/pages-grid.spec.ts',
         // Page operations by touch, checked on the exported bytes (MOB-4).
