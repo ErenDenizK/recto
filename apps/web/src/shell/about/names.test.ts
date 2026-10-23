@@ -118,6 +118,7 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:open-page:v1',
       // The Markup palette flag, ?palette=groups|labels|row (markup/palette-variant.ts, R25-7).
       'pdf-editor:palette:v1',
+      'pdf-editor:receipt:v1',
       'pdf-editor:recents:v1',
       // "Don't ask again for this file" on Save's Replace question (files/save.ts, ADR-0032 §2.1).
       'pdf-editor:save:replace-ok:v1',
@@ -127,6 +128,8 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:session:tab:v1',
       // The saved signatures' IndexedDB database (signatures/saved-signatures.ts, spec X26).
       'pdf-editor:signatures:v1',
+      // The page strip flag, ?strip=1|0 (shell/frame/strip/strip-hold.ts, R26 concept 1).
+      'pdf-editor:strip:v1',
       // The phone reader's ?top variant for this tab (sessionStorage, shell/compact/top-variant.ts).
       'pdf-editor:top:v1',
       'pdf-editor:ui:colour-view:v1',

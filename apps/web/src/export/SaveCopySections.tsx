@@ -132,6 +132,7 @@ export function SizeSection({
   patch,
   analysis,
   estimates,
+  quick,
   groupRef,
   onWhatSmaller,
 }: {
@@ -139,21 +140,28 @@ export function SizeSection({
   readonly patch: Patch;
   readonly analysis: SizeAnalysis | null;
   readonly estimates: SizeEstimates | null;
+  /** The approximate size of the copy as it is (`quickSize`), shown until the exact one is known. */
+  readonly quick: number | null;
   readonly groupRef: RefObject<HTMLDivElement | null>;
   readonly onWhatSmaller: () => void;
 }) {
   const ready = estimates !== null;
   const option = (value: SizeChoice, label: string): RadioOption<SizeChoice> => {
     if (value === 'same') {
-      const size = ready ? formatSize(estimates.same) : null;
-      return {
-        value,
-        label,
-        detail: size ?? m.save_copy_estimating(),
-        detailLabel: size ?? m.save_copy_estimating(),
-      };
+      // The exact size once the copy is assembled; before, the approximate one, said as such.
+      if (ready) {
+        const size = formatSize(estimates.same);
+        return { value, label, detail: size, detailLabel: size };
+      }
+      const shown = estimateDetail(quick, null);
+      return { value, label, detail: shown.detail, detailLabel: shown.spoken };
     }
     if (value === 'custom' && draft.size !== 'custom') return { value, label };
+    // The analysis failed: say so instead of estimating for ever.
+    if (analysis?.state === 'failed') {
+      const detail = m.save_copy_estimate_failed();
+      return { value, label, detail, detailLabel: detail };
+    }
     const estimate = ready ? estimates[value] : null;
     const shown = estimateDetail(
       estimate?.after ?? null,
