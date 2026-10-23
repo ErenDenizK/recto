@@ -3,7 +3,9 @@
  * for what CSS transitions cannot do, under 3 KB gzip and with no animation library.
  *
  * - `springs.ts`: the seven spring tokens, the analytic solver, settle times (A-10) and
- *   `springToLinear()` for the CSS curves (§7.1–§7.2).
+ *   `springToLinear()` for the CSS curves (§7.1–§7.2); `preset()` gives a token's stiffness,
+ *   damping, mass and damping ratio, and `springEasing()` the curve with its `cubic-bezier()`
+ *   stand-in where `linear()` is missing (MOT-18).
  * - `animate.ts`: `animate()` for script values on one requestAnimationFrame loop that stops at
  *   rest, and `animateStyle()` for elements on Web Animations; both retarget with velocity
  *   (Q-10) and leave no transform or `will-change` at rest (Q-2); `nextFrame()`, the one wait
@@ -16,6 +18,8 @@
  * - `view-transition.ts`: `viewTransition()` at 240 ms (§7.4).
  * - `tokens.ts`: the motion tokens for script, the twins of `styles/motion.css` (D3-4): ease
  *   durations with their reduced values, press scales (02.5), the sheet push and the ring.
+ * - `shift.ts`: `shift()`, an element whose resting place moved springs into it from where it
+ *   was drawn, keeping its speed through a turn (MOT-18; the page pill's rise).
  * - `resize.ts`: `springWidth()`, a floating piece following its content's width on `smooth`
  *   (Q-6's own geometry, G6), and `restingWidth()` for whoever measures it mid-flight.
  * - `catalogue.ts`: the catalogue entries that run from script (§7.3): `sheetPush` (X8),
@@ -39,6 +43,8 @@ export {
   type Motion,
   type MotionValue,
   nextFrame,
+  startOnThisFrame,
+  stopStyle,
   type StyleOptions,
   type StyleProperty,
   type Styled,
@@ -59,6 +65,7 @@ export { disclose } from './disclose';
 export { shake } from './feedback';
 export { flip } from './flip';
 export { navPush } from './nav-push';
+export { shift } from './shift';
 export { PULSE_PEAK, receivePulse } from './receive';
 export { reducedMotion, subscribeReducedMotion, systemReducedMotion } from './reduced-motion';
 export {
@@ -69,13 +76,18 @@ export {
   TARGET_WIDTH,
 } from './resize';
 export {
+  BEZIER_FALLBACK,
   type LinearEasing,
+  preset,
   type Spring,
   type SpringName,
+  type SpringPreset,
   settleTime,
   solve,
+  springEasing,
   springs,
   springToLinear,
+  supportsLinearEasing,
 } from './springs';
 export {
   DURATION_MS,

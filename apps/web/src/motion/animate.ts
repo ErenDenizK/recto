@@ -66,8 +66,11 @@ export interface AnimateOptions<T extends MotionValue> extends Options<T> {
   readonly fade?: boolean;
 }
 
-/** The properties `animateStyle()` writes: compositor ones, plus Q-6's own geometry. */
-export type StyleProperty = 'transform' | 'opacity' | 'width' | 'height';
+/**
+ * The properties `animateStyle()` writes: compositor ones (`translate` composes with a
+ * stylesheet `transform`, for `shift()`), plus Q-6's own geometry.
+ */
+export type StyleProperty = 'transform' | 'translate' | 'opacity' | 'width' | 'height';
 
 /** Options of `animateStyle()`. */
 export interface StyleOptions<T extends MotionValue> extends Options<T> {
@@ -290,13 +293,31 @@ const px = ([v = 0]: Vec) => `${r3(Math.max(0, v))}px`;
 
 /**
  * How values are written: `transform` takes `[x, y]` in px with an optional `scale`, or
- * `[sx, sy]`, after them; `opacity` is clamped to 0–1; `width` and `height` are px.
+ * `[sx, sy]`, after them; `translate` takes `[x, y]` in px; `opacity` is clamped to 0–1;
+ * `width` and `height` are px.
  */
 const formats: Partial<Record<StyleProperty, (v: Vec) => string>> = {
   transform: ([x = 0, y = 0, sx = 1, sy = sx]) =>
     `translate(${r3(x)}px, ${r3(y)}px) scale(${r3(sx)}, ${r3(sy)})`,
+  translate: ([x = 0, y = 0]) => `${r3(x)}px ${r3(y)}px`,
   opacity: ([v = 1]) => `${r3(Math.min(1, Math.max(0, v)))}`,
 };
+
+/**
+ * Starts `animation` at the present frame's time instead of leaving it pending until the next
+ * one (MOT-18): for a turn, the segment that replaces one already moving. A retarget reads the
+ * old segment on the timeline's clock, which stands still at the frame being drawn; a new
+ * animation left pending would then draw its time 0, the position of that frame, once more on
+ * the next one, so every turn held still for a frame (and for the whole of a long task that
+ * delayed it). Pinned to the same clock, the next frame draws the new segment as far in as the
+ * old one would have been: position and velocity stay continuous. A motion that starts from
+ * rest is not pinned: it keeps the browser's start, the next frame, with the fades and slides a
+ * choreography starts beside it (the capsule's slides clear their path on that clock).
+ */
+export function startOnThisFrame(animation: Animation, el: Element): void {
+  const now = el.ownerDocument.timeline?.currentTime;
+  if (now !== null && now !== undefined) animation.startTime = Number(now);
+}
 
 /** The running style motions per element and property. */
 const runs = new WeakMap<Element, Map<StyleProperty, Motion<MotionValue>>>();
@@ -304,7 +325,9 @@ const promoted = new Set<Element>();
 
 /** `will-change` names what moves on the compositor now, or goes (Q-2, MP-9). */
 function promote(el: Styled) {
-  const moving = (['transform', 'opacity'] as const).filter((p) => runs.get(el)?.has(p)).join(', ');
+  const moving = (['transform', 'translate', 'opacity'] as const)
+    .filter((p) => runs.get(el)?.has(p))
+    .join(', ');
   if (moving && !promoted.has(el) && promoted.size >= MAX_PROMOTED) return;
   el.style.willChange = moving;
   if (moving) promoted.add(el);
@@ -320,7 +343,7 @@ function promote(el: Styled) {
  */
 export function animateStyle(
   el: Styled,
-  prop: 'transform',
+  prop: 'transform' | 'translate',
   from: readonly number[],
   to: readonly number[],
   o: StyleOptions<readonly number[]>,
@@ -372,6 +395,9 @@ export function animateStyle(
           props.set(prop, m);
           promote(el);
         }
+        // A turn of a motion already on screen starts on this frame (`startOnThisFrame`); a fresh
+        // start keeps the browser's own start, the next frame, with whatever starts beside it.
+        const turning = anim !== null && !anim.pending;
         anim?.cancel();
         anim = null;
         if (frames.length < 2) {
@@ -382,6 +408,7 @@ export function animateStyle(
           duration: ((frames.length - 1) * 1000) / FPS,
           fill: 'forwards',
         });
+        if (turning) startOnThisFrame(next, el);
         anim = next;
         // Cancelled from outside (not by a retarget or stop): back to rest without `onComplete`.
         next.onfinish = next.oncancel = (event) => {
@@ -400,9 +427,20 @@ export function animateStyle(
  * element can be measured at its layout box; returns where it was (for `flip()`'s hand-off).
  */
 export function stopTransform(el: Styled): { value: Vec; velocity: Vec } | undefined {
-  const run = runs.get(el)?.get('transform');
+  return stopStyle(el, 'transform');
+}
+
+/**
+ * Stops the motion of `prop` running on `el`, if any, and removes its inline value; returns where
+ * it was and how fast it moved.
+ */
+export function stopStyle(
+  el: Styled,
+  prop: StyleProperty,
+): { value: Vec; velocity: Vec } | undefined {
+  const run = runs.get(el)?.get(prop);
   if (!run) return undefined;
   const state = run.stop();
-  el.style.removeProperty('transform');
+  el.style.removeProperty(prop);
   return state as { value: Vec; velocity: Vec };
 }

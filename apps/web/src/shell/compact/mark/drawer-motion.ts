@@ -14,7 +14,11 @@
  *   re-blurs the page under a moving layer or repaints a soft shadow (WebKit).
  * - **Swipe down** moves the panel with the finger by its `translate` property (composed with
  *   the frames' `transform`); the close that follows takes that offset back to 0 on the same
- *   clock, so nothing jumps at the release.
+ *   clock, so nothing jumps at the release. The finger's speed at the release is handed to the
+ *   spring (Q-7, MOT-18): a throw closes at the speed it was thrown, and a swipe that springs
+ *   back starts back at the finger's speed instead of from rest; toward the rest up to
+ *   `TOWARD_MAX` distances a second, away from it up to `AWAY_MAX` (as the phone sheet's
+ *   release, `sheet-release.ts`). A turn starts on the frame it is asked in (`startOnThisFrame`).
  * - Opened, nothing stays inline (Q-2); closed, the last frame holds until the panel unmounts.
  * - **Reduced motion:** opacity only, 150 ms in, 100 ms out (A-9).
  * - **What it covers** (`covers`, the list variant's island, EDN-16): a panel that rises over
@@ -23,6 +27,7 @@
  *   stays inline on it.
  */
 import { glassMoving, glassSettle } from '../../../ui/glass-moving';
+import { startOnThisFrame } from '../../../motion/animate';
 import { reducedMotion } from '../../../motion/reduced-motion';
 import { energy, solve, type Spring, springs } from '../../../motion/springs';
 import { EASE, REDUCED_DURATION_MS } from '../../../motion/tokens';
@@ -39,6 +44,22 @@ export function swipeCloses(dy: number, speed: number): boolean {
 
 /** The share of the progress over which a covered island fades. */
 export const COVER_SPAN = 0.3;
+/** A release's velocity carried toward the rest, and away from it, in distances per second. */
+export const TOWARD_MAX = 20;
+export const AWAY_MAX = 3;
+
+/**
+ * The velocity of a progress `q` heading for `target` that a finger moving at `velocity` px/s
+ * hands over, where the panel moves `pxPerUnit` px per unit of `q` (signed), capped.
+ */
+export function handOff(velocity: number, pxPerUnit: number, toward: -1 | 1): number {
+  if (!velocity || !pxPerUnit) return 0;
+  const v = velocity / pxPerUnit;
+  return toward > 0
+    ? Math.max(-AWAY_MAX, Math.min(TOWARD_MAX, v))
+    : Math.max(-TOWARD_MAX, Math.min(AWAY_MAX, v));
+}
+
 /** Keyframe rate. */
 const FPS = 120;
 /** A segment ends when its energy has fallen to this fraction. */
@@ -51,8 +72,13 @@ export interface DrawerMotion {
   to(target: 0 | 1): Promise<void>;
   /** The panel follows a drag by `dy` px (downward positive), with no animation. */
   drag(dy: number): void;
-  /** The drag springs back to rest (a swipe that did not close). */
-  release(): void;
+  /**
+   * The finger let go at `velocity` px/s (downward positive): the next close starts at that
+   * speed (a throw that closed it).
+   */
+  thrown(velocity: number): void;
+  /** The drag springs back to rest (a swipe that did not close), from the finger's speed. */
+  release(velocity?: number): void;
   /** Stops at once where it is headed. */
   finish(): void;
   /** The panel is going away: whatever it covered is whole again. */
@@ -90,6 +116,8 @@ export function drawerMotion(panel: HTMLElement, covers?: () => HTMLElement | nu
   let dragAnim: Animation | null = null;
   let seg = { s: springs.smooth, x0: 0, v0: 0, target: 0, reduced: false, from: 0 };
   let dragY = 0;
+  /** The release velocity (px/s, down) the next close takes, set by `thrown()`. */
+  let throwV = 0;
 
   // From its layout box (a fixed element's offsets are the viewport's), free of the frames'
   // transform and the drag's translate: the way down past the screen's edge.
@@ -111,6 +139,8 @@ export function drawerMotion(panel: HTMLElement, covers?: () => HTMLElement | nu
     to(target) {
       const [p, v] = state();
       const last = anim;
+      // A turn of a panel already moving starts on this frame (`startOnThisFrame`).
+      const turning = last !== null && !last.pending;
       let run: Animation;
       let values: number[] = [p, target];
       if (reducedMotion()) {
@@ -124,15 +154,20 @@ export function drawerMotion(panel: HTMLElement, covers?: () => HTMLElement | nu
         });
       } else {
         const s = target === 1 ? springs.smooth : springs.quick;
-        const frames = progressFrames(s, p, v, target);
-        values = frames.values;
-        seg = { s, x0: p - target, v0: v, target, reduced: false, from: p };
         const way = travel();
+        // A throw: the panel is drawn at (1 − q)·way + dragY·q, so q moves at v / (dragY − way).
+        const thrownV =
+          target === 0 && dragY !== 0 && throwV ? handOff(throwV, dragY - way, -1) : null;
+        throwV = 0;
+        const frames = progressFrames(s, p, thrownV ?? v, target);
+        values = frames.values;
+        seg = { s, x0: p - target, v0: thrownV ?? v, target, reduced: false, from: p };
         glassMoving(panel);
         run = panel.animate(
           values.map((q) => riseFrame(way, q)),
           { duration: frames.ms, fill: 'forwards' },
         );
+        if (turning) startOnThisFrame(run, panel);
         if (target === 0 && dragY !== 0) {
           // The swipe's offset goes home with the panel, on the same clock.
           const from = dragY;
@@ -141,6 +176,7 @@ export function drawerMotion(panel: HTMLElement, covers?: () => HTMLElement | nu
             values.map((q) => ({ translate: `0 ${(from * q).toFixed(2)}px` })),
             { duration: frames.ms, fill: 'forwards', composite: 'replace' },
           );
+          if (turning) startOnThisFrame(dragAnim, panel);
           panel.style.translate = '';
           dragY = 0;
         }
@@ -165,6 +201,7 @@ export function drawerMotion(panel: HTMLElement, covers?: () => HTMLElement | nu
             fill: 'forwards',
           },
         );
+        if (!run.pending) startOnThisFrame(coverAnim, covered);
       }
       return new Promise<void>((resolve) => {
         run.onfinish = () => {
@@ -195,9 +232,14 @@ export function drawerMotion(panel: HTMLElement, covers?: () => HTMLElement | nu
       if (!reducedMotion()) glassMoving(panel);
       panel.style.translate = dragY === 0 ? '' : `0 ${dragY}px`;
     },
-    release() {
+    thrown(velocity) {
+      throwV = velocity;
+    },
+    release(velocity = 0) {
+      throwV = 0;
       if (dragY === 0) return;
-      const { values, ms } = progressFrames(springs.smooth, 1, 0, 0);
+      // The offset is drawn at dragY·q, q heading for 0: the finger's speed is dragY px a unit.
+      const { values, ms } = progressFrames(springs.smooth, 1, handOff(velocity, dragY, -1), 0);
       const from = dragY;
       dragY = 0;
       panel.style.translate = '';
