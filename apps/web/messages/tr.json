@@ -3367,5 +3367,6 @@
   "recents_sort_name": "Ad",
   "recents_sort_size": "Boyut",
   "recents_search_placeholder": "Ara",
-  "recents_search_none": "“{query}” ile eşleşen son dosya yok."
+  "recents_search_none": "“{query}” ile eşleşen son dosya yok.",
+  "findmap_matches": "{count} eşleşme"
 }

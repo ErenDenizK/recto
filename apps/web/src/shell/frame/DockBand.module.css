@@ -57,11 +57,6 @@
     transform var(--spring-quick) var(--ease-spring);
 }
 
-/* The page pill keeps its own rise in its transform (PagePill.module.css). */
-.band[data-away] [data-region='pill'] {
-  transform: translateY(calc(var(--away-y) - var(--rise, 0px)));
-}
-
 /*
  * The soft scroll edge (F1 §3, G-19): behind the strip's floating pieces and 24 px below them,
  * the canvas fading to nothing, only once the page has scrolled, so text passing under the

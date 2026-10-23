@@ -30,6 +30,7 @@ import { useWorkspaceStore } from '../../state/workspace-store';
 import { installScrollThumbs } from '../../ui/scroll-thumbs';
 import { ToastRegion } from '../../ui/Toast/ToastRegion';
 import { clearLinksForSource } from '../../viewer/LinkLayer';
+import { FIND_MAP } from '../../viewer/find-map-flag';
 import { installCopyHandler } from '../../viewer/text-spans';
 import { LiveRegion } from '../LiveRegion';
 import styles from './CompactApp.module.css';
@@ -60,6 +61,10 @@ export function CompactApp() {
   useLayoutEffect(() => applyViewport(), []);
   // The app's one scroll bar over every scroller, the phone's lists and sheets too (GLS-26).
   useLayoutEffect(() => installScrollThumbs(), []);
+  // The find map's rail: Find's hit ticks on the reader's edge (R26, DSN-65; `?findmap=1`).
+  useEffect(() => {
+    if (FIND_MAP) void import('../../viewer/search-ticks');
+  }, []);
   // The appearance settings reach the root here too: Reduce motion (About's row, or kept from
   // the full edition on this device) and Glass with its start state and cost ladder, which the
   // materials read.
