@@ -62,8 +62,13 @@
 
 .page {
   position: absolute;
-  background: var(--page-background);
+  /* Paper, not stark white, while the bitmap renders (DSN-64); a resized page shows its own. */
+  background: color-mix(in srgb, var(--page-background) 88%, #7a6a4a);
   box-shadow: var(--page-shadow);
+}
+
+.page[data-resized] {
+  background: var(--page-background);
 }
 
 /* The reading layers sit over the bitmap. */

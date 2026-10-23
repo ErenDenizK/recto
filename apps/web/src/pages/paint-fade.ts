@@ -46,6 +46,7 @@ export function crossFadeFrom(canvas: HTMLCanvasElement): Animation | undefined 
     return undefined;
   }
   ghost.className = canvas.className;
+  if ('soft' in canvas.dataset) ghost.dataset.soft = '';
   ghost.dataset.ghost = '';
   ghost.setAttribute('aria-hidden', 'true');
   canvas.after(ghost);

@@ -21,18 +21,24 @@
  *   element's box on `smooth`, by transform, fading as it lands; the arriving element shows
  *   under it.
  *
+ * Behind `?open=light` (R26 concept 2, DSN-64) opening is `open-light.ts`'s instead: the card's
+ * sheet grows on `glide` and the light answers once.
+ *
  * Reduced motion keeps the transition but strips every name (`styles/motion.css`): a root
  * cross-fade cut at 150 ms; the clone is not used.
  */
 import type { DocumentId } from '@pdf-editor/document-model';
 
-import { animateStyle } from '../motion/animate';
+import { animate, animateStyle } from '../motion/animate';
 import { reducedMotion } from '../motion/reduced-motion';
 import { VT_MS } from '../motion/tokens';
+import { lerp, clamp } from '../motion/velocity';
 import { viewTransition } from '../motion/view-transition';
 import { useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { ghostOf } from './card-motion';
+import { homeFlagEnabled, OPEN_LIGHT_FLAG } from './home-flags';
+import { lightPulse } from './open-light';
 import './library-transition.css';
 
 /** The shared element's name on both sides. */
@@ -198,6 +204,103 @@ export function flipSheet(clone: HTMLElement, from: DOMRect, to: HTMLElement): v
   void move.finished.then(() => fade.finished).finally(() => clone.remove());
 }
 
+/** Where the card's sheet starts, fixed over the window, so the view change shows no gap. */
+function placeAt(clone: HTMLElement, box: DOMRect): void {
+  clone.style.cssText =
+    `position:fixed;left:${box.left}px;top:${box.top}px;width:${box.width}px;` +
+    `height:${box.height}px;margin:0;z-index:10;pointer-events:none;transform-origin:0 0;`;
+  for (const canvas of clone.querySelectorAll('canvas')) {
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+  }
+}
+
+/**
+ * `?open=light` (R26 concept 2, DSN-64): `clone`, a copy of the leaving sheet laid over the
+ * window before the view changes, grows into the reader's page on `glide` (a spring from the
+ * motion core, so it takes the time its physics take). The reader's page stays out of sight
+ * until the clone is most of the way there, then the two cross-dissolve as the sizes meet; the
+ * page shows the same thumbnail from the cache, and the sharp render cross-fades over that
+ * (`PageCanvas`). When the page is down, the light answers once, in the session's first open
+ * (`open-light.ts`).
+ */
+function growInto(
+  from: DOMRect,
+  clone: HTMLElement,
+  apply: () => void,
+  arriving: () => HTMLElement | null,
+): void {
+  placeAt(clone, from);
+  clone.dataset.openGrow = '';
+  document.body.append(clone);
+  apply();
+  let tries = 0;
+  const land = () => {
+    const to = arriving();
+    if (!to) {
+      if (++tries < 30) requestAnimationFrame(land);
+      else clone.remove();
+      return;
+    }
+    const end = to.getBoundingClientRect();
+    placeAt(clone, end);
+    const [dx, dy] = [from.left - end.left, from.top - end.top];
+    const [sx, sy] = [from.width / end.width, from.height / end.height];
+    const at = (p: number) => {
+      clone.style.transform =
+        `translate(${dx * (1 - p)}px,${dy * (1 - p)}px) ` +
+        `scale(${lerp(sx, 1, p)},${lerp(sy, 1, p)})`;
+      const dissolve = clamp((p - 0.5) / 0.45, 0, 1);
+      clone.style.opacity = String(1 - dissolve);
+      to.style.opacity = String(dissolve);
+    };
+    at(0);
+    void animate(0, 1, { spring: 'glide', onUpdate: at }).finished.then(() => {
+      clone.remove();
+      to.style.opacity = '';
+      void lightPulse(to);
+    });
+  };
+  requestAnimationFrame(land);
+}
+
+/** The reader's page once it is laid out (at most about half a second of frames), else null. */
+function pageWhenLaidOut(): Promise<HTMLElement | null> {
+  return new Promise((resolve) => {
+    let tries = 0;
+    const look = () => {
+      const page = readerPage();
+      if (page || ++tries >= 30) resolve(page);
+      else requestAnimationFrame(look);
+    };
+    look();
+  });
+}
+
+/** A sheet of paper, for an open that has no thumbnail to grow (a phone's row). */
+function paperSheet(): HTMLElement {
+  const sheet = document.createElement('div');
+  sheet.setAttribute('aria-hidden', 'true');
+  sheet.style.background = 'var(--page-background)';
+  sheet.style.boxShadow = 'var(--page-shadow)';
+  return sheet;
+}
+
+/**
+ * The phone's open (`?open=light`, DSN-64): a Library row has no thumbnail, so a sheet of paper
+ * grows out of its glyph into the page (`row` given), then the light answers once. Without a
+ * row (a file just picked, the sample) the page only arrives and the light answers.
+ */
+export function openRowMorph(row: HTMLElement | null, open: () => void): void {
+  const glyph = row?.firstElementChild;
+  if (glyph instanceof HTMLElement && !reducedMotion()) {
+    growInto(glyph.getBoundingClientRect(), paperSheet(), open, readerPage);
+    return;
+  }
+  open();
+  void pageWhenLaidOut().then((page) => page && lightPulse(page));
+}
+
 /**
  * Runs `apply` as the Library's view change, with `leaving` named in the old view and what
  * `arriving` returns named in the new one.
@@ -211,6 +314,11 @@ function change(
   const root = document.documentElement;
   const generation = ++changes;
   const reduced = reducedMotion();
+  // `?open=light` (DSN-64): the card's thumbnail grows on a spring and the light answers.
+  if (direction === 'open' && leaving && !reduced && homeFlagEnabled(OPEN_LIGHT_FLAG)) {
+    growInto(leaving.getBoundingClientRect(), ghostOf(leaving), apply, arriving);
+    return;
+  }
   if (typeof document.startViewTransition !== 'function') {
     // The clone's way: copy the leaving sheet before the update takes it away.
     const from = leaving?.getBoundingClientRect();

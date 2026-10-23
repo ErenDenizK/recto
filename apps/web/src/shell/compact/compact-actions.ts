@@ -31,6 +31,7 @@ import {
   useRecentsStore,
 } from '../../files/recents';
 import { getLocale, m } from '../../i18n';
+import { openRowMorph } from '../../home/library-morph';
 import { officeEnabled } from '../../office/flag';
 import { offerOfficeFiles } from '../../office/intake';
 import { isOfficeFile } from '../../office/office-files';
@@ -139,7 +140,7 @@ export async function openPdf(file: File, replaces?: string): Promise<boolean> {
       ...(replaces === undefined ? {} : { replaces }),
     });
     set({ openedDocument: doc, zoom: 1, findOpen: false, sheet: null });
-    showReader();
+    openRowMorph(null, showReader);
     announce(m.announce_opened({ name: file.name }));
     return true;
   } finally {
@@ -175,9 +176,9 @@ export async function pickAndOpen(): Promise<void> {
  * stored handle (asking for permission within the tap where needed), else the file dialog
  * with one line saying why. Call it straight from the tap, with no await before it.
  */
-export async function openRecentEntry(entry: RecentEntry): Promise<void> {
+export async function openRecentEntry(entry: RecentEntry, row?: HTMLElement): Promise<void> {
   if (isOpenEntry(entry)) {
-    showReader();
+    openRowMorph(row ?? null, showReader);
     return;
   }
   // A kept snapshot reopens with no picker on every browser (ADR-0032 §2.6), one document at

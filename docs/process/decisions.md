@@ -147,6 +147,7 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-60](decisions/design.md) | Reading zoom stays uncapped on laptops (the R25 proposal to hold the page near 900 px is declined) | In force | 2026-10-22 |
 | [DSN-61](decisions/design.md) | Find outranks the page facts (chunked, paused for a search), shows scan progress, one snippet per result | In force | 2026-10-22 |
 | [DSN-62](decisions/design.md) | Find shows where: lime hits that read on a light or a dark page (per-page multiply or screen, darker current hit), and hit ticks on the reader's scroll bar from one canvas | In force | 2026-10-22 |
+| [DSN-64](decisions/design.md) | Opening in light: no Read page is ever bare white (cached bitmap, else a soft quarter-scale render, else paper tone); behind `?open=light` a card's sheet grows on `glide` and the light pulses once per session | In force; flag | 2026-10-23 |
 
 ## Motion
 

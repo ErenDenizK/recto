@@ -117,6 +117,25 @@ describe('PageCanvas (exact)', () => {
   }, 30_000);
 });
 
+describe('PageCanvas (placeholder)', () => {
+  it('with nothing cached asks for a soft render first, then lands sharp without the veil', async () => {
+    // An empty cache for the page: earlier tests left their bitmaps in it.
+    getEngineService().invalidatePage(source, 0);
+    const spy = vi.spyOn(getEngineService(), 'renderPage');
+    try {
+      const { container } = render(<Sheet zoom={1.77} />);
+      const canvas = canvasOf(container);
+      await waitFor(() => expect(canvas.dataset.state).toBe('rendered'), { timeout: 20_000 });
+      const buckets = spy.mock.calls.map(([request]) => request.bucket);
+      expect(buckets[0]).toBeLessThan(expectedScale(1.77) * 0.5);
+      expect(buckets).toContain(expectedScale(1.77));
+      expect(canvas.dataset.soft).toBeUndefined();
+    } finally {
+      spy.mockRestore();
+    }
+  }, 30_000);
+});
+
 describe('PageCanvas (edits)', () => {
   it('an edit requests the repaint at once, not after the zoom debounce', async () => {
     const service = getEngineService();
