@@ -27,15 +27,19 @@ test('hold the number, scrub the rail, release: the page changes', async ({ page
   await page.mouse.down();
   await expect(rail(page)).toBeVisible();
   await expect(rail(page)).toHaveAttribute('aria-orientation', 'vertical');
-  const third = rail(page).getByRole('option', { name: 'Page 3 of 6' });
-  const at = await third.boundingBox();
-  if (!at) throw new Error('no cell');
-  await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2, { steps: 10 });
-  await expect(third).toHaveAttribute('aria-selected', 'true');
-  await expect(number(page)).toHaveText('3 / 6');
+  // A short rail (landscape) cannot show six pages at once and scrolls its track, so the page
+  // under the thumb is read from the rail rather than assumed from where a cell was at the hold.
+  const box2 = await rail(page).boundingBox();
+  if (!box2) throw new Error('no rail');
+  await page.mouse.move(box2.x + box2.width / 2, box2.y + box2.height * 0.75, { steps: 10 });
+  const picked = rail(page).getByRole('option', { selected: true });
+  await expect(picked).not.toHaveAccessibleName('Page 1 of 6');
+  const landed = /Page (\d+) of 6/.exec((await picked.getAttribute('aria-label')) ?? '')?.[1];
+  expect(landed).toBeDefined();
+  await expect(number(page)).toHaveText(`${landed} / 6`);
   await page.mouse.up();
   await expect(rail(page)).toHaveCount(0);
-  await expect(number(page)).toHaveText('3 / 6');
+  await expect(number(page)).toHaveText(`${landed} / 6`);
 });
 
 test('a tap on the number still opens Go to page', async ({ page }) => {
