@@ -151,6 +151,7 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-68](decisions/design.md) | Save a copy… also sits in the dock's More (second home recorded under DSN-46) | In force | 2026-10-23 |
 | [DSN-69](decisions/design.md) | The reading selection bar offers Highlight, as ADR-0029 §2.1 lists it (runs H over the selection) | In force | 2026-10-23 |
 | [DSN-65](decisions/design.md) | The find map: hit ticks that show a card (page, thumbnail, sentence) and jump on click or tap, a phone rail, and thumbnails in the Find results (`?findmap=1` for ticks and phone) | In force | 2026-10-23 |
+| [DSN-63](decisions/design.md) | The page strip: hold or slide on the page pill (phone: the capsule's number) opens a glass strip of every page, release jumps; a prototype behind `?strip=1` | Prototype; owner taste open | 2026-10-23 |
 
 ## Motion
 
