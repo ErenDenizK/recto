@@ -60,7 +60,9 @@ test('the outline panel shows the bookmarks and navigates Read mode', async ({ p
 test('?lang= overrides the language without persisting it', async ({ page }) => {
   await page.goto('./?lang=tr');
   await expect(
-    page.getByRole('heading', { name: 'PDF’leri okuyun, işaretleyin, imzalayın ve düzenleyin.' }),
+    page.getByRole('heading', {
+      name: 'PDF’leri okuyun, işaretleyin, imzalayın ve sayfalarını düzenleyin.',
+    }),
   ).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
   // The Library's launcher speaks Turkish.
@@ -82,13 +84,17 @@ test('the Language command switches at runtime and persists', async ({ page }) =
   await page.getByRole('option', { name: 'Türkçe' }).click();
 
   await expect(
-    page.getByRole('heading', { name: 'PDF’leri okuyun, işaretleyin, imzalayın ve düzenleyin.' }),
+    page.getByRole('heading', {
+      name: 'PDF’leri okuyun, işaretleyin, imzalayın ve sayfalarını düzenleyin.',
+    }),
   ).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
   // The explicit choice drops the override from the address and survives a reload.
   expect(new URL(page.url()).searchParams.has('lang')).toBe(false);
   await page.reload();
   await expect(
-    page.getByRole('heading', { name: 'PDF’leri okuyun, işaretleyin, imzalayın ve düzenleyin.' }),
+    page.getByRole('heading', {
+      name: 'PDF’leri okuyun, işaretleyin, imzalayın ve sayfalarını düzenleyin.',
+    }),
   ).toBeVisible();
 });

@@ -218,7 +218,9 @@ test('every precached file and every split surface opens offline (PF-17)', async
   // The Turkish locale and the compact edition load from the precache too.
   await page.goto('./?lang=tr');
   await expect(
-    page.getByRole('heading', { name: 'PDF’leri okuyun, işaretleyin, imzalayın ve düzenleyin.' }),
+    page.getByRole('heading', {
+      name: 'PDF’leri okuyun, işaretleyin, imzalayın ve sayfalarını düzenleyin.',
+    }),
   ).toBeVisible();
   await page.goto('./?edition=compact&lang=en');
   await expect(page.getByTestId('compact-library')).toBeVisible();
