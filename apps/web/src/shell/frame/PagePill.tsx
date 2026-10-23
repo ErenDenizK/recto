@@ -16,8 +16,10 @@
  *   percentage cross-fades (`pillParts`, `PillRoll.tsx`).
  * - **Opens** its menu (`PagePillMenu.tsx`, mounted by the band) on click, Enter or Space with focus on the first
  *   control; Mod+G opens it with Go to page focused and selected.
+ * - **Strip** (`?strip=1`, DSN-63): holding or sliding on it opens the page strip, whose scrub
+ *   the number follows; a tap still opens the menu.
  */
-import { type CSSProperties, useLayoutEffect, useRef } from 'react';
+import { type CSSProperties, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
 
 import { formatPercent, m } from '../../i18n';
 import { useUiStore } from '../../state/ui-store';
@@ -29,6 +31,13 @@ import { documentLabels } from '../../viewer/navigation';
 import { openPillMenu, useFrameStore } from './frame-store';
 import styles from './PagePill.module.css';
 import { Fade, Roll } from './PillRoll';
+import {
+  consumeStripClick,
+  holdForStrip,
+  keyForStrip,
+  stripEnabled,
+  stripPreview,
+} from './strip/strip-hold';
 
 /** The pill's text and name for page `current` (0-based) of `total` at `zoom`. */
 export function pillText(
@@ -104,6 +113,8 @@ export function PagePill() {
   const currentPage = useViewStore((s) => s.currentPage);
   const zoom = useUiStore((s) => s.zoom);
   const open = useFrameStore((s) => s.pillMenu !== null);
+  // The page the strip is scrubbing to, while it is open (DSN-63): the number rolls with it.
+  const scrub = useSyncExternalStore(stripPreview.subscribe, stripPreview.get);
   // Held by its trailing edge, the pill's left edge is wherever its text's width puts it
   // (x 1314.69): its width rounds so it rests on whole pixels (Q-2, V2 review item 16).
   const pillRef = useRef<HTMLButtonElement>(null);
@@ -117,7 +128,8 @@ export function PagePill() {
   const current = Math.min(currentPage, Math.max(0, total - 1));
   const labels = documentLabels(workspace, doc);
   const { name } = pillText(labels[current], current, total, zoom);
-  const parts = pillParts(labels[current], current, total, zoom);
+  const shown = scrub === null ? current : Math.min(scrub, total - 1);
+  const parts = pillParts(labels[shown], shown, total, zoom);
   return (
     <Surface
       as="button"
@@ -135,13 +147,18 @@ export function PagePill() {
       data-region="pill"
       data-band-item=""
       data-testid="page-pill"
+      data-strip={stripEnabled() ? '' : undefined}
       ref={pillRef}
       // The digit-count minimum as a property the stylesheet reads, so the whole-pixel minimum
       // (`snapToWholePixels`, inline) can sit over it and come off again.
       style={
         { '--pill-min': `calc(${pillMinChars(total, 4)}ch + 2 * var(--pill-pad))` } as CSSProperties
       }
-      onClick={() => openPillMenu('first')}
+      onPointerDown={(e) => holdForStrip(e, 'x')}
+      onKeyDown={(e) => keyForStrip(e, 'x')}
+      onClick={() => {
+        if (!consumeStripClick()) openPillMenu('first');
+      }}
     >
       {parts.map((part, i) =>
         part.kind === 'page' ? (

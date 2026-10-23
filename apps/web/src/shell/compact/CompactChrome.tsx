@@ -36,6 +36,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react';
 
 import { m } from '../../i18n';
@@ -70,6 +71,13 @@ import styles from './CompactChrome.module.css';
 import controls from './controls.module.css';
 import { startEditing, takeCapsuleSnapshot, useMark, usePrefetchMark } from './mark-host';
 import { openOverview } from './overview-host';
+import {
+  consumeStripClick,
+  holdForStrip,
+  keyForStrip,
+  stripEnabled,
+  stripPreview,
+} from '../frame/strip/strip-hold';
 import { CompactTopSplit } from './CompactTopSplit';
 import { topVariant } from './top-variant';
 
@@ -545,6 +553,8 @@ export function CompactCapsule({ doc }: { readonly doc: VirtualDocument }) {
 /** The capsule's reading content: Pages, "3 / 12" (Go to page) and Find. */
 function ReadingCapsule({ doc }: { readonly doc: VirtualDocument }) {
   const current = useViewStore((s) => s.currentPage);
+  // While the page strip's rail scrubs (DSN-63), the number is the page under the thumb.
+  const scrub = useSyncExternalStore(stripPreview.subscribe, stripPreview.get);
   const total = doc.pages.length;
   // Wide enough for the largest number, so scrolling never changes the capsule's width.
   const digits = String(total).length;
@@ -560,9 +570,14 @@ function ReadingCapsule({ doc }: { readonly doc: VirtualDocument }) {
         style={{ minWidth: `calc(${2 * digits + 3}ch + 28px)` }}
         aria-label={m.compact_page_button({ current: current + 1, total })}
         data-testid="compact-page-number"
-        onClick={() => openSheet('goto')}
+        data-strip={stripEnabled() ? '' : undefined}
+        onPointerDown={(e) => holdForStrip(e, 'y')}
+        onKeyDown={(e) => keyForStrip(e, 'y')}
+        onClick={() => {
+          if (!consumeStripClick()) openSheet('goto');
+        }}
       >
-        {current + 1} / {total}
+        {(scrub ?? current) + 1} / {total}
       </button>
       <button type="button" className={controls.text} onClick={openFind}>
         <Icon name="magnifying-glass" />
