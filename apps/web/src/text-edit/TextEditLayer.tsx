@@ -45,6 +45,7 @@ import { cssPointToUser, type PageFrame, rectToCss } from '../annotations/geomet
 import { penSession } from '../annotations/pen/ink-input';
 import { m } from '../i18n';
 import type { PageOverlayProps } from '../stage/page-overlays';
+import { useViewStore } from '../state/view-store';
 import { PageTarget as OnPage } from '../ui/PageTarget';
 import { Tooltip } from '../ui/Tooltip';
 import { HIT_LAYER_Z } from '../viewer/hit-order';
@@ -53,6 +54,11 @@ import { pageFrame } from '../viewer/page-frame';
 import { useToolStore } from '../viewer/tool-store';
 import { blockerLabel, blockerOfRun, caretOffset, focusReturnRun, runKey, wordAt } from './model';
 import { openRunEditor } from './paragraph-open';
+import {
+  prefetchParagraph,
+  textPrecomputeEnabled,
+  usePrecomputeParagraphs,
+} from './paragraph-precompute';
 import { usePageRevision, usePageRuns } from './runs';
 import styles from './TextEdit.module.css';
 import { TextEditor } from './TextEditor';
@@ -186,6 +192,11 @@ export function TextEditLayer(props: PageOverlayProps) {
   const runs = usePageRuns(located, sourceIndex, revision);
   const blocks = usePageParagraphs(located, sourceIndex, revision);
   const plan = runs !== null && blocks !== null ? keyboardPlan(runs, blocks) : null;
+  // The page in view pre-analyses its paragraphs ahead of a click (TXT-22, `?textpre=1`).
+  const inView = useViewStore((s) => s.currentPage === pageIndex);
+  // The layer stays mounted while the tool is disarmed (it renders nothing): the queue runs
+  // only while Edit text is armed on this page.
+  usePrecomputeParagraphs(located, sourceIndex, revision, blocks, active && inView);
   const focusReturn = useTextEditStore((s) =>
     s.focusReturn?.pageId === pageId ? s.focusReturn : null,
   );
@@ -274,10 +285,24 @@ export function TextEditLayer(props: PageOverlayProps) {
     });
   };
 
+  /** The pointer came over a run of a paragraph: its analysis is asked for now. */
+  const onPointerOver = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!textPrecomputeEnabled() || !plan || !(event.target instanceof Element)) return;
+    const key = event.target.closest('[data-run-key]')?.getAttribute('data-run-key');
+    if (!key) return;
+    for (const item of plan.items) {
+      if (item.kind === 'paragraph' && item.target.runs.some((run) => runKey(run) === key)) {
+        prefetchParagraph(item.target.block, revision);
+        return;
+      }
+    }
+  };
+
   return (
     <div
       ref={layerRef}
       className={styles.layer}
+      onPointerOver={onPointerOver}
       data-text-edit-layer={pageIndex}
       role="group"
       aria-label={m.text_edit_layer_label({ page: pageIndex + 1 })}
