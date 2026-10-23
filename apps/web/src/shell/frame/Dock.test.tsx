@@ -177,6 +177,8 @@ describe('dock', () => {
       .map((item) => item.textContent);
     expect(items[0]).toContain('Edit text');
     expect(items).toContain('All commands…');
+    // DSN-63: Save a copy is reachable from More, not only from the title menu.
+    expect(items.some((t) => t?.includes('Save a copy…'))).toBe(true);
     // Settings… joins with its command (registered by the settings host, not here).
     expect(items.at(-1)).toContain('Keyboard shortcuts');
     await userEvent.keyboard('{Escape}');
