@@ -148,6 +148,9 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-60](decisions/design.md) | Reading zoom stays uncapped on laptops (the R25 proposal to hold the page near 900 px is declined) | In force | 2026-10-22 |
 | [DSN-61](decisions/design.md) | Find outranks the page facts (chunked, paused for a search), shows scan progress, one snippet per result | In force | 2026-10-22 |
 | [DSN-62](decisions/design.md) | Find shows where: lime hits that read on a light or a dark page (per-page multiply or screen, darker current hit), and hit ticks on the reader's scroll bar from one canvas | In force | 2026-10-22 |
+| [DSN-68](decisions/design.md) | Save a copy… also sits in the dock's More (second home recorded under DSN-46) | In force | 2026-10-23 |
+| [DSN-69](decisions/design.md) | The reading selection bar offers Highlight, as ADR-0029 §2.1 lists it (runs H over the selection) | In force | 2026-10-23 |
+| [DSN-65](decisions/design.md) | The find map: hit ticks that show a card (page, thumbnail, sentence) and jump on click or tap, a phone rail, and thumbnails in the Find results (`?findmap=1` for ticks and phone) | In force | 2026-10-23 |
 
 ## Motion
 
@@ -225,6 +228,7 @@ Full rows: [`decisions/ink.md`](decisions/ink.md).
 | [INK-10](decisions/ink.md) | A zoom in the middle of a stroke spends its hold | Done | 2026-10-12 |
 | [INK-11](decisions/ink.md) | Before a pen is seen, every finger draws; the palm size rule needs a pen | In force | 2026-10-19 |
 | [INK-12](decisions/ink.md) | App shortcuts that work from inside a text field: an allowlist (Save, Save a copy, Settings, ⌘K, Find, Open; Epic 2) | In force | 2026-10-22 |
+| [INK-13](decisions/ink.md) | A phone that has never chosen a pen starts with the blue pen, which reads on light and dark pages | In force | 2026-10-23 |
 
 ## Editions
 
@@ -306,6 +310,7 @@ Full rows: [`decisions/text-editing.md`](decisions/text-editing.md).
 | [TXT-18](decisions/text-editing.md) | The mirror's clipboard, compositions and clicks do not depend on its DOM or the engine | In force | 2026-10-12 |
 | [TXT-19](decisions/text-editing.md) | A word wider than its line breaks inside itself, as CSS overflow-wrap: break-word does | In force | 2026-10-12 |
 | [TXT-20](decisions/text-editing.md) | The sample's feature page sends the reader through Edit text, never a double-click | In force | 2026-10-22 |
+| [TXT-21](decisions/text-editing.md) | Plain letters stand down after a double-click selection until a press or Esc (owner, console r25-dblclick-edit) | In force | 2026-10-23 |
 | [TXT-22](decisions/text-editing.md) | The page in view analyses its paragraphs ahead of a click, behind `?textpre=1` | In force behind the flag | 2026-10-23 |
 
 ## Redaction

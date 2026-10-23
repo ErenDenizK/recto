@@ -1,0 +1,21 @@
+/*
+ * A page thumbnail for Find (R26 concept 3; DSN-65): the box a page is fitted into and its sheet,
+ * the Pages list's (`ThumbnailList.module.css`) at a small size. Static, never blurred (Q-5).
+ */
+
+.slot {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.sheet {
+  position: relative;
+  display: block;
+  flex: none;
+  overflow: hidden;
+  background: var(--page-background);
+  box-shadow: var(--page-shadow);
+  border-radius: var(--radius-page);
+}

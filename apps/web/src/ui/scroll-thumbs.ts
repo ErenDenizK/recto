@@ -82,14 +82,51 @@ export function setScrollLabel(el: Element, label: ((scrollTop: number) => strin
 export interface ScrollTicks {
   readonly at: readonly number[];
   readonly current: number | null;
+  /**
+   * The find map (R26, DSN-65; `?findmap=1`): larger ticks, and where the reader has no stand-in
+   * bar (the phone) they ride the reader's own scroller on a rail wide enough for a finger.
+   */
+  readonly map?: boolean;
 }
 
+/** Where the ticks' canvas lies, CSS px: its left edge, the track's top and height, its width. */
+export interface TickGeometry {
+  readonly left: number;
+  readonly top: number;
+  readonly room: number;
+  readonly width: number;
+}
+
+/** A finger's extra width on the rail, left of the 14 px lane (coarse pointers, the map only). */
+const RAIL = 12;
+
+/** Draws a larger tick at a fraction of the track: width and height in CSS px. */
+/** `solid` is all lime inside a thin dark edge, with no dark core (the hovered tick). */
+export type TickMark = (at: number, width: number, height: number, solid?: boolean) => void;
+
 let ticks: ScrollTicks | null = null;
-let redrawTicks: (() => void) | null = null;
+let redrawTicks: ((force?: boolean) => void) | null = null;
+let ticksAt: TickGeometry | null = null;
+let painter: ((mark: TickMark) => void) | null = null;
+
+/**
+ * Takes over the marks over the ticks (the current hit's, and the find map's hovered one): it is
+ * handed `mark` on every draw, so the map can slide the current tick on a spring and mark the
+ * tick the pointer is on without any of that living here. `null` gives the plain current tick back.
+ */
+export function setTickPainter(next: ((mark: TickMark) => void) | null): void {
+  painter = next;
+  redrawTicks?.(true);
+}
+
+/** The ticks' canvas as last drawn, or `null` while it is hidden (the find map's hit-test). */
+export function tickGeometry(): TickGeometry | null {
+  return ticksAt;
+}
 
 /** Redraws the ticks where the reader's bar now is (its stand-in mounted, unmounted or moved). */
-export function refreshScrollTicks(): void {
-  redrawTicks?.();
+export function refreshScrollTicks(force = false): void {
+  redrawTicks?.(force);
 }
 
 /** Shows (or, with `null`, clears) hit ticks along the reader's bar. */
@@ -412,15 +449,18 @@ function start(): () => void {
   let tickKey = '';
   let drawn: ScrollTicks | null = null;
   const tickSize = new ResizeObserver(() => drawTicks());
-  const drawTicks = () => {
+  const drawTicks = (force = false) => {
+    // The reader's stand-in bar; the find map also rides the phone reader's own scroller.
     const proxy = ticks
-      ? document.querySelector<HTMLElement>('[data-scroll-proxy="vertical"]')
+      ? (document.querySelector<HTMLElement>('[data-scroll-proxy="vertical"]') ??
+        (ticks.map ? document.querySelector<HTMLElement>('[data-read-viewport]') : null))
       : null;
     const ctx = ticks && proxy ? canvas.getContext('2d') : null;
     if (!ticks || !proxy || !ctx || ticks.at.length === 0) {
       canvas.hidden = true;
       tickKey = '';
       drawn = null;
+      ticksAt = null;
       tickSize.disconnect();
       return;
     }
@@ -432,17 +472,19 @@ function start(): () => void {
     const room = Math.max(0, rect.height - before - after - 2 * END);
     const dpr = window.devicePixelRatio || 1;
     const px = Math.floor(room * dpr);
-    const left = style.direction === 'rtl' ? rect.left : rect.right - HIT;
+    const pad = ticks.map && matchMedia('(pointer: coarse)').matches ? RAIL : 0;
+    const left = (style.direction === 'rtl' ? rect.left : rect.right - HIT) - pad;
     const top = rect.top + before + END;
     const key = `${left}|${top}|${room}|${dpr}`;
-    if (px < 1 || (key === tickKey && drawn === ticks)) return;
+    if (px < 1 || (!force && key === tickKey && drawn === ticks)) return;
     tickKey = key;
     drawn = ticks;
+    ticksAt = { left, top, room: px / dpr, width: HIT + pad };
     canvas.hidden = false;
     canvas.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
-    canvas.style.width = `${HIT}px`;
+    canvas.style.width = `${HIT + pad}px`;
     canvas.style.height = `${px / dpr}px`;
-    canvas.width = Math.round(HIT * dpr);
+    canvas.width = Math.round((HIT + pad) * dpr);
     canvas.height = px;
     const tone = getComputedStyle(root);
     const ring = tone.getPropertyValue('--find-current-ring').trim();
@@ -451,10 +493,12 @@ function start(): () => void {
     // bounded number of rects.
     const rows = new Uint8Array(px);
     for (const f of ticks.at) rows[Math.min(px - 1, Math.max(0, Math.floor(f * px)))] = 1;
-    // In the thumb's own lane (4 px, 5 px in from the bar's end), under it.
-    const w = 4 * dpr;
-    const x = 5 * dpr;
-    const h = Math.max(2, Math.round(dpr * 2));
+    // In the thumb's own lane (4 px, 5 px in from the bar's end), under it; a little larger in
+    // the map, where the tick is something to point at (6 px, 3 px).
+    const big = ticks.map ? 1 : 0;
+    const w = (4 + 2 * big) * dpr;
+    const x = (5 - big + pad) * dpr;
+    const h = Math.max(2 + big, Math.round(dpr * (2 + big)));
     const runs: number[] = [];
     for (let r = 0; r < px; ) {
       if (!rows[r]) {
@@ -477,17 +521,20 @@ function start(): () => void {
     for (let i = 0; i < runs.length; i += 2) {
       ctx.fillRect(x, runs[i] as number, w, Math.max(h, runs[i + 1] as number));
     }
-    if (ticks.current !== null) {
-      // The current hit: wider and taller, dark with a lime edge (distinct from the rest).
-      const y = Math.min(px - 1, Math.max(0, Math.floor(ticks.current * px)));
-      const cw = 8 * dpr;
-      const ch = Math.round(4 * dpr);
-      const cx = x - 2 * dpr;
-      ctx.fillStyle = halo;
+    // The current hit, and the tick the pointer is on (the map): wider and taller, dark with a
+    // lime edge (distinct from the rest), centred on the lane.
+    const mark: TickMark = (at, width, height, solid) => {
+      const y = Math.min(px - 1, Math.max(0, Math.floor(at * px)));
+      const cw = width * dpr;
+      const ch = Math.round(height * dpr);
+      const cx = x + w / 2 - cw / 2;
+      ctx.fillStyle = solid ? ring : halo;
       ctx.fillRect(cx - edge, y - edge - dpr, cw + 2 * edge, ch + 2 * edge + 2 * dpr);
-      ctx.fillStyle = ring;
+      ctx.fillStyle = solid ? halo : ring;
       ctx.fillRect(cx, y - dpr, cw, ch + 2 * dpr);
-    }
+    };
+    if (painter) painter(mark);
+    else if (ticks.current !== null) mark(ticks.current, 8, 4);
   };
   redrawTicks = drawTicks;
   // The reader's bar moves only when it resizes (the observer) or the window does: no layout
@@ -508,6 +555,7 @@ function start(): () => void {
     tickSize.disconnect();
     window.removeEventListener('resize', tickResize);
     redrawTicks = null;
+    ticksAt = null;
     document.removeEventListener('pointerover', onOver);
     document.removeEventListener('pointermove', onMove);
     document.removeEventListener('pointerout', onOut);
