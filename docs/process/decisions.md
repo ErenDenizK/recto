@@ -147,8 +147,8 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-60](decisions/design.md) | Reading zoom stays uncapped on laptops (the R25 proposal to hold the page near 900 px is declined) | In force | 2026-10-22 |
 | [DSN-61](decisions/design.md) | Find outranks the page facts (chunked, paused for a search), shows scan progress, one snippet per result | In force | 2026-10-22 |
 | [DSN-62](decisions/design.md) | Find shows where: lime hits that read on a light or a dark page (per-page multiply or screen, darker current hit), and hit ticks on the reader's scroll bar from one canvas | In force | 2026-10-22 |
-| [DSN-63](decisions/design.md) | Save a copy… also sits in the dock's More (second home recorded under DSN-46) | In force | 2026-10-23 |
-| [DSN-64](decisions/design.md) | The reading selection bar offers Highlight, as ADR-0029 §2.1 lists it (runs H over the selection) | In force | 2026-10-23 |
+| [DSN-68](decisions/design.md) | Save a copy… also sits in the dock's More (second home recorded under DSN-46) | In force | 2026-10-23 |
+| [DSN-69](decisions/design.md) | The reading selection bar offers Highlight, as ADR-0029 §2.1 lists it (runs H over the selection) | In force | 2026-10-23 |
 
 ## Motion
 
