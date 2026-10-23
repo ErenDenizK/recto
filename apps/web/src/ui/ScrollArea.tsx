@@ -51,7 +51,7 @@ export function ScrollArea({
       <BaseScrollArea.Viewport
         ref={viewportRef}
         className={[styles.viewport, viewportClassName].filter(Boolean).join(' ')}
-        {...(label === undefined ? {} : { 'aria-label': label })}
+        {...(label === undefined ? {} : { role: 'region', 'aria-label': label })}
       >
         {children}
       </BaseScrollArea.Viewport>
