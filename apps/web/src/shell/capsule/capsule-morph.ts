@@ -46,6 +46,8 @@
  *   in flight keeps its spring, a piece mid-slide is stopped where it is drawn and slides on
  *   from there, and a leaving content asked back fades in from its present opacity; a content
  *   turned away before any of it showed is gone at once, so the one asked back never waits.
+ *   A content whose own size changes after the morph measured it (a group that loads late)
+ *   retargets the size from where it is drawn (MOT-18), so the springs never let go into a jump.
  * - **Reduced motion** (§7.5): no size travel and no slides; a change of content is the same
  *   fade through in `--duration-fast` (100 ms reduced): out in half of it, then in, all within
  *   150 ms (A-9); a change inside one content is instant.
@@ -55,7 +57,7 @@
  */
 import { animateStyle, type Motion, stopTransform } from '../../motion/animate';
 import { reducedMotion } from '../../motion/reduced-motion';
-import { settleTime, solve, springs, springToLinear } from '../../motion/springs';
+import { settleTime, solve, springEasing, springs } from '../../motion/springs';
 import { duration, EASE } from '../../motion/tokens';
 
 /** The attribute that names a piece of content across morphs. */
@@ -81,7 +83,7 @@ export const TRACE_OPACITY = 0.1;
 export const FLOW_SHARE = 0.18;
 export const FLOW_MAX_PX = 24;
 /** `smooth` as a CSS curve, for the flow's own keyframes (they wait for the part's turn). */
-const SMOOTH = springToLinear('smooth');
+const SMOOTH = springEasing('smooth');
 /** The share of `SMOOTH.duration` at which the curve is within 1 % of its end (A-10's settle). */
 const SMOOTH_SETTLE_SHARE = settleTime(springs.smooth, 0.01) / settleTime(springs.smooth, 0.001);
 /**
@@ -97,6 +99,28 @@ const FLOW_MIN_MS = 120;
 export function flowDuration(delay: number): number {
   const length = Math.min(SMOOTH.duration, (FLOW_SETTLED_BY_MS - delay) / SMOOTH_SETTLE_SHARE);
   return length < FLOW_MIN_MS ? 0 : Math.round(length);
+}
+
+/**
+ * Where a part's flow is and how fast it moves now (px, px/s along x): its keyframes are
+ * `smooth` from `translateX(dx)` to none, played over its own duration, so the position and
+ * velocity are the analytic spring's at the matching spring time.
+ */
+export function flowState(
+  flow: Animation,
+): { value: readonly number[]; velocity: readonly number[] } | undefined {
+  const effect = flow.effect as KeyframeEffect | null;
+  const from = effect?.getKeyframes()[0]?.transform;
+  const dx = typeof from === 'string' ? Number.parseFloat(from.replace(/^translateX\(/, '')) : NaN;
+  const timing = effect?.getComputedTiming();
+  const length = Number(timing?.duration ?? 0);
+  const local = Number(timing?.localTime ?? 0) - (timing?.delay ?? 0);
+  if (!Number.isFinite(dx) || length <= 0) return undefined;
+  if (local <= 0) return { value: [dx, 0], velocity: [0, 0] };
+  // The curve's duration in spring time; the flow plays it over `length`.
+  const scale = SMOOTH.duration / length;
+  const [x, v] = solve(springs.smooth, -1, 0, (Math.min(local, length) * scale) / 1000);
+  return { value: [-dx * x, 0], velocity: [local >= length ? 0 : -dx * v * scale, 0] };
 }
 
 /** The offset an arriving part starts at, toward the origin `offset` px from it. */
@@ -389,6 +413,12 @@ export class CapsuleMorph {
   private readonly fades = new Map<Element, { readonly fade: Animation; readonly end: number }>();
   /** The parts of a content that arrives part by part, so leaving can read how much shows. */
   private readonly parts = new WeakMap<Element, readonly HTMLElement[]>();
+  /** The content showing and the size the capsule rests at for it (`follow()`). */
+  private followed: {
+    readonly layer: HTMLElement;
+    size: { width: number; height: number };
+  } | null = null;
+  private observer: ResizeObserver | null = null;
 
   /** @param left called with a leaving content's key once it has faded out. */
   constructor(private readonly left: (key: string) => void) {}
@@ -455,6 +485,9 @@ export class CapsuleMorph {
 
   /** Stops everything where it is (unmount). */
   dispose(): void {
+    this.observer?.disconnect();
+    this.observer = null;
+    this.followed = null;
     this.width?.stop();
     this.height?.stop();
     this.width = null;
@@ -472,8 +505,14 @@ export class CapsuleMorph {
     return [...layer.querySelectorAll<HTMLElement>(`[${CAPSULE_ITEM}]`)].map((element) => {
       const was = before.items.get(element.getAttribute(CAPSULE_ITEM) ?? '');
       if (!was || (was.element !== element && was.look !== lookOf(element))) return { element };
-      for (const a of element.getAnimations()) if (a.id === FLOW) a.finish();
-      const prior = stopTransform(element);
+      // A part still flowing out of the piece pressed hands its speed to the slide (MOT-18).
+      let flowing: Planned['prior'];
+      for (const a of element.getAnimations()) {
+        if (a.id !== FLOW) continue;
+        flowing = flowState(a);
+        a.finish();
+      }
+      const prior = stopTransform(element) ?? flowing;
       return { element, was, prior, now: element.getBoundingClientRect() };
     });
   }
@@ -555,6 +594,7 @@ export class CapsuleMorph {
       (capsule.parentElement?.clientWidth ?? Number.POSITIVE_INFINITY) - 2 * CAPSULE_EDGE;
     const chrome = chromeOf(capsule);
     const to = restingSize(box, chrome, room);
+    this.follow(capsule, layer, to);
     this.width = this.spring(capsule, 'width', this.width, before.width, to.width);
     this.height = this.spring(capsule, 'height', this.height, before.height, to.height);
     // The layer is centred in the capsule, itself centred in the band, so the two share a
@@ -567,6 +607,45 @@ export class CapsuleMorph {
       centre: box.left + box.width / 2,
       pad: chrome.x / 2,
     };
+  }
+
+  /**
+   * Keeps the capsule on its content's size after the morph has measured it (MOT-18): a content
+   * that grows or shrinks on its own (a lazily loaded group, a chip's label changing) retargets
+   * the size springs from where they are drawn, with their velocity, or springs from the old
+   * resting size when they had come to rest, instead of the capsule jumping to its new size when
+   * the springs let go. Observed until the next content shows or the capsule unmounts.
+   */
+  private follow(
+    capsule: HTMLElement,
+    layer: HTMLElement,
+    size: { width: number; height: number },
+  ): void {
+    if (this.followed?.layer === layer) {
+      this.followed.size = size;
+      return;
+    }
+    this.observer?.disconnect();
+    this.observer = null;
+    this.followed = { layer, size };
+    if (typeof ResizeObserver !== 'function') return;
+    const observer = new ResizeObserver(() => {
+      const followed = this.followed;
+      if (followed?.layer !== layer || currentLayer(capsule) !== layer || reducedMotion()) return;
+      const box = layer.getBoundingClientRect();
+      const room =
+        (capsule.parentElement?.clientWidth ?? Number.POSITIVE_INFINITY) - 2 * CAPSULE_EDGE;
+      const to = restingSize(box, chromeOf(capsule), room);
+      const was = followed.size;
+      if (Math.abs(to.width - was.width) < STILL && Math.abs(to.height - was.height) < STILL) {
+        return;
+      }
+      followed.size = to;
+      this.width = this.spring(capsule, 'width', this.width, was.width, to.width);
+      this.height = this.spring(capsule, 'height', this.height, was.height, to.height);
+    });
+    observer.observe(layer);
+    this.observer = observer;
   }
 
   private spring(
