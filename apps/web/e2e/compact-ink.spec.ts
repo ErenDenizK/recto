@@ -120,7 +120,7 @@ const strokeAlong = (cdp: CDPSession, line: Area) =>
 
 /**
  * The share of the first page's bitmap inside `area` that is dark ink (`dark`) or a tint, a
- * strongly coloured pixel (`tint`).
+ * strongly coloured pixel (`tint`). `dark` is any inked pixel (the pen starts blue, INK-13).
  */
 async function pixelsIn(page: Page, area: Area, kind: 'dark' | 'tint'): Promise<number> {
   return page.locator('[data-page-index="0"]').evaluate(
@@ -162,7 +162,7 @@ async function pixelsIn(page: Page, area: Area, kind: 'dark' | 'tint'): Promise<
         const r = data[i] ?? 255;
         const g = data[i + 1] ?? 255;
         const b = data[i + 2] ?? 255;
-        if (k === 'dark' ? r + g + b < 300 : Math.max(r, g, b) - Math.min(r, g, b) > 70) hits++;
+        if (k === 'dark' ? r + g + b < 600 : Math.max(r, g, b) - Math.min(r, g, b) > 70) hits++;
       }
       return hits / (w * h);
     },

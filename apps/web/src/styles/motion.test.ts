@@ -8,7 +8,7 @@
  */
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { springs, springToLinear } from '../motion/springs';
+import { BEZIER_FALLBACK, springs, springToLinear } from '../motion/springs';
 import {
   DURATION_MS,
   ENTER_SCALE,
@@ -89,6 +89,19 @@ describe('motion.css (language.md §7)', () => {
       expect(ms(resolve(`--spring-${name}`)), name).toBe(springToLinear(name).duration);
       expect(SPRING_CSS_MS[name], name).toBe(springToLinear(name).duration);
     }
+  });
+
+  it('gives engines without linear() the cubic-bezier stand-ins of springs.ts (§5, MOT-18)', () => {
+    const fallback = declarations(
+      /@supports not \(transition-timing-function: linear\(0, 1\)\)\s*\{\s*:root\s*\{([^{}]*)\}/.exec(
+        source,
+      )?.[1] ?? '',
+    );
+    expect(Object.fromEntries(fallback)).toEqual({
+      '--ease-spring': BEZIER_FALLBACK.spring,
+      '--ease-spring-fling': BEZIER_FALLBACK.fling,
+      '--ease-spring-pop': BEZIER_FALLBACK.pop,
+    });
   });
 
   it('gives script the same values (motion/tokens.ts)', () => {

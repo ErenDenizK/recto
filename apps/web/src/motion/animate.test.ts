@@ -292,6 +292,23 @@ describe('animateStyle: elements on Web Animations', () => {
     expect(getComputedStyle(el).transform).toBe('none');
   });
 
+  it('starts a turn on the frame it is asked in, never a pending frame later (MOT-18)', async () => {
+    const el = box();
+    const motion = animateStyle(el, 'transform', [0, 0], [0, 600], { spring: 'glide' });
+    // A start from rest keeps the browser's start, with whatever else starts beside it.
+    const [first] = el.getAnimations();
+    await first?.ready;
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    motion.retarget([0, 0]);
+    const [second] = el.getAnimations();
+    // A pending animation would draw its time 0, the turn's position, once more on the next
+    // frame: a frame standing still at every turn.
+    expect(second?.pending).toBe(false);
+    expect(second?.startTime).toBe(Number(document.timeline.currentTime));
+    await motion.finished;
+    expect(getComputedStyle(el).transform).toBe('none');
+  });
+
   it('stop() leaves the value it stopped at inline, for the gesture taking over', async () => {
     const el = box();
     const motion = animateStyle(el, 'transform', [0, 200], [0, 0], { spring: 'smooth' });

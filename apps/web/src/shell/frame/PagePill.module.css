@@ -13,7 +13,7 @@
   --pill-pad: var(--space-4);
   position: absolute;
   right: var(--piece-inset);
-  bottom: calc(var(--band-offset, 16px) + (var(--bar-h) - var(--pill-h)) / 2);
+  bottom: calc(var(--band-offset, 16px) + (var(--bar-h) - var(--pill-h)) / 2 + var(--rise));
   box-sizing: border-box;
   min-width: var(--pill-min, auto);
   height: var(--pill-h);
@@ -26,8 +26,11 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   pointer-events: auto;
-  /* The rise and the Focus step move it by transform only (Q-7), whole pixels at rest (Q-2). */
-  transform: translateY(calc(var(--away-y, 0px) - var(--rise)));
+  /* The Focus step moves it by transform (Q-7), whole pixels at rest (Q-2). The rise is its
+     resting place (`bottom`, never transitioned): it applies at once and the pill springs into
+     it by `translate` from where it was drawn (pill-rise.ts, MOT-18), so nothing lays out per
+     frame and the Focus step's transition is never touched. */
+  transform: translateY(var(--away-y, 0px));
   transition:
     transform var(--spring-quick) var(--ease-spring),
     opacity var(--duration-fast) var(--ease-out),
