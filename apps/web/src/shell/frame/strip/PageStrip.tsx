@@ -63,10 +63,28 @@ interface Layout {
     readonly height: number;
   };
   readonly preview: { readonly w: number; readonly h: number };
+  /** The vertical room the rail's preview stays in (the phone's rail axis). */
+  readonly bounds: { readonly top: number; readonly bottom: number };
   readonly trigger: DOMRect;
 }
 
 const GAP = 12;
+/** The strip clears the dock row beside the pill: the pill's top, then this much (px). */
+const DOCK_CLEARANCE = 24;
+
+/** A compact-chrome edge: `max(env(safe-area-inset-<side>), 12px)`, resolved to px. */
+function edge(side: 'top' | 'right' | 'bottom'): number {
+  const probe = document.createElement('div');
+  probe.style.cssText = `position:fixed;visibility:hidden;pointer-events:none;${side}:max(env(safe-area-inset-${side}, 0px), 12px)`;
+  document.body.append(probe);
+  const rect = probe.getBoundingClientRect();
+  probe.remove();
+  return side === 'top'
+    ? rect.top
+    : side === 'right'
+      ? innerWidth - rect.left
+      : innerHeight - rect.top;
+}
 
 function layoutFor(init: StripInit, count: number): Layout {
   const trigger = init.trigger.getBoundingClientRect();
@@ -78,7 +96,7 @@ function layoutFor(init: StripInit, count: number): Layout {
     const width = length + 32;
     const height = 14 + thumb.h + 30;
     const left = trigger.right - width;
-    const top = trigger.top - GAP - height;
+    const top = trigger.top - DOCK_CLEARANCE - height;
     return {
       axis: 'x',
       pitch,
@@ -86,25 +104,29 @@ function layoutFor(init: StripInit, count: number): Layout {
       length,
       innerStart: left + 16,
       box: { left, top, width, height },
-      preview: { w: 200, h: 290 },
+      preview: { w: 200, h: 270 },
+      bounds: { top: 0, bottom: innerHeight },
       trigger,
     };
   }
   const pitch = 64;
   const thumb = { w: 40, h: 56 };
-  const top = 72;
-  const max = innerHeight - top - 120 - 16;
-  const length = Math.max(pitch, Math.min(count * pitch, max));
-  const width = 52;
-  const left = innerWidth - 6 - width;
+  // Below the top bar and above the capsule, on the chrome's 12 px edge (safe areas kept).
+  const bar = document.querySelector('[data-testid="compact-top-bar"]')?.getBoundingClientRect();
+  const top = Math.max(edge('top'), (bar?.bottom ?? 0) + 8);
+  const bottom = Math.min(innerHeight - edge('bottom'), trigger.top - GAP);
+  const length = Math.max(pitch, Math.min(count * pitch, bottom - top - 28));
+  const width = 68;
+  const left = innerWidth - edge('right') - width;
   return {
     axis: 'y',
     pitch,
     thumb,
     length,
-    innerStart: top + 8,
-    box: { left, top, width, height: length + 16 },
-    preview: { w: 150, h: 216 },
+    innerStart: top + 14,
+    box: { left, top, width, height: length + 28 },
+    preview: { w: 150, h: 200 },
+    bounds: { top, bottom: top + length + 28 },
     trigger,
   };
 }
@@ -275,7 +297,7 @@ function paintOpen(strip: HTMLElement, preview: HTMLElement, layout: Layout, p: 
   const left = sliceLeft * q;
   const right = (box.width - sliceLeft - sliceW) * q;
   const bottom = (box.height - sliceTop - sliceH) * q;
-  strip.style.clipPath = `inset(${top}px ${right}px ${bottom}px ${left}px round ${28 - 8 * q}px)`;
+  strip.style.clipPath = `inset(${top}px ${right}px ${bottom}px ${left}px round var(--radius-2xl))`;
 }
 
 interface ViewProps {
@@ -372,10 +394,10 @@ function StripView({ layout, doc, ws, labels, current, subscribe, get, onGone }:
         ? [clamp(centre - preview.w / 2, 8, innerWidth - preview.w - 8), box.top - GAP - preview.h]
         : [
             box.left - GAP - preview.w,
-            clamp(centre - preview.h / 2, 72, innerHeight - 120 - preview.h),
+            clamp(centre - preview.h / 2, layout.bounds.top, layout.bounds.bottom - preview.h),
           ];
     const write = ([x = 0, y = 0]: readonly number[]) => {
-      el.style.transform = `translate(${x}px, ${y}px)`;
+      el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
     };
     if (!previewAt.current) {
       write(to);
@@ -435,7 +457,7 @@ function StripView({ layout, doc, ws, labels, current, subscribe, get, onGone }:
 
   const active = doc.pages[index];
   const activeSize = active ? displaySize(ws, active) : undefined;
-  const room = { w: layout.preview.w - 16, h: layout.preview.h - 16 - 28 };
+  const room = { w: layout.preview.w - 16, h: layout.preview.h - 16 };
   const big = activeSize ? fitInBox(activeSize, room.w, room.h) : undefined;
   const { box } = layout;
   return (
@@ -457,7 +479,7 @@ function StripView({ layout, doc, ws, labels, current, subscribe, get, onGone }:
           style={
             axis === 'x'
               ? { left: 8, width: length + 16, top: 0, bottom: 0 }
-              : { top: 0, height: length + 16, left: 0, right: 0 }
+              : { top: 6, height: length + 16, left: 0, right: 0 }
           }
         >
           <div
@@ -494,7 +516,6 @@ function StripView({ layout, doc, ws, labels, current, subscribe, get, onGone }:
             />
           </div>
         ) : null}
-        <span className={styles.previewNum}>{labels[index] ?? index + 1}</span>
       </div>
     </>
   );

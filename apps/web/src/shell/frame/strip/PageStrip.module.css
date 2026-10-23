@@ -15,7 +15,7 @@
   composes: mat mat-menu s12 from global;
   position: absolute;
   box-sizing: border-box;
-  border-radius: 28px;
+  border-radius: var(--radius-2xl);
   outline: none;
   pointer-events: auto;
   touch-action: none;
@@ -23,12 +23,9 @@
   -webkit-user-select: none;
 }
 
-.strip[data-axis='y'] {
-  border-radius: 26px;
-}
-
 /* The ends of the run clip the track, along the strip only: a raised thumb and its ring may
-   leave the cross-axis edge of the viewport (they stay inside the glass). */
+   leave the cross-axis edge of the viewport; the phone's rail is wide enough (68 px, no sideways
+   lift) and padded along its caps (14 px) that the rings stay inside the glass. */
 .viewport {
   position: absolute;
   overflow-x: clip;
@@ -78,7 +75,8 @@
 .thumb {
   position: relative;
   flex: none;
-  background: var(--page-background);
+  /* A bare sheet while its bitmap is on the way, never a white flash on a dark page. */
+  background: var(--surface-sunken);
   box-shadow: var(--page-shadow);
   border-radius: var(--radius-page);
   overflow: hidden;
@@ -95,7 +93,7 @@
 }
 
 .strip[data-axis='y'] .cell[data-target] .thumb {
-  transform: translateX(-8px);
+  transform: none;
 }
 
 .cell[data-current]:not([data-target]) .thumb {
@@ -109,7 +107,7 @@
   right: 0;
   bottom: 6px;
   text-align: center;
-  font-size: 12px;
+  font-size: var(--type-footnote);
   line-height: 1;
   font-weight: 500;
   color: var(--text-secondary);
@@ -132,11 +130,10 @@
   top: 0;
   box-sizing: border-box;
   display: grid;
-  grid-template-rows: 1fr auto;
   justify-items: center;
   align-items: center;
-  padding: 8px 8px 6px;
-  border-radius: 14px;
+  padding: 8px;
+  border-radius: var(--radius-lg);
   background: var(--surface-raised);
   box-shadow: var(--e5);
   pointer-events: none;
@@ -144,17 +141,8 @@
 
 .big {
   position: relative;
-  background: var(--page-background);
+  background: var(--surface-sunken);
   box-shadow: var(--page-shadow);
   border-radius: var(--radius-page);
   overflow: hidden;
-}
-
-.previewNum {
-  height: 22px;
-  line-height: 22px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
 }
