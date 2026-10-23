@@ -147,6 +147,7 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-60](decisions/design.md) | Reading zoom stays uncapped on laptops (the R25 proposal to hold the page near 900 px is declined) | In force | 2026-10-22 |
 | [DSN-61](decisions/design.md) | Find outranks the page facts (chunked, paused for a search), shows scan progress, one snippet per result | In force | 2026-10-22 |
 | [DSN-62](decisions/design.md) | Find shows where: lime hits that read on a light or a dark page (per-page multiply or screen, darker current hit), and hit ticks on the reader's scroll bar from one canvas | In force | 2026-10-22 |
+| [DSN-67](decisions/design.md) | The save receipt: Save a copy's sizes show at once (approximate, then exact); behind `?receipt=1` the changed pages, size bars, the page's flight to the tab and the "never left this device" toast | Size fix in force; receipt behind `?receipt=1` | 2026-10-23 |
 
 ## Motion
 

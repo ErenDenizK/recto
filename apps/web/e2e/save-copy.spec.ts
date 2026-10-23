@@ -511,3 +511,74 @@ test.describe('the form in English and Turkish (A-21, 07 §4.5, Q-7)', () => {
     });
   }
 });
+
+/**
+ * The save receipt (DSN-67). The size fix needs no flag: the sheet names a size at once, said as
+ * approximate until the copy is read. `?receipt=1` adds the changed pages with their size bars,
+ * the page's flight into the tab and the toast that the copy never left this device. Runs on
+ * Chromium and the tablet: both take the download path here (no Web Share, no picker).
+ */
+test.describe('the save receipt (DSN-67)', () => {
+  test.skip(({ browserName }) => browserName !== 'chromium', 'Downloads are read on Chromium');
+
+  test.beforeEach(async ({ page }) => {
+    await useDownloadPath(page);
+    await useFileInputPicker(page);
+    await page.addInitScript(() => {
+      // The tablet would share; these tests save a download.
+      Object.defineProperty(navigator, 'canShare', { value: undefined, configurable: true });
+    });
+  });
+
+  const sameSize = /^Same as original, (about )?[\d.]+ (KB|MB)/;
+
+  test('sizes within a second, the changed pages and bars, the flight and the toast', async ({
+    page,
+  }) => {
+    await page.goto('./?lang=en&receipt=1');
+    await expect(page.getByTestId('app-shell')).toBeVisible();
+    await openFixtures(page, ['rotated-pages.pdf']);
+
+    // Edit: rotate the first page in the Pages grid.
+    await page.keyboard.press('3');
+    const cell = page.locator('[role="gridcell"][data-page-id]').first();
+    await expect(cell).toBeVisible();
+    await cell.click({ modifiers: ['ControlOrMeta'] });
+    await page.keyboard.press('Shift+R');
+
+    const sheet = await openSaveCopy(page);
+    // A size is named within a second of the sheet showing: the exact one, or "about".
+    await expect(sheet.getByRole('radio', { name: sameSize })).toBeVisible({ timeout: 1000 });
+    await expect(sheet.getByTestId('save-receipt')).toBeVisible();
+    await expect(sheet.getByTestId('save-receipt-page').first()).toHaveAttribute(
+      'data-kinds',
+      'rotated',
+    );
+    await expect(sheet.getByTestId('save-receipt-before-value')).toHaveText(/^[\d.]+ (KB|MB)$/);
+    // The copy's bar settles on the exact size, no longer "≈".
+    await expect(sheet.getByTestId('save-receipt-after-value')).toHaveText(/^[\d.]+ (KB|MB)$/, {
+      timeout: 30_000,
+    });
+
+    const { download } = await downloadCopy(page, sheet);
+    const name = download.suggestedFilename().replace('.', '\\.');
+    await expect(page.getByTestId('save-copy-toast').last()).toContainText(
+      new RegExp(`^Written on this device, never left it · ${name} · [\\d.]+ (KB|B)`),
+    );
+    // The page has landed in the tab and is gone.
+    await expect(page.locator('[data-receipt-flyer]')).toHaveCount(0);
+  });
+
+  test('without the flag the sheet has no receipt and the toast keeps its words', async ({
+    page,
+  }) => {
+    await page.goto('./?lang=en&receipt=0');
+    await expect(page.getByTestId('app-shell')).toBeVisible();
+    await openFixtures(page, ['simple-text.pdf']);
+    const sheet = await openSaveCopy(page);
+    await expect(sheet.getByRole('radio', { name: sameSize })).toBeVisible({ timeout: 1000 });
+    await expect(sheet.getByTestId('save-receipt')).toHaveCount(0);
+    await downloadCopy(page, sheet);
+    await expect(page.getByTestId('save-copy-toast').last()).toContainText(/^Downloaded /);
+  });
+});

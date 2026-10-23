@@ -54,6 +54,10 @@ import {
   useSaveCopyResults,
 } from './export-store';
 import { exportFileName } from './filename';
+import { receiptOn } from './receipt-flag';
+import { quickSize } from './size-quick';
+import { SaveReceipt } from './SaveReceipt';
+import { flyPageToTab } from './save-flight';
 import { CopyDetails, WhatGetsSmaller } from './SaveCopyPages';
 import {
   Group,
@@ -189,6 +193,8 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
       ? sizeEstimates(analysis.analysis, draft.custom, presetSettings, estimateCompression)
       : null;
   const compression = sizeSettings(draft.size, draft.custom, presetSettings);
+  // Until the copy is assembled and read, an approximate size from the files and the edits.
+  const quick = doc ? quickSize(ws, doc) : null;
 
   // Images.
   const imagePages = parsePageRange(draft.images.range, pageCount);
@@ -368,6 +374,7 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
       shareCopy(output).then(
         (shared) => {
           if (!shared) return;
+          if (receiptOn()) flyPageToTab();
           closeSaveCopy();
           showCopyDone(documentId, output.summary, 'shared');
         },
@@ -380,6 +387,8 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
     pickTarget(requestFile(asked)).then(
       (target) => {
         if (target === 'cancelled') return;
+        // The page goes into the tab as the sheet closes; the toast follows the job (DSN-67).
+        if (receiptOn()) flyPageToTab();
         closeSaveCopy();
         void runSaveCopy(documentId, asked, target, before);
       },
@@ -440,7 +449,8 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
       subtitle={copySubtitle(
         exportFileName(title),
         pageCount,
-        analysis?.state === 'ready' ? analysis.analysis.totalBytes : null,
+        analysis?.state === 'ready' ? analysis.analysis.totalBytes : quick,
+        analysis?.state !== 'ready',
       )}
       restored={restored}
       back={page === 'form' ? undefined : () => setPage('form')}
@@ -497,11 +507,24 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
           </Group>
           {draft.format === 'pdf' ? (
             <div className={styles.section} key="pdf" data-testid="save-copy-pdf">
+              {receiptOn() ? (
+                <SaveReceipt
+                  ws={ws}
+                  doc={doc}
+                  after={
+                    draft.size === 'same'
+                      ? (estimates?.same ?? quick)
+                      : (estimates?.[draft.size].after ?? null)
+                  }
+                  approximate={draft.size !== 'same' || estimates === null}
+                />
+              ) : null}
               <SizeSection
                 draft={draft}
                 patch={patch}
                 analysis={analysis}
                 estimates={estimates}
+                quick={quick}
                 groupRef={sizeRef}
                 onWhatSmaller={() => setPage('smaller')}
               />
