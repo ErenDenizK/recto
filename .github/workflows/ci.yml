@@ -45,6 +45,6 @@ jobs:
           E2E_SKIP_BUILD: '1'
       - name: The failing test
         if: always()
-        run: pnpm --filter @pdf-editor/web exec playwright test e2e/pen.spec.ts:739 --project=firefox --workers=1 --retries=0 --repeat-each=12
+        run: pnpm --filter @pdf-editor/web exec playwright test e2e/pen.spec.ts -g "a stroke under the bar draws" --project=firefox --workers=1 --retries=0 --repeat-each=12
         env:
           E2E_SKIP_BUILD: '1'
