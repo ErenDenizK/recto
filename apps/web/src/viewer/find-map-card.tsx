@@ -87,13 +87,20 @@ function ensure(): { host: HTMLDivElement; panel: HTMLDivElement; root: Root } {
 }
 
 /** Shows the card for `tick`, its right edge `GAP` left of `rail` and centred on `y`. */
-export function showCard(tick: TickPage, rail: number, y: number): void {
+export function showCard(tick: TickPage, rail: number, y: number, rtl = false): void {
   const el = ensure();
-  const x = Math.max(MARGIN, rail - GAP - CARD.width);
-  const top = Math.min(
-    Math.max(MARGIN, y - CARD.height / 2),
-    Math.max(MARGIN, window.innerHeight - CARD.height - MARGIN),
-  );
+  // Clear of the rail by GAP; its trailing edge no further out than the page pill's, and its
+  // height inside the free rectangle (`--free-*`, DSN-65).
+  const root = getComputedStyle(document.documentElement);
+  const free = (side: string) => Number.parseFloat(root.getPropertyValue(`--free-${side}`)) || 0;
+  const inset = Number.parseFloat(root.getPropertyValue('--piece-inset')) || 0;
+  const near = rtl ? rail + GAP : rail - GAP - CARD.width;
+  const x = rtl
+    ? Math.max(free('left') + inset, near)
+    : Math.max(MARGIN, Math.min(near, window.innerWidth - free('right') - inset - CARD.width));
+  const low = free('top') + MARGIN;
+  const high = window.innerHeight - free('bottom') - CARD.height - MARGIN;
+  const top = Math.min(Math.max(low, y - CARD.height / 2), Math.max(low, high));
   const place = (value: number) => {
     at = { x, y: value };
     el.host.style.transform = `translate(${x}px, ${value}px)`;

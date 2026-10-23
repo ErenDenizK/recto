@@ -53,7 +53,7 @@ let slide: Motion | null = null;
 let hovered: number | null = null;
 
 const paint = (mark: TickMark) => {
-  if (hovered !== null) mark(hovered, 10, 4);
+  if (hovered !== null) mark(hovered, 10, 4, true);
   if (shown !== null) mark(shown, 8, 4);
 };
 
@@ -90,13 +90,17 @@ function setHover(at: number | null): void {
   refreshScrollTicks(true);
 }
 
+/** Right-to-left: the card sits on the rail's other side. */
+const rtl = () => getComputedStyle(document.documentElement).direction === 'rtl';
+
 const fractionOf = (g: TickGeometry, y: number) => (y - g.top) / g.room;
 
 function show(tick: TickPage, g: TickGeometry): void {
   wanted = tick.pageIndex;
   setHover(tick.at);
   const draw = () => {
-    if (wanted === tick.pageIndex) card?.showCard(tick, g.left + g.width, g.top + tick.at * g.room);
+    if (wanted === tick.pageIndex)
+      card?.showCard(tick, rtl() ? g.left + g.width : g.left, g.top + tick.at * g.room, rtl());
   };
   if (card) draw();
   else {

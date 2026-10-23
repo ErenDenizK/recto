@@ -101,7 +101,8 @@ export interface TickGeometry {
 const RAIL = 12;
 
 /** Draws a larger tick at a fraction of the track: width and height in CSS px. */
-export type TickMark = (at: number, width: number, height: number) => void;
+/** `solid` is all lime inside a thin dark edge, with no dark core (the hovered tick). */
+export type TickMark = (at: number, width: number, height: number, solid?: boolean) => void;
 
 let ticks: ScrollTicks | null = null;
 let redrawTicks: ((force?: boolean) => void) | null = null;
@@ -522,14 +523,14 @@ function start(): () => void {
     }
     // The current hit, and the tick the pointer is on (the map): wider and taller, dark with a
     // lime edge (distinct from the rest), centred on the lane.
-    const mark: TickMark = (at, width, height) => {
+    const mark: TickMark = (at, width, height, solid) => {
       const y = Math.min(px - 1, Math.max(0, Math.floor(at * px)));
       const cw = width * dpr;
       const ch = Math.round(height * dpr);
       const cx = x + w / 2 - cw / 2;
-      ctx.fillStyle = halo;
+      ctx.fillStyle = solid ? ring : halo;
       ctx.fillRect(cx - edge, y - edge - dpr, cw + 2 * edge, ch + 2 * edge + 2 * dpr);
-      ctx.fillStyle = ring;
+      ctx.fillStyle = solid ? halo : ring;
       ctx.fillRect(cx, y - dpr, cw, ch + 2 * dpr);
     };
     if (painter) painter(mark);
