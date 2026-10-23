@@ -91,6 +91,22 @@ describe('the rows (F5 §5)', () => {
     }
   });
 
+  it('gives every dimmed row its reason (DSN-52): Revert and Interleave on a fresh single document', () => {
+    const rows = () => shownTitleMenu(commandRegistry.list()).flatMap((s) => s.rows);
+    const row = (key: string) => rows().find((r) => r.key === key);
+    expect(row('file.revert')).toMatchObject({
+      enabled: false,
+      reason: 'Nothing changed since opening',
+    });
+    expect(row('section.interleave')).toMatchObject({
+      enabled: false,
+      reason: 'Open a second document to interleave',
+    });
+    for (const r of rows()) {
+      if (!r.enabled) expect(r.reason, r.key).toBeTruthy();
+    }
+  });
+
   it('shows each command once: Save and Close only in the narrow bar (DSN-47)', () => {
     const keys = (narrow: boolean) =>
       shownTitleMenu(commandRegistry.list(), { narrow }).flatMap((s) => s.rows.map((r) => r.key));
