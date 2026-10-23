@@ -22,13 +22,16 @@
 .page {
   position: relative;
   flex: none;
-  /* Paper, not stark white, while the bitmap renders (DSN-64); a resized page shows its own. */
-  background: color-mix(in srgb, var(--page-background) 88%, #7a6a4a);
+  background: var(--page-background);
   box-shadow: var(--page-shadow);
 }
 
-.page[data-resized] {
-  background: var(--page-background);
+/* Paper, not stark white, only while the bitmap is still to come (DSN-64: nothing yet, a soft
+   thumbnail, or the sharp one fading in); a rendered sheet keeps its exact colour. */
+.page:not([data-resized]):has(
+  canvas[data-layer='page']:is([data-state='placeholder'], [data-soft], [data-arriving])
+) {
+  background: var(--page-paper);
 }
 
 /* Layers registered through stage/page-overlays.tsx sit over the canvas. */

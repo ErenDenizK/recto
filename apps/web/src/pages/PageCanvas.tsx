@@ -74,7 +74,7 @@ import {
 import { duration, EASE } from '../motion/tokens';
 import styles from './PageCanvas.module.css';
 import { crossFadeFrom, fadeIn } from './paint-fade';
-import { isSoft, SOFT_FRACTION } from './placeholder';
+import { isSoft, SOFT_FRACTION, SOFT_OPACITY } from './placeholder';
 
 /** A thumbnail's repaint after an edit waits for idle time at most this long (ms). */
 export const IDLE_REPAINT_TIMEOUT_MS = 1000;
@@ -336,8 +336,11 @@ export function PageCanvas({
 
     const controller = new AbortController();
     let cancelled = false;
-    // Nothing cached to show for a page in view: a soft render of it comes first (DSN-64).
+    // Nothing cached to show for a page in view: a soft render of it comes first (DSN-64). Not
+    // before anything has rendered at all: the first bitmap of a session is the first page's own
+    // (`first-page-bitmap`, V1-P5, V1-P6).
     if (
+      service.cacheStats.entries > 0 &&
       !preview &&
       exact &&
       priority > RENDER_PRIORITY.offscreen &&
@@ -357,7 +360,7 @@ export function PageCanvas({
           if (cancelled || !result.ok || canvas.dataset.state !== 'placeholder') return;
           if (draw(canvas, result.value, 'preview')) {
             canvas.dataset.soft = '';
-            fadeIn(canvas);
+            fadeIn(canvas, SOFT_OPACITY);
           }
         });
     }
@@ -393,10 +396,22 @@ export function PageCanvas({
               const ghost = sharpening ? crossFadeFrom(canvas) : undefined;
               if (paint()) {
                 painted(result.value);
-                if (was === 'placeholder') fadeIn(canvas);
+                if (was === 'placeholder') {
+                  // The sheet keeps its paper tone while the bitmap fades in over it.
+                  canvas.dataset.arriving = '';
+                  const fade = fadeIn(canvas);
+                  const done = () => delete canvas.dataset.arriving;
+                  if (fade) void fade.finished.then(done, done);
+                  else done();
+                }
               } else ghost?.cancel();
             }
-          } else if (result.error.code !== 'aborted' && canvas.dataset.state === 'placeholder') {
+          } else if (
+            result.error.code !== 'aborted' &&
+            (canvas.dataset.state === 'placeholder' || 'soft' in canvas.dataset)
+          ) {
+            // A page whose soft render showed but whose sharp one failed is an error too.
+            delete canvas.dataset.soft;
             canvas.dataset.state = 'error';
           }
         });

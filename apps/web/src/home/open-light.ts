@@ -16,7 +16,7 @@ let pulsed = false;
 const LANDING_WAIT_MS = 2500;
 
 const HALO =
-  'position:absolute;inset:0;pointer-events:none;border-radius:2px;opacity:0;' +
+  'position:absolute;inset:0;pointer-events:none;border-radius:var(--radius-page);opacity:0;' +
   'box-shadow:0 0 0 1px color-mix(in srgb,var(--aura-lime) 70%,transparent),' +
   '0 0 44px 8px color-mix(in srgb,var(--aura-lime) 55%,transparent);';
 

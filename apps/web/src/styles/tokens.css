@@ -159,6 +159,9 @@
      and search hits, wash-strong 0.45 for the current hit. --select-ink is the glyph on it
      (the check badge, 4.93:1). */
   --page-background: #ffffff;
+  /* The sheet of a page whose bitmap is still to come (DSN-64): the page colour 12 % toward a
+     warm grey, so a dimmed page gets its dimmed paper. */
+  --page-paper: color-mix(in srgb, var(--page-background) 88%, #7a6a4a);
   /* What composites the page bitmaps: none, or Dim pages' brightness (§5; MOB-17). */
   --page-filter: none;
   --page-shadow: 0 0 0 1px var(--border-hairline);
@@ -509,6 +512,7 @@
   /* Layer 2: content (language.md §1.5): never themed. The page keeps a hairline, ink 0.14,
      and no shadow. */
   --page-background: #ffffff;
+  --page-paper: color-mix(in srgb, var(--page-background) 88%, #7a6a4a);
   --page-filter: none;
   --page-shadow: 0 0 0 1px rgb(var(--ink-rgb) / 0.14);
   --page-under: #e9eaee;
@@ -808,6 +812,7 @@
     /* Layer 2: content (language.md §1.5): never themed. The page keeps a hairline, ink 0.14,
        and no shadow. */
     --page-background: #ffffff;
+    --page-paper: color-mix(in srgb, var(--page-background) 88%, #7a6a4a);
     --page-filter: none;
     --page-shadow: 0 0 0 1px rgb(var(--ink-rgb) / 0.14);
     --page-under: #e9eaee;

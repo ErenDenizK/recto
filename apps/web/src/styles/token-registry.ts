@@ -69,6 +69,7 @@ export const SEMANTIC_TOKENS: readonly string[] = [
   '--accent-ring',
   // Content.
   '--page-background',
+  '--page-paper',
   '--page-filter',
   '--page-shadow',
   '--page-under',

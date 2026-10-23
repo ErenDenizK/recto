@@ -14,14 +14,15 @@
  * (§7.5, A-9).
  */
 import { duration, EASE } from '../motion/tokens';
+import { SOFT_OPACITY } from './placeholder';
 
 /** Larger previews are swapped without a copy (it would cost a second large bitmap). */
 const MAX_GHOST_PIXELS = 16 * 1024 * 1024;
 
-/** Fades `el` in from transparent (module header). */
-export function fadeIn(el: HTMLElement): Animation | undefined {
+/** Fades `el` in from transparent to `to` (module header; 1, or a soft bitmap's veil). */
+export function fadeIn(el: HTMLElement, to = 1): Animation | undefined {
   if (typeof el.animate !== 'function') return undefined;
-  return el.animate([{ opacity: 0 }, { opacity: 1 }], {
+  return el.animate([{ opacity: 0 }, { opacity: to }], {
     duration: duration('base'),
     easing: EASE.out,
   });
@@ -50,11 +51,15 @@ export function crossFadeFrom(canvas: HTMLCanvasElement): Animation | undefined 
   ghost.dataset.ghost = '';
   ghost.setAttribute('aria-hidden', 'true');
   canvas.after(ghost);
-  const fade = ghost.animate([{ opacity: 1 }, { opacity: 0 }], {
-    duration: duration('base'),
-    easing: EASE.out,
-    fill: 'forwards',
-  });
+  // From what shows now: a soft bitmap's veil, not full strength.
+  const fade = ghost.animate(
+    [{ opacity: 'soft' in canvas.dataset ? SOFT_OPACITY : 1 }, { opacity: 0 }],
+    {
+      duration: duration('base'),
+      easing: EASE.out,
+      fill: 'forwards',
+    },
+  );
   fade.onfinish = fade.oncancel = () => ghost.remove();
   return fade;
 }

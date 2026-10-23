@@ -178,6 +178,28 @@ test.describe('opening in light (?open=light)', () => {
     }
   });
 
+  test('under reduced motion the card opens with no grow and no pulse', async ({
+    page,
+    browserName,
+  }) => {
+    test.skip(browserName !== 'chromium', 'Script-built file picks are Chromium-only');
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('./?lang=en&open=light');
+    await openFixtures(page, ['simple-text.pdf']);
+    await page.getByRole('button', { name: 'Library' }).click();
+    await page.getByRole('listbox', { name: 'Files' }).getByRole('option').first().click();
+    await expect(page.locator(`[data-page-index="0"] ${PAGE_CANVAS}`)).toHaveAttribute(
+      'data-state',
+      'rendered',
+    );
+    await page.waitForTimeout(1500);
+    const seen = await page.evaluate(
+      () => (window as unknown as { __open: { halos: number; widths: number[] } }).__open,
+    );
+    expect(seen.halos).toBe(0);
+    expect(seen.widths.length).toBe(0);
+  });
+
   test('without the flag the card opens as before: no clone, no pulse', async ({
     page,
     browserName,

@@ -118,17 +118,35 @@ describe('PageCanvas (exact)', () => {
 });
 
 describe('PageCanvas (placeholder)', () => {
-  it('with nothing cached asks for a soft render first, then lands sharp without the veil', async () => {
-    // An empty cache for the page: earlier tests left their bitmaps in it.
-    getEngineService().invalidatePage(source, 0);
-    const spy = vi.spyOn(getEngineService(), 'renderPage');
+  it('with nothing cached asks for a soft render first, shows it veiled, then lands sharp', async () => {
+    const service = getEngineService();
+    // An empty cache for the page, but not for the session (the first bitmap is its own).
+    service.invalidatePage(source, 0);
+    const other = await service.renderPage({
+      sourceId: source,
+      index: 1,
+      rotation: 0,
+      bucket: 1,
+      priority: RENDER_PRIORITY.offscreen,
+    });
+    expect(other.ok).toBe(true);
+    const spy = vi.spyOn(service, 'renderPage');
     try {
       const { container } = render(<Sheet zoom={1.77} />);
       const canvas = canvasOf(container);
+      // Was the veil on before the sharp bitmap landed?
+      let veiledFirst = false;
+      const watch = new MutationObserver(() => {
+        if (canvas.dataset.state === 'rendered') watch.disconnect();
+        else if (canvas.dataset.soft !== undefined) veiledFirst = true;
+      });
+      watch.observe(canvas, { attributes: true });
       await waitFor(() => expect(canvas.dataset.state).toBe('rendered'), { timeout: 20_000 });
+      watch.disconnect();
       const buckets = spy.mock.calls.map(([request]) => request.bucket);
       expect(buckets[0]).toBeLessThan(expectedScale(1.77) * 0.5);
       expect(buckets).toContain(expectedScale(1.77));
+      expect(veiledFirst).toBe(true);
       expect(canvas.dataset.soft).toBeUndefined();
     } finally {
       spy.mockRestore();

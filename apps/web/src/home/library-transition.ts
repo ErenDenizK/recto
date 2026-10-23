@@ -204,16 +204,27 @@ export function flipSheet(clone: HTMLElement, from: DOMRect, to: HTMLElement): v
   void move.finished.then(() => fade.finished).finally(() => clone.remove());
 }
 
-/** Where the card's sheet starts, fixed over the window, so the view change shows no gap. */
-function placeAt(clone: HTMLElement, box: DOMRect): void {
-  clone.style.cssText =
-    `position:fixed;left:${box.left}px;top:${box.top}px;width:${box.width}px;` +
-    `height:${box.height}px;margin:0;z-index:10;pointer-events:none;transform-origin:0 0;`;
-  for (const canvas of clone.querySelectorAll('canvas')) {
+/** Lays `el` fixed over the window at `box`, scaling from its top-left corner. */
+function placeAt(el: HTMLElement, box: DOMRect): void {
+  Object.assign(el.style, {
+    position: 'fixed',
+    left: `${box.left}px`,
+    top: `${box.top}px`,
+    width: `${box.width}px`,
+    height: `${box.height}px`,
+    margin: '0',
+    zIndex: '10',
+    pointerEvents: 'none',
+    transformOrigin: '0 0',
+  });
+  for (const canvas of el.querySelectorAll('canvas')) {
     canvas.style.width = '100%';
     canvas.style.height = '100%';
   }
 }
+
+/** The view the open leaves: a Library (full edition) or the phone's. */
+const LIBRARY_VIEW = '[data-testid="home"], [data-testid="compact-library"]';
 
 /**
  * `?open=light` (R26 concept 2, DSN-64): `clone`, a copy of the leaving sheet laid over the
@@ -229,40 +240,65 @@ function growInto(
   clone: HTMLElement,
   apply: () => void,
   arriving: () => HTMLElement | null,
+  leavingView: Element | null,
 ): void {
   placeAt(clone, from);
   clone.dataset.openGrow = '';
   document.body.append(clone);
+  // The Library goes as a copy that fades under the flying sheet, not as a cut.
+  const view = leavingView instanceof HTMLElement ? leavingView : null;
+  const veil = view ? ghostOf(view) : null;
+  if (view && veil) {
+    placeAt(veil, view.getBoundingClientRect());
+    veil.style.zIndex = '9';
+    document.body.append(veil);
+  }
   apply();
   let tries = 0;
   const land = () => {
     const to = arriving();
     if (!to) {
       if (++tries < 30) requestAnimationFrame(land);
-      else clone.remove();
+      else {
+        clone.remove();
+        veil?.remove();
+      }
       return;
     }
     const end = to.getBoundingClientRect();
     placeAt(clone, end);
     const [dx, dy] = [from.left - end.left, from.top - end.top];
     const [sx, sy] = [from.width / end.width, from.height / end.height];
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      clone.remove();
+      veil?.remove();
+      to.style.opacity = '';
+      void lightPulse(to);
+    };
     const at = (p: number) => {
       clone.style.transform =
         `translate(${dx * (1 - p)}px,${dy * (1 - p)}px) ` +
         `scale(${lerp(sx, 1, p)},${lerp(sy, 1, p)})`;
-      const dissolve = clamp((p - 0.5) / 0.45, 0, 1);
+      // The page stays out of sight until the sizes are within a few per cent, then the two
+      // dissolve; the Library's copy is gone by the middle of the flight.
+      const dissolve = clamp((p - 0.85) / 0.12, 0, 1);
       clone.style.opacity = String(1 - dissolve);
       to.style.opacity = String(dissolve);
+      if (veil) veil.style.opacity = String(1 - clamp(p / 0.5, 0, 1));
     };
     at(0);
-    void animate(0, 1, { spring: 'glide', onUpdate: at }).finished.then(() => {
-      clone.remove();
-      to.style.opacity = '';
-      void lightPulse(to);
-    });
+    void animate(0, 1, { spring: 'glide', onUpdate: at }).finished.then(finish);
+    // A safety: a spring that never reports rest must not leave the page hidden.
+    setTimeout(finish, SAFETY_MS);
   };
   requestAnimationFrame(land);
 }
+
+/** The longest the grow may hold the page out of sight (ms), whatever the spring reports. */
+const SAFETY_MS = 3000;
 
 /** The reader's page once it is laid out (at most about half a second of frames), else null. */
 function pageWhenLaidOut(): Promise<HTMLElement | null> {
@@ -294,7 +330,13 @@ function paperSheet(): HTMLElement {
 export function openRowMorph(row: HTMLElement | null, open: () => void): void {
   const glyph = row?.firstElementChild;
   if (glyph instanceof HTMLElement && !reducedMotion()) {
-    growInto(glyph.getBoundingClientRect(), paperSheet(), open, readerPage);
+    growInto(
+      glyph.getBoundingClientRect(),
+      paperSheet(),
+      open,
+      readerPage,
+      row?.closest(LIBRARY_VIEW) ?? null,
+    );
     return;
   }
   open();
@@ -316,7 +358,13 @@ function change(
   const reduced = reducedMotion();
   // `?open=light` (DSN-64): the card's thumbnail grows on a spring and the light answers.
   if (direction === 'open' && leaving && !reduced && homeFlagEnabled(OPEN_LIGHT_FLAG)) {
-    growInto(leaving.getBoundingClientRect(), ghostOf(leaving), apply, arriving);
+    growInto(
+      leaving.getBoundingClientRect(),
+      ghostOf(leaving),
+      apply,
+      arriving,
+      leaving.closest(LIBRARY_VIEW),
+    );
     return;
   }
   if (typeof document.startViewTransition !== 'function') {

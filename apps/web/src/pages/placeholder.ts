@@ -11,6 +11,9 @@
 /** The scale of the soft render, as a fraction of the page's exact scale. */
 export const SOFT_FRACTION = 0.25;
 
+/** The veil over a soft bitmap (`PageCanvas.module.css` `.canvas[data-soft]`, kept in step). */
+export const SOFT_OPACITY = 0.88;
+
 /** A bitmap below half the asked scale is a placeholder, shown under a veil until it sharpens. */
 export function isSoft(shown: number, asked: number): boolean {
   return shown < asked * 0.5;
