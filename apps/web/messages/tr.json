@@ -3368,5 +3368,6 @@
   "recents_sort_size": "Boyut",
   "recents_search_placeholder": "Ara",
   "recents_search_none": "“{query}” ile eşleşen son dosya yok.",
+  "margin_map_label": "Kenardaki içindekiler",
   "findmap_matches": "{count} eşleşme"
 }

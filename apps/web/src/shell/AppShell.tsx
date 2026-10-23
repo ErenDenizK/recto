@@ -23,7 +23,7 @@
  * drops, the appearance settings on the root element, Focus and hide on scroll, and the hosts
  * of sheets and dialogs.
  */
-import { type DragEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { type DragEvent, lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 import { BatchSheetHost } from '../batch/BatchSheetHost';
 import { openDocuments } from '../commands/app-commands';
@@ -72,6 +72,7 @@ import { setSidebarOverlay, showOverlaySidebar, useFrameStore } from './frame/fr
 import { useHideOnScroll } from './frame/hide-on-scroll';
 import { ReplacePopover } from './frame/ReplacePopover';
 import { UnlockPopover } from './frame/UnlockPopover';
+import { marginMapEnabled } from './frame/margin/margin-map-flag';
 import { useRegionCycling } from './frame/regions';
 import { useSizeClass } from './frame/size-class';
 import { SoftEdge } from './frame/SoftEdge';
@@ -81,6 +82,8 @@ import { PasswordDialog } from './PasswordDialog';
 import { ShortcutOverlayHost } from './ShortcutOverlayHost';
 import { Sidebar } from './sidebar/Sidebar';
 import { Stage } from './Stage';
+
+const MarginMap = lazy(() => import('./frame/margin/MarginMap'));
 
 export function AppShell() {
   useShortcuts();
@@ -214,6 +217,12 @@ export function AppShell() {
         ) : null}
         <Stage dragging={dragging} />
         {view === 'page' ? <SoftEdge /> : null}
+        {/* The margin map (DSN-72, `?margin=1`): its code loads only when the flag is on. */}
+        {view === 'page' && !compact && marginMapEnabled() ? (
+          <Suspense fallback={null}>
+            <MarginMap />
+          </Suspense>
+        ) : null}
         {/* Compact windows keep the sidebar in the phone Pages sheet (M10, ADR-0033): none here;
             compact-height lays it over the stage (▤ in the bar, spec 01.7). */}
         {frame.tight || (frame.size === 'compact' && !frame.short) ? null : (
