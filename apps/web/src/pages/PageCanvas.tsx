@@ -336,6 +336,16 @@ export function PageCanvas({
 
     const controller = new AbortController();
     let cancelled = false;
+    const render = (atBucket: number) =>
+      service.renderPage({
+        sourceId,
+        index,
+        rotation,
+        bucket: atBucket,
+        priority,
+        signal: controller.signal,
+        ...(bare ? { bare } : {}),
+      });
     // Nothing cached to show for a page in view: a soft render of it comes first (DSN-64). Not
     // before anything has rendered at all: the first bitmap of a session is the first page's own
     // (`first-page-bitmap`, V1-P5, V1-P6).
@@ -346,68 +356,48 @@ export function PageCanvas({
       priority > RENDER_PRIORITY.offscreen &&
       canvas.dataset.state === 'placeholder'
     ) {
-      void service
-        .renderPage({
-          sourceId,
-          index,
-          rotation,
-          bucket: chooseBucket(bucket * SOFT_FRACTION, widthPt, heightPt),
-          priority,
-          signal: controller.signal,
-          ...(bare ? { bare } : {}),
-        })
-        .then((result) => {
-          if (cancelled || !result.ok || canvas.dataset.state !== 'placeholder') return;
-          if (draw(canvas, result.value, 'preview')) {
-            canvas.dataset.soft = '';
-            fadeIn(canvas, SOFT_OPACITY);
-          }
-        });
+      void render(chooseBucket(bucket * SOFT_FRACTION, widthPt, heightPt)).then((result) => {
+        if (cancelled || !result.ok || canvas.dataset.state !== 'placeholder') return;
+        if (draw(canvas, result.value, 'preview')) {
+          canvas.dataset.soft = '';
+          fadeIn(canvas, SOFT_OPACITY);
+        }
+      });
     }
     const request = (fade = false) => {
       requestedBucketRef.current = bucket;
-      void service
-        .renderPage({
-          sourceId,
-          index,
-          rotation,
-          bucket,
-          priority,
-          signal: controller.signal,
-          ...(bare ? { bare } : {}),
-        })
-        .then((result) => {
-          if (cancelled) return;
-          if (result.ok) {
-            // Arrival (motion-2026-10 viewer.md §3): content fades in over the bare sheet, and
-            // a sharper render cross-fades over the stretched preview of a zoom; new content
-            // (fresh ink) swaps in the same frame for the dry ink hand-over. Hide markup
-            // cross-fades the whole page (frame.md §8).
-            const was = canvas.dataset.state;
-            const paint = () => draw(canvas, result.value, 'rendered');
-            if (fade) {
-              if (crossFade(canvas, paint)) painted(result.value);
-            } else {
-              const sharpening =
-                was === 'preview' &&
-                !revised &&
-                !bareChanged &&
-                canvas.dataset.bucket !== String(result.value.bucket);
-              const ghost = sharpening ? crossFadeFrom(canvas) : undefined;
-              if (paint()) {
-                painted(result.value);
-                if (was === 'placeholder') paperFade(canvas);
-              } else ghost?.cancel();
-            }
-          } else if (
-            result.error.code !== 'aborted' &&
-            (canvas.dataset.state === 'placeholder' || 'soft' in canvas.dataset)
-          ) {
-            // A page whose soft render showed but whose sharp one failed is an error too.
-            delete canvas.dataset.soft;
-            canvas.dataset.state = 'error';
+      void render(bucket).then((result) => {
+        if (cancelled) return;
+        if (result.ok) {
+          // Arrival (motion-2026-10 viewer.md §3): content fades in over the bare sheet, and
+          // a sharper render cross-fades over the stretched preview of a zoom; new content
+          // (fresh ink) swaps in the same frame for the dry ink hand-over. Hide markup
+          // cross-fades the whole page (frame.md §8).
+          const was = canvas.dataset.state;
+          const paint = () => draw(canvas, result.value, 'rendered');
+          if (fade) {
+            if (crossFade(canvas, paint)) painted(result.value);
+          } else {
+            const sharpening =
+              was === 'preview' &&
+              !revised &&
+              !bareChanged &&
+              canvas.dataset.bucket !== String(result.value.bucket);
+            const ghost = sharpening ? crossFadeFrom(canvas) : undefined;
+            if (paint()) {
+              painted(result.value);
+              if (was === 'placeholder') paperFade(canvas);
+            } else ghost?.cancel();
           }
-        });
+        } else if (
+          result.error.code !== 'aborted' &&
+          (canvas.dataset.state === 'placeholder' || 'soft' in canvas.dataset)
+        ) {
+          // A page whose soft render showed but whose sharp one failed is an error too.
+          delete canvas.dataset.soft;
+          canvas.dataset.state = 'error';
+        }
+      });
     };
     // Debounce only a scale change while something is shown (zooming); an edit repaints by
     // the deferral policy (a thumbnail when idle); the first paint is immediate. Thumbnails

@@ -28,6 +28,17 @@ export function fadeIn(el: HTMLElement, to = 1): Animation | undefined {
   });
 }
 
+/** Fades `el` from opacity `from` to nothing and removes it. */
+function fadeAway(el: HTMLElement, from: number): Animation {
+  const fade = el.animate([{ opacity: from }, { opacity: 0 }], {
+    duration: duration('base'),
+    easing: EASE.out,
+    fill: 'forwards',
+  });
+  fade.onfinish = fade.oncancel = () => el.remove();
+  return fade;
+}
+
 /**
  * Lays a copy of what `canvas` shows now above it and fades the copy out, so whatever is drawn
  * into `canvas` next shows through as it goes (module header). Returns the fade, if one ran.
@@ -52,16 +63,7 @@ export function crossFadeFrom(canvas: HTMLCanvasElement): Animation | undefined 
   ghost.setAttribute('aria-hidden', 'true');
   canvas.after(ghost);
   // From what shows now: a soft bitmap's veil, not full strength.
-  const fade = ghost.animate(
-    [{ opacity: 'soft' in canvas.dataset ? SOFT_OPACITY : 1 }, { opacity: 0 }],
-    {
-      duration: duration('base'),
-      easing: EASE.out,
-      fill: 'forwards',
-    },
-  );
-  fade.onfinish = fade.oncancel = () => ghost.remove();
-  return fade;
+  return fadeAway(ghost, 'soft' in canvas.dataset ? SOFT_OPACITY : 1);
 }
 
 /**
@@ -81,11 +83,5 @@ export function paperFade(canvas: HTMLCanvasElement): Animation | undefined {
     pointerEvents: 'none',
   });
   canvas.after(veil);
-  const fade = veil.animate([{ opacity: 1 }, { opacity: 0 }], {
-    duration: duration('base'),
-    easing: EASE.out,
-    fill: 'forwards',
-  });
-  fade.onfinish = fade.oncancel = () => veil.remove();
-  return fade;
+  return fadeAway(veil, 1);
 }
