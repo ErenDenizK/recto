@@ -6,7 +6,7 @@ import type { DocumentId, VirtualPage, Workspace } from '@pdf-editor/document-mo
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { homeCards } from '../home/home-model';
-import { parseKeptRecord } from './format';
+import { parseKeptRecord, parseSessionManifest } from './format';
 import {
   progressOf,
   type ResumePoint,
@@ -104,8 +104,61 @@ describe('the snapshot place', () => {
     expect(parseKeptRecord(record(undefined)).place.resume).toBeUndefined();
   });
 
-  it('refuses a damaged place instead of dropping it silently', () => {
-    expect(() => parseKeptRecord(record({ zoom: 'big', fit: null, offset: 1 }))).toThrow();
+  it.each([
+    ['a text zoom', { zoom: 'big', fit: null, offset: 1 }],
+    ['a null zoom', { zoom: null, fit: null, offset: 1 }],
+    ['a NaN offset', { zoom: 1, fit: null, offset: Number.NaN }],
+    ['a text offset', { zoom: 1, fit: null, offset: 'x' }],
+    ['an unknown fit', { zoom: 1, fit: 'wide', offset: 1 }],
+    ['not an object', 'x'],
+  ])('drops a damaged view hint (%s) and keeps the rest of the kept record', (_, resume) => {
+    const read = parseKeptRecord(record(resume));
+    expect(read.place.resume).toBeUndefined();
+    expect(read.place.page).toBe(3);
+    expect(read.title).toBe('T');
+  });
+
+  it('drops a damaged view hint from a session manifest without losing the documents', () => {
+    const manifest = {
+      format: 1,
+      kind: 'session',
+      tabId: 't1',
+      savedAt: 1,
+      destination: 'document',
+      zoom: 1,
+      fitMode: null,
+      history: {},
+      documents: [
+        {
+          id: 'a',
+          page: 2,
+          view: 'read',
+          mode: 'read',
+          changed: false,
+          resume: { zoom: 1, offset: 'x' },
+        },
+        {
+          id: 'b',
+          page: 1,
+          view: 'read',
+          mode: 'read',
+          changed: true,
+          resume: { zoom: 2, fit: null, offset: 5 },
+        },
+      ],
+      sources: [],
+      blobs: [],
+    };
+    const read = parseSessionManifest(manifest);
+    expect(read.documents).toHaveLength(2);
+    expect(read.documents[0]?.resume).toBeUndefined();
+    expect(read.documents[0]?.page).toBe(2);
+    expect(read.documents[1]?.resume).toEqual({ zoom: 2, fit: null, offset: 5 });
+  });
+
+  it('shows a seeded page past the end as the last page', () => {
+    seedResume(a, { page: 8, resume: { zoom: 1, fit: null, offset: 0 } }, 8);
+    expect(useResumeStore.getState().points[a]?.page).toBe(7);
   });
 });
 

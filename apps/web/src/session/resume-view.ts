@@ -158,11 +158,18 @@ export function settleResume(id: DocumentId, point: ResumePoint): void {
   let frames = 0;
   let stable = 0;
   let handedBack = false;
+  // The page view is held transparent until the scroll has settled, so the jump is never seen.
+  let held: HTMLElement | null = null;
+  const release = () => {
+    if (held) held.style.opacity = '';
+    held = null;
+  };
   const hand = () => {
     handedBack = true;
   };
   for (const type of HAND_BACK) window.addEventListener(type, hand, { capture: true, once: true });
   const done = () => {
+    release();
     for (const type of HAND_BACK) window.removeEventListener(type, hand, { capture: true });
   };
   const tick = () => {
@@ -172,9 +179,15 @@ export function settleResume(id: DocumentId, point: ResumePoint): void {
     }
     const doc = useWorkspaceStore.getState().workspace.documents[id];
     const el = viewport();
-    const page = doc?.pages[Math.min(point.page, (doc?.pages.length ?? 1) - 1)];
+    const index = Math.min(Math.max(0, point.page), Math.max(0, (doc?.pages.length ?? 1) - 1));
+    const page = doc?.pages[index];
     if (doc && el && page) {
-      const offset = offsetOf(point.page);
+      if (held !== el) {
+        release();
+        held = el;
+        el.style.opacity = '0';
+      }
+      const offset = offsetOf(index);
       if (offset === undefined) {
         // The page is not drawn yet: ask the page view for it (it drops the request if unmounted).
         if (frames % 8 === 0) {

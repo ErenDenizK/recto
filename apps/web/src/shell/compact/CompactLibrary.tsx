@@ -49,6 +49,7 @@ import { announce } from '../announcer';
 import { PRODUCT_NAME } from '../about/build-info';
 import { CompactSheets } from './CompactSheets';
 import { isOpenEntry, openRecentEntry, pickAndOpen, trySample } from './compact-actions';
+import { useContinueShown } from '../../home/continue-shown';
 import { resumeCompact } from './compact-resume';
 import { openSheet, useCompactStore } from './compact-store';
 import controls from './controls.module.css';
@@ -70,6 +71,8 @@ export function CompactLibrary() {
   const opening = useCompactStore((s) => s.opening);
   const openError = useCompactStore((s) => s.openError);
   const firstRun = useRecentsStore((s) => s.loaded && s.entries.length === 0);
+  // While Continue shows it holds the one lime and Open PDF is the secondary piece (DSN-66).
+  const continued = useContinueShown((s) => s.shown);
   return (
     <main
       className={styles.library}
@@ -110,7 +113,7 @@ export function CompactLibrary() {
         <div className={styles.dockPiece} data-testid="compact-library-dock">
           <button
             type="button"
-            className={`${controls.primary} ${styles.open}`}
+            className={`${continued ? controls.text : controls.primary} ${styles.open}`}
             aria-busy={opening || undefined}
             disabled={opening}
             onClick={() => void pickAndOpen()}
@@ -132,7 +135,7 @@ function ContinueSlot() {
   if (!homeFlagEnabled(HOME_CONTINUE_FLAG)) return null;
   return (
     <Suspense fallback={null}>
-      <ContinueCard variant="phone" onResume={resumeCompact} />
+      <ContinueCard variant="phone" onResume={(id, point) => void resumeCompact(id, point)} />
     </Suspense>
   );
 }
@@ -206,13 +209,19 @@ function Recents() {
   const loaded = useRecentsStore((s) => s.loaded);
   const access = useRecentsStore((s) => s.access);
   const note = useRecentsStore((s) => s.note);
+  const continued = useContinueShown((s) => s.shown);
   const locale = getLocale();
   // Relative times ("5 minutes ago") are read once per visit.
   const [now] = useState(() => Date.now());
   if (!loaded) return null;
   const empty = entries.length === 0;
-  // The open document first, then the rest newest first.
-  const ordered = [...entries.filter(isOpenEntry), ...entries.filter((e) => !isOpenEntry(e))];
+  // The open document first, then the rest newest first; while Continue shows the open one, its
+  // "Reading now" row would say it twice (DSN-66).
+  const ordered = continued
+    ? entries.filter((e) => !isOpenEntry(e))
+    : [...entries.filter(isOpenEntry), ...entries.filter((e) => !isOpenEntry(e))];
+  // Nothing else to list: the section would be an empty card under its title.
+  if (continued && ordered.length === 0) return null;
   return (
     <section
       className={styles.recents}

@@ -175,10 +175,12 @@ export function LibraryCard({
         {card.progress === undefined ? null : (
           <ProgressBar value={card.progress} className={styles.progress} />
         )}
-        <span className={styles.state} aria-hidden="true">
-          {locked ? <Icon name={locked.icon} className={styles.stateIcon} /> : null}
-          <span className={styles.stateText}>{state.join(' · ')}</span>
-        </span>
+        {state.length === 0 ? null : (
+          <span className={styles.state} aria-hidden="true">
+            {locked ? <Icon name={locked.icon} className={styles.stateIcon} /> : null}
+            <span className={styles.stateText}>{state.join(' · ')}</span>
+          </span>
+        )}
       </div>
     </div>
   );

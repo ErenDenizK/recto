@@ -196,17 +196,28 @@ function readPlace(value: unknown, path: string): DocumentPlace {
       ? {}
       : { writtenOver: bool(o.writtenOver, `${path}.writtenOver`) }),
     ...(o.lock === undefined ? {} : { lock: oneOf(o.lock, LOCK_REASONS, `${path}.lock`) }),
-    ...(o.resume === undefined ? {} : { resume: readResume(o.resume, `${path}.resume`) }),
+    ...readResume(o.resume, `${path}.resume`),
   };
 }
 
-function readResume(value: unknown, path: string): NonNullable<DocumentPlace['resume']> {
-  const o = obj(value, path);
-  return {
-    zoom: num(o.zoom, `${path}.zoom`),
-    fit: o.fit === null ? null : oneOf(o.fit, ['width', 'page'] as const, `${path}.fit`),
-    offset: num(o.offset, `${path}.offset`),
-  };
+/**
+ * The view hint of a place (`DocumentPlace.resume`, DSN-66). It only says where to scroll, so a
+ * damaged one is dropped and the rest of the place is kept: a hint must never cost the session.
+ */
+function readResume(value: unknown, path: string): Pick<DocumentPlace, 'resume'> {
+  if (value === undefined) return {};
+  try {
+    const o = obj(value, path);
+    return {
+      resume: {
+        zoom: num(o.zoom, `${path}.zoom`),
+        fit: o.fit === null ? null : oneOf(o.fit, ['width', 'page'] as const, `${path}.fit`),
+        offset: num(o.offset, `${path}.offset`),
+      },
+    };
+  } catch {
+    return {};
+  }
 }
 
 function readSourceFacts(value: unknown, path: string): SourceFacts {

@@ -8,28 +8,28 @@ import type { DocumentId } from '@pdf-editor/document-model';
 
 import { HOME_CONTINUE_FLAG, homeFlagEnabled } from '../../home/home-flags';
 import type { ResumePoint } from '../../session/resume';
-import {
-  applyResumeZoom,
-  captureResume,
-  setResumeZoom,
-  settleResume,
-} from '../../session/resume-view';
 import { setZoom, showReader, useCompactStore } from './compact-store';
 
+/** The DOM half loads on demand (EDN-10), as on the full edition. */
+const view = () => import('../../session/resume-view');
+
 if (homeFlagEnabled(HOME_CONTINUE_FLAG)) {
-  setResumeZoom({
-    read: () => ({ zoom: useCompactStore.getState().zoom, fit: null }),
-    write: (zoom) => setZoom(zoom),
-  });
-  // The reader's scroller goes with the place: read it before it unmounts.
-  useCompactStore.subscribe((state, previous) => {
-    if (previous.place === 'reader' && state.place === 'library') captureResume();
+  void view().then((v) => {
+    v.setResumeZoom({
+      read: () => ({ zoom: useCompactStore.getState().zoom, fit: null }),
+      write: (zoom) => setZoom(zoom),
+    });
+    // The reader's scroller goes with the place: read it before it unmounts.
+    useCompactStore.subscribe((state, previous) => {
+      if (previous.place === 'reader' && state.place === 'library') v.captureResume();
+    });
   });
 }
 
 /** Back into the open document at its place: the zoom first, then the reader, then the offset. */
-export function resumeCompact(id: DocumentId, point: ResumePoint): void {
-  applyResumeZoom(point);
+export async function resumeCompact(id: DocumentId, point: ResumePoint): Promise<void> {
+  const v = await view();
+  v.applyResumeZoom(point);
   showReader();
-  settleResume(id, point);
+  v.settleResume(id, point);
 }

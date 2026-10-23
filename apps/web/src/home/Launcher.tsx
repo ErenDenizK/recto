@@ -44,6 +44,7 @@ import { useWorkspaceStore } from '../state/workspace-store';
 import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
 import { commandRegistry } from '../commands/registry';
+import { useContinueShown } from './continue-shown';
 import { dropTitle } from './DropOverlay';
 import { combineFiles, openPdfs } from './home-actions';
 import styles from './Launcher.module.css';
@@ -65,6 +66,7 @@ export function Launcher({ variant, dragging, dragCount, selecting = false }: La
   const prompting = usePasswordStore((s) => s.queue.length > 0);
   const shortcut = useCommandShortcut('file.open');
   const openRef = useRef<HTMLButtonElement>(null);
+  const continued = useContinueShown((s) => s.shown);
 
   // First focus on a first visit (J1, L1 §6): Open PDFs…, unless something already has it.
   // Focus placed by the page, not by a key, draws no ring yet (`data-quiet-focus`): a lime ring
@@ -88,7 +90,7 @@ export function Launcher({ variant, dragging, dragCount, selecting = false }: La
   const open = (
     <Button
       ref={openRef}
-      variant={selecting ? 'standard' : 'prominent'}
+      variant={selecting || continued ? 'standard' : 'prominent'}
       size="lg"
       icon={<Icon name="folder-open" />}
       busy={opening && !prompting}

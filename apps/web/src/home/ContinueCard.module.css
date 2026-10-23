@@ -16,7 +16,7 @@
   column-gap: var(--space-4);
   row-gap: var(--space-3);
   box-sizing: border-box;
-  width: min(720px, 100%);
+  width: 100%;
   padding: var(--space-4);
   border-radius: var(--radius-xl);
   color: var(--text-primary);

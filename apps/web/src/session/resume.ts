@@ -69,7 +69,9 @@ export function seedResume(
   total: number,
 ): void {
   if (place.resume === undefined) return;
-  setResume(id, { ...place.resume, page: place.page, total, at: Date.now() }, { quiet: true });
+  // A page past the end (a snapshot of a longer document) shows as the last page.
+  const page = Math.min(Math.max(0, place.page), Math.max(0, total - 1));
+  setResume(id, { ...place.resume, page, total, at: Date.now() }, { quiet: true });
 }
 
 /** Fraction of the document read when the page `page` (0-based) is reached, 0..1. */

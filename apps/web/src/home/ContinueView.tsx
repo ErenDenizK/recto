@@ -25,6 +25,7 @@ import { Icon } from '../ui/Icon';
 import styles from './ContinueCard.module.css';
 import lit from './lit.module.css';
 import { ProgressBar } from './ProgressBar';
+import { setContinueShown } from './continue-shown';
 
 /** The page's box, CSS px: the page you left, large enough to recognise. */
 export const THUMB = {
@@ -63,6 +64,11 @@ export function ContinueView({
   readonly source: ContinueSource;
 }) {
   const ref = useRef<HTMLElement>(null);
+  // Continue holds the view's one lime while it shows (DSN-66).
+  useLayoutEffect(() => {
+    setContinueShown(true);
+    return () => setContinueShown(false);
+  }, []);
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;

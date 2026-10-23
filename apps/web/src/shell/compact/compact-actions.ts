@@ -41,7 +41,6 @@ import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
 import { useViewStore } from '../../state/view-store';
 import { clearSearch } from '../../viewer/search';
 import { announce } from '../announcer';
-import { settleResume } from '../../session/resume-view';
 import { showReader, useCompactStore } from './compact-store';
 import './compact-resume';
 
@@ -252,7 +251,9 @@ async function openKept(
       sheet: null,
     });
     showReader();
-    if (resume !== undefined) settleResume(doc.id, resume);
+    if (resume !== undefined) {
+      void import('../../session/resume-view').then((v) => v.settleResume(doc.id, resume));
+    }
     announce(m.announce_opened({ name: result.record.title }));
     return 'opened';
   } finally {
