@@ -237,8 +237,7 @@ test.describe('the split top (DSN-34)', () => {
       'Contents',
       'Settings',
     ]);
-    // The name, size and pages are Document info's, said once (DSN-52): no card repeats them.
-    await expect(fileMenu.getByTestId('compact-file-name')).toHaveCount(0);
+    await expect(fileMenu.getByTestId('compact-file-name')).toHaveText(/\.pdf$/);
     await expectGlassClean(page, 'the split top with its menu open');
     const menuBox = await fileMenu.boundingBox();
     if (!menuBox) throw new Error('no menu');
