@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { springToLinear } from '../../motion';
-import { releaseCurves, releaseTarget } from './sheet-release';
+import { releaseCurves, releaseTarget, turnCurves, turnVelocity } from './sheet-release';
 
 /** The first stop after 0 of a `linear()` curve: how far it gets in its first instant. */
 const firstStop = (easing: string) => Number(/linear\(0, ([\d.-]+)/.exec(easing)?.[1]);
@@ -74,5 +74,28 @@ describe('releaseTarget', () => {
   it('closes on a quick flick down, or past halfway to closed', () => {
     expect(releaseTarget(310, 900, offsets, height)).toBeNull();
     expect(releaseTarget(560, 0, offsets, height)).toBeNull();
+  });
+});
+
+describe('a sheet turned back mid-entrance (MOT-18)', () => {
+  it('reads the speed from the latest sample at least 4 ms old', () => {
+    const samples = [
+      { t: 0, y: 400 },
+      { t: 16, y: 380 },
+      { t: 32, y: 340 },
+    ];
+    // 340 -> 300 over 16 ms is -2500 px/s (up), and a sample 1 ms old is skipped.
+    expect(turnVelocity([...samples, { t: 47, y: 301 }], 48, 300)).toBeCloseTo(-2500, 0);
+    expect(turnVelocity([], 10, 300)).toBe(0);
+    expect(turnVelocity([{ t: 9, y: 310 }], 10, 300)).toBe(0);
+  });
+
+  it('writes a close curve that starts at that speed, not from rest', () => {
+    const rest = turnCurves(0, 400);
+    const moving = turnCurves(-1500, 400);
+    expect(moving['--release-close-ease']).not.toBe(rest['--release-close-ease']);
+    // Still rising at 1500 px/s (away from closing) turns the sheet: the curve dips below 0.
+    expect(moving['--release-close-ease']).toMatch(/^linear\(0, -/);
+    expect(rest['--release-close-ease']).toBe(releaseCurves(0, 0, 400)['--release-close-ease']);
   });
 });
