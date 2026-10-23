@@ -14,11 +14,15 @@
  * when that transition ends. Releases faster than 300 px/s take `fling` (one small overshoot),
  * slower ones `glide`. Under reduced motion nothing is written: the sheet fades (§7.5).
  *
- * **A turn mid-entrance (MOT-18, wave 2).** A CSS transition that reverses restarts its curve
- * from rest, so a sheet closed while it was still rising stalled at the turn. While a transform
- * transition runs the panel's offset is sampled once a frame; when `data-ending-style` lands on
- * it the speed of the last frames is written as a close curve (`turnCurves()`), the same
- * `data-released` route a swipe's release takes, so the sheet turns at the speed it had.
+ * **A turn mid-entrance (MOT-18, wave 2).** A CSS transition that reverses cannot keep its
+ * speed: the browser enters the new curve part-way along (the reversing-adjusted start), so a
+ * sheet closed while rising turned in one frame from -4100 px/s to +2900 px/s (a corner, not
+ * a turn). While a transform transition runs the panel's offset is sampled once a frame; when
+ * `data-ending-style` lands on it, the close is taken from the transition by a spring on Web
+ * Animations (`animateStyle`) that starts at the present place with the present speed
+ * (`turnClose()`: `fling` or `glide` by the release rule, 3 distances/s at most away from the
+ * closed position). Base UI waits for it before it unmounts the sheet; a sheet opened again
+ * meanwhile hands back to the stylesheet where it is.
  *
  * **The glass.** While the sheet moves (it rises, follows a finger, changes detent or leaves)
  * it draws its tier's solid twin, and once it rests its glass clears where it stands
@@ -27,7 +31,14 @@
  */
 import { FLING_SPEED } from '../../ui/sheet/presentation';
 import { glassMoving, glassSettle } from '../../ui/glass-moving';
-import { reducedMotion, springEasing, velocityTracker, type VelocityTracker } from '../../motion';
+import {
+  animateStyle,
+  type Motion,
+  reducedMotion,
+  springEasing,
+  velocityTracker,
+  type VelocityTracker,
+} from '../../motion';
 
 /** The release velocity carried toward the end state, and away from it, in distances per second. */
 export const TOWARD_MAX = 20;
@@ -85,11 +96,16 @@ export function turnVelocity(samples: readonly OffsetSample[], now: number, y: n
 }
 
 /**
- * The curves of a sheet turned back to close while it moves at `velocity` px/s (down positive),
- * `toClosed` px above the closed position: the release's close curve with the speed it had.
+ * The spring of a sheet turned back to close while it moves at `velocity` px/s (down positive),
+ * `toClosed` px above the closed position: the release's token and caps, in px/s.
  */
-export function turnCurves(velocity: number, toClosed: number): ReleaseCurves {
-  return releaseCurves(0, velocity, toClosed);
+export function turnClose(
+  velocity: number,
+  toClosed: number,
+): { readonly token: 'fling' | 'glide'; readonly velocity: number } {
+  const distance = Math.max(1, toClosed);
+  const cap = Math.max(-AWAY_MAX, Math.min(TOWARD_MAX, velocity / distance));
+  return { token: Math.abs(velocity) > FLING_SPEED ? 'fling' : 'glide', velocity: cap * distance };
 }
 
 /** Base UI's release thresholds (`DrawerViewport`): px/ms, and the projection's reach. */
@@ -194,18 +210,27 @@ export function watchSheet(
     raf = 0;
     samples = [];
   };
+  let closing: Motion<readonly number[]> | null = null;
   const turned = new MutationObserver(() => {
-    if (!panel.hasAttribute('data-ending-style') || panel.hasAttribute('data-released')) return;
-    if (!raf || panel.hasAttribute('data-swiping') || reducedMotion()) return;
-    const y = offsetOf(panel);
-    const curves = turnCurves(
-      turnVelocity(samples, performance.now(), y),
-      panel.offsetHeight + gap - y,
-    );
-    for (const name of Object.keys(curves) as (keyof ReleaseCurves)[]) {
-      panel.style.setProperty(name, curves[name]);
+    if (!panel.hasAttribute('data-ending-style')) {
+      // Opened again while the close ran: the stylesheet takes it from where it is.
+      closing?.stop();
+      closing = null;
+      return;
     }
-    panel.setAttribute('data-released', '');
+    if (!raf || panel.hasAttribute('data-swiping') || panel.hasAttribute('data-released')) return;
+    if (reducedMotion()) return;
+    const y = offsetOf(panel);
+    const end = panel.offsetHeight + gap;
+    const turn = turnClose(turnVelocity(samples, performance.now(), y), end - y);
+    untrace();
+    moving();
+    closing = animateStyle(panel, 'transform', [0, y, 1], [0, end, 1], {
+      spring: turn.token,
+      velocity: [0, turn.velocity, 0],
+      keep: true,
+      turn: true,
+    });
   });
   turned.observe(panel, { attributes: true, attributeFilter: ['data-ending-style'] });
   const started = (event: TransitionEvent) => {
@@ -234,6 +259,7 @@ export function watchSheet(
   panel.addEventListener('transitioncancel', ended);
   return () => {
     turned.disconnect();
+    closing?.stop();
     untrace();
     document.removeEventListener('pointermove', move, true);
     document.removeEventListener('pointerup', up, true);

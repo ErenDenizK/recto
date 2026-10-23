@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { springToLinear } from '../../motion';
-import { releaseCurves, releaseTarget, turnCurves, turnVelocity } from './sheet-release';
+import { releaseCurves, releaseTarget, turnClose, turnVelocity } from './sheet-release';
 
 /** The first stop after 0 of a `linear()` curve: how far it gets in its first instant. */
 const firstStop = (easing: string) => Number(/linear\(0, ([\d.-]+)/.exec(easing)?.[1]);
@@ -90,12 +90,12 @@ describe('a sheet turned back mid-entrance (MOT-18)', () => {
     expect(turnVelocity([{ t: 9, y: 310 }], 10, 300)).toBe(0);
   });
 
-  it('writes a close curve that starts at that speed, not from rest', () => {
-    const rest = turnCurves(0, 400);
-    const moving = turnCurves(-1500, 400);
-    expect(moving['--release-close-ease']).not.toBe(rest['--release-close-ease']);
-    // Still rising at 1500 px/s (away from closing) turns the sheet: the curve dips below 0.
-    expect(moving['--release-close-ease']).toMatch(/^linear\(0, -/);
-    expect(rest['--release-close-ease']).toBe(releaseCurves(0, 0, 400)['--release-close-ease']);
+  it('closes on a spring that starts at the speed it had, capped away from the closed side', () => {
+    // Rising at 4100 px/s with 800 px to go: away from closing, so 3 distances/s at most.
+    expect(turnClose(-4100, 800)).toEqual({ token: 'fling', velocity: -2400 });
+    // Rising slowly keeps its speed; falling is carried up to 20 distances/s.
+    expect(turnClose(-300, 800)).toEqual({ token: 'glide', velocity: -300 });
+    expect(turnClose(9000, 400)).toEqual({ token: 'fling', velocity: 8000 });
+    expect(turnClose(0, 400)).toEqual({ token: 'glide', velocity: 0 });
   });
 });
