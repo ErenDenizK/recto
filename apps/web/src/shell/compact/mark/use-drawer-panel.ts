@@ -12,12 +12,14 @@
  *   through and a press outside closes the drawer as it goes on to the page (EDN-18).
  * - The swipe: the panel follows the finger once a press has gone `DRAG_START_PX` down (more
  *   down than sideways), and a long or quick enough swipe closes it; a shorter one springs back.
+ *   Either way the spring starts at the finger's speed as it lifts (`velocityTracker()`, MOT-18).
  *   A press in a list that has scrolled from its top scrolls it instead, so the swipe never
  *   fights the rows (iOS Safari): from the head, or from rows at their top.
  */
 import { type PointerEvent, type RefObject, useEffect, useLayoutEffect, useRef } from 'react';
 
 import { receivePulse } from '../../../motion/receive';
+import { velocityTracker, type VelocityTracker } from '../../../motion/velocity';
 import { useToolStore } from '../../../viewer/tool-store';
 import { setDrawerOpen } from '../compact-store';
 import { closeOnOutsidePress, pressGoesThrough } from './drawer-close';
@@ -125,25 +127,36 @@ export function useDrawerPanel(
   }, [open]);
 
   // Swipe down: the panel follows the finger, and a long or quick enough swipe closes it.
-  const drag = useRef<{ id: number; x: number; y: number; t: number; on: boolean } | null>(null);
+  const drag = useRef<{
+    id: number;
+    x: number;
+    y: number;
+    t: number;
+    on: boolean;
+    tracker: VelocityTracker;
+  } | null>(null);
   const swipe: DrawerPanel['swipe'] = {
     onPointerDown: (event) => {
       if (!event.isPrimary || !open) return;
       // Rows scrolled from their top take the press as a scroll, never as the swipe.
       const scroller = (event.target as Element).closest?.('[data-scrolls]');
       if (scroller && scroller.scrollTop > 0) return;
+      const tracker = velocityTracker();
+      tracker.add(event.timeStamp, event.clientX, event.clientY);
       drag.current = {
         id: event.pointerId,
         x: event.clientX,
         y: event.clientY,
         t: event.timeStamp,
         on: false,
+        tracker,
       };
     },
     onPointerMove: (event) => {
       const d = drag.current;
       if (d?.id !== event.pointerId) return;
       const dy = event.clientY - d.y;
+      d.tracker.add(event.timeStamp, event.clientX, event.clientY);
       if (!d.on) {
         if (dy < DRAG_START_PX || Math.abs(event.clientX - d.x) > dy) return;
         d.on = true;
@@ -157,8 +170,11 @@ export function useDrawerPanel(
       if (!d?.on || d.id !== event.pointerId) return;
       const dy = event.clientY - d.y;
       const ms = Math.max(1, event.timeStamp - d.t);
-      if (swipeCloses(dy, dy / ms)) setDrawerOpen(false);
-      else motion.current?.release();
+      const velocity = d.tracker.velocity(event.timeStamp).y;
+      if (swipeCloses(dy, dy / ms)) {
+        motion.current?.thrown(velocity);
+        setDrawerOpen(false);
+      } else motion.current?.release(velocity);
     },
     onPointerCancel: () => {
       drag.current = null;

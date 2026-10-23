@@ -14,6 +14,7 @@
  *                         `:root[data-motion='reduced']` (§7.6), identical, per token (§7.5)
  *   §4  View Transitions  240 ms on the spring curve; under reduced motion no names, so only the
  *                         root cross-fades, in 150 ms (§7.4, §7.5)
+ *   §5  no `linear()`     the three spring curves as `cubic-bezier()` stand-ins (MOT-18)
  *
  * Springs carry position, size and scale; eases carry opacity and colour (§7.1):
  *
@@ -275,4 +276,18 @@
 :root[data-motion='reduced'] body,
 :root[data-motion='reduced'] body * {
   view-transition-name: none !important;
+}
+
+/* ── §5 Engines without linear() (MOT-18) ──────────────────────────────────────────────────
+ * Safari before 17.2 (and Chrome 113, Firefox 112) drop a transition whose timing function they
+ * cannot parse, so a spring token there was a jump. These stand-ins, fitted to the three curves
+ * within 3 % (`BEZIER_FALLBACK`, motion/springs.ts), keep the move; the zero-bounce one never
+ * overshoots. Script asks `springEasing()`, which answers the same.
+ */
+@supports not (transition-timing-function: linear(0, 1)) {
+  :root {
+    --ease-spring: cubic-bezier(0.29, 0.486, 0.03, 1);
+    --ease-spring-fling: cubic-bezier(0.262, 0.373, 0.046, 1.166);
+    --ease-spring-pop: cubic-bezier(0.295, 0.423, 0.055, 1.218);
+  }
 }
