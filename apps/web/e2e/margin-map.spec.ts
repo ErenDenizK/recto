@@ -28,10 +28,15 @@ test('shows the outline, keeps 64 px from the page, goes to a heading, withdraws
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page, 'margin=1');
-  await expect(map(page)).toHaveAttribute('data-shown', '');
+  // This fixture opens fit to width (the page fills the window, DSN-60: not capped), so the map
+  // is withdrawn; zoomed out the margins return.
+  await expect(map(page)).toHaveCount(0);
+  await expect(async () => {
+    await page.keyboard.press('ControlOrMeta+-');
+    await expect(map(page)).toHaveAttribute('data-shown', '', { timeout: 1500 });
+  }).toPass({ timeout: 20000 });
   const links = map(page).getByRole('link');
   expect(await links.count()).toBeGreaterThan(1);
-  await expect(map(page).locator('[aria-current="location"]')).toHaveCount(1);
 
   const nav = await map(page).boundingBox();
   const sheet = await page.locator('[data-read-viewport] [data-page-index="0"]').boundingBox();
@@ -42,6 +47,8 @@ test('shows the outline, keeps 64 px from the page, goes to a heading, withdraws
 
   await links.last().click();
   await expect(pill(page)).not.toHaveText(/^1 \/ /);
+  // The section being read is the one entry marked as the location.
+  await expect(map(page).locator('[aria-current="location"]')).toHaveCount(1);
 
   // Zoomed far in the page grows into the margin and the map withdraws; zoom is not limited.
   for (let i = 0; i < 6; i += 1) await page.keyboard.press('ControlOrMeta+=');
