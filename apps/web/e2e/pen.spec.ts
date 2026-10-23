@@ -9,6 +9,7 @@
 import { type CDPSession, expect, type Page, test } from '@playwright/test';
 
 import {
+  atRest,
   enterEdit,
   openFixtures,
   pastDeadline,
@@ -744,6 +745,9 @@ test.describe('pen: width changes, zoom, Draw, lines and undo', () => {
     await expect(layer(page)).toHaveAttribute('data-tool', 'ink');
     // The palette's glass, the capsule, is what fades (MK-17).
     const bar = page.locator('[data-capsule="palette"]');
+    // The capsule is still growing into the palette (X1 morph): a box read now is a frame of
+    // that growth, and a press beside it would land on the bar once it has grown.
+    await atRest(bar);
     const page1 = await layer(page).boundingBox();
     const barBox = await bar.boundingBox();
     if (!page1 || !barBox) throw new Error('not laid out');
