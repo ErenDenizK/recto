@@ -128,6 +128,8 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:session:tab:v1',
       // The saved signatures' IndexedDB database (signatures/saved-signatures.ts, spec X26).
       'pdf-editor:signatures:v1',
+      // The page strip flag, ?strip=1|0 (shell/frame/strip/strip-hold.ts, R26 concept 1).
+      'pdf-editor:strip:v1',
       // The phone reader's ?top variant for this tab (sessionStorage, shell/compact/top-variant.ts).
       'pdf-editor:top:v1',
       'pdf-editor:ui:colour-view:v1',
