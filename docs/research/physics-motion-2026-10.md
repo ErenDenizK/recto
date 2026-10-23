@@ -3,11 +3,9 @@
 The owner asked for the whole animation system to move from time-based tweens to physics:
 springs with stiffness, damping and mass, velocity handed over from gestures, every move
 interruptible and retargetable, objects moving as they really would. This note audits what the
-app does today, sets the system that every motion uses from now on, records a prototype of wave 1
-with before/after measurements, and plans the waves that follow. **Status: plan.** The
-prototype was built and measured in a worktree but is not landed: implementation waits for
-the owner's go (R26, plan-only day). Proposed decision: MOT-18
-(`docs/process/decisions/motion.md`).
+app does today, sets the system that every motion uses from now on, records wave 1 (landed
+on `r26/physics-motion`) with its before/after measurements, and plans the waves that follow.
+Decision: MOT-18, in force for wave 1 (`docs/process/decisions/motion.md`).
 
 **The headline finding.** Recto is already mostly physics. MOT-1 (ADR-0026) put every position,
 size and scale move on seven analytic springs in `src/motion/` with velocity retarget, and the
@@ -151,7 +149,7 @@ any `linear()` or stand-in curve is moot. A gesture stays 1:1.
 
 | Wave | Scope | Done when | Check |
 |---|---|---|---|
-| **1 (prototyped, not landed)** | Tokens with k/c/m (`preset`), `springEasing` + CSS `@supports` fallback, `startOnThisFrame`, `shift`; capsule follows late size changes and hands a flow's speed to a slide; drawer release velocity; pill rise on `shift` | All listed defects gone in frame recordings; motion unit tests, capsule, sheets, glass-perf green; first paint ≤ +0.7 KB, editor ≤ +2 KB gzip | `vitest src/motion …`, `capsule.spec`, `sheets.spec`, `glass-perf.spec`, `bundle-budget.ts`, recordings §4 |
+| **1 (landed)** | Tokens with k/c/m (`preset`), `springEasing` + CSS `@supports` fallback, `startOnThisFrame`, `shift`; capsule follows late size changes and hands a flow's speed to a slide; drawer release velocity; pill rise on `shift` | All listed defects gone in frame recordings; motion unit tests, capsule, sheets, glass-perf green; first paint ≤ +0.7 KB, editor ≤ +2 KB gzip | `vitest src/motion …`, `capsule.spec`, `sheets.spec`, `glass-perf.spec`, `bundle-budget.ts`, recordings §4 |
 | **2** | Popups' exits and entrance keyframes onto springs: Menu/Popover/CommandPalette exits (`quick` with `keep`), the 9 entrance keyframes as `shift()` or `animateStyle`; phone menus (`liquid-menu.ts`); the phone sheet's reversal mid-open keeps its speed (write a release curve when `data-ending-style` lands on a running transition); every WAAPI `easing: springToLinear(...)` → `springEasing()` | No spatial `@keyframes` outside loops and glyphs; grep finds no spatial `.animate(` on a cubic ease in these files | `menus.spec`, `compact-top-split.spec`, `compact.spec`, `motion.spec` (interrupt every catalogue animation) |
 | **3** | Pages grid (`cell-motion.ts`, `lift.ts`): drop and ghost on `fling` with the drag's velocity; signature flight; compare; card exit; text-edit motion; Focus step and grid pieces' rise on `shift` | Bucket (b) script count 0 | `pages-grid.spec`, `signatures.spec`, `compare.spec`, `library.spec`, recordings of a drop |
 | **4** | Taste and tuning with the owner: whether a press-started move may carry a small bounce (language.md §7.1 says none; the owner's "boing" in MOT-16 and this brief's "as they really would" may say otherwise); heavier presets for large surfaces | Owner's call recorded | Owner review on the iPhone and the Mac |
@@ -164,7 +162,7 @@ transform and translate; a sheet's transform and opacity. Each scenario opens th
 the morph once, then records. Settle is 99 % of the move; "held frames" are frames at a turn that
 repeat the previous position while the motion should be moving.
 
-Three runs per build and size (before: `origin/develop` 9bef0fd; after: the wave-1 prototype), medians
+Three runs per build and size (before: `origin/develop` 9bef0fd; after: wave 1), medians
 unless stated. The frames are stamped on the document timeline (the clock Web Animations sample
 on), not on `performance.now()`: the first round stamped them with `performance.now()` inside the
 rAF callback, which split one frame into two and counted holds that were not drawn; round 2
@@ -204,14 +202,13 @@ Reading them:
   −4 distances/s moves 4 / 120 of the way in the first 120 Hz frame where a start from rest moves
   under 1 %, never past the rest.
 
-Tests on the prototype: the motion, capsule, frame, drawer, phone-sheet and sheet unit tests
+Tests on wave 1: the motion, capsule, frame, drawer, phone-sheet and sheet unit tests
 (529, plus the new mass, fallback, `shift`, drawer hand-off and capsule-follow cases, the last
 failing without its fix); `capsule.spec`, `sheets.spec` and `glass-perf.spec` on Chromium, 44
 passed and 3 skipped, after round 2 narrowed `startOnThisFrame` to turns (round 1's version
 failed `capsule.spec`'s dock → Locked overlap check twice). Lint, typecheck and format clean.
-The prototype's code is kept uncommitted in the `physics` worktree for whoever lands wave 1.
 
-Budgets of the prototype (`tools/qa/bundle-budget.ts`, no baseline written): first paint JS 74.1 → 74.2 KB gzip
+Budgets of wave 1 (`tools/qa/bundle-budget.ts`, no baseline written): first paint JS 74.1 → 74.2 KB gzip
 (within its ≈ 0.7 KB headroom), editor initial 774.4 → 775.5 KB (+1.1 KB, cap +2 KB), compact
 286.5 → 287.0 KB, first-paint CSS 9.0 KB unchanged.
 
