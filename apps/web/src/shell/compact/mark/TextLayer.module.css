@@ -18,7 +18,9 @@
   height: 52px;
   padding: 4px;
   border-radius: var(--radius-capsule);
-  animation: rise var(--duration-base) var(--ease-out);
+  animation:
+    rise var(--spring-smooth) var(--ease-spring),
+    rise-fade var(--duration-base) var(--ease-out);
 }
 
 .done {
@@ -31,7 +33,12 @@
    fade alone (the distance falls to 0). */
 @keyframes rise {
   from {
-    opacity: 0;
     transform: translateY(var(--rise-distance, 8px));
+  }
+}
+
+@keyframes rise-fade {
+  from {
+    opacity: 0;
   }
 }
