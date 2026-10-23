@@ -2,8 +2,8 @@
  * The work Save a copy does while it is open (components/07-sheets.md §4.4, §4.6):
  *
  * - `useSizeAnalysis`: the document assembled as it would be saved, analysed by the compress
- *   worker at idle priority, so every Size preset shows its estimate before anything runs
- *   (INV-18). One analysis per document and history step, kept while the step stays.
+ *   worker at once, so every Size preset shows its estimate before anything runs (INV-18). One
+ *   analysis per document and history step, kept while the step stays.
  * - `useTextPreview`: the Markdown or text conversion, run on open and again 250 ms after each
  *   change (the run before is cancelled), so the preview shows and Save copy writes exactly
  *   what was previewed.
@@ -63,15 +63,6 @@ const useAnalysed = create<{ readonly entries: Readonly<Record<string, Analysed>
   entries: {},
 }));
 
-const idle = (run: () => void): (() => void) => {
-  if (typeof requestIdleCallback === 'function') {
-    const handle = requestIdleCallback(run, { timeout: 500 });
-    return () => cancelIdleCallback(handle);
-  }
-  const timer = setTimeout(run, 0);
-  return () => clearTimeout(timer);
-};
-
 /** Until the analysis for the document as it is now reports. */
 const ANALYSING: SizeAnalysis = { state: 'working' };
 
@@ -95,26 +86,26 @@ export function useSizeAnalysis(
         entries: { ...s.entries, [documentId]: { doc, step, result } },
       }));
     };
-    const cancel = idle(() => {
-      void (async () => {
-        try {
-          const source = await toolSourceBytes(documentId, abort.signal);
-          if (abort.signal.aborted) return;
-          const compressor = await getCompressor();
-          const analysis = await compressor.analyze(source.slice(0));
-          settle({ state: 'ready', analysis, source });
-        } catch (error) {
-          settle({
-            state: 'failed',
-            message: error instanceof Error ? error.message : String(error),
-          });
-        }
-      })();
-    });
-    return () => {
-      cancel();
-      abort.abort();
-    };
+    // At once, not at idle time, and the analysis worker starts while the copy is assembled:
+    // two PDFium starts one after the other were most of the wait (DSN-67). The sheet shows an
+    // approximate size meanwhile (`quickSize`), so nothing here may block the first paint.
+    void (async () => {
+      try {
+        const [source, compressor] = await Promise.all([
+          toolSourceBytes(documentId, abort.signal),
+          getCompressor(),
+        ]);
+        if (abort.signal.aborted) return;
+        const analysis = await compressor.analyze(source.slice(0));
+        settle({ state: 'ready', analysis, source });
+      } catch (error) {
+        settle({
+          state: 'failed',
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    })();
+    return () => abort.abort();
   }, [documentId, doc, step, enabled, fresh?.state]);
 
   if (!enabled && !held) return null;
