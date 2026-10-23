@@ -366,14 +366,29 @@ export function pageParagraphs(
 export function paragraphLayoutAnalysis(
   session: ParagraphSession,
 ): Promise<ParagraphLayoutAnalysis> {
-  const { ref } = session.block;
+  return paragraphLayoutAnalysisOf(session.block.ref, session.revision);
+}
+
+/**
+ * The layout analysis of the detected paragraph `ref` at page `revision`, shared by the open
+ * editor and the pre-analysis (`paragraph-precompute.ts`): the engine is asked once.
+ */
+export function paragraphLayoutAnalysisOf(
+  ref: ParagraphBlock['ref'],
+  revision: number,
+): Promise<ParagraphLayoutAnalysis> {
   const page = `${ref.source}:${ref.pageIndex}:`;
-  const current = `${page}${session.revision}:`;
+  const current = `${page}${revision}:`;
   const value = cached(layouts, `${current}${ref.index}`, () =>
     getEngineService().analyzeParagraphLayout(ref),
   );
   prune(layouts, page, current, 4 * MAX_PARAGRAPH_PAGES);
   return value;
+}
+
+/** Whether the layout analysis of `ref` at `revision` is cached or asked for. */
+export function hasParagraphLayoutAnalysis(ref: ParagraphBlock['ref'], revision: number): boolean {
+  return layouts.has(`${ref.source}:${ref.pageIndex}:${revision}:${ref.index}`);
 }
 
 /** The glyph outlines of a page's fonts (font ids are numbered per page state). */
