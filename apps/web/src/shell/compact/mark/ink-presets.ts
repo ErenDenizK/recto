@@ -12,6 +12,7 @@
  * Pure: the drawer's options (`InkOptions.tsx`) and the tool specs (`tools.tsx`) apply them.
  */
 import {
+  DEFAULT_PEN_SETTINGS,
   isHighlighter,
   type PenSettings,
   PRESET_INDICES,
@@ -39,8 +40,12 @@ export function highlighterSlot(pen: PenSettings): PresetIndex | undefined {
 /**
  * The writing pen Pen arms: the armed preset when it is a pen, else `lastPen` when that is a
  * pen, else the first pen (as the full edition's P, `annotations/commands.ts`).
+ *
+ * INK-13: a phone that has never chosen a pen (the settings are still the defaults) starts with
+ * the blue pen, which reads on a light page and on a dark cover; black vanished on the sample's.
  */
 export function penToArm(pen: PenSettings, lastPen: PresetIndex): PresetIndex {
+  if (pen === DEFAULT_PEN_SETTINGS) return 1;
   if (!isHighlighter(pen.presets[pen.active])) return pen.active;
   if (!isHighlighter(pen.presets[lastPen])) return lastPen;
   return writingSlots(pen)[0] ?? pen.active;
