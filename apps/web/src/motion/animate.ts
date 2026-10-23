@@ -80,6 +80,11 @@ export interface StyleOptions<T extends MotionValue> extends Options<T> {
    * which Q-2's transforms clear themselves (default).
    */
   readonly keep?: boolean;
+  /**
+   * The motion continues one the caller has just stopped (a hand-off, as `shift()` makes): its
+   * first segment is a turn and starts on this frame, as a retarget's does (`startOnThisFrame`).
+   */
+  readonly turn?: boolean;
 }
 
 /** An element that has an inline style. */
@@ -397,7 +402,7 @@ export function animateStyle(
         }
         // A turn of a motion already on screen starts on this frame (`startOnThisFrame`); a fresh
         // start keeps the browser's own start, the next frame, with whatever starts beside it.
-        const turning = anim !== null && !anim.pending;
+        const turning = anim === null ? o.turn === true : !anim.pending;
         anim?.cancel();
         anim = null;
         if (frames.length < 2) {

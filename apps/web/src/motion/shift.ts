@@ -8,7 +8,8 @@
  * the `translate` property, which composes with the stylesheet's `transform`, from minus that
  * jump to zero on the compositor (`animateStyle()`), so nothing is laid out per frame. A second
  * shift while one runs adds its jump to where the element is drawn and keeps the speed, so a turn
- * is a curve instead of a corner, where a CSS transition that reverses starts again from rest. At
+ * is a curve instead of a corner, where a CSS transition that reverses starts again from rest; it
+ * starts on the present frame (`turn`), so the turn holds no frame. At
  * rest the inline `translate` goes (Q-2). Reduced motion: the jump stands (§7.5).
  */
 import { animateStyle, type Motion, type Styled, stopStyle } from './animate';
@@ -32,5 +33,10 @@ export function shift(
   const [vx = 0, vy = 0] = running?.velocity ?? [];
   const from = [x + dx, y + dy];
   if (Math.hypot(from[0] ?? 0, from[1] ?? 0) < STILL && Math.hypot(vx, vy) < STILL) return null;
-  return animateStyle(el, 'translate', from, [0, 0], { spring, velocity: [vx, vy] });
+  // A shift in flight is a turn: the new segment starts on this frame, never a held one later.
+  return animateStyle(el, 'translate', from, [0, 0], {
+    spring,
+    velocity: [vx, vy],
+    turn: running !== undefined,
+  });
 }

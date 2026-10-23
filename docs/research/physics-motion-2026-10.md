@@ -125,6 +125,15 @@ fitted within 3 % (zero bounce held at 1, so it never overshoots):
 control point to the release slope v · duration. `animateStyle()` needs neither: its keyframes are
 the sampled spring.
 
+**Scope of the fallback in wave 1:** the three CSS curves (`--ease-spring`, `-fling`, `-pop`, so
+every stylesheet transition on a spring token) and the capsule's flow (`SMOOTH`). The script
+sites that still hand `springToLinear()` straight to an easing are wave 2; on an engine without
+`linear()` a Web Animation there throws and an inline transition is dropped (12 call sites in 8
+files): `viewer/search.ts` (find pulse), `shell/compact/overview/tile-press.ts`,
+`CompactOverview.tsx`, `overview/morph.ts`, `shell/compact/mark/chrome-spring.ts` (the chrome's
+scroll springs), `shell/compact/sheet-release.ts` (the release's open and close curves),
+`stage/grid/lift.ts` (two) and `stage/grid/cell-motion.ts` (three, with the pop).
+
 ### 2.3 Reduced motion
 
 Unchanged in principle (§7.5, A-9), now stated per route: a spatial spring is instant and carries
@@ -150,7 +159,7 @@ any `linear()` or stand-in curve is moot. A gesture stays 1:1.
 | Wave | Scope | Done when | Check |
 |---|---|---|---|
 | **1 (landed)** | Tokens with k/c/m (`preset`), `springEasing` + CSS `@supports` fallback, `startOnThisFrame`, `shift`; capsule follows late size changes and hands a flow's speed to a slide; drawer release velocity; pill rise on `shift` | All listed defects gone in frame recordings; motion unit tests, capsule, sheets, glass-perf green; first paint ≤ +0.7 KB, editor ≤ +2 KB gzip | `vitest src/motion …`, `capsule.spec`, `sheets.spec`, `glass-perf.spec`, `bundle-budget.ts`, recordings §4 |
-| **2** | Popups' exits and entrance keyframes onto springs: Menu/Popover/CommandPalette exits (`quick` with `keep`), the 9 entrance keyframes as `shift()` or `animateStyle`; phone menus (`liquid-menu.ts`); the phone sheet's reversal mid-open keeps its speed (write a release curve when `data-ending-style` lands on a running transition); every WAAPI `easing: springToLinear(...)` → `springEasing()` | No spatial `@keyframes` outside loops and glyphs; grep finds no spatial `.animate(` on a cubic ease in these files | `menus.spec`, `compact-top-split.spec`, `compact.spec`, `motion.spec` (interrupt every catalogue animation) |
+| **2** | Popups' exits and entrance keyframes onto springs: Menu/Popover/CommandPalette exits (`quick` with `keep`), the 9 entrance keyframes as `shift()` or `animateStyle`; phone menus (`liquid-menu.ts`); the phone sheet's reversal mid-open keeps its speed (write a release curve when `data-ending-style` lands on a running transition); the 12 script `springToLinear()` easings listed in §2.2 → `springEasing()` (fallback scope) | No spatial `@keyframes` outside loops and glyphs; grep finds no spatial `.animate(` on a cubic ease in these files | `menus.spec`, `compact-top-split.spec`, `compact.spec`, `motion.spec` (interrupt every catalogue animation) |
 | **3** | Pages grid (`cell-motion.ts`, `lift.ts`): drop and ghost on `fling` with the drag's velocity; signature flight; compare; card exit; text-edit motion; Focus step and grid pieces' rise on `shift` | Bucket (b) script count 0 | `pages-grid.spec`, `signatures.spec`, `compare.spec`, `library.spec`, recordings of a drop |
 | **4** | Taste and tuning with the owner: whether a press-started move may carry a small bounce (language.md §7.1 says none; the owner's "boing" in MOT-16 and this brief's "as they really would" may say otherwise); heavier presets for large surfaces | Owner's call recorded | Owner review on the iPhone and the Mac |
 

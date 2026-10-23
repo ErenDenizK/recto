@@ -144,6 +144,8 @@ export function drawerMotion(panel: HTMLElement, covers?: () => HTMLElement | nu
       let run: Animation;
       let values: number[] = [p, target];
       if (reducedMotion()) {
+        // No momentum under reduced motion (§7.5): a throw's speed is dropped, not kept for later.
+        throwV = 0;
         const from = Math.min(1, Math.max(0, p));
         const ms = target === 1 ? REDUCED_DURATION_MS.base : REDUCED_DURATION_MS.fast;
         seg = { s: springs.quick, x0: 0, v0: 0, target, reduced: true, from };

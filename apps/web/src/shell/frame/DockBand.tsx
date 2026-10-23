@@ -76,9 +76,9 @@ export function DockBand({
             pill.offsetLeft + band.getBoundingClientRect().left,
           )
         : false;
-      raisePill(pill, rise);
-      // A palette with its ink strip's second row is taller than one bar (D2-3).
-      if (bar) pill.style.setProperty('--dock-h', `${Math.round(bar.offsetHeight)}px`);
+      // A palette with its ink strip's second row is taller than one bar (D2-3): its height
+      // goes with the rise, so one change that does both springs as one move.
+      raisePill(pill, rise, bar ? `${Math.round(bar.offsetHeight)}px` : null);
     };
     measure();
     const observer = new ResizeObserver(measure);

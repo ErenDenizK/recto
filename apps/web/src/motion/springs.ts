@@ -3,8 +3,9 @@
  * (language.md §7.1–§7.2; ADR-0026 §2 items 1–2; research 18 §2, §3.1–§3.4; 09-primitives §31).
  *
  * Springs carry position, size and scale; eases carry opacity and colour and live in CSS only.
- * Mass is 1 for every token (`preset()` publishes k, c, m and ζ; MOT-18). A token is named by its perceptual duration d and bounce b: stiffness
- * k = (2π / d)², damping c = 2ζ√k with ζ = 1 − b (b ≥ 0) or 1 / (1 + b) (b < 0), which for
+ * Mass is 1 for every token (`preset()` publishes k, c, m and ζ; MOT-18). A token is named by
+ * its perceptual duration d and bounce b: stiffness k = (2π / d)², damping c = 2ζ√k with
+ * ζ = 1 − b (b ≥ 0) or 1 / (1 + b) (b < 0), which for
  * b ≥ 0 is §7.1's c = 4π(1 − b) / d. Script springs are physics-defined so they take an initial
  * velocity (MO-3); CSS uses the same springs as `linear()` curves (MO-2), which
  * `springToLinear()` generates from the analytic solution.

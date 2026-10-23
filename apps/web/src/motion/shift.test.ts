@@ -30,13 +30,21 @@ describe('shift', () => {
     const motion = shift(el, 0, 56);
     expect(motion).not.toBeNull();
     expect(shownY(el)).toBeCloseTo(56, 0);
+    // On a pinned clock, not the runner's: a third of the way in it is between the two places,
+    // and at its end it rests with nothing left inline.
+    const [running] = el.getAnimations();
+    const end = Number(running?.effect?.getComputedTiming().endTime ?? 0);
+    if (running) running.currentTime = end / 3;
+    expect(shownY(el)).toBeGreaterThan(0);
+    expect(shownY(el)).toBeLessThan(56);
+    if (running) running.currentTime = end;
     await motion?.finished;
     expect(el.style.translate).toBe('');
     expect(getComputedStyle(el).translate).toBe('none');
     expect(el.style.willChange).toBe('');
   });
 
-  it('a second shift mid-flight adds to where it is drawn and keeps the speed', () => {
+  it('a second shift mid-flight adds to where it is drawn, keeps the speed and starts on this frame', () => {
     const el = box();
     const up = shift(el, 0, 56);
     const [running] = el.getAnimations();
@@ -50,6 +58,10 @@ describe('shift', () => {
     const [, v2 = 0] = down?.velocity ?? [];
     expect(y2).toBeCloseTo(y - 56, 3);
     expect(v2).toBeCloseTo(v, 3);
+    // A turn: never pending a frame, which would draw the turn's position twice.
+    const [turned] = el.getAnimations();
+    expect(turned?.pending).toBe(false);
+    expect(turned?.startTime).toBe(Number(document.timeline.currentTime));
   });
 
   it('does nothing for a move under half a pixel, and jumps under reduced motion', () => {
