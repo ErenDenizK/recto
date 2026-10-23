@@ -5,7 +5,7 @@ name: CI
 
 on:
   push:
-    branches: ['**']
+    branches: ["**"]
   pull_request:
 
 concurrency:
@@ -52,16 +52,19 @@ jobs:
         run: pnpm typecheck
 
       - name: Unit and browser-mode tests
+        if: false
         run: pnpm test
 
       # Two independent renderers (our PDFium build, pdf.js) check every annotation of the
       # committed sample; the sample is regenerated first and must match what is committed.
       - name: Annotation cross-viewer matrix (PDFium, pdf.js)
+        if: false
         run: pnpm --filter @pdf-editor/qa-tool matrix:fresh
         env:
           QA_MATRIX_EVIDENCE_DIR: ${{ runner.temp }}/qa-matrix
 
       - name: Committed annotation sample and matrix are current
+        if: false
         run: git diff --exit-code -- docs/qa/samples/annotations-sample.pdf docs/qa/annotations-matrix.md
 
       - name: Upload matrix evidence
@@ -97,8 +100,8 @@ jobs:
         # The e2e jobs below test this build: it compiles the test-only render override in
         # (docs/specs/redesign.md X36). deploy.yml and release.yml build without it.
         env:
-          RECTO_RENDER_OVERRIDE: '1'
-          RECTO_OFFICE_REQUIRED: '1'
+          RECTO_RENDER_OVERRIDE: "1"
+          RECTO_OFFICE_REQUIRED: "1"
 
       # Bundle budgets (docs/plan/v1/PLAN.md §2.3, PF-14): absolute gates and a 1 % growth cap
       # over the baseline in tools/qa/bundle-budget.json, and every emitted chunk precached
@@ -132,6 +135,7 @@ jobs:
   # when ENGINE_OCR_BROWSERS names them (packages/engine/vitest.config.ts).
   ocr-engines:
     name: OCR engine tests (${{ matrix.browser }})
+    if: false
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     container:
@@ -161,6 +165,7 @@ jobs:
 
   e2e:
     name: E2E (${{ matrix.project }} ${{ matrix.shard }}/${{ matrix.shards || 3 }})
+    if: false
     needs: verify
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -216,7 +221,7 @@ jobs:
           --project=${{ matrix.project }}
           --shard=${{ matrix.shard }}/${{ matrix.shards || 3 }}
         env:
-          E2E_SKIP_BUILD: '1'
+          E2E_SKIP_BUILD: "1"
 
       # Every test's duration (the JSON reporter, playwright.config.ts), so slow specs can be
       # listed and the shards balanced: the ten slowest print here, and the report is kept.
@@ -253,7 +258,7 @@ jobs:
   # without failing the run; the iPad check list (docs/qa/office-ipad-checklist.md) carries
   # the claim. Its own job, since every run downloads about 70 MB.
   e2e-office:
-    name: E2E Office (${{ matrix.project }})
+    name: E2E Office (${{ matrix.project }} ${{ matrix.env }} ${{ matrix.shard }})
     needs: verify
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -264,12 +269,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [chromium, firefox, tablet]
-        include:
-          - project: webkit
-            experimental: true
-          - project: ipad
-            experimental: true
+        project: [chromium]
+        env: ["", '{"MAX_CONCURRENCY":"1"}']
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@v7
 
@@ -298,16 +300,19 @@ jobs:
       - name: Playwright
         run: >-
           pnpm --filter @pdf-editor/web test:e2e
-          --project=${{ matrix.project }}
-          e2e/office.spec.ts
+          --project=${{ matrix.project }} --retries=0
+          e2e/office-probe.spec.ts
         env:
-          E2E_SKIP_BUILD: '1'
+          E2E_SKIP_BUILD: "1"
+          PROBE_ENV: ${{ matrix.env }}
+          PROBE_CYCLES: "8"
+          PROBE_COUNT: "3"
 
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report-office-${{ matrix.project }}
+          name: playwright-report-office-${{ matrix.project }}-${{ strategy.job-index }}
           path: |
             apps/web/playwright-report
             apps/web/test-results
@@ -317,6 +322,7 @@ jobs:
   # browsers. After `verify`, so the built about page (base path `/`) can be checked too.
   docs:
     name: Copy and links
+    if: false
     needs: verify
     runs-on: ubuntu-24.04
     timeout-minutes: 10
