@@ -305,7 +305,7 @@ Full rows: [`decisions/text-editing.md`](decisions/text-editing.md).
 | [TXT-18](decisions/text-editing.md) | The mirror's clipboard, compositions and clicks do not depend on its DOM or the engine | In force | 2026-10-12 |
 | [TXT-19](decisions/text-editing.md) | A word wider than its line breaks inside itself, as CSS overflow-wrap: break-word does | In force | 2026-10-12 |
 | [TXT-20](decisions/text-editing.md) | The sample's feature page sends the reader through Edit text, never a double-click | In force | 2026-10-22 |
-| [TXT-21](decisions/text-editing.md) | The page in view analyses its paragraphs ahead of a click, behind `?textpre=1` | In force behind the flag | 2026-10-23 |
+| [TXT-22](decisions/text-editing.md) | The page in view analyses its paragraphs ahead of a click, behind `?textpre=1` | In force behind the flag | 2026-10-23 |
 
 ## Redaction
 

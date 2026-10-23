@@ -1,5 +1,5 @@
 /**
- * Pre-analysis of the paragraphs of the page in view (TXT-21, behind `?textpre=1`): while
+ * Pre-analysis of the paragraphs of the page in view (TXT-22, behind `?textpre=1`): while
  * the Edit text tool is armed, the layout analysis a click would ask for
  * (`analyzeParagraphLayout`, craft spec §4.8: the paragraph's model, the metrics of its styles
  * and the substitute faces they need) is asked for ahead, one paragraph at a time at idle, so

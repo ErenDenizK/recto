@@ -188,7 +188,7 @@ export function TextEditLayer(props: PageOverlayProps) {
   const runs = usePageRuns(located, sourceIndex, revision);
   const blocks = usePageParagraphs(located, sourceIndex, revision);
   const plan = runs !== null && blocks !== null ? keyboardPlan(runs, blocks) : null;
-  // The page in view pre-analyses its paragraphs ahead of a click (TXT-21, `?textpre=1`).
+  // The page in view pre-analyses its paragraphs ahead of a click (TXT-22, `?textpre=1`).
   const inView = useViewStore((s) => s.currentPage === pageIndex);
   usePrecomputeParagraphs(located, sourceIndex, revision, blocks, inView);
   const focusReturn = useTextEditStore((s) =>
