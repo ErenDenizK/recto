@@ -1,5 +1,5 @@
 /**
- * Which files convert as text (PRD-19): only `*.txt` by name, only when dropped or picked
+ * Which files convert as text (PRD-19, PRD-28): only `*.txt`, `*.md` and `*.markdown` by name, only when dropped or picked
  * themselves, and not over 2 MB.
  */
 import { describe, expect, it } from 'vitest';
@@ -16,8 +16,13 @@ describe('isTextFile', () => {
     expect(isTextFile(file('NOTES.TXT', ''))).toBe(true);
   });
 
+  it('takes Markdown by name, in any case', () => {
+    expect(isTextFile(file('readme.md', 'text/markdown'))).toBe(true);
+    expect(isTextFile(file('NOTES.MARKDOWN', ''))).toBe(true);
+  });
+
   it('refuses other text types: a text/plain MIME alone is not enough', () => {
-    for (const name of ['server.log', 'data.csv', 'readme.md', 'notes']) {
+    for (const name of ['server.log', 'data.csv', 'notes', 'readme.mdx']) {
       expect(isTextFile(file(name)), name).toBe(false);
     }
   });
@@ -30,6 +35,8 @@ describe('isTextFile', () => {
   it('names the document after the file', () => {
     expect(pdfNameForText('notes.txt')).toBe('notes.pdf');
     expect(pdfNameForText('NOTES.TXT')).toBe('NOTES.pdf');
+    expect(pdfNameForText('readme.md')).toBe('readme.pdf');
+    expect(pdfNameForText('a.markdown')).toBe('a.pdf');
   });
 });
 
