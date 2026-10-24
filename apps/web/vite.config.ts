@@ -301,6 +301,42 @@ const lab = process.env.RECTO_LAB === '1';
 /** Escapes a string for use inside a RegExp. */
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+/**
+ * One fontkit for the app and its workers (R27 P2, docs/research/perf/phone-first-load-2026-10.md).
+ * Each `?worker` is its own build, so the assembler and analysis workers each bundled a private
+ * copy of `@cantoo/fontkit` (~150 KiB gzip), beside the main thread's. The main build emits it
+ * once as the entry `assets/fontkit.js` (unhashed, so a worker build can name it; the precache
+ * revisions it), and the worker builds leave the import external, pointing at that file beside
+ * the worker's own chunk. Only the assembler and analysis workers do (see the plugin).
+ */
+const FONTKIT = '@cantoo/fontkit';
+function sharedFontkit(role: 'emit' | 'import'): Plugin {
+  // The PDFium worker keeps its own copy: its script and closure are gated raw
+  // (`pdfiumWorker`), and the shared chunk would pull a second shared helper chunk into it.
+  let shared = false;
+  return {
+    name: `recto:shared-fontkit-${role}`,
+    apply: 'build',
+    enforce: 'pre',
+    // The page's build emits the chunk with its exports kept; Rolldown would drop them from
+    // an entry nothing in the page imports.
+    buildStart(options) {
+      if (role === 'import')
+        shared = /(?:assembler|analysis)\.worker/.test(JSON.stringify(options.input));
+      if (role !== 'emit') return;
+      this.emitFile({
+        type: 'chunk',
+        id: fileURLToPath(new URL('../../packages/engine/src/fontkit-entry.ts', import.meta.url)),
+        fileName: 'assets/fontkit.js',
+        preserveSignature: 'strict',
+      });
+    },
+    resolveId(source) {
+      return shared && source === FONTKIT ? { id: './fontkit.js', external: true } : null;
+    },
+  };
+}
+
 export default defineConfig({
   base,
   // Declared in src/pwa/env.d.ts; values are JSON so they replace as string literals.
@@ -316,6 +352,7 @@ export default defineConfig({
   },
   plugins: [
     editionChunks(),
+    sharedFontkit('emit'),
     bundleModules(),
     react(),
     // React Compiler (ADR-0003), applied through Babel. Rolldown's filter in the preset
@@ -427,6 +464,10 @@ export default defineConfig({
           'convert/**',
         ],
         maximumFileSizeToCacheInBytes: MAX_PRECACHE_BYTES,
+        // The plugin's default treats everything under `assets/` as content-hashed, so it is
+        // precached without a revision. `assets/fontkit.js` is the one unhashed file there
+        // (`sharedFontkit`): it names a hashed chunk, so it keeps a revision and updates with it.
+        dontCacheBustURLsMatching: /assets\/(?!fontkit\.js$)/,
         manifestTransforms: [
           (entries) => {
             const fonts = /\.(woff2?|ttf|otf)$/;
@@ -509,6 +550,7 @@ export default defineConfig({
   },
   worker: {
     format: 'es',
+    plugins: () => [sharedFontkit('import')],
     rolldownOptions: { treeshake: { moduleSideEffects: EMBEDPDF_ENGINES_PURE } },
   },
   build: {
