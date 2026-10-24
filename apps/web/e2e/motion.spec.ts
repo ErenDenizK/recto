@@ -50,6 +50,7 @@ import {
   openSaveCopyFromMenu,
   sessionSettled,
   useFileInputPicker,
+  frames,
 } from './helpers';
 import { expectGlassClean, settleAnimations } from './support/glass-walker';
 import {
@@ -740,7 +741,7 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
     await page.mouse.move(2, 450);
     await page.keyboard.press('Delete');
     await expect(region.getByRole('group')).toHaveCount(2);
-    await page.waitForTimeout(150);
+    await frames(page, 6);
     await cells.nth(0).click({ modifiers: ['ControlOrMeta'] });
     await page.mouse.move(2, 450);
     await page.keyboard.press('Delete');
@@ -978,7 +979,7 @@ async function tour(page: Page, o: { readonly door: boolean }): Promise<void> {
   await expect(page.locator('[data-testid="search-highlights"] [data-current]')).toHaveCount(1);
   await field.press('Enter');
   await field.press('Enter');
-  await page.waitForTimeout(700);
+  await settleAnimations(page);
   // Esc clears the query, the next one leaves the field for the page (01-frame F6 §6).
   await field.press('Escape');
   await field.press('Escape');
@@ -995,7 +996,6 @@ async function tour(page: Page, o: { readonly door: boolean }): Promise<void> {
   await expect(page.locator('[data-region="toasts"] [data-toast-id]')).toHaveCount(1);
   await settleAnimations(page);
   await page.keyboard.press('ControlOrMeta+z');
-  await page.waitForTimeout(700);
   await settleAnimations(page);
   // Back to the page (1: Read; R would rotate the selected page here).
   await page.keyboard.press('1');
@@ -1175,8 +1175,9 @@ test.describe('motion tokens (spec D3-4)', () => {
     await page.locator('[data-read-viewport]').hover();
     for (let i = 0; i < 12; i++) {
       await page.mouse.wheel(0, 120);
-      await page.waitForTimeout(30);
+      await frames(page, 2);
     }
+    // The recording window: nothing may start after the scroll has ended.
     await page.waitForTimeout(400);
     const costly = (await recorded(page)).filter((r) =>
       r.frames.some((f) =>

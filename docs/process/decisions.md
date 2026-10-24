@@ -74,6 +74,7 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PRD-24](decisions/product.md) | Images in as a new PDF: one unsaved document, a page per image fitted to A4/Letter by region, EXIF honoured, 4000 px cap; ships after board question 2 | In force; owner's yes pending | 2026-10-22 |
 | [PRD-25](decisions/product.md) | Print… (⌘P, title menu, palette) prints Save a copy's bytes: a blob frame where the browser has a PDF viewer and is not WebKit, else rendered pages | Built; held for board question 2 | 2026-10-22 |
 | [PRD-27](decisions/product.md) | The Office converter warms LibreOffice up with a one-word conversion (30 s, fresh worker on a stall, three tries) so a start-up stall never eats a file's 2 minutes; a crash fails the file at once | In force | 2026-10-23 |
+| [PRD-28](decisions/product.md) | Markdown (.md) to PDF: small built-in parser on the PRD-19 layout (headings, emphasis, code, lists, quotes, rules, links with annotations), new unsaved document | In force | 2026-10-23 |
 | [PRD-14](decisions/product.md) | W0-q findings are assigned to waves: signed fixture opens locked and saves byte-identical (W1-a/W1-b), truncated.pdf… | In force; W1-b and W1-g merged | 2026-10-09 |
 | [PF-18](decisions/product.md) | A closed document's source is parked; the engine worker ends when none is open | In force | 2026-10-22 |
 | [PF-19](decisions/product.md) | Read mode's whole-page bitmap is capped at 4 MP on every edition; tiles keep the visible page 1:1 | In force | 2026-10-22 |
@@ -155,6 +156,7 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-65](decisions/design.md) | The find map: hit ticks that show a card (page, thumbnail, sentence) and jump on click or tap, a phone rail, and thumbnails in the Find results (`?findmap=1` for ticks and phone) | In force | 2026-10-23 |
 | [DSN-63](decisions/design.md) | The page strip: hold or slide on the page pill (phone: the capsule's number) opens a glass strip of every page, release jumps; a prototype behind `?strip=1` | Prototype; owner taste open | 2026-10-23 |
 | [DSN-67](decisions/design.md) | The save receipt: Save a copy's sizes show at once (approximate, then exact); behind `?receipt=1` the changed pages, size bars, the page's flight to the tab and the "never left this device" toast | Size fix in force; receipt behind `?receipt=1` | 2026-10-23 |
+| [DSN-74](decisions/design.md) | Turkish copy rules: *siz* in sentences, bare imperatives on controls, past passives in history; *karart* means redaction only (Dim pages is "Sayfa parlaklığını azalt"); ’ before suffixes on names and abbreviations | In force | 2026-10-23 |
 
 ## Motion
 

@@ -25,7 +25,7 @@ import {
 } from '@cantoo/pdf-lib';
 import { type CDPSession, expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, useFileInputPicker } from './helpers';
+import { fixturePath, useFileInputPicker, motionDone, pastDeadline } from './helpers';
 
 const SHOTS = process.env.CAPTURE_SCREENSHOTS;
 
@@ -166,7 +166,7 @@ async function centre(page: Page, index: number): Promise<{ x: number; y: number
 async function longPress(page: Page, cdp: CDPSession, index: number): Promise<void> {
   const at = await centre(page, index);
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [at] });
-  await page.waitForTimeout(650);
+  await pastDeadline(page, 650); // the long-press hold, the rule under test
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
 }
 
@@ -179,7 +179,7 @@ async function drag(
 ): Promise<void> {
   const at = await centre(page, from);
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [at] });
-  await page.waitForTimeout(650);
+  await pastDeadline(page, 650); // the long-press hold, the rule under test
   const steps = 12;
   for (let i = 1; i <= steps; i++) {
     await cdp.send('Input.dispatchTouchEvent', {
@@ -189,7 +189,7 @@ async function drag(
       ],
     });
   }
-  await page.waitForTimeout(100);
+  await motionDone(page);
   if (SHOTS) await page.screenshot({ path: join(SHOTS, 'pages-dragging-390x844.png') });
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
 }
@@ -208,7 +208,7 @@ async function sharedDocument(page: Page): Promise<PDFDocument> {
 
 async function shot(page: Page, name: string): Promise<void> {
   if (!SHOTS) return;
-  await page.waitForTimeout(350);
+  await motionDone(page);
   await page.screenshot({ path: join(SHOTS, `${name}-390x844.png`) });
 }
 
