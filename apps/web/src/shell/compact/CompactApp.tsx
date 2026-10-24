@@ -64,8 +64,11 @@ function applyViewport(): () => void {
 export function CompactApp() {
   useLayoutEffect(() => applyViewport(), []);
   // The app's one scroll bar over every scroller, the phone's lists and sheets too (GLS-26).
-  // It loads after the first paint (bundle budget, PRC-11), as the page's links do.
+  // It loads after the first paint (bundle budget, PRC-11), and with it the toast region and the
+  // link layer, so a first toast or an early link tap never waits on a chunk.
   useEffect(() => {
+    void import('../../ui/Toast/ToastRegion');
+    void import('../../viewer/LinkLayer');
     let installed: (() => void) | undefined;
     let cancelled = false;
     void import('../../ui/scroll-thumbs').then(({ installScrollThumbs }) => {

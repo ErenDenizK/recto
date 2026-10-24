@@ -175,6 +175,12 @@ function main(): void {
   const firstPaintCss = closure(linkedCss);
   const editor = closure([chunk('app')]);
   const compact = closure([chunk('CompactApp')]);
+  // Not gated: what a read-only phone session has loaded once the after-paint effect has run,
+  // the compact closure plus the surfaces CompactApp loads then (src/shell/compact/CompactApp.tsx).
+  const compactAfterPaint = closure([
+    chunk('CompactApp'),
+    ...['ToastRegion', 'LinkLayer', 'scroll-thumbs'].map((name) => chunk(name)),
+  ]);
   const engineClient = closure([chunk('client')]);
   const pdfiumWorker = closure([chunk('pdfium.worker')]);
   const measures: Record<MeasureName, number> = {
@@ -253,6 +259,9 @@ function main(): void {
 
   rows.push(
     `${'First paint CSS gzip (not gated)'.padEnd(38)} ${kb(firstPaintCss.gzip).padStart(10)}`,
+  );
+  rows.push(
+    `${'Compact after paint JS gzip (not gated)'.padEnd(38)} ${kb(compactAfterPaint.gzip).padStart(10)}  ${compactAfterPaint.files.length} files`,
   );
   console.log(rows.join('\n'));
   const modules = readModules();
