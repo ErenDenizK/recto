@@ -6,55 +6,11 @@
  * the place is still `home`, and the compact edition, Settings and the session read
  * `formatFileSize` and `relativeTime` from here.
  */
-import type { DocumentId, SourceId, VirtualPage, Workspace } from '@pdf-editor/document-model';
+import type { DocumentId } from '@pdf-editor/document-model';
 
 import { m } from '../i18n';
 import { SAMPLE_TITLES } from '../sample/sample-file';
 import { MAX_TITLE_LENGTH } from '../stage/operation-plans';
-import type { SourceFileInfo } from '../state/workspace-store';
-
-export interface HomeCardData {
-  readonly id: DocumentId;
-  readonly title: string;
-  readonly pageCount: number;
-  readonly colorIndex: number;
-  /** Size of the file as opened; undefined when the pages come from several files or none. */
-  readonly size: number | undefined;
-  /** The file's modification time (ms) when the document is one file. */
-  readonly modified: number | undefined;
-  readonly firstPage: VirtualPage | undefined;
-}
-
-/** One card per open document, in tab order. */
-export function homeCards(
-  ws: Workspace,
-  files: Readonly<Record<SourceId, SourceFileInfo>>,
-  colors: Readonly<Record<DocumentId, number>>,
-): HomeCardData[] {
-  return ws.documentOrder.flatMap((id): HomeCardData[] => {
-    const doc = ws.documents[id];
-    if (doc === undefined) return [];
-    const sources = new Set<SourceId>();
-    let images = false;
-    for (const page of doc.pages) {
-      if (page.ref.kind === 'source') sources.add(page.ref.source);
-      else images = true;
-    }
-    const [only] = sources;
-    const file = sources.size === 1 && !images && only !== undefined ? files[only] : undefined;
-    return [
-      {
-        id,
-        title: doc.title,
-        pageCount: doc.pages.length,
-        colorIndex: colors[id] ?? 0,
-        size: file?.size,
-        modified: file !== undefined && file.lastModified > 0 ? file.lastModified : undefined,
-        firstPage: doc.pages[0],
-      },
-    ];
-  });
-}
 
 /** The selection without closed documents, in selection order. */
 export function liveSelection(

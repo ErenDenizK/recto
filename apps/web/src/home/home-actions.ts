@@ -37,6 +37,7 @@ import {
   useRecentsStore,
 } from '../files/recents';
 import { m } from '../i18n';
+import type { ResumePoint } from '../session/resume';
 import { reopenFromSnapshot } from '../session/session';
 import { announce } from '../shell/announcer';
 import { openOperationDialog } from '../stage/operation-dialogs-store';
@@ -47,7 +48,7 @@ import { useUiStore } from '../state/ui-store';
 import { addLoadedSource, type LoadedSources, useWorkspaceStore } from '../state/workspace-store';
 import { toast } from '../ui/Toast/toast';
 import { combinedTitle, combineOrder, compareOrder, liveSelection, movedOrder } from './home-model';
-import { homeFlagEnabled, OPEN_PAGE_FLAG } from './home-flags';
+import { HOME_CONTINUE_FLAG, homeFlagEnabled, OPEN_PAGE_FLAG } from './home-flags';
 import { backToLibraryMorph } from './library-morph';
 import { resetLibraryStore, setSelecting } from './library-store';
 
@@ -176,6 +177,17 @@ export function openInRead(id: DocumentId): void {
   if (model().workspace.documents[id] === undefined) return;
   model().setActive(id);
   ui().showSurface('page', id);
+}
+
+/**
+ * Opens a document where it was left (Epic 3, 3c; DSN-66): its zoom first, so the page view
+ * mounts at it, then its page, then the scroll offset once the rows are measured.
+ */
+export async function resumeDocument(id: DocumentId, point: ResumePoint): Promise<void> {
+  const view = await import('../session/resume-view');
+  view.applyResumeZoom(point);
+  openInRead(id);
+  view.settleResume(id, point);
 }
 
 /** Combine with open documents (S15), pre-ordered: the selection, a card drop's pair. */
@@ -471,7 +483,17 @@ export async function openRecent(entry: RecentEntry): Promise<void> {
     const kept = await reopenFromSnapshot(entry.kept.snapshotId);
     if (kept?.ok) {
       setRecentNote(null);
-      openInRead(kept.documentId);
+      const { place } = kept.record;
+      // Behind `?home=continue` a kept document opens at its zoom and offset too (3c).
+      if (place.resume !== undefined && homeFlagEnabled(HOME_CONTINUE_FLAG)) {
+        const total = kept.record.pages;
+        await resumeDocument(kept.documentId, {
+          ...place.resume,
+          page: place.page,
+          total,
+          at: Date.now(),
+        });
+      } else openInRead(kept.documentId);
       announce(m.announce_opened({ name: kept.record.title }));
       return;
     }

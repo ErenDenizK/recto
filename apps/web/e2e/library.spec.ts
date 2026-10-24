@@ -425,3 +425,54 @@ test('files dragged over a document show the lit drop card, and open as tabs', a
   await toast.getByRole('button', { name: 'Show in Library' }).click();
   await expect(checked(page)).toHaveCount(2);
 });
+
+/**
+ * R26 concept 4, DSN-66: `?home=continue` puts the Continue card at the head of the Library, and
+ * "Continue" lands on the page, zoom and scroll offset the reader left (within 2 px).
+ */
+test('R26: Continue returns to page 4 at the same zoom and offset', async ({ page }) => {
+  await page.goto('./?lang=en&home=continue');
+  await page.getByTestId('library-sample').click();
+  const viewport = page.locator('[data-read-viewport]');
+  await expect(viewport).toBeVisible({ timeout: 30_000 });
+  await page.keyboard.press('Control+=');
+  // Bring page 4 up and sit 90 px into it, as a person scrolling would.
+  await page.evaluate(async () => {
+    const el = document.querySelector<HTMLElement>('[data-read-viewport]');
+    if (!el) throw new Error('no viewport');
+    const frame = () => new Promise((r) => requestAnimationFrame(r));
+    for (let i = 0; i < 200; i += 1) {
+      const target = el.querySelector<HTMLElement>('[data-page-index="3"]');
+      if (target) {
+        const gap = target.getBoundingClientRect().top - el.getBoundingClientRect().top;
+        if (Math.abs(gap + 90) < 1) return;
+        el.scrollTop += gap + 90;
+      } else el.scrollTop += el.clientHeight * 0.8;
+      await frame();
+    }
+  });
+  const pill = page.getByTestId('page-pill');
+  await expect(pill).toHaveText(/^4 \/ \d+ · /);
+  const before = await pill.innerText();
+  const offsetOf = () =>
+    page.evaluate(() => {
+      const el = document.querySelector<HTMLElement>('[data-read-viewport]');
+      const target = el?.querySelector<HTMLElement>('[data-page-index="3"]');
+      if (!el || !target) return null;
+      return Math.round(el.getBoundingClientRect().top - target.getBoundingClientRect().top);
+    });
+  const offset = await offsetOf();
+  expect(offset).not.toBeNull();
+  // Let the debounced capture run, then go Home.
+  await page.waitForTimeout(400);
+  await page.keyboard.press('0');
+  await expect(library(page)).toBeVisible();
+  const continueCard = page.getByTestId('continue-card');
+  await expect(continueCard).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId('continue-page')).toHaveText(/^Page 4 of \d+$/);
+  await continueCard.getByTestId('continue-resume').click();
+  await expect(library(page)).toHaveCount(0);
+  await expect(pill).toHaveText(before, { timeout: 20_000 });
+  await expect.poll(offsetOf, { timeout: 20_000 }).toBeGreaterThanOrEqual((offset ?? 0) - 2);
+  expect(await offsetOf()).toBeLessThanOrEqual((offset ?? 0) + 2);
+});

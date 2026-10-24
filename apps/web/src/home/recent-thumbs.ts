@@ -14,7 +14,13 @@
 import { deserializeWorkspace } from '@pdf-editor/document-model';
 
 import { chooseBucket, getEngineService, RENDER_PRIORITY } from '../engine/engine-service';
-import { parseKeptRecord, recordFile, sourceFile } from '../session/format';
+import {
+  type DocumentPlace,
+  type KeptRecordV1,
+  parseKeptRecord,
+  recordFile,
+  sourceFile,
+} from '../session/format';
 import { snapshotStorage } from '../session/session';
 
 /** The thumbnail box, CSS px (02.Q1). */
@@ -27,31 +33,69 @@ export interface RecentThumb {
   readonly height: number;
 }
 
+/** A box to fit a page in, CSS px. */
+export interface ThumbBox {
+  readonly width: number;
+  readonly height: number;
+}
+
 const cache = new Map<string, Promise<RecentThumb | null>>();
 let queue: Promise<unknown> = Promise.resolve();
 
-/** The thumbnail of kept snapshot `snapshotId`, rendered once per session (null: glyph). */
-export function recentThumb(snapshotId: string): Promise<RecentThumb | null> {
-  const known = cache.get(snapshotId);
+/**
+ * The thumbnail of kept snapshot `snapshotId`, rendered once per session (null: glyph): its
+ * first page in the row's box, or page `page` in a bigger `box` for the Library's Continue card
+ * (DSN-66).
+ */
+export function recentThumb(
+  snapshotId: string,
+  page = 0,
+  box: ThumbBox = RECENT_THUMB,
+): Promise<RecentThumb | null> {
+  const key = `${snapshotId}:${page}:${box.width}x${box.height}`;
+  const known = cache.get(key);
   if (known) return known;
   // Before the session has opened its storage there is nothing to read yet: ask again later
   // (the row asks once the session says it keeps documents) rather than remember "none".
   if (!snapshotStorage()) return Promise.resolve(null);
   // One render at a time, after the ones asked for before.
-  const next = queue.then(() => render(snapshotId)).catch(() => null);
+  const next = queue.then(() => render(snapshotId, page, box)).catch(() => null);
   queue = next;
-  cache.set(snapshotId, next);
+  cache.set(key, next);
   return next;
 }
 
-async function render(snapshotId: string): Promise<RecentThumb | null> {
+/** What Continue needs of a kept record: the title, the page count and where it was left. */
+export async function keptSummary(
+  snapshotId: string,
+): Promise<{ title: string; pages: number; place: DocumentPlace } | null> {
+  try {
+    const record = await readRecord(snapshotId);
+    return record && { title: record.title, pages: record.pages, place: record.place };
+  } catch {
+    return null;
+  }
+}
+
+async function readRecord(snapshotId: string): Promise<KeptRecordV1 | null> {
   const storage = snapshotStorage();
   if (!storage) return null;
   const recordBlob = await storage.read('kept', recordFile(snapshotId));
-  if (!recordBlob) return null;
-  const record = parseKeptRecord(JSON.parse(await recordBlob.text()));
+  return recordBlob ? parseKeptRecord(JSON.parse(await recordBlob.text())) : null;
+}
+
+async function render(
+  snapshotId: string,
+  index: number,
+  box: ThumbBox,
+): Promise<RecentThumb | null> {
+  const storage = snapshotStorage();
+  if (!storage) return null;
+  const record = await readRecord(snapshotId);
+  if (!record) return null;
   const ws = deserializeWorkspace(record.workspace);
-  const page = ws.documents[record.place.id]?.pages[0];
+  const doc = ws.documents[record.place.id];
+  const page = doc?.pages[Math.min(index, (doc?.pages.length ?? 1) - 1)];
   if (page?.ref.kind !== 'source') return null;
   const source = ws.sources[page.ref.source];
   const info = source?.pages[page.ref.index];
@@ -67,7 +111,7 @@ async function render(snapshotId: string): Promise<RecentThumb | null> {
     const turned = ((info.rotation + page.rotation) / 90) % 2 === 1;
     const widthPt = turned ? info.size.height : info.size.width;
     const heightPt = turned ? info.size.width : info.size.height;
-    const fit = Math.min(RECENT_THUMB.width / widthPt, RECENT_THUMB.height / heightPt);
+    const fit = Math.min(box.width / widthPt, box.height / heightPt);
     const dpr = Math.max(1, globalThis.devicePixelRatio || 1);
     const result = await engine.renderPage({
       sourceId: id,

@@ -38,6 +38,7 @@ import { m } from '../i18n';
 import { isSampleFile } from '../sample/sample-file';
 import { lockOf, useLockStore } from '../state/lock-store';
 import { adoptFileFacts, fileFactsOf } from '../state/saved-store';
+import { homeFlagEnabled, HOME_CONTINUE_FLAG } from '../home/home-flags';
 import { documentUi, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { readJson, writeJson } from '../state/safe-storage';
@@ -103,6 +104,15 @@ function snapshotState(): SnapshotState {
 /** The page shown last in each document (the view store knows only the active one's). */
 const pages = new Map<DocumentId, number>();
 
+/**
+ * What `resume-view` hooks in behind `?home=continue` (DSN-66, EDN-10): the zoom and offset kept
+ * beside a page (`DocumentPlace.resume`), and the writer's note when one changes.
+ */
+const resumeHook: {
+  of?: (id: DocumentId) => DocumentPlace['resume'];
+  note?: () => void;
+} = {};
+
 function placeState(tracker: ChangeTracker): PlaceState {
   const ui = useUiStore.getState();
   const ws = useWorkspaceStore.getState().workspace;
@@ -114,6 +124,7 @@ function placeState(tracker: ChangeTracker): PlaceState {
     place: (id) => {
       const { surface } = documentUi(ui, id);
       const lock = lockOf(id);
+      const resume = resumeHook.of?.(id);
       return {
         page: pages.get(id) ?? 0,
         // The format keeps M8's names: the page view is 'read', the grid 'arrange'. Markup is
@@ -122,6 +133,7 @@ function placeState(tracker: ChangeTracker): PlaceState {
         view: surface === 'grid' ? 'arrange' : 'read',
         mode: 'read',
         ...(lock === undefined ? {} : { lock }),
+        ...(resume === undefined ? {} : { resume }),
         ...fileFactsOf(id),
       };
     },
@@ -254,6 +266,7 @@ function watch(ctl: Controller): () => void {
     pages.set(id, state.currentPage);
     writer.noteChange('view');
   });
+  resumeHook.note = () => writer.noteChange('view');
   const flushNow = () => void writer.flush();
   const onVisibility = () => {
     if (document.visibilityState === 'hidden') flushNow();
@@ -265,6 +278,7 @@ function watch(ctl: Controller): () => void {
     offUi();
     offLocks();
     offView();
+    delete resumeHook.note;
     document.removeEventListener('visibilitychange', onVisibility);
     window.removeEventListener('pagehide', flushNow);
   };
@@ -293,6 +307,19 @@ export function startSession(options: StartOptions): () => void {
   let stopped = false;
   let unwatch: (() => void) | undefined;
   setDataset('session', 'restoring');
+  // Where each document was left, for the Library's Continue (DSN-66), behind its flag.
+  let stopResume: (() => void) | undefined;
+  if (homeFlagEnabled(HOME_CONTINUE_FLAG)) {
+    void import('./resume-view').then((view) => {
+      if (stopped) return;
+      resumeHook.of = view.resumeDetailOf;
+      const stopWatch = view.watchResume(() => resumeHook.note?.());
+      stopResume = () => {
+        stopWatch();
+        delete resumeHook.of;
+      };
+    });
+  }
   window.addEventListener('beforeunload', onBeforeUnload);
   const offlineUnsub = useWorkspaceStore.subscribe((state) =>
     offlineTracker.observe(state.workspace),
@@ -367,6 +394,7 @@ export function startSession(options: StartOptions): () => void {
   })();
   return () => {
     stopped = true;
+    stopResume?.();
     unwatch?.();
     offlineUnsub();
     window.removeEventListener('beforeunload', onBeforeUnload);

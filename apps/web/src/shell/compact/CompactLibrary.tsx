@@ -29,7 +29,7 @@
  *
  * A file that did not open leaves one line saying why (`role="alert"`), under the sample.
  */
-import { useState } from 'react';
+import { lazy, type ReactNode, Suspense, useState } from 'react';
 
 import { BrandMark } from '../../brand/BrandMark';
 import {
@@ -38,6 +38,7 @@ import {
   type RecentEntry,
   useRecentsStore,
 } from '../../files/recents';
+import { HOME_CONTINUE_FLAG, homeFlagEnabled } from '../../home/home-flags';
 import { formatFileSize, middleTruncate, relativeTime } from '../../home/home-model';
 import { getLocale, m } from '../../i18n';
 import { SampleCover } from '../../sample/SampleCover';
@@ -64,7 +65,31 @@ const TOOLS: readonly { readonly icon: IconName; readonly label: () => string }[
   { icon: 'signature', label: m.compact_tool_sign },
 ];
 
+/**
+ * The Library. Behind `?home=continue` it is `ContinuedLibrary` (DSN-66, EDN-10), a lazy chunk
+ * that adds the Continue card and the one-lime swap; without the flag the phone carries none of
+ * it, and the plain screen shows meanwhile.
+ */
+const ContinuedLibrary = lazy(() => import('./ContinuedLibrary'));
+
 export function CompactLibrary() {
+  const plain = <LibraryScreen continued={false} slot={null} />;
+  if (!homeFlagEnabled(HOME_CONTINUE_FLAG)) return plain;
+  return (
+    <Suspense fallback={plain}>
+      <ContinuedLibrary />
+    </Suspense>
+  );
+}
+
+/** `continued`: while Continue shows it holds the one lime and Open PDF is secondary (DSN-66). */
+export function LibraryScreen({
+  continued,
+  slot,
+}: {
+  readonly continued: boolean;
+  readonly slot: ReactNode;
+}) {
   const opening = useCompactStore((s) => s.opening);
   const openError = useCompactStore((s) => s.openError);
   const firstRun = useRecentsStore((s) => s.loaded && s.entries.length === 0);
@@ -91,6 +116,7 @@ export function CompactLibrary() {
         <Icon name="gear-six" />
       </button>
       <div className={styles.body}>
+        {slot}
         <div className={styles.intro}>
           <p className={styles.promise}>{m.compact_library_promise()}</p>
           <Tools />
@@ -101,13 +127,13 @@ export function CompactLibrary() {
             </p>
           ) : null}
         </div>
-        <Recents />
+        <Recents continued={continued} />
       </div>
       <div className={styles.dock}>
         <div className={styles.dockPiece} data-testid="compact-library-dock">
           <button
             type="button"
-            className={`${controls.primary} ${styles.open}`}
+            className={`${continued ? controls.text : controls.primary} ${styles.open}`}
             aria-busy={opening || undefined}
             disabled={opening}
             onClick={() => void pickAndOpen()}
@@ -186,7 +212,7 @@ function ClearButton() {
  * card holds one quiet row of the list's shape in their place ("No files yet"), under the same
  * title and without Clear: one section, so the two states cannot drift apart.
  */
-function Recents() {
+function Recents({ continued }: { readonly continued: boolean }) {
   const entries = useRecentsStore((s) => s.entries);
   const loaded = useRecentsStore((s) => s.loaded);
   const access = useRecentsStore((s) => s.access);
@@ -196,8 +222,14 @@ function Recents() {
   const [now] = useState(() => Date.now());
   if (!loaded) return null;
   const empty = entries.length === 0;
-  // The open document first, then the rest newest first.
-  const ordered = [...entries.filter(isOpenEntry), ...entries.filter((e) => !isOpenEntry(e))];
+  // The open document first, then the rest newest first; while Continue shows the open one, its
+  // "Reading now" row would say it twice (DSN-66).
+  const ordered = [
+    ...(continued ? [] : entries.filter(isOpenEntry)),
+    ...entries.filter((e) => !isOpenEntry(e)),
+  ];
+  // Nothing else to list: the section would be an empty card under its title.
+  if (continued && ordered.length === 0) return null;
   return (
     <section
       className={styles.recents}
