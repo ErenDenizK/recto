@@ -307,7 +307,8 @@ const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\
  * copy of `@cantoo/fontkit` (~150 KiB gzip), beside the main thread's. The main build emits it
  * once as the entry `assets/fontkit.js` (unhashed, so a worker build can name it; the precache
  * revisions it), and the worker builds leave the import external, pointing at that file beside
- * the worker's own chunk. Only the assembler and analysis workers do (see the plugin).
+ * the worker's own chunk, as `fontkit.js?v=<commit>` so a cached older file (Pages' max-age) is
+ * never paired with a newer worker. Only the assembler and analysis workers do (see the plugin).
  */
 const FONTKIT = '@cantoo/fontkit';
 function sharedFontkit(role: 'emit' | 'import'): Plugin {
@@ -332,7 +333,9 @@ function sharedFontkit(role: 'emit' | 'import'): Plugin {
       });
     },
     resolveId(source) {
-      return shared && source === FONTKIT ? { id: './fontkit.js', external: true } : null;
+      return shared && source === FONTKIT
+        ? { id: `./fontkit.js?v=${appCommit()}`, external: true }
+        : null;
     },
   };
 }
@@ -467,7 +470,7 @@ export default defineConfig({
         // The plugin's default treats everything under `assets/` as content-hashed, so it is
         // precached without a revision. `assets/fontkit.js` is the one unhashed file there
         // (`sharedFontkit`): it names a hashed chunk, so it keeps a revision and updates with it.
-        dontCacheBustURLsMatching: /assets\/(?!fontkit\.js$)/,
+        dontCacheBustURLsMatching: /^assets\/(?!fontkit\.js$)/,
         manifestTransforms: [
           (entries) => {
             const fonts = /\.(woff2?|ttf|otf)$/;
@@ -492,10 +495,10 @@ export default defineConfig({
         importScripts: ['sw-office.js'],
         cleanupOutdatedCaches: true,
         // Workbox's defaults, and `r`: the cache-busting query of a launch chunk imported
-        // again (src/pwa/boot-reload.ts, PRD-26) still finds the precache, so the retry
+        // again (src/pwa/boot-reload.ts, PRD-26) and a worker's `fontkit.js?v=` still find the precache, so the retry
         // works offline. The precache answers the same bytes as the first try then; a retry
         // that must reach the network is the reload's (a cache-busted document, `_r`).
-        ignoreURLParametersMatching: [/^utm_/, /^fbclid$/, /^r$/],
+        ignoreURLParametersMatching: [/^utm_/, /^fbclid$/, /^r$/, /^v$/],
         // Match callbacks are serialized into the service worker, so they cannot close over
         // `base`: `location` there is the worker script's URL, which sits at `base`.
         runtimeCaching: [
