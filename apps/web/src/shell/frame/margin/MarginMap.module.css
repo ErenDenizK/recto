@@ -43,12 +43,12 @@
 .link {
   display: block;
   width: 100%;
-  padding: 5px 8px;
+  padding: var(--space-1h) var(--space-2);
   text-decoration: none;
   border-radius: var(--radius-xs);
   color: var(--text-tertiary);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--type-body);
   line-height: 1.35;
   text-align: start;
   cursor: pointer;
@@ -58,7 +58,7 @@
 
 .link[data-level='2'] {
   padding-inline-start: 22px;
-  font-size: 12.5px;
+  font-size: var(--type-footnote);
 }
 
 .link:hover {
@@ -72,7 +72,7 @@
 
 .link:focus-visible {
   outline: 2px solid var(--focus-light);
-  outline-offset: -2px;
+  outline-offset: var(--focus-offset-in);
   color: var(--text-primary);
 }
 
