@@ -24,6 +24,7 @@ import {
   useFileInputPicker,
   waitForSnapshot,
   expectOpenDocuments,
+  pastDeadline,
 } from './helpers';
 
 /** Counts what a person does: each click, tap, key press, drop and file choice is one step. */
@@ -181,7 +182,7 @@ test('J12: ○ A, ○ B, Compare: three steps from the Library', async ({ page }
     const cdp = await page.context().newCDPSession(page);
     const point = { x: Math.round(box.x + box.width / 2), y: Math.round(box.y + 60), id: 0 };
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
-    await page.waitForTimeout(700);
+    await pastDeadline(page, 700); // the long-press hold, the rule under test
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await expect(card(page, 'compare-a')).toHaveAttribute('aria-selected', 'true');
     await person.press(card(page, 'compare-b'));

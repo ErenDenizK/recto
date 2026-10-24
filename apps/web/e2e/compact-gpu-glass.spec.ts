@@ -165,6 +165,7 @@ for (const variant of ['capsule', 'split'] as const) {
 
       // At rest: no draw over a second.
       const before = (await stats(page))?.draws ?? 0;
+      // No draw within a second is the claim.
       await page.waitForTimeout(1000);
       expect((await stats(page))?.draws).toBe(before);
 
@@ -197,6 +198,7 @@ for (const variant of ['capsule', 'split'] as const) {
 
 test('a software renderer gets CSS+ without the test force', async ({ page }) => {
   await openSample(page, '&top=split');
+  // A software renderer is probed over time; the claim is that no canvas appears in that window.
   await page.waitForTimeout(3500);
   await expect(page.getByTestId('gpu-glass-canvas')).toHaveCount(0);
   await expect(page.locator('.gpu-glass')).toHaveCount(0);

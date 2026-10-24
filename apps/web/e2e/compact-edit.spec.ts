@@ -15,14 +15,14 @@ import { join } from 'node:path';
 
 import { type CDPSession, expect, type Locator, type Page, test } from '@playwright/test';
 
-import { fixturePath, useFileInputPicker, waitForSnapshot } from './helpers';
+import { fixturePath, useFileInputPicker, waitForSnapshot, motionDone } from './helpers';
 
 const SHOTS = process.env.CAPTURE_SCREENSHOTS;
 
 async function shot(page: Page, name: string, settle = 400): Promise<void> {
   if (!SHOTS) return;
   const size = page.viewportSize();
-  if (settle > 0) await page.waitForTimeout(settle);
+  if (settle > 0) await motionDone(page);
   const scheme = await page.evaluate(() => document.documentElement.dataset.theme ?? 'dark');
   const lang = await page.evaluate(() => document.documentElement.lang || 'en');
   await page.screenshot({
@@ -215,6 +215,7 @@ test.describe('phone editing (M10 WP1)', () => {
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [dot] });
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    // The dot's would-be toggle has no signal to wait on: nothing must change within the double-tap window.
     await page.waitForTimeout(450);
     await expect(capsule(page)).not.toHaveAttribute('data-hidden');
     expect(await zoomOf(page)).toBe(zoom);
@@ -266,7 +267,7 @@ test.describe('phone editing (M10 WP1)', () => {
     await expect(more).toHaveAttribute('aria-expanded', 'true');
     // Floating: inset from the sides, above the island, never over 55 % of the screen.
     const view = page.viewportSize() ?? { width: 390, height: 844 };
-    await page.waitForTimeout(600);
+    await motionDone(page);
     const box = await drawer(page).boundingBox();
     const island = await capsule(page).boundingBox();
     if (!box || !island) throw new Error('not laid out');
@@ -319,7 +320,7 @@ test.describe('phone editing (M10 WP1)', () => {
     // …and by a swipe down.
     await more.click();
     await expect(drawer(page)).toBeVisible();
-    await page.waitForTimeout(500);
+    await motionDone(page);
     const grab = await drawer(page).boundingBox();
     if (!grab) throw new Error('no drawer');
     const cdp = await page.context().newCDPSession(page);
@@ -460,6 +461,7 @@ test.describe('phone editing (M10 WP1)', () => {
       await cdp.send('Animation.setPlaybackRate', { playbackRate: 0.1 });
       await edit.click();
       for (let n = 1; n <= 4; n++) {
+        // The merge plays at a tenth of its speed; each review frame is sampled on the clock.
         await page.waitForTimeout(120);
         await shot(page, `merge-${n}`, 0);
       }
@@ -544,6 +546,7 @@ for (const lang of ['en', 'tr'] as const) {
         await cdp.send('Animation.enable');
         await cdp.send('Animation.setPlaybackRate', { playbackRate: 0.1 });
         await page.getByTestId('compact-tool-more').click();
+        // Let the slowed rise run a while on the clock, then freeze it for the frame.
         await page.waitForTimeout(400);
         await cdp.send('Animation.setPlaybackRate', { playbackRate: 0 });
         await shot(page, 'drawer-rising', 0);

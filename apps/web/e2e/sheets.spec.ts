@@ -29,7 +29,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, type Page, test, type TestInfo } from '@playwright/test';
 import { createServer, type ViteDevServer } from 'vite';
 
-import { atRest, fixturePath, useFileInputPicker } from './helpers';
+import { atRest, fixturePath, useFileInputPicker, pastDeadline } from './helpers';
 import { expectGlassClean, walkGlass } from './support/glass-walker';
 
 const WEB = fileURLToPath(new URL('..', import.meta.url));
@@ -195,6 +195,22 @@ function expectTransformOnly(
   expect(new Set(frames.map((f) => f.transform)).size).toBeGreaterThan(1);
   expect(frames.every((f) => f.same)).toBe(true);
   expect(resizes).toBe(0);
+}
+
+/** Waits until the element with `testId` is mid-motion: an animation runs on it. */
+async function inMotion(page: Page, testId: string): Promise<void> {
+  await expect
+    .poll(() =>
+      page.evaluate(
+        (id) =>
+          document
+            .querySelector(`[data-testid="${id}"]`)
+            ?.getAnimations()
+            .some((a) => a.playState === 'running') ?? false,
+        testId,
+      ),
+    )
+    .toBe(true);
 }
 
 test.describe('the gallery', () => {
@@ -364,7 +380,7 @@ test.describe('the gallery', () => {
       await page.mouse.move(x, y);
       await page.mouse.down();
       for (let i = 1; i <= 12; i++) await page.mouse.move(x, y - i * 30);
-      await page.waitForTimeout(120);
+      await pastDeadline(page, 120); // held still: the release has no velocity
       await page.mouse.up();
       // Q-7 for a detent change: the drag and the spring move only the transform.
       expectTransformOnly(await motion, { boxConstant: true });
@@ -401,7 +417,7 @@ test.describe('the gallery', () => {
       await page.mouse.move(x, y);
       await page.mouse.down();
       for (let i = 1; i <= 5; i++) await page.mouse.move(x, y + i * 20);
-      await page.waitForTimeout(120);
+      await pastDeadline(page, 120); // held still: the release has no velocity
       await page.mouse.up();
       await rest(page);
       expect(Math.abs(((await sheet.boundingBox())?.y ?? 0) - before)).toBeLessThanOrEqual(1);
@@ -409,7 +425,7 @@ test.describe('the gallery', () => {
       await page.mouse.move(x, y);
       await page.mouse.down();
       for (let i = 1; i <= 11; i++) await page.mouse.move(x, y + i * 20);
-      await page.waitForTimeout(120);
+      await pastDeadline(page, 120); // held still: the release has no velocity
       await page.mouse.up();
       await expect(sheet).toHaveCount(0);
     });
@@ -504,7 +520,7 @@ test.describe('the gallery', () => {
       await gallery(page);
       const motion = sample(page, '[data-testid="sheet-task"]');
       await page.getByRole('button', { name: 'Open task', exact: true }).click();
-      await page.waitForTimeout(60);
+      await inMotion(page, 'sheet-task');
       const mid = await walkGlass(page, { atRest: false });
       expect(mid.violations.filter((v) => v.rule === 'Q-3' || v.rule === 'Q-4')).toEqual([]);
       // Opened by a button, it comes out of that button at a uniform scale (the container
@@ -522,7 +538,7 @@ test.describe('the gallery', () => {
       await gallery(page);
       let motion = sample(page, '[data-testid="sheet-task"]');
       await page.getByRole('button', { name: 'Open task', exact: true }).click();
-      await page.waitForTimeout(40);
+      await inMotion(page, 'sheet-task');
       const mid = await walkGlass(page, { atRest: false });
       expect(mid.violations.filter((v) => v.rule === 'Q-3' || v.rule === 'Q-4')).toEqual([]);
       // Opened by a button, a side sheet comes out of it at a uniform scale (platform.md §1):

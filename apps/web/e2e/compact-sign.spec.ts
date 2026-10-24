@@ -21,14 +21,14 @@ import { join } from 'node:path';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { type CDPSession, expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, useFileInputPicker } from './helpers';
+import { fixturePath, useFileInputPicker, motionDone } from './helpers';
 
 const SHOTS = process.env.CAPTURE_SCREENSHOTS;
 
 async function shot(page: Page, name: string, settle = 500): Promise<void> {
   if (!SHOTS) return;
   const size = page.viewportSize();
-  if (settle > 0) await page.waitForTimeout(settle);
+  if (settle > 0) await motionDone(page);
   const scheme = await page.evaluate(() => document.documentElement.dataset.theme ?? 'dark');
   await page.screenshot({
     path: join(SHOTS, `sign-${name}-${scheme}-${size?.width}x${size?.height}.png`),
@@ -126,7 +126,7 @@ test.describe('phone signing (M10 WP6)', () => {
     // Sign's tile keeps the drawer open on its options.
     await drawer(page).getByRole('button', { name: 'Sign' }).click();
     await expect(page.getByTestId('compact-sign-options')).toBeVisible();
-    await page.waitForTimeout(300);
+    await motionDone(page);
     await expect(drawer(page)).toBeVisible();
     await expect(page.getByTestId('compact-tool-chip')).toHaveAccessibleName('Sign');
     expect(
@@ -137,7 +137,7 @@ test.describe('phone signing (M10 WP6)', () => {
     await page.getByTestId('compact-sign-new').click();
     await expect(drawer(page)).toHaveCount(0);
     await expect(sheet(page)).toBeVisible();
-    await page.waitForTimeout(700);
+    await motionDone(page);
     const view = page.viewportSize() ?? { width: 390, height: 844 };
     const panel = await sheet(page).boundingBox();
     if (!panel) throw new Error('no sheet');
@@ -200,7 +200,7 @@ test.describe('phone signing (M10 WP6)', () => {
     // Undo walks back to no signature.
     for (let i = 0; i < 6 && (await undo(page).getAttribute('aria-disabled')) !== 'true'; i++) {
       await undo(page).click();
-      await page.waitForTimeout(150);
+      await motionDone(page);
     }
     await expect(stamps(page)).toHaveCount(0);
 
@@ -213,7 +213,7 @@ test.describe('phone signing (M10 WP6)', () => {
     // and places it, where the drawer leaves page above it (a phone held upright).
     await saved.click();
     await expect(saved).toHaveAttribute('aria-pressed', 'true');
-    await page.waitForTimeout(500);
+    await motionDone(page);
     await expect(drawer(page)).toBeVisible();
     const top = (await drawer(page).boundingBox())?.y ?? 0;
     const sheetBox = await page.locator('[data-page-index="0"]').boundingBox();
@@ -276,7 +276,7 @@ for (const colorScheme of ['dark', 'light'] as const) {
       await expect(sheet(page)).toBeVisible();
       const cdp = await page.context().newCDPSession(page);
       const pad = sheet(page).locator('canvas[data-strokes]');
-      await page.waitForTimeout(700);
+      await motionDone(page);
       await pad.scrollIntoViewIfNeeded();
       const padBox = await pad.boundingBox();
       if (padBox) await sign(cdp, padBox);
