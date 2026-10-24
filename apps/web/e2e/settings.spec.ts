@@ -269,7 +269,7 @@ test('Türkçe without a reload, Follow the browser, and the choice survives a r
   await expect(sheet(page).getByRole('heading', { name: 'Settings' })).toBeVisible();
   await expect(
     sheet(page).getByRole('radiogroup', { name: 'Language' }).getByRole('radio', {
-      name: 'Follow the browser (English)',
+      name: 'Browser (English)',
     }),
   ).toHaveAttribute('aria-checked', 'true');
 });

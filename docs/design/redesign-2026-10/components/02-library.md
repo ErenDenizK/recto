@@ -142,7 +142,8 @@ window (L7 note). No disabled or locked state at view level.
 card, a tab, a Recents row, Open (one file), Try the sample. F6 regions on the Library: top strip
 → Library main (launcher, head, cards, Recent, footer) → selection bar → toasts. Tab order inside
 main: launcher actions → Select → cards (one stop) → Clear recents → Recent rows (one stop) →
-footer chips. First focus: Open PDFs… when no document is open (J1); otherwise the card of the
+footer chips. The top strip is last in Tab order on purpose (it follows the main content in the
+DOM); F6 reaches it first, so no Tab reorder is made. First focus: Open PDFs… when no document is open (J1); otherwise the card of the
 document last shown. Esc in the Library: clears the selection, then leaves Select mode; never
 navigates.
 

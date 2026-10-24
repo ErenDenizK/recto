@@ -132,7 +132,9 @@
 /* A two-value segmented control in a row (Reduce motion: System · On), trailing like a field. */
 .segmented {
   flex: none;
-  width: min(176px, 50%);
+  /* 58%: Turkish "Sistem · Her zaman" at the coarse step needs about 190 px, which 50% of a
+     phone row (about 160) never gave, so the control fell back to a menu (presentability #10). */
+  width: min(200px, 58%);
 }
 
 /* Three values (Glass: Clear · Tinted · Solid): room for their labels at the coarse step and in

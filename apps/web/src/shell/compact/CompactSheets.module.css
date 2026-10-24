@@ -114,7 +114,8 @@ a.contentsRow:active {
 
 .gotoHint {
   min-height: 1.25rem;
-  padding-inline: 16px;
+  /* The field's own edge, not its 16 px text inset (presentability #21). */
+  padding-inline: 0;
   color: var(--text-secondary);
   font-size: var(--type-footnote);
   line-height: 1.25rem;

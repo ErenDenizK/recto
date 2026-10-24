@@ -221,8 +221,8 @@
   transform: translateY(calc(-100% - var(--top-offset)));
 }
 
-/* The file menu's card (Preview's file card): a glyph tile, the name whole on up to two lines,
-   then "PDF · size · pages"; a label, not a control. */
+/* The file menu's card (Preview's file card): a glyph tile, the name whole on up to two lines;
+   a label, not a control. */
 .card {
   display: flex;
   align-items: center;
@@ -265,11 +265,4 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
-}
-
-.cardFacts {
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  font-variant-numeric: tabular-nums;
-  line-height: var(--type-footnote-lh);
 }
