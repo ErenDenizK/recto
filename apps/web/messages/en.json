@@ -5052,6 +5052,7 @@
   "recents_sort_size": "Size",
   "recents_search_placeholder": "Search",
   "recents_search_none": "No recent files match “{query}”.",
+  "margin_map_label": "Contents in the margin",
   "findmap_matches": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
