@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   BEZIER_FALLBACK,
+  openSpring,
   preset,
   type Spring,
   settleTime,
@@ -303,5 +304,28 @@ describe('physical parameters and the engines without linear() (MOT-18)', () => 
     // A throw starts steeper: the first control point rises with v · duration.
     const thrown = springEasing('glide', 4, false);
     expect(bezier(thrown.easing, 0.05)).toBeGreaterThan(bezier(BEZIER_FALLBACK.spring, 0.05));
+  });
+});
+
+describe('openSpring (MOT-19)', () => {
+  const peak = (s: Spring) => {
+    let top = 0;
+    for (let t = 0; t < 1; t += 0.001) top = Math.max(top, solve(s, -1, 0, t)[0]);
+    return top;
+  };
+
+  it('passes its rest by 2 to 4 % and settles inside A-10; the zero-bounce tokens do not pass it', () => {
+    const over = peak(openSpring);
+    expect(over).toBeGreaterThan(0.02);
+    expect(over).toBeLessThan(0.04);
+    expect(settleTime(openSpring)).toBeLessThan(0.5);
+    for (const name of ['press', 'quick', 'smooth', 'glide', 'track'] as const) {
+      expect(peak(springs[name]), name).toBeLessThan(1e-3);
+    }
+  });
+
+  it("keeps quick's perceptual duration with ζ = 0.75", () => {
+    expect(preset(openSpring).ratio).toBe(0.75);
+    expect((2 * Math.PI) / Math.sqrt(openSpring.stiffness)).toBeCloseTo(0.28, 3);
   });
 });

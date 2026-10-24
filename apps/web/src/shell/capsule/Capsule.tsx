@@ -49,6 +49,7 @@
  */
 import { Component, type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
 
+import { m } from '../../i18n';
 import type { CapsuleShape } from './capsule-content';
 import { useContentMorphKey } from './content-morph';
 import { CAPSULE_ITEM, CapsuleMorph, type CapsuleSnapshot, snapshotCapsule } from './capsule-morph';
@@ -112,6 +113,8 @@ export function Capsule({ shape, morphKey, stroking = false, children }: Capsule
       className={styles.capsule}
       data-capsule={shape}
       data-region="toolbar"
+      role="region"
+      aria-label={m.capsule_region_label()}
       data-stroking={stroking ? '' : undefined}
       onPointerDownCapture={(event) => {
         const piece =

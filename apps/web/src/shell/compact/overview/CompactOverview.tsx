@@ -27,7 +27,7 @@ import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from 're
 import { RENDER_PRIORITY } from '../../../engine/engine-service';
 import { m } from '../../../i18n';
 import { reducedMotion } from '../../../motion/reduced-motion';
-import { springToLinear } from '../../../motion/springs';
+import { springEasing } from '../../../motion/springs';
 import { PageCanvas } from '../../../pages/PageCanvas';
 import { displaySize } from '../../../pages/page-geometry';
 import chipStyles from '../../../stage/PinchDetentChip.module.css';
@@ -289,7 +289,7 @@ function OverviewPlace({
     const tile = tileBox(layout, step.index, pageSize);
     const rect = plane.getBoundingClientRect();
     const from = fitOnto(tile, { x: rect.left, y: rect.top }, step.before);
-    const curve = springToLinear('smooth');
+    const curve = springEasing('smooth');
     plane.animate([{ transform: affineCss(from) }, { transform: affineCss(IDENTITY) }], {
       duration: curve.duration,
       easing: curve.easing,
