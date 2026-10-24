@@ -163,6 +163,7 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-64](decisions/design.md) | Opening in light: no Read page is ever bare white (cached bitmap, else a soft quarter-scale render, else paper tone); behind `?open=light` a card's sheet grows on `glide` and the light pulses once per session | In force; flag | 2026-10-23 |
 | [DSN-67](decisions/design.md) | The save receipt: Save a copy's sizes show at once (approximate, then exact); behind `?receipt=1` the changed pages, size bars, the page's flight to the tab and the "never left this device" toast | Size fix in force; receipt behind `?receipt=1` | 2026-10-23 |
 | [DSN-74](decisions/design.md) | Turkish copy rules: *siz* in sentences, bare imperatives on controls, past passives in history; *karart* means redaction only (Dim pages is "Sayfa parlaklığını azalt"); ’ before suffixes on names and abbreviations | In force | 2026-10-23 |
+| [DSN-76](decisions/design.md) | A visible Tools entry on the dock behind `?tools=1`: Redact, OCR, Compare, Combine, Split, Compress as doorways to the title menu's own commands (DSN-46) | Prototype (flag) | 2026-10-24 |
 | [DSN-75](decisions/design.md) | Fill & sign gets its own short bar (field stepping, Signature, Date, Done) behind `?fillbar=1`, replacing the shared palette on that door when on | Prototype; owner taste open | 2026-10-24 |
 
 ## Motion
@@ -260,7 +261,7 @@ Full rows: [`decisions/editions.md`](decisions/editions.md).
 | [EDN-7](decisions/editions.md) | The phone edition becomes editable, radically simple | In force; supersedes EDN-4's read-only rule once it ships | 2026-10-11 |
 | [EDN-8](decisions/editions.md) | Phone editing takes architecture A, with a designed drawer | In force | 2026-10-11 |
 | [EDN-9](decisions/editions.md) | The sample PDF is rewritten for phones | In force | 2026-10-11 |
-| [EDN-10](decisions/editions.md) | The phone's rarely used sheets load on demand | In force | 2026-10-11 |
+| [EDN-10](decisions/editions.md) | The phone's rarely used sheets load on demand | In force; amended by EDN-21 for editing code | 2026-10-11 |
 | [EDN-11](decisions/editions.md) | Phone editing's foundation (WP1) works through the full edition's gate and presets | In force | 2026-10-11 |
 | [EDN-12](decisions/editions.md) | Adding text on phones (WP4): the island steps away while typing and a small Done rides on the keyboard | In force | 2026-10-11 |
 | [EDN-13](decisions/editions.md) | Phone ink and highlight (lane B) | In force | 2026-10-11 |
@@ -271,6 +272,7 @@ Full rows: [`decisions/editions.md`](decisions/editions.md).
 | [EDN-18](decisions/editions.md) | The phone tool drawer stays open on a tap | In force | 2026-10-12 |
 | [EDN-19](decisions/editions.md) | Office conversion is for desktop and tablet; the phone gets guidance, never the download | In force | 2026-10-19 |
 | [EDN-20](decisions/editions.md) | iPad is claimed for Office conversion only after the owner's device check | In force; the check is the owner's | 2026-10-21 |
+| [EDN-21](decisions/editions.md) | Phone editing code loads on intent (✎, first selection, form fields), never on idle; amends EDN-10 | In force | 2026-10-24 |
 
 ## Phone work
 
