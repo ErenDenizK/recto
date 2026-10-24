@@ -16,6 +16,7 @@ import { fixtureFile } from '../../../test/store-harness';
 import { settled } from '../../../test/settled';
 import { registerAppCommands } from '../../commands/app-commands';
 import { commandRegistry } from '../../commands/registry';
+import { registerArrangeCommands } from '../../stage/arrange-commands';
 import { resetLockStore } from '../../state/lock-store';
 import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
 import { Dock } from './Dock';
@@ -29,7 +30,9 @@ const setSearch = (search: string) => history.replaceState(null, '', `/${search}
 describe('Tools entry', () => {
   let dispose: () => void = () => undefined;
   beforeAll(() => {
-    dispose = registerAppCommands();
+    // The app registers the arrange commands (Combine, Split) beside the rest (`app.tsx`).
+    const offs = [registerAppCommands(), registerArrangeCommands(commandRegistry)];
+    dispose = () => offs.forEach((off) => off());
   });
   afterAll(() => dispose());
   beforeEach(() => {
