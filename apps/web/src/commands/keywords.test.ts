@@ -184,6 +184,9 @@ describe('conversion names (R23-8)', () => {
     ['text to pdf', 'file.textToPdf'],
     ['metinden pdf', 'file.textToPdf'],
     ['txt to pdf', 'file.textToPdf'],
+    ['markdown to pdf', 'file.markdownToPdf'],
+    ['md to pdf', 'file.markdownToPdf'],
+    ['markdown’dan pdf', 'file.markdownToPdf'],
   ];
   it.each(['en', 'tr'] as const)('finds each conversion in the %s UI', (locale) => {
     setLocale(locale);
@@ -394,7 +397,10 @@ describe('score floor (Epic 4)', () => {
   it('keeps consonant abbreviations on their old top matches', () => {
     const registry = allCommands();
     expect(search(registry, 'wtrmrk')[0]).toBe('document.watermark');
-    expect(search(registry, 'mrkdn')[0]).toBe('document.exportMarkdown');
+    // "Markdown to PDF…" (PRD-28) is as good a match for this abbreviation as "PDF to Markdown…".
+    expect(search(registry, 'mrkdn').slice(0, 2)).toEqual(
+      expect.arrayContaining(['document.exportMarkdown', 'file.markdownToPdf']),
+    );
     expect(search(registry, 'dwnld')[0]).toBe('file.export');
     expect(search(registry, 'hl').slice(0, 5)).toContain('tool.highlight');
     expect(search(registry, 'dlt')).toEqual(
