@@ -269,6 +269,7 @@ Full rows: [`decisions/editions.md`](decisions/editions.md).
 | [EDN-18](decisions/editions.md) | The phone tool drawer stays open on a tap | In force | 2026-10-12 |
 | [EDN-19](decisions/editions.md) | Office conversion is for desktop and tablet; the phone gets guidance, never the download | In force | 2026-10-19 |
 | [EDN-20](decisions/editions.md) | iPad is claimed for Office conversion only after the owner's device check | In force; the check is the owner's | 2026-10-21 |
+| [EDN-21](decisions/editions.md) | Phone editing code loads on intent (✎, first selection, form fields), never on idle; amends EDN-10 | In force | 2026-10-24 |
 
 ## Phone work
 

@@ -3,11 +3,15 @@
  * `research/phone-2026-10/code-audit.md` §4): everything that edits on a phone lives in
  * `./mark/` and loads by `import()`, so the static compact path gains only this loader, the ✎
  * button, the mode fields and the page overlay slot (PRC-11's 320 KB gate). The chunk is
- * fetched when the browser is idle after the reader opens (as the on-demand sheets, EDN-10),
- * and at the latest when ✎ is tapped; the island shows once it is here.
+ * loads on intent (EDN-21), never on idle: at ✎ pointerdown (or tap), at the first text
+ * selection (`selection-host.tsx`), and when the open document has form fields. The island
+ * shows once it is here.
  */
 import { type ComponentType, useEffect, useSyncExternalStore } from 'react';
 
+import type { SourceId, VirtualDocument } from '@pdf-editor/document-model';
+
+import { getEngineService } from '../../engine/engine-service';
 import type { PageOverlayProps } from '../../stage/page-overlays';
 import type * as MarkModule from './mark';
 
@@ -39,36 +43,37 @@ const subscribe = (listener: () => void) => {
 };
 const snapshot = () => loaded;
 
-/**
- * The chunk if it has loaded, else null, outside React: the reader asks it for the chrome's
- * scroll spring (`mark/chrome-spring.ts`, MOT-16), which rides in it to keep the static compact
- * path under its gate (PRC-11); until the idle prefetch has brought it, the chrome moves on its
- * tokens.
- */
-export const markLoaded = snapshot;
-
 /** The chunk once it has loaded, else null; re-renders when it arrives. */
 export function useMark(): Mark | null {
   return useSyncExternalStore(subscribe, snapshot, snapshot);
 }
 
-/** How long the idle prefetch may wait for an idle moment, ms (as the sheets'). */
-const PREFETCH_TIMEOUT_MS = 4000;
-
-/** Prefetches the chunk when the browser is idle while the reader shows. */
-export function usePrefetchMark(): void {
+/**
+ * Loads the chunk when `doc` has form fields (EDN-21): the fields mount in reading (MOB-1), so
+ * their layer must be here. The probe asks the engine already open for the page renders; the
+ * form store is not loaded for it, being part of the chunk.
+ */
+export function useLoadMarkForForms(doc: VirtualDocument): void {
+  const sources = [
+    ...new Set(doc.pages.flatMap((p) => (p.ref.kind === 'source' ? [p.ref.source] : []))),
+  ].join();
   useEffect(() => {
-    if (loaded) return;
-    const load = () => void loadMark().catch(() => undefined);
-    const idle = typeof window.requestIdleCallback === 'function';
-    const handle = idle
-      ? window.requestIdleCallback(load, { timeout: PREFETCH_TIMEOUT_MS })
-      : window.setTimeout(load, PREFETCH_TIMEOUT_MS);
+    if (loaded || sources === '') return;
+    let live = true;
+    void (async () => {
+      const editor = await getEngineService().editor();
+      for (const source of sources.split(',')) {
+        if (!live) return;
+        if ((await editor.listFormFields(source as SourceId)).length > 0) {
+          await loadMark();
+          return;
+        }
+      }
+    })().catch(() => undefined);
     return () => {
-      if (idle) window.cancelIdleCallback(handle);
-      else window.clearTimeout(handle);
+      live = false;
     };
-  }, []);
+  }, [sources]);
 }
 
 /**
@@ -88,6 +93,11 @@ export function takeCapsuleSnapshot(): DOMRect | null {
   const box = capsuleBefore;
   capsuleBefore = null;
   return box;
+}
+
+/** ✎ pointerdown: starts the load a tap later needs (EDN-21). */
+export function prepareEditing(): void {
+  void loadMark().catch(() => undefined);
 }
 
 /** ✎: loads the chunk if needed, then enters editing through its bridge. */

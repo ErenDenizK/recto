@@ -19,7 +19,7 @@ import { highlighterSlot, PEN_SIZES, writingSlots } from './ink-presets';
 import { PenOptions } from './InkOptions';
 import { registerCompactTool, resetCompactTools } from './registry';
 import SelectionBar, { CALLOUT_BAND, placeBar } from './selection-bar';
-import { isPageTextSelection } from './selection-host';
+import { isPageTextSelection } from '../selection-host';
 
 const markup = vi.hoisted(() => ({ calls: [] as unknown[][] }));
 vi.mock('../../../annotations/selection-markup', () => ({

@@ -12,10 +12,10 @@
  */
 import { lazy, Suspense, useEffect, useState, useSyncExternalStore } from 'react';
 
-import { TEXT_LAYER_ATTR } from '../../../viewer/text-model';
-import { useCompactStore } from '../compact-store';
+import { TEXT_LAYER_ATTR } from '../../viewer/text-model';
+import { useCompactStore } from './compact-store';
 
-const SelectionBar = lazy(() => import('./selection-bar'));
+const SelectionBar = lazy(() => import('./mark/selection-bar'));
 
 /** The selection must hold this long without change before the bar shows, ms. */
 export const SELECTION_SETTLE_MS = 250;
