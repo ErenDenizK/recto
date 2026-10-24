@@ -4608,7 +4608,8 @@
   "markup_certificate": "Sign with certificate…",
   "markup_find_sensitive": "Find sensitive data…",
   "markup_fields": "Fields",
-  "markup_field_position": "{n} / {total}",
+  "markup_field_position": "{n}/{total}",
+  "fillbar_field_position": "{n} / {total}",
   "markup_field_count": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

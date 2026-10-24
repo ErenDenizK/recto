@@ -18,6 +18,7 @@ import { getLocale, m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { useToolStore } from '../viewer/tool-store';
 import { INK } from '../annotations/palette';
+import { commitOpenFieldEditor } from '../forms/FieldEditors';
 import { fieldIndex } from './SignGroup';
 
 /** `date` as the locale writes it in numerals, day first for English (en-GB) as `formatDay`. */
@@ -54,27 +55,45 @@ async function dateImage(text: string) {
   return { blob, width: width / SCALE, height: height / SCALE };
 }
 
-/** The focused field when it is an empty text field of the active document, else undefined. */
+/** The image of the date stamp armed last, to tell it from any other image stamp. */
+let dateBlob: Blob | null = null;
+
+/** Whether `pending` is the date stamp this module armed. */
+export function isDateStamp(pending: { readonly blob?: Blob | undefined } | null): boolean {
+  return pending?.blob !== undefined && pending.blob === dateBlob;
+}
+
+/**
+ * The focused field when it is an empty text field of the active document, else undefined.
+ * An open editor is what the user sees, so its typed text decides, not the stored value.
+ */
 function emptyTextField() {
   const active = useFormStore.getState().active;
   if (active === null) return undefined;
   const stops = activeStops();
   const stop = stops[fieldIndex(stops, active)];
-  const empty = stop?.field.kind === 'text' && (stop.field.value ?? '') === '';
-  return empty ? active : undefined;
+  if (stop?.field.kind !== 'text') return undefined;
+  const editor = document.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+    '[data-form-editor]',
+  );
+  const shown = editor ? editor.value : (stop.field.value ?? '');
+  return shown === '' ? active : undefined;
 }
 
 /** Date's press: fills the focused empty text field, else arms the date for a click on the page. */
 export async function putDate(date: Date = new Date()): Promise<void> {
   const text = dateText(date);
   const field = emptyTextField();
+  // Typed text is committed, never overwritten (and never lost to a later blur).
+  commitOpenFieldEditor();
   if (field !== undefined) {
-    // Close the editor first: it holds '' and would overwrite the date when it next commits.
+    // Close the editor: it holds '' and would overwrite the date when it next commits.
     useFormStore.getState().setActive(null);
     await commitFieldValue(field, text);
     return;
   }
   const { blob, width, height } = await dateImage(text);
+  dateBlob = blob;
   useAnnotationStore.getState().setPendingStamp({ kind: 'image', blob, width, height });
   // The stamp tool arms through its own command path (Markup is open: no other effect).
   if (useToolStore.getState().mode !== 'stamp') await activateTool(toolDefinition('stamp'));

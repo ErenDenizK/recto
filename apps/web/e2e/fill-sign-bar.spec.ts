@@ -126,6 +126,35 @@ test('flag on, touch: a tap on Next keeps the field editor, so stepping advances
   }
 });
 
+test('flag on: typed text is kept when stepping, and Date never overwrites it', async ({
+  page,
+}) => {
+  await open(page, 'fillbar=1', 'forms-a.pdf');
+  await fillSignDoor(page).click();
+  await quiet(page);
+  const next = bar(page).locator('[data-field-step="next"]');
+  const name = page.locator('[data-form-editor="name"]');
+  await next.click();
+  await expect(name).toBeFocused();
+  await name.fill('Ada');
+  await next.click();
+  await expect(readout(page)).toContainText(/2\s*\/\s*\d+/);
+  await bar(page).locator('[data-field-step="previous"]').click();
+  await expect(name).toHaveValue('Ada');
+
+  // Typed, not committed: Date arms its stamp and leaves the text alone.
+  await name.fill('Ada Lovelace');
+  const date = bar(page).getByRole('button', { name: 'Date' });
+  await date.click();
+  await expect(date).toHaveAttribute('aria-pressed', 'true');
+  // Arming closes the editor; the text was committed, so opening the field shows it.
+  await expect(name).toBeHidden();
+  await page.keyboard.press('Escape');
+  await expect(date).toHaveAttribute('aria-pressed', 'false');
+  await page.locator('[data-form-layer] [data-field-name="name"]').click();
+  await expect(name).toHaveValue('Ada Lovelace');
+});
+
 test('flag off: Fill & sign opens the shared palette', async ({ page }) => {
   await open(page, 'fillbar=0', 'forms-a.pdf');
   await fillSignDoor(page).click();

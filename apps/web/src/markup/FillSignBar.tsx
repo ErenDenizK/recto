@@ -26,7 +26,7 @@ import { m } from '../i18n';
 import { centredRoom, snapToWholePixels } from '../ui/whole-pixels';
 import { Icon } from '../ui/Icon';
 import { closeMarkupDoor, revealStop } from './doors';
-import { putDate } from './fill-bar-date';
+import { isDateStamp, putDate } from './fill-bar-date';
 import { paletteEscape, usePageEscape } from './palette-escape';
 import styles from './MarkupPalette.module.css';
 import { useRovingTabindex } from './roving';
@@ -85,7 +85,7 @@ export function FillSignBar() {
     `${mode}|${pending?.kind ?? ''}`,
   );
   // Date armed: its one-shot image stamp is waiting for a click on the page.
-  const dateArmed = mode === 'stamp' && pending?.kind === 'image';
+  const dateArmed = mode === 'stamp' && isDateStamp(pending);
   usePageEscape();
   return (
     <div
@@ -107,7 +107,7 @@ export function FillSignBar() {
         onFocus={roving.onFocus}
       >
         <div className={styles.group}>
-          <FieldStepper always hint={m.fillbar_no_fields()} onStep={revealActiveField} />
+          <FieldStepper always hint={m.fillbar_no_fields()} onStep={revealActiveField} spaced />
         </div>
         <span className={styles.sep} aria-hidden="true" />
         <div className={styles.group}>

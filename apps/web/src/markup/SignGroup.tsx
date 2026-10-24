@@ -36,6 +36,7 @@ import {
   isFillable,
   useFormStore,
 } from '../forms/form-store';
+import { commitOpenFieldEditor } from '../forms/FieldEditors';
 import { moveField } from '../forms/navigation';
 import { Odometer } from '../forms/Odometer';
 import { formatNumber, m } from '../i18n';
@@ -239,11 +240,14 @@ export function FieldStepper({
   always = false,
   hint,
   onStep,
+  spaced = false,
 }: {
   readonly always?: boolean;
   readonly hint?: string;
   /** Called after each step, once the store holds the new field (the fill bar reveals it). */
   readonly onStep?: () => void;
+  /** The fill bar's readout, "1 / 7" (DSN-75); the palette keeps "1/7". */
+  readonly spaced?: boolean;
 }) {
   const stops = useFieldStops();
   const active = useFormStore((s) => s.active);
@@ -254,7 +258,10 @@ export function FieldStepper({
   const readout = none
     ? (hint ?? m.markup_no_fields())
     : index >= 0
-      ? m.markup_field_position({ n: formatNumber(index + 1), total: formatNumber(total) })
+      ? (spaced ? m.fillbar_field_position : m.markup_field_position)({
+          n: formatNumber(index + 1),
+          total: formatNumber(total),
+        })
       : m.markup_field_count({ count: total });
   const name = none
     ? m.markup_no_fields()
@@ -267,6 +274,8 @@ export function FieldStepper({
       : m.markup_field_count({ count: total });
   const step = (direction: 1 | -1) => () => {
     if (none) return;
+    // The open editor is no longer blurred by the press: commit what was typed first.
+    commitOpenFieldEditor();
     stepField(direction);
     onStep?.();
   };

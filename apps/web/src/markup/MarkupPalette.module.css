@@ -214,7 +214,7 @@
 .stepperReadout {
   display: grid;
   min-width: var(--control-h-sm);
-  padding-inline: var(--space-2);
+  padding-inline: 0;
   color: var(--text-primary);
   font-size: var(--control-text);
   font-weight: 500;
@@ -222,6 +222,11 @@
   font-variant-numeric: tabular-nums;
   text-align: center;
   white-space: nowrap;
+}
+
+/* The fill bar's readout has room around it, clear of the buttons' hover pills (DSN-75). */
+[data-fill-bar] .stepperReadout {
+  padding-inline: var(--space-2);
 }
 
 /* The Fill & sign bar's stepper on a file without fields (DSN-75): the hint, quieter. */
