@@ -127,7 +127,10 @@ export function buildSections(
       .filter((c): c is Command => c !== undefined && !scoped.includes(c));
     const rest = visible.filter((c) => !recentCommands.includes(c) && !scoped.includes(c));
     const sections: Section[] = [];
-    if (scoped.length > 0) sections.push({ group: SCOPE_GROUP, rows: scoped.map((c) => toRow(c)) });
+    if (scoped.length > 0) {
+      // Scoped and nothing typed: the selection's section alone (08-feedback §2.4).
+      return [{ group: SCOPE_GROUP, rows: scoped.map((c) => toRow(c)) }];
+    }
     if (recentCommands.length > 0) {
       sections.push({ group: RECENT_GROUP, rows: recentCommands.map((c) => toRow(c)) });
     }
@@ -300,6 +303,12 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
   const selectedPages = usePagesBarSelection().length;
   const [scopeOff, setScopeOff] = useState(false);
   const scopeCount = scopeOff ? 0 : selectedPages;
+  // The chip stays mounted while its leave animation plays; the list is unscoped at once.
+  const [chipLeaving, setChipLeaving] = useState(false);
+  const dismissScope = () => {
+    setScopeOff(true);
+    setChipLeaving(true);
+  };
   const workspace = useWorkspaceStore((s) => s.workspace);
   const activeDoc = getActiveDocument(workspace);
   const deferredQuery = useDeferredValue(query);
@@ -372,6 +381,8 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
         rows: scope.rows.map((row) => commandRow(row, false, pushRecent, onClose)),
       });
     }
+    // Scoped and nothing typed: only the selection's section (08-feedback §2.4).
+    if (empty && scopeCount > 0) return result;
     const suggested =
       empty && activeDoc
         ? suggestionsFor({
@@ -512,7 +523,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
     } else if (event.key === 'Backspace' && query === '' && scopeCount > 0) {
       // Backspace in an empty input removes the scope chip: every command again (08-feedback §6).
       event.preventDefault();
-      setScopeOff(true);
+      dismissScope();
     }
   };
 
@@ -527,15 +538,19 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
       <Dialog.Title className="visually-hidden">{m.palette_title()}</Dialog.Title>
       <div className={styles.searchRow}>
         <Icon name="magnifying-glass" className={styles.searchIcon} />
-        {scopeCount > 0 ? (
+        {scopeCount > 0 || chipLeaving ? (
           <span
             className={styles.scopeChip}
             role="group"
-            aria-label={m.palette_scope_name({ count: scopeCount })}
+            aria-label={m.palette_scope_name({ count: selectedPages })}
             data-testid="palette-scope"
+            data-leaving={chipLeaving ? '' : undefined}
+            onAnimationEnd={() => {
+              if (chipLeaving) setChipLeaving(false);
+            }}
           >
             <Icon name="squares-four" className={styles.scopeIcon} />
-            {m.palette_intent_count({ count: scopeCount })}
+            {m.palette_intent_count({ count: selectedPages })}
             <IconButton
               size="row"
               label={m.palette_scope_clear()}
@@ -545,7 +560,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
                 event.preventDefault();
               }}
               onClick={() => {
-                setScopeOff(true);
+                dismissScope();
                 inputRef.current?.focus();
               }}
             />

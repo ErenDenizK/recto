@@ -90,14 +90,41 @@
   flex: none;
   align-items: center;
   gap: var(--space-1h);
-  height: var(--control-h-sm);
+  height: 28px;
   padding: 0 var(--space-1) 0 var(--space-2);
+  animation: palette-chip-in var(--duration-fast) var(--ease-out) backwards;
   border-radius: var(--radius-capsule);
   background: var(--surface-on);
   color: var(--text-primary);
   font-size: var(--type-footnote);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+/* Replace motion (08-feedback §7): a fade with a small scale, opacity and transform only; the
+   scale is 1 under reduced motion (--exit-scale), so only the fade runs. */
+.scopeChip[data-leaving] {
+  animation: palette-chip-out var(--duration-fast) var(--ease-exit) forwards;
+}
+
+@keyframes palette-chip-in {
+  from {
+    opacity: 0;
+    transform: scale(var(--exit-scale));
+  }
+}
+
+@keyframes palette-chip-out {
+  to {
+    opacity: 0;
+    transform: scale(var(--exit-scale));
+  }
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .scopeChip {
+    height: 36px;
+  }
 }
 
 .scopeIcon {
@@ -270,4 +297,11 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-1h);
+}
+
+/* No hardware keys to teach on a touch device (08-feedback §2). */
+@media (pointer: coarse), (any-pointer: coarse) {
+  .footer {
+    display: none;
+  }
 }

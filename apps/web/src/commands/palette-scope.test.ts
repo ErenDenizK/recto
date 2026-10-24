@@ -40,11 +40,20 @@ describe('palette scope', () => {
       scope,
     ).map((s) => [s.group, s.rows.map((r) => r.command.id)]);
 
-  it('leads with the selection actions and takes them out of the sections below', () => {
+  it('shows only the selection actions when scoped and nothing is typed', () => {
     expect(sections('', ['pages.delete', 'pages.rotateRight'])).toEqual([
       [SCOPE_GROUP, ['pages.delete', 'pages.rotateRight']],
+    ]);
+    expect(sections('', [])).toEqual([
       ['View', ['view.zoomIn']],
-      ['Pages', ['pages.insertBlank']],
+      ['Pages', ['pages.rotateRight', 'pages.delete', 'pages.insertBlank']],
+    ]);
+  });
+
+  it('keeps the other matches below the selection ones when text is typed', () => {
+    expect(sections('pages', ['pages.delete']).map(([group]) => group)).toEqual([
+      SCOPE_GROUP,
+      'Pages',
     ]);
   });
 
