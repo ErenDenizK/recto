@@ -205,6 +205,39 @@ within one build) and the bytes are the signal.
    chunk matched `app-*`. Not merged as is: it needs about 3.5 KB gzip saved elsewhere in the editor
    initial JS, or a baseline the owner accepts (PRC-11).
 
+## Changes made (R27, P2 and P6)
+
+Branch `r27/perf-fontkit-icons`. Measured on `RECTO_RENDER_OVERRIDE=1` builds of `develop`
+(`6cc589e`) and the branch, with `tools/qa/bundle-budget.ts` and the precache list read from
+`dist/sw.js` (gzip is Node zlib; PNG and woff2 counted as stored).
+
+1. **P2, one fontkit for the app and the assembler and analysis workers.** Each `?worker` is its
+   own build, so config cannot share a chunk between them. The page's build now emits fontkit once
+   as the entry `assets/fontkit.js` (`sharedFontkit` in `vite.config.ts`, entry
+   `packages/engine/src/fontkit-entry.ts`) and the assembler and analysis worker builds leave
+   `@cantoo/fontkit` external, pointing at that file; the main thread's lazy chunks import the same
+   chunk, so three copies (`browser-module-*`, 363 KiB raw each) became one. `fontkit.js` is
+   unhashed, so `workbox.dontCacheBustURLsMatching` excludes it and it keeps a precache revision.
+   The PDFium worker keeps its own copy: sharing pushed its gated closure to 1,603 KB (gate
+   1,600), because Rolldown also split fflate out of it.
+
+   | Measure (build report)            | `develop`  | Branch     | Change    |
+   | --------------------------------- | ---------- | ---------- | --------- |
+   | Precache, raw (budget measure)    | 13,340 KiB | 12,611 KiB | −729 KiB  |
+   | Precache, gzip                    | 5.10 MiB   | 4.81 MiB   | −0.29 MiB |
+   | Precache, entries                 | 213        | 213        | 0         |
+   | Editor initial JS gzip            | 778.6 KB   | 778.7 KB   | +0.1 KB   |
+   | Compact edition JS gzip           | 288.1 KB   | 288.1 KB   | none      |
+   | PDFium worker script, raw         | 1,592.7 KB | 1,592.7 KB | none      |
+
+   `compare`, `text-to-pdf` and `offline` e2e (Chromium) pass. No gate or baseline moved.
+2. **P6, quantised 512 px tiles.** `tools/media/lib/app-icons.ts` now passes the two 512 px tiles
+   through an ffmpeg palette step (112 colours, no dither, one transparent entry), the tool the
+   media encoder already uses. `icon-512.png` 143.3 to 35.8 KiB, `icon-maskable-512.png` 125.6
+   to 38.2 KiB. Side by side the gradient shows no banding (64 colours did); the rounded tile's
+   anti-aliased corner edge is now one-bit alpha. The other icons and the favicon regenerate
+   byte-identical.
+
 ## R27 check of P4 on `develop`
 
 The held-back commit is already on `develop` (`bf86218`, branch `r25/phone-p4`), so the R25

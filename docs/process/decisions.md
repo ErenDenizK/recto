@@ -81,6 +81,7 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PF-19](decisions/product.md) | Read mode's whole-page bitmap is capped at 4 MP on every edition; tiles keep the visible page 1:1 | In force | 2026-10-22 |
 | [PF-21](decisions/product.md) | Sheets opened from menus load on first use behind a lazy host; commands and stores never import the sheet module | In force | 2026-10-22 |
 | [PF-22](decisions/product.md) | In WebKit page renders leave the worker as RGBA pixels and the main thread makes the bitmap (a transferred ImageBitmap can carry a later same-size tile's pixels); other engines keep the transferred bitmap | In force | 2026-10-22 |
+| [PF-23](decisions/product.md) | The phone size gate measures a read session (compactSession): baseline 533.6 KB gzip, 1 % growth cap; the static compact closure keeps only its 320 KB ceiling | In force | 2026-10-24 |
 
 ## Design
 
@@ -150,12 +151,16 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-60](decisions/design.md) | Reading zoom stays uncapped on laptops (the R25 proposal to hold the page near 900 px is declined) | In force | 2026-10-22 |
 | [DSN-61](decisions/design.md) | Find outranks the page facts (chunked, paused for a search), shows scan progress, one snippet per result | In force | 2026-10-22 |
 | [DSN-62](decisions/design.md) | Find shows where: lime hits that read on a light or a dark page (per-page multiply or screen, darker current hit), and hit ticks on the reader's scroll bar from one canvas | In force | 2026-10-22 |
+| [DSN-72](decisions/design.md) | The margin map: the outline as plain text in the empty ground beside the page on wide windows, current section bright, click to go, withdraws when zoomed or narrow; a prototype behind `?margin=1` (duplicates the sidebar Contents, DSN-46) | Prototype; owner taste open | 2026-10-23 |
+| [DSN-66](decisions/design.md) | Where you left off: the Continue card, progress on the Library cards and exact resume (page, zoom, offset), behind `?home=continue` | In force (behind a flag) | 2026-10-23 |
 | [DSN-68](decisions/design.md) | Save a copy… also sits in the dock's More (second home recorded under DSN-46) | In force | 2026-10-23 |
 | [DSN-69](decisions/design.md) | The reading selection bar offers Highlight, as ADR-0029 §2.1 lists it (runs H over the selection) | In force | 2026-10-23 |
 | [DSN-73](decisions/design.md) | Form Tab does not wrap or trap (fields, then links); the window title names the open document | In force | 2026-10-24 |
 | [DSN-70](decisions/design.md) | Stale Undo toasts collapse: a toast that turns to "Newer changes came after this" dismisses older ones already reading it, so never two identical toasts | In force | 2026-10-23 |
+| [DSN-71](decisions/design.md) | Labels that bloom on the Markup palette: the capsule briefly grows by a label line and names every icon (first two sessions, then on press and hold); a prototype behind `?labels=1` | Prototype; owner taste open | 2026-10-23 |
 | [DSN-65](decisions/design.md) | The find map: hit ticks that show a card (page, thumbnail, sentence) and jump on click or tap, a phone rail, and thumbnails in the Find results (`?findmap=1` for ticks and phone) | In force | 2026-10-23 |
 | [DSN-63](decisions/design.md) | The page strip: hold or slide on the page pill (phone: the capsule's number) opens a glass strip of every page, release jumps; a prototype behind `?strip=1` | Prototype; owner taste open | 2026-10-23 |
+| [DSN-64](decisions/design.md) | Opening in light: no Read page is ever bare white (cached bitmap, else a soft quarter-scale render, else paper tone); behind `?open=light` a card's sheet grows on `glide` and the light pulses once per session | In force; flag | 2026-10-23 |
 | [DSN-67](decisions/design.md) | The save receipt: Save a copy's sizes show at once (approximate, then exact); behind `?receipt=1` the changed pages, size bars, the page's flight to the tab and the "never left this device" toast | Size fix in force; receipt behind `?receipt=1` | 2026-10-23 |
 | [DSN-74](decisions/design.md) | Turkish copy rules: *siz* in sentences, bare imperatives on controls, past passives in history; *karart* means redaction only (Dim pages is "Sayfa parlaklığını azalt"); ’ before suffixes on names and abbreviations | In force | 2026-10-23 |
 
@@ -321,6 +326,7 @@ Full rows: [`decisions/text-editing.md`](decisions/text-editing.md).
 | [TXT-20](decisions/text-editing.md) | The sample's feature page sends the reader through Edit text, never a double-click | In force | 2026-10-22 |
 | [TXT-21](decisions/text-editing.md) | Plain letters stand down after a double-click selection until a press or Esc (owner, console r25-dblclick-edit) | In force | 2026-10-23 |
 | [TXT-22](decisions/text-editing.md) | The page in view analyses its paragraphs ahead of a click, behind `?textpre=1` | In force behind the flag | 2026-10-23 |
+| [TXT-23](decisions/text-editing.md) | A new text box's default colour reads on the page under it (ink black on light, white on dark); a picked colour wins | In force | 2026-10-24 |
 
 ## Redaction
 
@@ -346,7 +352,7 @@ Full rows: [`decisions/process.md`](decisions/process.md).
 | [PRC-8](decisions/process.md) | Mechanical work on a lighter model | In force | 2026-10-09 |
 | [PRC-9](decisions/process.md) | Each deploy ends with an owner task script for the iPad | In force | 2026-10-09 |
 | [PRC-10](decisions/process.md) | Work moves to production without delay | In force | 2026-10-04 |
-| [PRC-11](decisions/process.md) | Bundle gates are not raised to fit a change | In force | 2026-10-10 |
+| [PRC-11](decisions/process.md) | Bundle gates are not raised to fit a change (the compact growth cap moved to compactSession, PF-23) | In force | 2026-10-10 |
 | [PRC-13](decisions/process.md) | The family | In force | 2026-10-10 |
 | [PRC-12](decisions/process.md) | Push a verified merge promptly | In force | 2026-10-10 |
 | [PRC-14](decisions/process.md) | Motion e2e tests read the animation's clock, not frames | In force | 2026-10-11 |

@@ -14,17 +14,29 @@
  * (§7.5, A-9).
  */
 import { duration, EASE } from '../motion/tokens';
+import { SOFT_OPACITY } from './placeholder';
 
 /** Larger previews are swapped without a copy (it would cost a second large bitmap). */
 const MAX_GHOST_PIXELS = 16 * 1024 * 1024;
 
-/** Fades `el` in from transparent (module header). */
-export function fadeIn(el: HTMLElement): Animation | undefined {
+/** Fades `el` in from transparent to `to` (module header; 1, or a soft bitmap's veil). */
+export function fadeIn(el: HTMLElement, to = 1): Animation | undefined {
   if (typeof el.animate !== 'function') return undefined;
-  return el.animate([{ opacity: 0 }, { opacity: 1 }], {
+  return el.animate([{ opacity: 0 }, { opacity: to }], {
     duration: duration('base'),
     easing: EASE.out,
   });
+}
+
+/** Fades `el` from opacity `from` to nothing and removes it. */
+function fadeAway(el: HTMLElement, from: number): Animation {
+  const fade = el.animate([{ opacity: from }, { opacity: 0 }], {
+    duration: duration('base'),
+    easing: EASE.out,
+    fill: 'forwards',
+  });
+  fade.onfinish = fade.oncancel = () => el.remove();
+  return fade;
 }
 
 /**
@@ -46,14 +58,30 @@ export function crossFadeFrom(canvas: HTMLCanvasElement): Animation | undefined 
     return undefined;
   }
   ghost.className = canvas.className;
+  if ('soft' in canvas.dataset) ghost.dataset.soft = '';
   ghost.dataset.ghost = '';
   ghost.setAttribute('aria-hidden', 'true');
   canvas.after(ghost);
-  const fade = ghost.animate([{ opacity: 1 }, { opacity: 0 }], {
-    duration: duration('base'),
-    easing: EASE.out,
-    fill: 'forwards',
+  // From what shows now: a soft bitmap's veil, not full strength.
+  return fadeAway(ghost, 'soft' in canvas.dataset ? SOFT_OPACITY : 1);
+}
+
+/**
+ * The first render over a bare sheet (nothing was shown): a copy of the paper tone lies over the
+ * bitmap and fades out, so the page comes up out of the paper while the sheet itself already
+ * has its exact colour (DSN-64: a rendered sheet is never tinted).
+ */
+export function paperFade(canvas: HTMLCanvasElement): Animation | undefined {
+  if (!canvas.isConnected || typeof canvas.animate !== 'function') return undefined;
+  const veil = canvas.ownerDocument.createElement('div');
+  veil.dataset.ghost = '';
+  veil.setAttribute('aria-hidden', 'true');
+  Object.assign(veil.style, {
+    position: 'absolute',
+    inset: '0',
+    background: 'var(--page-paper)',
+    pointerEvents: 'none',
   });
-  fade.onfinish = fade.oncancel = () => ghost.remove();
-  return fade;
+  canvas.after(veil);
+  return fadeAway(veil, 1);
 }

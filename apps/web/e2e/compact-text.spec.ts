@@ -16,14 +16,20 @@ import { join } from 'node:path';
 
 import { type CDPSession, expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, useFileInputPicker, waitForSnapshot } from './helpers';
+import {
+  fixturePath,
+  motionDone,
+  pastDeadline,
+  useFileInputPicker,
+  waitForSnapshot,
+} from './helpers';
 
 const SHOTS = process.env.CAPTURE_SCREENSHOTS;
 
 async function shot(page: Page, name: string, settle = 400): Promise<void> {
   if (!SHOTS) return;
   const size = page.viewportSize();
-  if (settle > 0) await page.waitForTimeout(settle);
+  if (settle > 0) await motionDone(page);
   const scheme = await page.evaluate(() => document.documentElement.dataset.theme ?? 'dark');
   const lang = await page.evaluate(() => document.documentElement.lang || 'en');
   await page.screenshot({
@@ -209,7 +215,7 @@ test.describe('the drawer open on Text (EDN-18)', () => {
     await openReader(page);
     await armText(page, { keepOpen: true });
     const drawer = page.getByTestId('compact-tool-drawer');
-    await page.waitForTimeout(500);
+    await motionDone(page);
     const top = (await drawer.boundingBox())?.y ?? 0;
     const sheet = await page.locator('[data-page-index="0"]').boundingBox();
     if (!sheet) throw new Error('no page');
@@ -221,7 +227,7 @@ test.describe('the drawer open on Text (EDN-18)', () => {
     await expect(field(page)).toBeFocused();
     await expect(drawer).toHaveCount(0);
     // Closing the drawer never takes the focus back from the new box.
-    await page.waitForTimeout(800);
+    await pastDeadline(page, 800); // the window in which a late focus steal would show
     await expect(field(page)).toBeFocused();
     await page.keyboard.type('Through');
     await page.getByTestId('compact-text-done').click();

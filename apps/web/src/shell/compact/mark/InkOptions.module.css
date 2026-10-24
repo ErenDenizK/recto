@@ -39,7 +39,9 @@
 }
 
 /* The chip's ink dot: 7 px of the armed ink at the glyph's lower right, ringed in the island's
-   own material so it reads as a mark on the glyph, not a second control. */
+   own material so it reads as a mark on the glyph, not a second control. An ink close to the glass (black
+   in dark, white in light) gets the swatches' contrast ring outside it in place of the island's
+   own ring, which melted into it (sweep #17). */
 .badge {
   position: absolute;
   right: -4px;
@@ -52,9 +54,7 @@
 }
 
 .badge[data-ring-dark] {
-  box-shadow:
-    inset 0 0 0 1px var(--swatch-contrast),
-    0 0 0 1.5px var(--glass-bar-solid);
+  box-shadow: 0 0 0 1.5px var(--swatch-contrast);
 }
 
 :global([data-theme='light']) .badge {
@@ -62,7 +62,5 @@
 }
 
 :global([data-theme='light']) .badge[data-ring-light] {
-  box-shadow:
-    inset 0 0 0 1px var(--swatch-contrast),
-    0 0 0 1.5px var(--glass-bar-solid);
+  box-shadow: 0 0 0 1.5px var(--swatch-contrast);
 }

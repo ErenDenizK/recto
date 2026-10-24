@@ -31,6 +31,8 @@ import {
   useRecentsStore,
 } from '../../files/recents';
 import { getLocale, m } from '../../i18n';
+import { HOME_CONTINUE_FLAG, homeFlagEnabled } from '../../home/home-flags';
+import { openRowMorph } from '../../home/library-morph';
 import { officeEnabled } from '../../office/flag';
 import { offerOfficeFiles } from '../../office/intake';
 import { isOfficeFile } from '../../office/office-files';
@@ -41,6 +43,9 @@ import { useViewStore } from '../../state/view-store';
 import { clearSearch } from '../../viewer/search';
 import { announce } from '../announcer';
 import { showReader, useCompactStore } from './compact-store';
+
+// Behind `?home=continue` the resume wiring loads on its own, outside the phone's first load.
+if (homeFlagEnabled(HOME_CONTINUE_FLAG)) void import('./compact-resume');
 
 const set = (patch: Partial<ReturnType<typeof useCompactStore.getState>>) =>
   useCompactStore.setState(patch);
@@ -139,7 +144,7 @@ export async function openPdf(file: File, replaces?: string): Promise<boolean> {
       ...(replaces === undefined ? {} : { replaces }),
     });
     set({ openedDocument: doc, zoom: 1, findOpen: false, sheet: null });
-    showReader();
+    openRowMorph(null, showReader);
     announce(m.announce_opened({ name: file.name }));
     return true;
   } finally {
@@ -175,9 +180,9 @@ export async function pickAndOpen(): Promise<void> {
  * stored handle (asking for permission within the tap where needed), else the file dialog
  * with one line saying why. Call it straight from the tap, with no await before it.
  */
-export async function openRecentEntry(entry: RecentEntry): Promise<void> {
+export async function openRecentEntry(entry: RecentEntry, row?: HTMLElement): Promise<void> {
   if (isOpenEntry(entry)) {
-    showReader();
+    openRowMorph(row ?? null, showReader);
     return;
   }
   // A kept snapshot reopens with no picker on every browser (ADR-0032 §2.6), one document at
@@ -236,13 +241,21 @@ async function openKept(
     if (doc === undefined) return 'gone';
     setRecentNote(null);
     // A document with changes is not the file as opened: its copy goes through the export.
+    const { place } = result.record;
+    // Behind `?home=continue` it opens at the zoom and offset it was left at (DSN-66).
+    const resumed =
+      place.resume !== undefined && homeFlagEnabled(HOME_CONTINUE_FLAG)
+        ? await import('./compact-resume')
+        : undefined;
+    const resume = resumed?.keptResume(doc, place);
     set({
       openedDocument: isDocumentChanged(doc.id) ? null : doc,
-      zoom: 1,
+      zoom: resume?.zoom ?? 1,
       findOpen: false,
       sheet: null,
     });
     showReader();
+    if (resume !== undefined) resumed?.settle(doc.id, resume);
     announce(m.announce_opened({ name: result.record.title }));
     return 'opened';
   } finally {

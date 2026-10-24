@@ -1,0 +1,25 @@
+/* The reading-progress bar (ProgressBar.tsx; DSN-66): neutral ink, never the lime, which the
+   view's one primary action keeps (ADR-0023). */
+.track {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: 3px;
+  overflow: hidden;
+  border-radius: var(--radius-capsule);
+  background: var(--border-hairline);
+}
+
+.fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--text-secondary);
+  transform-origin: left center;
+  transition: transform var(--spring-smooth) var(--ease-spring);
+}
+
+:root[dir='rtl'] .fill {
+  transform-origin: right center;
+}

@@ -252,6 +252,8 @@ export function installContainerTransform(): void {
     return;
   }
   installed = true;
+  // The signal a test waits on: popups grow out of their buttons from here on.
+  document.documentElement.dataset.containerTransform = '';
   installPressOrigin();
   const observer = new MutationObserver((records) => {
     for (const record of records) {

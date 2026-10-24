@@ -18,22 +18,21 @@
  * Line 2 is "12 pages · 2.4 MB" (`formatFileSize`, locale decimals, tabular numerals). The
  * accessible name says all three lines ("report, 12 pages, 2.4 MB, edited, locked").
  */
-import type { VirtualPage, Workspace } from '@pdf-editor/document-model';
-import type { CSSProperties, MouseEvent, PointerEvent, ReactNode, Ref } from 'react';
+import type { Workspace } from '@pdf-editor/document-model';
+import type { CSSProperties, MouseEvent, PointerEvent, Ref } from 'react';
 
-import { RENDER_PRIORITY } from '../engine/engine-service';
 import { m, useLocale } from '../i18n';
-import { PageCanvas } from '../pages/PageCanvas';
-import { displaySize, fitInBox } from '../pages/page-geometry';
 import { InlineTitleEditor } from '../stage/InlineTitleEditor';
-import { contentFrame, ResizedContent } from '../stage/ResizedContent';
 import type { LockReason } from '../state/lock-store';
 import { pagesPhrase } from '../state/workspace-store';
 import { CheckBadge } from '../ui/CheckBadge';
 import { Icon, type IconName } from '../ui/Icon';
-import { formatFileSize, type HomeCardData } from './home-model';
+import type { HomeCardData } from './home-cards';
+import { formatFileSize } from './home-model';
 import styles from './LibraryCard.module.css';
 import lit from './lit.module.css';
+import { PageThumb } from './PageThumb';
+import { ProgressBar } from './ProgressBar';
 
 /** The thumbnail box (L5 §2): 160 × 200 fine, 176 × 220 coarse. */
 export const THUMB_FINE = { width: 160, height: 200 } as const;
@@ -110,10 +109,15 @@ export function LibraryCard({
     size,
     edited ? m.library_card_name_edited() : undefined,
     locked?.text,
+    card.reachedPage === undefined
+      ? undefined
+      : m.library_card_progress({ page: card.reachedPage, total: card.pageCount }),
   ]
     .filter(Boolean)
     .join(', ');
   const thumb = coarse ? THUMB_COARSE : THUMB_FINE;
+  // Behind `?home=continue` (DSN-66): the page the reader left, once past the first.
+  const thumbPage = card.leftPage ?? card.firstPage;
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- the listbox owns the keys
     <div
@@ -142,10 +146,10 @@ export function LibraryCard({
       {/* The ○: the check badge in the page's corner, an S control whose hit area (32, 44 coarse)
           reaches the corner; the option carries the state, and Space is its key (the grid's). */}
       <div className={styles.thumbBox} style={{ height: thumb.height }}>
-        {card.firstPage ? (
-          <LibraryThumb workspace={workspace} page={card.firstPage} box={thumb}>
+        {thumbPage ? (
+          <PageThumb workspace={workspace} page={thumbPage} box={thumb} className={styles.sheet}>
             <CardCheck selected={selected} onCheck={onCheck} />
-          </LibraryThumb>
+          </PageThumb>
         ) : (
           <CardCheck selected={selected} onCheck={onCheck} />
         )}
@@ -169,10 +173,15 @@ export function LibraryCard({
         <span className={styles.details} aria-hidden="true">
           {details}
         </span>
-        <span className={styles.state} aria-hidden="true">
-          {locked ? <Icon name={locked.icon} className={styles.stateIcon} /> : null}
-          <span className={styles.stateText}>{state.join(' · ')}</span>
-        </span>
+        {card.progress === undefined ? null : (
+          <ProgressBar value={card.progress} className={styles.progress} />
+        )}
+        {state.length === 0 ? null : (
+          <span className={styles.state} aria-hidden="true">
+            {locked ? <Icon name={locked.icon} className={styles.stateIcon} /> : null}
+            <span className={styles.stateText}>{state.join(' · ')}</span>
+          </span>
+        )}
       </div>
     </div>
   );
@@ -195,43 +204,5 @@ function CardCheck({
     >
       <CheckBadge checked={selected} className={styles.badge} />
     </span>
-  );
-}
-
-/** The first page through the shared thumbnail renderer, fitted into the card's box. */
-function LibraryThumb({
-  workspace,
-  page,
-  box,
-  children,
-}: {
-  readonly workspace: Workspace;
-  readonly page: VirtualPage;
-  readonly box: { readonly width: number; readonly height: number };
-  readonly children?: ReactNode;
-}) {
-  const size = displaySize(workspace, page);
-  const fitted = fitInBox(size, box.width, box.height);
-  const frame = contentFrame(workspace, page);
-  return (
-    <div
-      className={styles.sheet}
-      data-library-sheet=""
-      style={{ width: fitted.width, height: fitted.height }}
-    >
-      <ResizedContent frame={frame}>
-        <PageCanvas
-          sourceId={page.ref.kind === 'source' ? page.ref.source : undefined}
-          blobId={page.ref.kind === 'image' ? page.ref.blob : undefined}
-          index={page.ref.kind === 'source' ? page.ref.index : 0}
-          rotation={page.rotation}
-          widthPt={frame?.widthPt ?? size.width}
-          heightPt={frame?.heightPt ?? size.height}
-          cssWidth={fitted.width * (frame?.width ?? 1)}
-          priority={RENDER_PRIORITY.visible}
-        />
-      </ResizedContent>
-      {children}
-    </div>
   );
 }

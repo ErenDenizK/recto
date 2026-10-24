@@ -229,3 +229,8 @@
     outline-color: Highlight;
   }
 }
+
+/* The reading-progress bar between the details and the state (DSN-66). */
+.progress {
+  margin-block: var(--space-1) var(--space-half);
+}

@@ -188,6 +188,13 @@ export async function auditBars(
         for (const c of controls) {
           if (c.part) continue;
           const h = round(c.box.height);
+          // A menu row whose reason does not fit beside its label drops it to a second line, so
+          // the row is taller by design (Menu.module.css `.item:has(> .hint)`, owner brief B-16;
+          // DSN-52). It may not be shorter than the density's height.
+          const wrapsHint =
+            (c.el as HTMLElement).querySelector(':scope > [class*="hint"]') !== null &&
+            h > height + 0.5;
+          if (wrapsHint) continue;
           if (Math.abs(h - height) > 0.5) push(c, `${describe(c)} is ${h} px high, not ${height}`);
         }
 

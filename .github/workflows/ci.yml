@@ -100,6 +100,11 @@ jobs:
           RECTO_RENDER_OVERRIDE: '1'
           RECTO_OFFICE_REQUIRED: '1'
 
+      # What a read-only phone session loads (docs/research/perf/compact-session-2026-10.md): a
+      # Chromium run on the build above records the scripts, Bundle budgets sizes them.
+      - name: Compact session JS
+        run: node --experimental-strip-types --no-warnings=ExperimentalWarning tools/qa/compact-session.ts
+
       # Bundle budgets (docs/plan/v1/PLAN.md §2.3, PF-14): absolute gates and a 1 % growth cap
       # over the baseline in tools/qa/bundle-budget.json, and every emitted chunk precached
       # (PF-17). No dependencies, so it runs on the build above.

@@ -50,6 +50,15 @@ export interface DocumentPlace {
    * the document unsaved). Absent in snapshots from before it was kept: unknown, read as true.
    */
   readonly writtenOver?: boolean;
+  /**
+   * The page view's zoom and scroll offset for "Continue" (R26, DSN-66), beside `page`. Absent
+   * in snapshots from before it was kept and while the Library's Continue flag is off.
+   */
+  readonly resume?: {
+    readonly zoom: number;
+    readonly fit: 'width' | 'page' | null;
+    readonly offset: number;
+  };
 }
 
 /** A source's file facts and its kept bytes (`sources/<id>.pdf`). */
@@ -187,7 +196,27 @@ function readPlace(value: unknown, path: string): DocumentPlace {
       ? {}
       : { writtenOver: bool(o.writtenOver, `${path}.writtenOver`) }),
     ...(o.lock === undefined ? {} : { lock: oneOf(o.lock, LOCK_REASONS, `${path}.lock`) }),
+    ...readResume(o.resume, `${path}.resume`),
   };
+}
+
+/**
+ * The view hint of a place (`DocumentPlace.resume`, DSN-66). It only says where to scroll, so a
+ * damaged one is dropped and the rest of the place is kept: a hint must never cost the session.
+ */
+function readResume(value: unknown, path: string): Pick<DocumentPlace, 'resume'> {
+  try {
+    const o = obj(value, path);
+    return {
+      resume: {
+        zoom: num(o.zoom, path),
+        fit: o.fit === null ? null : oneOf(o.fit, ['width', 'page'] as const, path),
+        offset: num(o.offset, path),
+      },
+    };
+  } catch {
+    return {};
+  }
 }
 
 function readSourceFacts(value: unknown, path: string): SourceFacts {

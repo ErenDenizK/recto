@@ -16,7 +16,14 @@ import { join } from 'node:path';
 
 import { type CDPSession, expect, type Locator, type Page, test } from '@playwright/test';
 
-import { fixturePath, useFileInputPicker, waitForSnapshot } from './helpers';
+import {
+  fixturePath,
+  useFileInputPicker,
+  waitForSnapshot,
+  motionDone,
+  frames,
+  pastDeadline,
+} from './helpers';
 
 const SHOTS = process.env.CAPTURE_SCREENSHOTS;
 
@@ -202,7 +209,7 @@ function contrast(a: string, b: string): number {
 async function shot(page: Page, name: string): Promise<void> {
   if (!SHOTS) return;
   const size = page.viewportSize();
-  await page.waitForTimeout(350);
+  await motionDone(page);
   await page.screenshot({ path: join(SHOTS, `${name}-${size?.width}x${size?.height}.png`) });
 }
 
@@ -346,7 +353,7 @@ test.describe('the compact edition', () => {
         });
       }
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-      await page.waitForTimeout(150);
+      await frames(page, 2);
     }
     await expect.poll(async () => (await scrolled())?.top ?? 0).toBeGreaterThan(0);
     await expect
@@ -523,7 +530,7 @@ test.describe('the compact edition', () => {
     );
     // The chrome did not toggle on a double tap.
     await expectHidden(topBar(page), false);
-    await page.waitForTimeout(400);
+    await pastDeadline(page, 400); // the double-tap window
     await idle(page);
     await page.touchscreen.tap(centre.x, centre.y);
     await page.touchscreen.tap(centre.x, centre.y);
@@ -742,14 +749,14 @@ test.describe('the compact edition', () => {
     await touch('touchStart');
     for (let i = 1; i <= 6; i++) {
       await touch('touchMove', at.y + i * 12);
-      await page.waitForTimeout(16);
+      await frames(page);
     }
     await expect(goto).toHaveAttribute('data-glass-moving', '');
     await expect.poll(async () => (await goto.boundingBox())?.y ?? 0).toBeGreaterThan(box.y + 40);
     // A quick swipe on closes it, and the chrome comes back.
     for (let i = 7; i <= 14; i++) {
       await touch('touchMove', at.y + i * 24);
-      await page.waitForTimeout(16);
+      await frames(page);
     }
     await touch('touchEnd');
     await expect(goto).toHaveCount(0);
@@ -888,7 +895,7 @@ test.describe('the compact edition', () => {
     const toast = page.getByTestId('session-notice');
     await expect(toast).toContainText('Restored simple-text');
     await expect(capsule(page)).toBeVisible();
-    await page.waitForTimeout(600);
+    await motionDone(page);
     const t = await toast.boundingBox();
     const c = await capsule(page).boundingBox();
     if (!t || !c) throw new Error('not laid out');
@@ -906,6 +913,58 @@ test.describe('the compact edition', () => {
       'data-band',
       'away',
     );
+  });
+
+  test('R26: Continue returns to page 4 at the same zoom and offset (?home=continue)', async ({
+    page,
+  }) => {
+    await page.goto('./?lang=en&home=continue');
+    await expect(page.getByTestId('compact-library')).toBeVisible();
+    await page.getByRole('button', { name: 'Try the sample' }).click();
+    await expect(page.getByTestId('compact-reader')).toBeVisible();
+    await expect(page.locator('[data-page-index="0"] canvas').first()).toHaveAttribute(
+      'data-state',
+      'rendered',
+    );
+    const centre = await readerCentre(page);
+    const cdp = await page.context().newCDPSession(page);
+    await pinch(cdp, centre, 80, 200);
+    await expect.poll(() => zoomOf(page)).toBeGreaterThan(1.5);
+    await page.waitForTimeout(400);
+    const zoom = await zoomOf(page);
+    // Page 4, 90 px into it.
+    await pages(page).evaluate(async (el) => {
+      const frame = () => new Promise((r) => requestAnimationFrame(r));
+      for (let i = 0; i < 200; i += 1) {
+        const target = el.querySelector<HTMLElement>('[data-page-index="3"]');
+        if (target) {
+          const gap = target.getBoundingClientRect().top - el.getBoundingClientRect().top;
+          if (Math.abs(gap + 90) < 1) return;
+          el.scrollTop += gap + 90;
+        } else el.scrollTop += el.clientHeight * 0.8;
+        await frame();
+      }
+    });
+    const offsetOf = () =>
+      pages(page).evaluate((el) => {
+        const target = el.querySelector<HTMLElement>('[data-page-index="3"]');
+        if (!target) return null;
+        return Math.round(el.getBoundingClientRect().top - target.getBoundingClientRect().top);
+      });
+    const offset = await offsetOf();
+    expect(offset).not.toBeNull();
+    await page.waitForTimeout(400);
+    // Scrolling hid the chrome; a tap on the page brings it back.
+    await page.touchscreen.tap(centre.x, centre.y);
+    await page.getByRole('button', { name: 'Library' }).click();
+    const card = page.getByTestId('continue-card');
+    await expect(card).toBeVisible({ timeout: 20_000 });
+    await expect(card.getByTestId('continue-page')).toHaveText(/^Page 4 of \d+$/);
+    await card.getByTestId('continue-resume').click();
+    await expect(page.getByTestId('compact-reader')).toBeVisible();
+    await expect.poll(async () => Math.abs((await zoomOf(page)) - zoom)).toBeLessThan(0.01);
+    await expect.poll(offsetOf, { timeout: 20_000 }).toBeGreaterThanOrEqual((offset ?? 0) - 2);
+    expect(await offsetOf()).toBeLessThanOrEqual((offset ?? 0) + 2);
   });
 });
 
