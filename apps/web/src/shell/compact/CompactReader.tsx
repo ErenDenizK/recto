@@ -53,11 +53,11 @@ import { watchFocusRing } from '../frame/focus-ring';
 import { useSafeAreaInsets } from '../frame/frame-insets';
 import { lastInput } from '../frame/input-modality';
 import { CompactCapsule, CompactTopBar } from './CompactChrome';
+import { springChrome } from './chrome-spring';
 import { CompactPage } from './CompactPage';
 import styles from './CompactReader.module.css';
 import { CompactSheets } from './CompactSheets';
 import { openFind, setChromeHidden, setZoom, useCompactStore } from './compact-store';
-import { markLoaded } from './mark-host';
 import type { PinchMorph } from './overview';
 import {
   canOpenOverview,
@@ -450,7 +450,7 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
         { top, maxTop: el.scrollHeight - el.clientHeight, canHide: canHide() },
       );
       if (hide.current.hidden !== state.chromeHidden) {
-        markLoaded()?.springChrome(speed);
+        springChrome(speed);
       }
       setChromeHidden(hide.current.hidden);
       if (hide.current.hidden) {

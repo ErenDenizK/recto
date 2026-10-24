@@ -4,8 +4,9 @@
  * (`annotations/pen/ink-input.ts`: a finger draws until a stylus is seen, a second finger drops
  * the stroke). Text and Sign are seams for lanes C and D: they arm their mode and nothing more
  * until their lane registers the real spec over these (`registerCompactTool` replaces by id).
- * Edit text's stub reads "Soon": `edit-text.tsx` (WP5, EDN-17) registers the live tool over it
- * as the chunk loads, so the tile is "Soon" only where that module is not loaded (unit tests).
+ * Edit text has no stub here: `edit-text.tsx` (WP5, EDN-17) registers the live tool, and it can
+ * evaluate before this module when the selection bar's chunk brought it first (EDN-21), where a
+ * stub would replace it.
  */
 import { useAnnotationStore } from '../../../annotations/annotation-store';
 import { m } from '../../../i18n';
@@ -67,15 +68,6 @@ registerCompactTool({
   place: 'tile',
   order: 40,
   // Lane D (WP6): the saved signatures as tiles and "New"; until then the tool arms Select.
-});
-
-registerCompactTool({
-  id: 'edit-text',
-  glyph: 'edit-text',
-  label: m.compact_tool_edit_text,
-  place: 'tile',
-  order: 50,
-  soon: true,
 });
 
 registerCompactTool({

@@ -2,12 +2,16 @@
  * The door to phone editing's lazy chunk (`design/phone-2026-10/README.md` §7;
  * `research/phone-2026-10/code-audit.md` §4): everything that edits on a phone lives in
  * `./mark/` and loads by `import()`, so the static compact path gains only this loader, the ✎
- * button, the mode fields and the page overlay slot (PRC-11's 320 KB gate). The chunk is
- * fetched when the browser is idle after the reader opens (as the on-demand sheets, EDN-10),
- * and at the latest when ✎ is tapped; the island shows once it is here.
+ * button, the mode fields and the page overlay slot (PRC-11's 320 KB gate). The chunk loads on
+ * intent (EDN-21), never on idle: at ✎ pointerdown (or tap), at the first text selection
+ * (`selection-host.tsx`), and when a page with form fields comes near the view. The island shows
+ * once it is here.
  */
 import { type ComponentType, useEffect, useSyncExternalStore } from 'react';
 
+import type { SourceId, VirtualDocument } from '@pdf-editor/document-model';
+
+import { getEngineService } from '../../engine/engine-service';
 import type { PageOverlayProps } from '../../stage/page-overlays';
 import type * as MarkModule from './mark';
 
@@ -39,36 +43,79 @@ const subscribe = (listener: () => void) => {
 };
 const snapshot = () => loaded;
 
-/**
- * The chunk if it has loaded, else null, outside React: the reader asks it for the chrome's
- * scroll spring (`mark/chrome-spring.ts`, MOT-16), which rides in it to keep the static compact
- * path under its gate (PRC-11); until the idle prefetch has brought it, the chrome moves on its
- * tokens.
- */
-export const markLoaded = snapshot;
-
 /** The chunk once it has loaded, else null; re-renders when it arrives. */
 export function useMark(): Mark | null {
   return useSyncExternalStore(subscribe, snapshot, snapshot);
 }
 
-/** How long the idle prefetch may wait for an idle moment, ms (as the sheets'). */
-const PREFETCH_TIMEOUT_MS = 4000;
-
-/** Prefetches the chunk when the browser is idle while the reader shows. */
-export function usePrefetchMark(): void {
+/**
+ * Loads the chunk when a page of `doc` that has form fields comes near the view (EDN-21): the
+ * fields mount in reading (MOB-1), so their layer must be here when the reader reaches them.
+ * The probe asks the engine already open, once per document, which pages have fields (the form
+ * store lives in the chunk); "near" is the reader's mounted window of pages, checked after the
+ * probe and whenever pages mount. A document without fields never loads it.
+ */
+export function useLoadMarkForForms(doc: VirtualDocument): void {
+  // The pages' sources, by position: the effect re-runs when these change, not on every edit.
+  const refs = doc.pages
+    .map((p) => (p.ref.kind === 'source' ? `${p.ref.source}:${p.ref.index}` : '-'))
+    .join();
   useEffect(() => {
     if (loaded) return;
-    const load = () => void loadMark().catch(() => undefined);
-    const idle = typeof window.requestIdleCallback === 'function';
-    const handle = idle
-      ? window.requestIdleCallback(load, { timeout: PREFETCH_TIMEOUT_MS })
-      : window.setTimeout(load, PREFETCH_TIMEOUT_MS);
+    const pages = refs.split(',').map((ref) => {
+      const cut = ref.lastIndexOf(':');
+      return cut < 0
+        ? null
+        : { source: ref.slice(0, cut) as SourceId, index: Number(ref.slice(cut + 1)) };
+    });
+    let live = true;
+    let stop: () => void = () => undefined;
+    void (async () => {
+      const engine = getEngineService();
+      const editor = await engine.editor();
+      const withFields = new Map<SourceId, Set<number>>();
+      for (const page of pages) if (page) withFields.set(page.source, new Set());
+      for (const [source, indexes] of withFields) {
+        await engine.ensureOpen(source);
+        for (const field of await editor.listFormFields(source)) {
+          for (const w of field.widgets ?? [{ pageIndex: field.pageIndex }])
+            indexes.add(w.pageIndex);
+        }
+      }
+      const positions = pages.flatMap((page, position) =>
+        page && withFields.get(page.source)?.has(page.index) ? [position] : [],
+      );
+      if (!live || positions.length === 0) return;
+      let frame = 0;
+      const near = () =>
+        positions.some(
+          (p) => document.querySelector(`[data-read-viewport] [data-page-index="${p}"]`) !== null,
+        );
+      const check = () => {
+        frame = 0;
+        if (!live || !near()) return;
+        stop();
+        void loadMark().catch(() => undefined);
+      };
+      const onMount = () => {
+        if (frame === 0) frame = requestAnimationFrame(check);
+      };
+      const observer = new MutationObserver(onMount);
+      observer.observe(document.body, { childList: true, subtree: true });
+      stop = () => {
+        observer.disconnect();
+        cancelAnimationFrame(frame);
+      };
+      check();
+    })().catch(() => {
+      // A failed probe must not hide the fields: load for the page (EDN-21).
+      if (live) void loadMark().catch(() => undefined);
+    });
     return () => {
-      if (idle) window.cancelIdleCallback(handle);
-      else window.clearTimeout(handle);
+      live = false;
+      stop();
     };
-  }, []);
+  }, [refs]);
 }
 
 /**
@@ -88,6 +135,11 @@ export function takeCapsuleSnapshot(): DOMRect | null {
   const box = capsuleBefore;
   capsuleBefore = null;
   return box;
+}
+
+/** ✎ pointerdown: starts the load a tap later needs (EDN-21). */
+export function prepareEditing(): void {
+  void loadMark().catch(() => undefined);
 }
 
 /** ✎: loads the chunk if needed, then enters editing through its bridge. */

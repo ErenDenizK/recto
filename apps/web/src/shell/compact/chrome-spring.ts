@@ -18,11 +18,10 @@
  *
  * Four steps rather than the speed itself: the curves are the stylesheet's, so the page carries a
  * comparison, not a spring solver (`chromeCurve` writes them; `chrome-spring.test.ts` holds the
- * stylesheet to it). This rides in the editing chunk, which the reader prefetches when idle
- * (`markLoaded`), to keep the static compact path under its gate (PRC-11); a scroll before it
- * has arrived moves the chrome on its tokens.
+ * stylesheet to it). The reader imports it statically, so the spring works from the first
+ * scroll (EDN-21: the editing chunk no longer loads on idle).
  */
-import { spring, springEasing } from '../../../motion/springs';
+import { spring, springEasing } from '../../motion/springs';
 
 /** The speeds that start each step above the first, px/s. */
 export const SPRING_STEPS = [300, 900, 1800] as const;

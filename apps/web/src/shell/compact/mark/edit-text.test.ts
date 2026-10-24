@@ -1,7 +1,7 @@
 /**
  * Editing text on phones (EDN-17): the stand-in that holds the keyboard (keyboard-hold.ts) takes
  * the focus synchronously, hands it over to whatever editable takes it next and goes, and lets
- * the keyboard go when nothing does; Edit text registers over its "Soon" stub (edit-text.tsx)
+ * the keyboard go when nothing does; Edit text registers its live tool (edit-text.tsx)
  * and arms the full edition's mode; a tap finds the paragraph under it (edit-text-layer.tsx).
  */
 import type { ParagraphBlock } from '@pdf-editor/engine';
@@ -79,7 +79,7 @@ describe('holding the keyboard', () => {
 });
 
 describe('the Edit text tool', () => {
-  it('replaces the "Soon" stub and arms the full edition’s Edit text mode', () => {
+  it('registers the live tool and arms the full edition’s Edit text mode', () => {
     const spec = compactTool('edit-text');
     expect(spec?.soon).toBeFalsy();
     expect(spec?.hint?.()).toBe('Tap a paragraph to change its text.');

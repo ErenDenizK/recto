@@ -19,7 +19,7 @@ import { type CDPSession, expect, type Page, test } from '@playwright/test';
 
 import { sampleEntry } from './sample-manifest';
 
-import { motionDone } from './helpers';
+import { fixturePath, motionDone, useFileInputPicker } from './helpers';
 
 /**
  * The feature page of the phone cut, 0-based, and the first words of its fourth paragraph, the
@@ -445,6 +445,43 @@ test.describe('the selection bar’s Edit text (M10 WP5)', () => {
     await expect(mirror(page)).toHaveText(new RegExp(`^${PARAGRAPH.en}`));
     await page.getByTestId('compact-edit-text-done').click();
     await expect(mirror(page)).toHaveCount(0);
+  });
+});
+
+test.describe('the first selection brings the editing chunk (EDN-21)', () => {
+  test('a document without form fields: long-press text, Edit text, the island and Done show', async ({
+    page,
+  }) => {
+    await useFileInputPicker(page);
+    await page.goto('./?lang=en');
+    await expect(page.getByTestId('compact-library')).toBeVisible();
+    const chooser = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: /^(Open PDF|PDF aç)$/ }).click();
+    await (await chooser).setFiles(fixturePath('simple-text.pdf'));
+    await expect(page.getByTestId('compact-reader')).toBeVisible();
+    await expect(page.locator('[data-page-index="0"] canvas').first()).toHaveAttribute(
+      'data-state',
+      'rendered',
+    );
+    const bar = page.getByTestId('compact-selection-bar');
+    await expect(async () => {
+      await page.evaluate(() => {
+        const span = document.querySelector('[data-page-index="0"] [data-text-layer] span');
+        if (!span) throw new Error('no text line');
+        const range = document.createRange();
+        range.selectNodeContents(span);
+        getSelection()?.removeAllRanges();
+        getSelection()?.addRange(range);
+      });
+      await expect(bar).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 15_000 });
+    await motionDone(page);
+    const button = await bar.getByRole('button', { name: 'Edit text' }).boundingBox();
+    if (!button) throw new Error('no Edit text');
+    const cdp = await page.context().newCDPSession(page);
+    await tap(cdp, { x: button.x + button.width / 2, y: button.y + button.height / 2 });
+    await expect(capsule(page)).toHaveAttribute('data-editing');
+    await expect(page.getByTestId('compact-edit-done')).toBeVisible();
   });
 });
 

@@ -69,7 +69,14 @@ import {
 } from './compact-store';
 import styles from './CompactChrome.module.css';
 import controls from './controls.module.css';
-import { startEditing, takeCapsuleSnapshot, useMark, usePrefetchMark } from './mark-host';
+import { SelectionHost } from './selection-host';
+import {
+  prepareEditing,
+  startEditing,
+  takeCapsuleSnapshot,
+  useLoadMarkForForms,
+  useMark,
+} from './mark-host';
 import { openOverview } from './overview-host';
 import {
   consumeStripClick,
@@ -497,7 +504,7 @@ export function CompactCapsule({ doc }: { readonly doc: VirtualDocument }) {
   const mark = useMark();
   const island = editing && mark !== null;
   const capsuleRef = useRef<HTMLElement>(null);
-  usePrefetchMark();
+  useLoadMarkForForms(doc);
   // Reading and editing: the one capsule morphs between its contents (Q-6, README §2), from the
   // box it had before the swap (`snapshotCapsule`).
   useLayoutEffect(() => {
@@ -533,6 +540,7 @@ export function CompactCapsule({ doc }: { readonly doc: VirtualDocument }) {
           data-testid="compact-edit"
           data-gpu-glass="circle"
           inert={away || island}
+          onPointerDown={prepareEditing}
           onClick={startEditing}
         >
           <Icon name="pencil-simple" />
@@ -544,8 +552,9 @@ export function CompactCapsule({ doc }: { readonly doc: VirtualDocument }) {
           <mark.SignHost />
         </>
       ) : null}
-      {/* The selection bar's watch, reading and editing (README §4); its bar loads lazily. */}
-      {mark ? <mark.SelectionHost /> : null}
+      {/* The selection bar's watch, reading and editing (README §4): static, its bar and the
+          chunk load on the first selection (EDN-21). */}
+      <SelectionHost />
     </>
   );
 }
