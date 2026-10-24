@@ -3121,7 +3121,7 @@
   "markup_certificate": "Sertifikayla imzala…",
   "markup_find_sensitive": "Hassas verileri bul…",
   "markup_fields": "Alanlar",
-  "markup_field_position": "{n}/{total}",
+  "markup_field_position": "{n} / {total}",
   "markup_field_count": "{count} alan",
   "markup_field_named": "Alan {n}/{total}: {name}",
   "markup_field_previous": "Önceki alan",

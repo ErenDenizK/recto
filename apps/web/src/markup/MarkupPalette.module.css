@@ -214,7 +214,7 @@
 .stepperReadout {
   display: grid;
   min-width: var(--control-h-sm);
-  padding-inline: 0;
+  padding-inline: var(--space-2);
   color: var(--text-primary);
   font-size: var(--control-text);
   font-weight: 500;

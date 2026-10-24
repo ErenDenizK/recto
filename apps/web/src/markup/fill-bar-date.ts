@@ -18,6 +18,7 @@ import { getLocale, m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { useToolStore } from '../viewer/tool-store';
 import { INK } from '../annotations/palette';
+import { fieldIndex } from './SignGroup';
 
 /** `date` as the locale writes it in numerals, day first for English (en-GB) as `formatDay`. */
 export function dateText(date: Date, locale: string = getLocale()): string {
@@ -35,7 +36,7 @@ const FONT_PT = 12;
 
 /** `text` drawn as a transparent PNG; width and height are the placed size basis in points. */
 async function dateImage(text: string) {
-  const font = `500 ${FONT_PT * SCALE}px Inter, Helvetica, Arial, sans-serif`;
+  const font = `500 ${FONT_PT * SCALE}px 'Inter Recto', Helvetica, Arial, sans-serif`;
   const probe = new OffscreenCanvas(1, 1).getContext('2d');
   if (!probe) throw new Error('No 2D context for the date');
   probe.font = font;
@@ -57,14 +58,8 @@ async function dateImage(text: string) {
 function emptyTextField() {
   const active = useFormStore.getState().active;
   if (active === null) return undefined;
-  const stop = activeStops().find(
-    (s) =>
-      s.source === active.source &&
-      s.fieldId === active.fieldId &&
-      s.name === active.name &&
-      s.widget === active.widget &&
-      s.pageId === active.pageId,
-  );
+  const stops = activeStops();
+  const stop = stops[fieldIndex(stops, active)];
   const empty = stop?.field.kind === 'text' && (stop.field.value ?? '') === '';
   return empty ? active : undefined;
 }
@@ -74,6 +69,8 @@ export async function putDate(date: Date = new Date()): Promise<void> {
   const text = dateText(date);
   const field = emptyTextField();
   if (field !== undefined) {
+    // Close the editor first: it holds '' and would overwrite the date when it next commits.
+    useFormStore.getState().setActive(null);
     await commitFieldValue(field, text);
     return;
   }

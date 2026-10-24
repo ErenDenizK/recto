@@ -30,7 +30,7 @@ import { putDate } from './fill-bar-date';
 import { paletteEscape, usePageEscape } from './palette-escape';
 import styles from './MarkupPalette.module.css';
 import { useRovingTabindex } from './roving';
-import { SignatureChips, SignButton, FieldStepper } from './SignGroup';
+import { SignatureChips, SignButton, FieldStepper, fieldIndex } from './SignGroup';
 import { PaletteButton } from './ToolButton';
 import { activeStops } from '../forms/navigation';
 import { useFormStore } from '../forms/form-store';
@@ -64,9 +64,8 @@ export function DoneButton({
 function revealActiveField(): void {
   const active = useFormStore.getState().active;
   if (active === null) return;
-  const stop = activeStops().find(
-    (s) => s.name === active.name && s.widget === active.widget && s.pageId === active.pageId,
-  );
+  const stops = activeStops();
+  const stop = stops[fieldIndex(stops, active)];
   if (stop !== undefined) revealStop(stop);
 }
 
@@ -85,6 +84,8 @@ export function FillSignBar() {
     '[data-tool][aria-pressed="true"]',
     `${mode}|${pending?.kind ?? ''}`,
   );
+  // Date armed: its one-shot image stamp is waiting for a click on the page.
+  const dateArmed = mode === 'stamp' && pending?.kind === 'image';
   usePageEscape();
   return (
     <div
@@ -104,15 +105,9 @@ export function FillSignBar() {
         onKeyDownCapture={paletteEscape}
         onKeyDown={roving.onKeyDown}
         onFocus={roving.onFocus}
-        onClickCapture={(event) => {
-          // A step moved the focused field: bring it into view once the store has it.
-          if ((event.target as Element).closest('[data-field-step]')) {
-            queueMicrotask(revealActiveField);
-          }
-        }}
       >
         <div className={styles.group}>
-          <FieldStepper always hint={m.fillbar_no_fields()} />
+          <FieldStepper always hint={m.fillbar_no_fields()} onStep={revealActiveField} />
         </div>
         <span className={styles.sep} aria-hidden="true" />
         <div className={styles.group}>
@@ -125,8 +120,11 @@ export function FillSignBar() {
             item="date"
             label={m.fillbar_date()}
             tooltip={m.fillbar_date_tooltip()}
-            icon={<Icon name="textbox" />}
+            icon={<Icon name="calendar-blank" filled={false} />}
             showLabel
+            tool="date"
+            aria-pressed={dateArmed}
+            onMouseDown={(event) => event.preventDefault()}
             onClick={() => void putDate()}
           />
         </div>

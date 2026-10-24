@@ -238,9 +238,12 @@ export function fieldIndex(stops: readonly FieldStop[], active: ActiveField | nu
 export function FieldStepper({
   always = false,
   hint,
+  onStep,
 }: {
   readonly always?: boolean;
   readonly hint?: string;
+  /** Called after each step, once the store holds the new field (the fill bar reveals it). */
+  readonly onStep?: () => void;
 }) {
   const stops = useFieldStops();
   const active = useFormStore((s) => s.active);
@@ -263,8 +266,13 @@ export function FieldStepper({
         })
       : m.markup_field_count({ count: total });
   const step = (direction: 1 | -1) => () => {
-    if (!none) stepField(direction);
+    if (none) return;
+    stepField(direction);
+    onStep?.();
   };
+  // A press must not blur the open field editor: its blur clears the focused field, and the
+  // step would start from the first field again.
+  const keepFocus = (event: { preventDefault: () => void }) => event.preventDefault();
   return (
     <span
       role="group"
@@ -276,6 +284,7 @@ export function FieldStepper({
         label={m.markup_field_previous()}
         icon={<Icon name="caret-left" />}
         aria-disabled={none ? 'true' : undefined}
+        onMouseDown={keepFocus}
         onClick={step(-1)}
         data-field-step="previous"
       />
@@ -290,6 +299,7 @@ export function FieldStepper({
         label={m.markup_field_next()}
         icon={<Icon name="caret-right" />}
         aria-disabled={none ? 'true' : undefined}
+        onMouseDown={keepFocus}
         onClick={step(1)}
         data-field-step="next"
       />

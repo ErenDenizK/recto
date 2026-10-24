@@ -36,13 +36,94 @@ test('flag on: Fill & sign opens its bar; Next focuses a field; Done leaves', as
 
   await expect(readout(page)).toContainText(/\d+ fields?/);
   await bar(page).locator('[data-field-step="next"]').click();
-  await expect(readout(page)).toContainText(/^\s*1\s*\/\s*\d+|1\/\d+/);
+  await expect(readout(page)).toContainText(/1\s*\/\s*\d+/);
   await expect(page.locator('[data-form-editor]')).toBeFocused();
   await quiet(page);
 
   await bar(page).getByRole('button', { name: 'Done' }).click();
   await expect(bar(page)).toHaveCount(0);
   await expect(page.locator('[data-capsule="dock"]')).toBeVisible();
+});
+
+/** Steps Next until the focused editor is `name`; returns the readout's step number. */
+async function stepTo(page: Page, name: string): Promise<void> {
+  for (let i = 0; i < 12; i += 1) {
+    await bar(page).locator('[data-field-step="next"]').click();
+    if ((await page.locator(`[data-form-editor="${name}"]`).count()) > 0) return;
+  }
+  throw new Error(`No step reached ${name}`);
+}
+
+test('flag on: stepping advances past 1/N and reaches the field on page 2', async ({ page }) => {
+  await open(page, 'fillbar=1', 'forms-a.pdf');
+  await fillSignDoor(page).click();
+  await quiet(page);
+  const next = bar(page).locator('[data-field-step="next"]');
+  await next.click();
+  await expect(readout(page)).toContainText(/1\s*\/\s*\d+/);
+  await next.click();
+  await expect(readout(page)).toContainText(/2\s*\/\s*\d+/);
+  await next.click();
+  await expect(readout(page)).toContainText(/3\s*\/\s*\d+/);
+  // The last field of forms-a lives on page 2: stepping there brings its page into view.
+  await stepTo(page, 'only_in_a');
+  await expect(
+    page.locator('[data-form-layer="1"] [data-form-editor="only_in_a"]'),
+  ).toBeInViewport();
+});
+
+test('flag on: Date fills the focused empty text field with today, locale numerals', async ({
+  page,
+}) => {
+  await open(page, 'fillbar=1', 'forms-a.pdf');
+  await fillSignDoor(page).click();
+  await quiet(page);
+  await stepTo(page, 'address.city');
+  const editor = page.locator('[data-form-editor="address.city"]');
+  await expect(editor).toBeFocused();
+  // The fixture's field has a value: empty it, then focus it again, as a user would.
+  await editor.fill('');
+  await editor.press('Enter');
+  await expect(editor).toBeHidden();
+  await page.locator('[data-form-layer] [data-field-name="address.city"]').click();
+  await expect(editor).toBeFocused();
+  await expect(editor).toHaveValue('');
+  await bar(page).getByRole('button', { name: 'Date' }).click();
+  const today = await page.evaluate(() =>
+    new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(
+      new Date(),
+    ),
+  );
+  // The editor closed with the fill: opening the field again shows the date.
+  await expect(editor).toBeHidden();
+  await page.locator('[data-form-layer] [data-field-name="address.city"]').click();
+  await expect(editor).toHaveValue(today);
+});
+
+test('flag on, touch: a tap on Next keeps the field editor, so stepping advances', async ({
+  browser,
+  baseURL,
+}) => {
+  const context = await browser.newContext({
+    baseURL: baseURL ?? '',
+    viewport: { width: 1180, height: 820 },
+    hasTouch: true,
+    isMobile: true,
+  });
+  const page = await context.newPage();
+  try {
+    await open(page, 'fillbar=1', 'forms-a.pdf');
+    await fillSignDoor(page).tap();
+    await quiet(page);
+    const next = bar(page).locator('[data-field-step="next"]');
+    await next.tap();
+    await next.tap();
+    await expect(readout(page)).toContainText(/2\s*\/\s*\d+/);
+    await bar(page).getByRole('button', { name: 'Date' }).tap();
+    await expect(bar(page).getByRole('button', { name: 'Date' })).toBeVisible();
+  } finally {
+    await context.close();
+  }
 });
 
 test('flag off: Fill & sign opens the shared palette', async ({ page }) => {
