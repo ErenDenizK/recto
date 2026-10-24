@@ -14,6 +14,8 @@
  */
 import { type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+import { m } from '../i18n';
+import { reducedMotion } from '../motion/reduced-motion';
 import styles from './PaletteBloom.module.css';
 import {
   autoBloomSession,
@@ -55,14 +57,83 @@ const MAX_SLOT = 96;
 /** Air between a label and a neighbour's label or a group hairline. */
 const SLOT_AIR = 3;
 
+/** The short name of a palette item whose full name is long (`palette_short_*`, one word). */
+const SHORT: Readonly<Record<string, () => string>> = {
+  select: m.palette_short_select,
+  eraser: m.palette_short_eraser,
+  lasso: m.palette_short_lasso,
+  shapes: m.palette_short_shapes,
+  'text-box': m.palette_short_text_box,
+  note: m.palette_short_note,
+  image: m.palette_short_image,
+  stamp: m.palette_short_stamp,
+  'add-field': m.palette_short_add_field,
+  outlines: m.palette_short_outlines,
+  more: m.palette_short_more,
+  'edit-text': m.palette_short_edit_text,
+};
+
 /**
- * A pen's short name: the group already says pen, so "Black pen, Medium" shows "Black". A
- * numbered preset ("Pen 2") keeps its number.
+ * What a button's label says: a tool's short name, or for a pen the colour alone (the group
+ * already says pen: "Black pen, Medium" shows "Black"; a numbered preset keeps its number).
  */
 function shortName(el: HTMLElement, name: string): string {
+  const short = SHORT[el.dataset.item ?? ''];
+  if (short) return short();
   if (!el.hasAttribute('data-pen-preset')) return name;
   const head = (name.split(',')[0] ?? name).trim();
   return /\d/.test(head) ? head : (head.split(/\s+/)[0] ?? head);
+}
+
+/** The label font's ruler (11 px, Q-8). */
+function rulerOf(content: HTMLElement): (text: string) => number {
+  const ctx = document.createElement('canvas').getContext('2d');
+  if (ctx) ctx.font = `500 11px ${getComputedStyle(content).fontFamily}`;
+  return (text) => ctx?.measureText(text).width ?? 0;
+}
+
+/** The palette's room beside the capsule: the band's width less the palette's 16 px margins. */
+const MARGIN = 16;
+
+/**
+ * Widens each unlabelled button to fit its label (the capsule follows its content's size on its
+ * spring, MOT-18), when the whole row still fits the room the band leaves; otherwise nothing
+ * moves and the labels share the slots as they are. Returns what puts the widths back.
+ */
+function widen(content: HTMLElement): () => void {
+  const measureText = rulerOf(content);
+  const grown: { el: HTMLElement; width: number; to: number }[] = [];
+  for (const el of content.querySelectorAll<HTMLElement>(
+    '[role="toolbar"] button[data-size="bar"]:not([data-labelled])',
+  )) {
+    const name = el.getAttribute('aria-label') ?? '';
+    const width = el.getBoundingClientRect().width;
+    if (name === '' || width === 0 || el.closest('[data-item="stepper"]')) continue;
+    const to = Math.min(MAX_SLOT, Math.ceil(measureText(shortName(el, name))) + 2 * SLOT_AIR);
+    if (to > width) grown.push({ el, width, to });
+  }
+  const band = content.closest<HTMLElement>('[data-frame-layer="band"]') ?? document.body;
+  const room = band.clientWidth - 2 * MARGIN - content.getBoundingClientRect().width;
+  const extra = grown.reduce((sum, g) => sum + g.to - g.width, 0);
+  if (extra === 0 || extra > room) return () => undefined;
+  const moves = !reducedMotion();
+  for (const g of grown) {
+    g.el.style.transition = moves ? 'min-width var(--duration-slow) var(--ease-out)' : 'none';
+    g.el.style.minWidth = `${g.width}px`;
+  }
+  content.getBoundingClientRect();
+  for (const g of grown) g.el.style.minWidth = `${g.to}px`;
+  return () => {
+    for (const g of grown) g.el.style.minWidth = `${g.width}px`;
+    const clear = () => {
+      for (const g of grown) {
+        g.el.style.removeProperty('min-width');
+        g.el.style.removeProperty('transition');
+      }
+    };
+    if (moves) window.setTimeout(clear, FADE_MS + 300);
+    else clear();
+  };
 }
 
 /**
@@ -78,9 +149,7 @@ function measure(content: HTMLElement): Layout {
     const box = el.getBoundingClientRect();
     return box.left - origin.left + box.width / 2;
   });
-  const font = `500 11px ${getComputedStyle(content).fontFamily}`;
-  const ruler = document.createElement('canvas').getContext('2d');
-  if (ruler) ruler.font = font;
+  const measureText = rulerOf(content);
   const cells: Cell[] = [];
   for (const el of content.querySelectorAll<HTMLElement>(
     '[role="toolbar"] button[data-size="bar"]',
@@ -95,7 +164,7 @@ function measure(content: HTMLElement): Layout {
     cells.push({
       text,
       full: name,
-      need: text === null ? 0 : (ruler?.measureText(text).width ?? 0) / 2 + SLOT_AIR,
+      need: text === null ? 0 : measureText(text) / 2 + SLOT_AIR,
       left,
       right: left + box.width,
       mid: left + box.width / 2,
@@ -217,6 +286,13 @@ export default function PaletteBloom({
     };
   }, [contentRef, bloom]);
 
+  // The row widens to fit its names while they show, when the band has the room.
+  useLayoutEffect(() => {
+    const content = contentRef.current;
+    if (phase !== 'open' || !content) return undefined;
+    return widen(content);
+  }, [phase, contentRef]);
+
   // Positions follow the row while the labels show (a fold, a language change).
   useLayoutEffect(() => {
     const content = contentRef.current;
@@ -235,9 +311,9 @@ export default function PaletteBloom({
         <span key={x} className={styles.sep} style={{ left: x }} />
       ))}
       <div className={styles.labels}>
-        {layout.labels.map((label) => (
+        {layout.labels.map((label, i) => (
           <span
-            key={`${label.left}`}
+            key={`${i}:${label.full}`}
             className={styles.label}
             style={{ left: label.left, width: label.width }}
             title={label.full}

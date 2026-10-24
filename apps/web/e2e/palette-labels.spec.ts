@@ -33,7 +33,10 @@ async function bloomAndSettle(page: Page, name: string, lang = 'en'): Promise<vo
     return Number.parseFloat(getComputedStyle(el).fontSize);
   });
   expect(label).toBeGreaterThanOrEqual(11);
-  if (shots) await page.screenshot({ path: `${shots}/bloomed-${name}.png` });
+  if (shots) {
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: `${shots}/bloomed-${name}.png` });
+  }
   await expect(bloom).toHaveCount(0, { timeout: 8000 });
   await page.waitForTimeout(800);
   if (shots) await page.screenshot({ path: `${shots}/settled-${name}.png` });
