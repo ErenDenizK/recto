@@ -11,8 +11,8 @@
  *
  * Form filling (MOB-1) is a chunk of its own, `./fields/`, fetched as this one arrives.
  *
- * `SelectionHost` (`CompactChrome` mounts it whenever this chunk is here) watches for a page
- * text selection and loads the selection bar, a chunk of its own, on the first one.
+ * `SelectionHost` (`../selection-host.tsx`, static, mounted by `CompactChrome`) watches for a
+ * page text selection and loads the selection bar, which brings this chunk, on the first one.
  */
 import { AnnotationLayer } from '../../../annotations/AnnotationLayer';
 import { DryInkLayer } from '../../../annotations/pen/DryInkLayer';
@@ -22,7 +22,7 @@ import './text-tool';
 // Lane D: Sign over its stub, and the phone's touch selection chrome.
 import './sign';
 import './touch-chrome';
-// WP5: Edit text over its stub; its editors load as the tool arms.
+// WP5: Edit text; its editors load as the tool arms.
 import './edit-text';
 
 // The dry ink under the annotation layer, whose wet canvas sits above it (as in Read mode).
@@ -35,9 +35,7 @@ void import('./fields').catch(() => undefined);
 export { enterEditing, exitEditing } from './bridge';
 export { registerCompactOverlay } from '../mark-host';
 export { morphCapsule } from './capsule-morph';
-export { springChrome } from './chrome-spring';
 export { EditIsland } from './EditIsland';
 export { type CompactToolSpec, registerCompactTool } from './registry';
-export { SelectionHost } from './selection-host';
 export { SignHost } from './sign';
 export { ToolDrawer } from './ToolDrawer';

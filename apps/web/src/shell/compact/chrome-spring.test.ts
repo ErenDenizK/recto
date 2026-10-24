@@ -6,11 +6,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { chromeCurve, springChrome, springStep, STEP_SPEEDS } from './chrome-spring';
-import '../../../styles/tokens.css';
-import '../../../styles/motion.css';
-import '../../../styles/materials.css';
-import css from '../CompactChrome.module.css?raw';
-import styles from '../CompactChrome.module.css';
+import '../../styles/tokens.css';
+import '../../styles/motion.css';
+import '../../styles/materials.css';
+import css from './CompactChrome.module.css?raw';
+import styles from './CompactChrome.module.css';
 
 /** The stops of a `linear()` curve, as numbers. */
 const stops = (easing: string) =>
