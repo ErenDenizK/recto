@@ -28,7 +28,7 @@ export interface TextToPdfOptions {
 }
 
 /** Controls except LF and FF, C1, zero-width marks, line and paragraph separators, BOM. */
-function isDropped(code: number): boolean {
+export function isDropped(code: number): boolean {
   if (code === 0x0a || code === 0x0c) return false;
   return (
     code < 0x20 ||
