@@ -12,7 +12,7 @@ import { TextLayer } from './TextLayer';
 const overlays = [
   Object.assign(TextLayer, { displayName: 'ViewerTextLayer' }),
   Object.assign(SearchHighlights, { displayName: 'ViewerSearchHighlights' }),
-  Object.assign(LinkLayer, { displayName: 'ViewerLinkLayer' }),
+  Object.assign(LinkLayer, { displayName: 'ViewerLinkLayer', tabLast: true }),
 ];
 
 let registered = false;

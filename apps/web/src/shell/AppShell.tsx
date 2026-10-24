@@ -50,7 +50,7 @@ import { SignaturesSheet } from '../signatures/SignaturesSheet';
 import { useAppearanceRoot, useAppearanceStore } from '../state/appearance-store';
 import { useInputPolicyStore } from '../state/input-policy-store';
 import { isMarkupOpen, useStageView, useUiStore } from '../state/ui-store';
-import { useHasDocuments, useWorkspaceStore } from '../state/workspace-store';
+import { useActiveDocument, useHasDocuments, useWorkspaceStore } from '../state/workspace-store';
 import { ConfirmHost } from '../ui/sheet';
 import { ToastRegion } from '../ui/Toast/ToastRegion';
 import { installContainerTransform } from '../ui/container-transform';
@@ -78,6 +78,7 @@ import { SoftEdge } from './frame/SoftEdge';
 import { TopStrip } from './frame/TopStrip';
 import { LiveRegion } from './LiveRegion';
 import { PasswordDialog } from './PasswordDialog';
+import { PRODUCT_NAME } from './about/build-info';
 import { ShortcutOverlayHost } from './ShortcutOverlayHost';
 import { Sidebar } from './sidebar/Sidebar';
 import { Stage } from './Stage';
@@ -105,6 +106,16 @@ export function AppShell() {
   useEffect(() => installContainerTransform(), []);
   // After the one reload into isolation, the stashed Office files convert (ADR-0035 §4).
   useEffect(() => resumeOfficeAfterReload(), []);
+
+  // The window title names the open document, "Recto" alone on the Library (WCAG 2.4.2).
+  const activeTitle = useActiveDocument()?.title;
+  const onLibrary = useStageView() === 'home';
+  useEffect(() => {
+    document.title =
+      activeTitle && !onLibrary
+        ? m.window_title_document({ title: activeTitle, name: PRODUCT_NAME })
+        : PRODUCT_NAME;
+  }, [activeTitle, onLibrary]);
 
   const frame = useSizeClass();
   const compact = frame.size === 'compact' || frame.short;
