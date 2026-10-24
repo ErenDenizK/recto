@@ -3687,6 +3687,7 @@
   "settings_reduce_motion": "Reduce motion",
   "settings_reduce_motion_system": "System",
   "settings_reduce_motion_on": "On",
+  "settings_reduce_motion_system_note": "On, set by your system",
   "settings_reduce_motion_hint": "System follows your device’s setting.",
   "settings_reduce_motion_system_on": "Motion is reduced because of a system setting",
   "settings_reduce_motion_keywords": "motion, animation, movement, reduce, accessibility, vestibular, appearance",
