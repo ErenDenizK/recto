@@ -4,6 +4,7 @@
     "firstPaint": 122880,
     "editor": 921600,
     "compact": 327680,
+    "compactSession": 655360,
     "engineClient": 122880,
     "pdfiumWorker": 1638400,
     "precache": 14680064
