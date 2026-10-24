@@ -42,6 +42,8 @@ export type TitleMenuEntry =
       readonly onlyWhenAvailable?: true;
       /** Shown only in the narrow window's bar, which has no Save button and no tabs. */
       readonly narrowOnly?: true;
+      /** Dimmed with no reason line: the header card already says it (DSN-52, said once). */
+      readonly quiet?: true;
       /** The menu's own act in place of the command's (the menu's page scope). */
       readonly run?: () => void;
     }
@@ -75,7 +77,7 @@ export const TITLE_MENU_SECTIONS: readonly TitleMenuSection[] = [
       command('file.save', { narrowOnly: true }),
       command('file.export'),
       command('file.print'),
-      command('file.revert'),
+      command('file.revert', { quiet: true }),
       command('tab.close', { label: m.common_close, narrowOnly: true }),
     ],
   },
@@ -259,7 +261,7 @@ export function shownTitleMenu(
         command: registered,
         label: entry.label?.() ?? registered.title,
         enabled,
-        reason: enabled ? undefined : commandRegistry.disabledReason(registered),
+        reason: enabled || entry.quiet ? undefined : commandRegistry.disabledReason(registered),
       });
     }
     return { section, rows };
