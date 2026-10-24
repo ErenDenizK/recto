@@ -153,6 +153,7 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-69](decisions/design.md) | The reading selection bar offers Highlight, as ADR-0029 §2.1 lists it (runs H over the selection) | In force | 2026-10-23 |
 | [DSN-65](decisions/design.md) | The find map: hit ticks that show a card (page, thumbnail, sentence) and jump on click or tap, a phone rail, and thumbnails in the Find results (`?findmap=1` for ticks and phone) | In force | 2026-10-23 |
 | [DSN-63](decisions/design.md) | The page strip: hold or slide on the page pill (phone: the capsule's number) opens a glass strip of every page, release jumps; a prototype behind `?strip=1` | Prototype; owner taste open | 2026-10-23 |
+| [DSN-67](decisions/design.md) | The save receipt: Save a copy's sizes show at once (approximate, then exact); behind `?receipt=1` the changed pages, size bars, the page's flight to the tab and the "never left this device" toast | Size fix in force; receipt behind `?receipt=1` | 2026-10-23 |
 
 ## Motion
 
@@ -177,7 +178,8 @@ Full rows: [`decisions/motion.md`](decisions/motion.md).
 | [MOT-15](decisions/motion.md) | The tabs' fill slides by one transform (C-5) | In force | 2026-10-17 |
 | [MOT-16](decisions/motion.md) | The phone chrome hides and returns on a spring the scroll starts (owner, R22 brief C-6) | In force | 2026-10-17 |
 | [MOT-17](decisions/motion.md) | Keys typed during a view change go where focus is going (Epic 2) | In force | 2026-10-21 |
-| [MOT-18](decisions/motion.md) | Physics motion: every spatial move is a spring that keeps its speed (owner, R26) | In force (wave 1) | 2026-10-23 |
+| [MOT-18](decisions/motion.md) | Physics motion: every spatial move is a spring that keeps its speed (owner, R26) | In force (waves 1–2) | 2026-10-23 |
+| [MOT-19](decisions/motion.md) | A move a press starts may carry a very slight bounce, about 3 % (owner, R26) | In force | 2026-10-23 |
 
 ## Glass
 

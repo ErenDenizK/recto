@@ -10,7 +10,7 @@
  * - **Web Animations, scrubbed.** A pinch holds every animation paused and sets its
  *   `currentTime` from the fingers (progress × `SCRUB_MS`), so the gesture *is* the animation's
  *   clock (PRC-14). On release new animations run from where the fingers left them, on
- *   `smooth` with the release velocity (`springToLinear`, as the sheet's release, Q-7), to the
+ *   `smooth` with the release velocity (`springEasing`, as the sheet's release, Q-7), to the
  *   grid when armed or back to the page. The button path (Pages) and the way back (a tile, Done,
  *   Esc, a spread) play the same move by themselves on `glide`.
  * - **At rest** no animation is left: the open grid and the reader are plain layout, untransformed
@@ -24,7 +24,7 @@ import { flushSync } from 'react-dom';
 
 import { m } from '../../../i18n';
 import { reducedMotion } from '../../../motion/reduced-motion';
-import { springToLinear } from '../../../motion/springs';
+import { springEasing } from '../../../motion/springs';
 import { duration, EASE } from '../../../motion/tokens';
 import { useViewStore } from '../../../state/view-store';
 import { pagesPhrase } from '../../../state/workspace-store';
@@ -207,7 +207,7 @@ class Morph {
 
   /** Springs from progress `from` to `to` on `smooth` (or `glide`) with `velocity`. */
   settle(from: number, to: 0 | 1, velocity: number, token: 'smooth' | 'glide'): Promise<void> {
-    const curve = springToLinear(token, velocity);
+    const curve = springEasing(token, velocity);
     this.run(from, to, { duration: curve.duration, easing: curve.easing }, false);
     return Promise.all(this.animations.map((a) => a.finished)).then(
       () => undefined,
