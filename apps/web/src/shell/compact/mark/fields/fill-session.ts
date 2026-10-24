@@ -310,7 +310,10 @@ function openSign(): void {
   // The editing chunk is not needed to fill: it loads now, as signing needs it (EDN-21).
   void loadMark()
     .then((mark) => {
+      // The reader may have left the document while the chunk loaded: then nothing opens.
+      if (!canChangeActive('targeted')) return;
       if (!useCompactStore.getState().editing) mark.enterEditing();
+      if (!useCompactStore.getState().editing) return;
       mark.armTool('sign');
       setDrawerOpen(true);
     })
