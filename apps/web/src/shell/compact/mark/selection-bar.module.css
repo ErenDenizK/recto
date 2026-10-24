@@ -19,11 +19,14 @@
   white-space: nowrap;
   -webkit-touch-callout: none;
   user-select: none;
-  animation: rise var(--duration-base) var(--ease-out) both;
+  /* The rise is a spring (MOT-18); the fade beside it stays an ease. */
+  animation:
+    rise var(--spring-smooth) var(--ease-spring) both,
+    fade var(--duration-base) var(--ease-out) both;
 }
 
 .bar[data-side='below'] {
-  animation-name: drop;
+  animation-name: drop, fade;
 }
 
 .action {
@@ -50,14 +53,12 @@
 
 @keyframes rise {
   from {
-    opacity: 0;
     transform: translateY(4px);
   }
 }
 
 @keyframes drop {
   from {
-    opacity: 0;
     transform: translateY(-4px);
   }
 }
@@ -67,12 +68,14 @@
   .bar[data-side='below'] {
     animation-name: fade;
     animation-duration: var(--duration-fast);
+    animation-timing-function: var(--ease-out);
   }
 }
 
 :global(:root[data-motion='reduced']) .bar {
   animation-name: fade;
   animation-duration: var(--duration-fast);
+  animation-timing-function: var(--ease-out);
 }
 
 @keyframes fade {

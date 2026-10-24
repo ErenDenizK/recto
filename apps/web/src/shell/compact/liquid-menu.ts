@@ -7,8 +7,8 @@
  * on every frame, and stuttered whenever the main thread was busy (the menu mounting with it).
  *
  * - **Open.** The menu, laid out at its place over its button, grows from `startScale()` (about
- *   the button's size) to 1 about the button's centre on `fling` (one small overshoot, the
- *   springier curve that reads at 30 fps), as one Web Animation of `transform`, and fades in
+ *   the button's size) to 1 about the button's centre on `openSpring` (MOT-19: a 2.8 % bounce, a
+ *   press-started move), as one Web Animation of `transform`, and fades in
  *   over the first `FADE_IN_MS`. While it grows it is its tier's solid twin (MOT-12,
  *   `glass-moving.ts`); once it rests its glass clears. The content never scales on its own
  *   and only fades in once the body has left the button (`CONTENT_DELAY_MS`).
@@ -28,6 +28,7 @@
  */
 import { animateStyle, type Motion } from '../../motion/animate';
 import { reducedMotion } from '../../motion/reduced-motion';
+import { openSpring } from '../../motion/springs';
 import { clamp } from '../../motion/velocity';
 import { glassMoving, glassSettle } from '../../ui/glass-moving';
 
@@ -156,7 +157,7 @@ export function liquidPopup(popup: HTMLElement, trigger: () => HTMLElement | nul
         });
       }
       const motion = animateStyle(popup, 'transform', from, [0, 0, 1], {
-        spring: 'fling',
+        spring: openSpring,
         ...(velocity ? { velocity } : {}),
       });
       body = motion;

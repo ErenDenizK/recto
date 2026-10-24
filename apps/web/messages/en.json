@@ -4255,6 +4255,30 @@
   "save_copy_estimate": "≈ {size}",
   "save_copy_estimate_spoken": "about {size}",
   "save_copy_estimating": "Estimating…",
+  "save_copy_estimate_failed": "Size not available",
+  "save_receipt_title": "What changed",
+  "save_receipt_kind_text": "Text edited",
+  "save_receipt_kind_marks": "Marks",
+  "save_receipt_kind_signature": "Signature",
+  "save_receipt_kind_added": "Page added",
+  "save_receipt_kind_rotated": "Rotated",
+  "save_receipt_page": "Page {page}: {kinds}",
+  "save_receipt_unchanged": "No page has changed.",
+  "save_receipt_deleted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} page taken out",
+        "countPlural=*": "{count} pages taken out"
+      }
+    }
+  ],
+  "save_receipt_original": "Opened file",
+  "save_receipt_copy": "This copy",
+  "save_receipt_sizes": "Original {before}, this copy {after}",
+  "save_receipt_written": "Written on this device, never left it · {name} · {size}",
+  "save_receipt_verified": "Verified",
   "save_copy_compact": "Already compact",
   "save_copy_what_smaller": "What gets smaller",
   "save_copy_print": "Print (300 dpi)",

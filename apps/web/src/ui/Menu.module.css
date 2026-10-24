@@ -63,7 +63,8 @@
 .popup[data-ending-style] {
   transition:
     opacity var(--duration-fast) var(--ease-exit),
-    transform var(--duration-fast) var(--ease-exit);
+    /* The exit's move is the spring curve over the quicker close (MC-16, MOT-18), not an ease. */
+    transform var(--duration-fast) var(--ease-spring);
 }
 
 /* A menu that opens above or below its trigger grows from it, rising the last 4 px toward its

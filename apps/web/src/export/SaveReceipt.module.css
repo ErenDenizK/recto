@@ -1,0 +1,146 @@
+/*
+ * The save receipt in Save a copy (DSN-67): changed pages as small thumbnails with what changed
+ * on each, and the file's size as two bars. Solid wells inside the sheet's glass (Q-4), tabular
+ * numerals for the sizes. Thumbnails stay put; only the bars move, on a spring.
+ */
+.receipt {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.pages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.page {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.page {
+  width: 48px;
+}
+
+/* A fixed slot with the thumbnail on its floor, so every meta row sits on one line. */
+.slot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 48px;
+  height: 62px;
+}
+
+.thumb {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-page);
+  background: var(--page-background);
+  box-shadow: 0 0 0 1px var(--border-hairline);
+}
+
+/* The page's number and what changed on it, on one line under the thumbnail. */
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--space-5);
+  color: var(--text-secondary);
+}
+
+.number {
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  font-variant-numeric: tabular-nums;
+}
+
+.kinds {
+  display: flex;
+  gap: var(--space-half);
+}
+
+.kinds svg {
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+}
+
+.more,
+.removed {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  /* Centred on the thumbnails' slot; a label, not a button: an outline, no fill. */
+  height: 62px;
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-control);
+  box-shadow: inset 0 0 0 1px var(--border-hairline);
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.none {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.bars {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.barRow {
+  display: grid;
+  grid-template-columns: minmax(64px, auto) minmax(0, 1fr) minmax(64px, auto);
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.barLabel {
+  color: var(--text-secondary);
+}
+
+.track {
+  height: var(--space-3);
+  overflow: hidden;
+  border-radius: var(--radius-control);
+  background: var(--field-well);
+}
+
+.fill {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--text-tertiary);
+}
+
+/* The copy is the strong bar, the original the quiet one: neutral on both themes, where a lime
+   fill is faint on a light track. */
+.barRow:last-child .fill {
+  background: var(--text-primary);
+}
+
+/* A size not known yet: a still, quiet bar, never a number. */
+.fill[data-state='unknown'] {
+  transform: translateX(-60%);
+  background: var(--border-hairline);
+}
+
+.barValue {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  white-space: nowrap;
+}
