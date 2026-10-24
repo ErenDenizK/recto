@@ -86,6 +86,7 @@ test('without the flag a tick is only a mark: no card', async ({ page, hasTouch 
     .then(() => tickPoints(page));
   const target = ticks[ticks.length - 1]!;
   await page.mouse.move(target.x, target.y, { steps: 4 });
+  // No card must show after the hover delay: the wait is the thing tested.
   await page.waitForTimeout(400);
   await expect(page.getByTestId('find-map-card')).toHaveCount(0);
 });

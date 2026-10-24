@@ -29,6 +29,7 @@ import {
   openDocumentTitles,
   openFixtures,
   useFileInputPicker,
+  pastDeadline,
 } from './helpers';
 
 /** Counts the presses of one job (as `jobs.spec.ts`); a tap where the pointer is a finger. */
@@ -159,7 +160,7 @@ test('J4: move page 5 before 2, delete 7 and keep reading, in 5 presses through 
   if (touchy) {
     const cdp = await page.context().newCDPSession(page);
     await touch(cdp, 'touchStart', [from]);
-    await page.waitForTimeout(600);
+    await pastDeadline(page, 600); // the long-press hold, the rule under test
     for (let i = 1; i <= 12; i++) {
       const x = from[0] + ((to.x + 4 - from[0]) * i) / 12;
       const y = from[1] + ((to.y + to.height / 3 - from[1]) * i) / 12;
@@ -187,7 +188,7 @@ test('J4: move page 5 before 2, delete 7 and keep reading, in 5 presses through 
     const cdp = await page.context().newCDPSession(page);
     const at = await centreOf(cells(page).nth(6));
     await touch(cdp, 'touchStart', [at]);
-    await page.waitForTimeout(600);
+    await pastDeadline(page, 600); // the long-press hold, the rule under test
     await touch(cdp, 'touchEnd', []);
   } else {
     job.count();
@@ -556,7 +557,7 @@ test('a locked document lifts nothing and says why', async ({ page, browserName 
   if (await coarse(page)) {
     const cdp = await page.context().newCDPSession(page);
     await touch(cdp, 'touchStart', [from]);
-    await page.waitForTimeout(600);
+    await pastDeadline(page, 600); // the long-press hold, the rule under test
     await touch(cdp, 'touchMove', [[from[0] + 40, from[1]]]);
     await touch(cdp, 'touchMove', [[to.x + to.width - 4, from[1]]]);
     await touch(cdp, 'touchEnd', []);

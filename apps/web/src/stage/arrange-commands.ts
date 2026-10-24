@@ -447,6 +447,8 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
         const doc = sectionDocument();
         return doc !== undefined && otherDocuments(doc.id).length > 0;
       },
+      // The dimmed row says why (DSN-52).
+      reason: () => m.interleave_needs_another(),
       run: () => {
         const doc = sectionDocument();
         if (doc) openOperationDialog({ kind: 'interleave', documentId: doc.id });

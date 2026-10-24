@@ -169,6 +169,42 @@ export async function quiet(page: Page, { timeout = 15_000 } = {}): Promise<void
 }
 
 /**
+ * Waits until no finite animation runs anywhere in the document for two frames in a row. The
+ * lighter sibling of `quiet`: it needs no `trackEngine`, so a test that only wants an entrance
+ * or a transition to land (a sheet, a drawer, a page turn) uses it instead of a fixed pause.
+ */
+export async function motionDone(page: Page, { timeout = 10_000 } = {}): Promise<void> {
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async () => {
+          const moving = () =>
+            document
+              .getAnimations()
+              .some(
+                (a) =>
+                  a.playState === 'running' &&
+                  Number.isFinite(a.effect?.getComputedTiming().endTime),
+              );
+          for (let i = 0; i < 2; i++) {
+            if (moving()) return false;
+            await new Promise((r) => requestAnimationFrame(r));
+          }
+          return !moving();
+        }),
+      { timeout, message: 'the page to stop moving' },
+    )
+    .toBe(true);
+}
+
+/** Lets `count` frames be drawn: the pace between scripted touch steps, not a pause. */
+export async function frames(page: Page, count = 1): Promise<void> {
+  await page.evaluate(async (n) => {
+    for (let i = 0; i < n; i++) await new Promise((r) => requestAnimationFrame(r));
+  }, count);
+}
+
+/**
  * Waits out one of the app's own time rules (a palm window, a hold): `ms` on the page's clock,
  * then a frame drawn after it, since the rule is checked in a frame. Only for a test whose
  * subject is that rule; anything else waits on a condition.

@@ -22,6 +22,7 @@ import {
   openFixtures,
   saveCopyBytes,
   useFileInputPicker,
+  pastDeadline,
 } from './helpers';
 
 test.skip(
@@ -89,7 +90,7 @@ async function touch(cdp: CDPSession, x: number, y: number, holdMs: number, page
     type: 'touchStart',
     touchPoints: [{ x, y, id: 0 }],
   });
-  await page.waitForTimeout(holdMs);
+  await pastDeadline(page, holdMs); // the hold, the rule under test
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
 }
 
