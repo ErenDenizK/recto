@@ -1,0 +1,20 @@
+/*
+ * The Tools menu's rows (DSN-76): the menu recipe's row grown to two lines, the label over a
+ * one-line description in secondary text. The glyph sits centred on both.
+ */
+.row {
+  padding-block: var(--space-1);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hint {
+  color: var(--text-secondary);
+  font-size: var(--type-caption);
+  line-height: var(--type-caption-lh);
+  white-space: normal;
+}
