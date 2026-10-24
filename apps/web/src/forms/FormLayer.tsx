@@ -38,7 +38,7 @@ import { FieldRing } from './FieldRing';
 import { fillAndPaint, TickIn } from './TickIn';
 import { type ActiveField, useFormStore, useSourceFields, widgetsOf } from './form-store';
 import styles from './FormLayer.module.css';
-import { moveField } from './navigation';
+import { canMoveField, moveField } from './navigation';
 
 export interface PlacedWidget {
   readonly field: FormField;
@@ -186,9 +186,12 @@ export function FieldWidget({
     if (event.key === 'Tab') {
       // With the Edit notice shown, Tab goes on to its button (the next element).
       if (showLock && !event.shiftKey) return;
+      const direction = event.shiftKey ? -1 : 1;
+      // At the first or last field Tab is the browser's (no trap; document-tools §1).
+      if (!canMoveField(here, direction)) return;
       event.preventDefault();
       event.stopPropagation();
-      moveField(here, event.shiftKey ? -1 : 1);
+      moveField(here, direction);
     } else if (event.key === 'Escape') {
       event.preventDefault();
       event.stopPropagation();
