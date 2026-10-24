@@ -1,0 +1,72 @@
+/*
+ * The labels that bloom (DSN-71, PaletteBloom.tsx): a label line under the palette's row. The
+ * strip is in flow, so the capsule (which follows its content's size on the smooth spring,
+ * MOT-18) grows by it; the labels and the groups' hairlines fade in after the growth starts and
+ * out before it settles. Labels are never under 11 px (Q-8: --type-caption), set in the
+ * secondary colour, one line, an ellipsis when the slot is narrow.
+ */
+.strip {
+  --bloom-h: 22px;
+
+  position: relative;
+  flex: none;
+  height: var(--bloom-h);
+  pointer-events: none;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .strip {
+    --bloom-h: 26px;
+  }
+}
+
+.labels {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation: bloom-in var(--duration-base) var(--ease-out) calc(var(--duration-base) / 2) forwards;
+}
+
+.strip[data-bloom='fade'] .labels,
+.strip[data-bloom='fade'] .sep {
+  opacity: 0;
+  animation: bloom-out var(--duration-base) var(--ease-standard) forwards;
+}
+
+.label {
+  position: absolute;
+  top: 0;
+  box-sizing: border-box;
+  padding-inline: 1px;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--type-caption);
+  font-weight: 500;
+  line-height: var(--type-caption-lh);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The hairline between groups, the full height of the capsule's content. */
+.sep {
+  position: absolute;
+  top: calc(-1 * var(--palette-h) + 6px);
+  bottom: 4px;
+  width: 1px;
+  background: var(--border-hairline);
+  opacity: 0;
+  animation: bloom-in var(--duration-base) var(--ease-out) calc(var(--duration-base) / 2) forwards;
+}
+
+@keyframes bloom-in {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes bloom-out {
+  from {
+    opacity: 1;
+  }
+}

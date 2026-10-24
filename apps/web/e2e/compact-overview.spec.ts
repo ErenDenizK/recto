@@ -18,7 +18,7 @@ import { join } from 'node:path';
 
 import { type CDPSession, expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, useFileInputPicker } from './helpers';
+import { fixturePath, useFileInputPicker, motionDone } from './helpers';
 
 const SHOTS = process.env.CAPTURE_SCREENSHOTS;
 
@@ -373,15 +373,16 @@ if (SHOTS) {
         const cdp = await page.context().newCDPSession(page);
         await pinchHold(cdp, SCREEN_CENTRE, 300, 220);
         await expect(overview(page)).toHaveAttribute('data-phase', 'morph');
+        // The frame wanted is a point in the pinch, sampled on the clock.
         await page.waitForTimeout(200);
         await shot(page, `overview-mid-pinch-${colorScheme}`);
         await lift(cdp);
         await expectRest(page, 'open');
-        await page.waitForTimeout(400);
+        await motionDone(page);
         await shot(page, `overview-settled-${colorScheme}`);
         await pinch(cdp, SCREEN_CENTRE, 120, 180);
         await expectRest(page, 'open');
-        await page.waitForTimeout(400);
+        await motionDone(page);
         await shot(page, `overview-two-columns-${colorScheme}`);
       });
     }
