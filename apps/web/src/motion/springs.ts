@@ -63,6 +63,16 @@ export const springs: Readonly<Record<SpringName, Spring>> = {
   track: spring(0.1),
 };
 
+/**
+ * The spring of a move a press starts (MOT-19, owner's console answer r26-motion-bounce): a menu
+ * or popover opening out of the button that was pressed. `quick`'s 0.28 s with a bounce of 0.25
+ * (ζ = 0.75), so it passes its rest by 2.8 % of the way and settles back: noticeable but calm.
+ * Not a token (the seven stay, Q-10) and never for a drag, a fling's release or a close: those
+ * keep their zero-bounce tokens. Reduced motion never reaches it (the container's fade, the
+ * liquid menu's fade).
+ */
+export const openSpring: Spring = spring(0.28, 0.25);
+
 /** A token name or a spring, as every helper of the module accepts. */
 export const springOf = (s: SpringName | Spring): Spring =>
   typeof s === 'string' ? springs[s] : s;

@@ -18,13 +18,13 @@
  *   into the new document's tab, which then takes a *receive* bounce.
  *
  * Everything is transform and opacity on Web Animations without `fill` at rest (Q-2), on the
- * spring tokens' curves (`springToLinear`) and the ease tokens. Under reduced motion (§7.5) only
+ * spring tokens' curves (`springEasing`) and the ease tokens. Under reduced motion (§7.5) only
  * opacity moves, within 150 ms, or nothing does.
  */
 import type { PageId } from '@pdf-editor/document-model';
 
 import { reducedMotion } from '../../motion/reduced-motion';
-import { springToLinear } from '../../motion/springs';
+import { springEasing } from '../../motion/springs';
 import { duration, EASE, REDUCED_DURATION_MS } from '../../motion/tokens';
 import { CELL, inView, type SheetSnapshot } from './cells';
 
@@ -43,7 +43,7 @@ const LEAVE_SCALE = 0.8;
 /** The curve of a zero-bounce spring and of `pop`, once (deterministic, `springs.ts`). */
 let curves: { spring: string; pop: { easing: string; duration: number } } | null = null;
 function curve() {
-  curves ??= { spring: springToLinear('quick').easing, pop: springToLinear('pop') };
+  curves ??= { spring: springEasing('quick').easing, pop: springEasing('pop') };
   return curves;
 }
 
@@ -241,7 +241,7 @@ export function growIn(cell: HTMLElement, delay = 0): void {
     });
     return;
   }
-  const smooth = springToLinear('smooth');
+  const smooth = springEasing('smooth');
   box.animate([{ transform: `scale(${LEAVE_SCALE})` }, { transform: 'none' }], {
     duration: smooth.duration,
     delay,

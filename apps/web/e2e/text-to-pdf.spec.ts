@@ -2,7 +2,7 @@
  * Text (.txt) to PDF end to end (conversion memo step 2, PRD-19): a `.txt` opened through
  * Open files becomes the document `<name>.pdf` with real text, so its page appears and Find
  * finds a word in it, Turkish letters included. The "Text to PDF…" command opens a picker on
- * .txt files.
+ * .txt files. Markdown (.md, PRD-28) takes the same paths through its own converter.
  */
 import { expect, test } from '@playwright/test';
 
@@ -88,4 +88,69 @@ test('"Text to PDF" in the palette asks for a .txt file', async ({ page }) => {
     buffer: Buffer.from('Tek satır', 'utf8'),
   });
   await expect(page.getByRole('tab', { name: 'tek' })).toBeVisible({ timeout: 30_000 });
+});
+
+const MARKDOWN = [
+  '# Rapor',
+  '',
+  'İstanbul çarşısında **kalın** bir ağaç gölgesi ve [bir bağlantı](https://example.com/x).',
+  '',
+  '- birinci',
+  '- ikinci',
+  '',
+  '```',
+  'const x = 1;',
+  '```',
+].join('\n');
+
+test('a .md opened with Open files becomes a PDF page without Markdown syntax', async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await useFileInputPicker(page);
+  await page.goto('./?lang=en');
+
+  const chooser = page.waitForEvent('filechooser');
+  await page
+    .getByRole('button', { name: /^Open files$/ })
+    .first()
+    .click();
+  await (await chooser).setFiles({
+    name: 'readme.md',
+    mimeType: 'text/markdown',
+    buffer: Buffer.from(MARKDOWN, 'utf8'),
+  });
+
+  await expect(page.getByRole('tab', { name: 'readme' })).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-page-index="0"]').first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId('save-button')).toHaveAttribute('data-state', 'save');
+
+  const field = await openFindPanel(page);
+  await field.fill('ağaç');
+  await expect(page.getByTestId('search-hit')).toHaveCount(1, { timeout: 20_000 });
+  await field.fill('**');
+  await expect(page.getByTestId('search-hit')).toHaveCount(0, { timeout: 20_000 });
+
+  const shot = process.env.R27_MD_SHOT;
+  if (shot !== undefined) await page.screenshot({ path: shot });
+});
+
+test('"Markdown to PDF" in the palette asks for a .md file', async ({ page }) => {
+  await useFileInputPicker(page);
+  await page.goto('./?lang=en');
+  await expect(page.getByTestId('app-shell')).toBeVisible();
+
+  await page.keyboard.press('ControlOrMeta+k');
+  await page.getByRole('combobox', { name: 'Search commands' }).fill('markdown to pdf');
+  await expect(page.getByRole('option', { name: /Markdown to PDF/, selected: true })).toBeVisible();
+  const chooser = page.waitForEvent('filechooser');
+  await page.keyboard.press('Enter');
+  const picker = await chooser;
+  expect(picker.isMultiple()).toBe(true);
+  await picker.setFiles({
+    name: 'notes.md',
+    mimeType: 'text/markdown',
+    buffer: Buffer.from('# Notlar\n\nTek satır', 'utf8'),
+  });
+  await expect(page.getByRole('tab', { name: 'notes' })).toBeVisible({ timeout: 30_000 });
 });

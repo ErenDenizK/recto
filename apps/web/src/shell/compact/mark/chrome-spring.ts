@@ -22,7 +22,7 @@
  * (`markLoaded`), to keep the static compact path under its gate (PRC-11); a scroll before it
  * has arrived moves the chrome on its tokens.
  */
-import { spring, springToLinear } from '../../../motion/springs';
+import { spring, springEasing } from '../../../motion/springs';
 
 /** The speeds that start each step above the first, px/s. */
 export const SPRING_STEPS = [300, 900, 1800] as const;
@@ -39,7 +39,7 @@ export const springStep = (speed: number): number => SPRING_STEPS.filter((s) => 
 /** The move's curve for a scroll at `speed` px/s: no bounce and long when slow, 0.2 when fast. */
 export function chromeCurve(speed: number): { readonly easing: string; readonly ms: number } {
   const k = Math.min(1, Math.max(0, (speed - SPRING_STEPS[0]) / (2500 - SPRING_STEPS[0])));
-  const curve = springToLinear(
+  const curve = springEasing(
     spring(0.62 - 0.2 * k, 0.2 * k),
     Math.min(MAX_SPEED, speed / TRAVEL_PX),
   );

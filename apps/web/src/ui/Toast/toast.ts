@@ -170,6 +170,9 @@ function findStep(h: History, mark: StepMark): 'present' | HistoryEntry | undefi
  * Undo". `undone` is called after its Undo ran (an announcement of what was undone is made
  * here, as Mod+Z makes one).
  */
+/** The Undo toasts now reading "Newer changes came after this", oldest first (DSN-70). */
+const staleUndoIds: string[] = [];
+
 function undoToast(text: string, options: ToastOptions = {}): string {
   let mark = markOf(history());
   let unsubscribe: (() => void) | undefined;
@@ -186,6 +189,8 @@ function undoToast(text: string, options: ToastOptions = {}): string {
       action: { label: m.cmd_undo(), run: runUndo },
       onDismiss: (reason) => {
         unsubscribe?.();
+        const at = staleUndoIds.indexOf(id);
+        if (at >= 0) staleUndoIds.splice(at, 1);
         options.onDismiss?.(reason);
       },
     },
@@ -201,7 +206,10 @@ function undoToast(text: string, options: ToastOptions = {}): string {
     unsubscribe = undefined;
     const open = historyOpener;
     if (where !== undefined && open !== undefined) {
-      // Newer changes came after it: the toast offers History instead (FB4 §4).
+      // Newer changes came after it: the toast offers History instead (FB4 §4). Older toasts
+      // already reading that are the same words again, so the newest one stays (DSN-70).
+      for (const older of staleUndoIds.splice(0)) dismissToast(older, 'closed');
+      staleUndoIds.push(id);
       updateToast(id, {
         text: m.toast_stale_undo(),
         action: { label: m.toast_history(), run: () => open(where) },

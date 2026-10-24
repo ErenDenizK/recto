@@ -110,12 +110,12 @@ test.describe('Dim pages', () => {
     await expect(light).toHaveAccessibleDescription('Only in the dark theme');
   });
 
-  test('is a palette command in both languages: “Sayfaları karart”', async ({ page }) => {
+  test('is a palette command in both languages: “Sayfa parlaklığını azalt”', async ({ page }) => {
     await trackEngine(page);
     await useFileInputPicker(page);
     await page.goto('./?lang=tr');
     await expect(page.getByTestId('home')).toBeVisible();
-    await palette(page, 'karart', 'Sayfaları karart: Kapalı');
+    await palette(page, 'parlak', 'Sayfa parlaklığını azalt: Kapalı');
     await expect(page.locator('html')).toHaveAttribute('data-dim-pages', '');
     await openFixtures(page, ['simple-text.pdf']);
     await expectDimmed(page, true);
