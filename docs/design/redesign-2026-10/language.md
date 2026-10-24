@@ -87,7 +87,7 @@ and A-10 (undo reveal and sheen 500 ms, light responses ≤ 150 ms).
 | Settings names | 17: Ambient light Auto · Still · Off. 22: Light On · Still · Off; Motion System · Reduced. 18: Reduce motion switch | Glass, Ambient light, Reduce motion, as in §0 | One control per effect, each overridable by the OS and saying so |
 | Ambient drift | 17, 18: event-only by default, drift opt-in. Brief: "moving" | **Auto drifts on the empty Library and About only**, at 15 fps, gliding to still after 60 s idle | The welcome moment moves, as asked; work views never do. The setting is the WCAG 2.2.2 pause |
 | View transition length | 18 MC-2: glide (0.68 s) with pass-through input. 22 §5.5: clicks are lost while a transition runs | **≤ 250 ms** per view transition | 22 measured that `pointer-events: none` does not restore input, as the spec says |
-| Touch springs | 19 M-30: bounce on touch (ζ 0.6–0.8) | **Rejected**: zero bounce for taps everywhere; touch gets a deeper press and a brighter press light | MO-1 rule 3: momentum earns bounce, input type does not |
+| Touch springs | 19 M-30: bounce on touch (ζ 0.6–0.8) | **Rejected**: zero bounce for taps everywhere (MOT-19 later allows ~3 % on a press-started menu or popover open, never by input type); touch gets a deeper press and a brighter press light | MO-1 rule 3: momentum earns bounce, input type does not |
 | Squircles | 16 G-20: `squircle`, radius × 1.8. 20 S-2: `superellipse(1.5)`, × 1.35 | **`superellipse(1.5)` × 1.35** | Both match the circle's 45° cut; 20 compared them rendered, and the gentler curve clamps less on 20–28 px radii |
 | Focus ring | 20 C-7: lime outline, 2 px ink inside. 22 A-11: light outline over a 6 px dark halo | **22's ring with lime as the light band** | Dark on both sides of the lime: worst best-band 4.07:1 over 20 backdrops (§9.2) |
 | Haptics | 20 X-10: four events. 19 M-37: lift, snap, drop | **19's three events**, Android only | HIG: avoid overuse; tool arming is frequent |
@@ -850,6 +850,12 @@ Springs carry position, size and scale; eases carry opacity and colour (18 §3).
 Limits from A-10 are read on the 99 % settle time: input-blocking transitions ≤ 250 ms, any
 transition ≤ 500 ms, ζ ≥ 0.9 for surfaces ≥ 25 % of the viewport (all zero-bounce tokens are
 ζ 1.0), small controls ζ ≥ 0.7 (`--spring-pop` is 0.75), travel ≤ 1/3 of the viewport.
+
+**Exception, MOT-19 (owner, 2026-10-23).** A move a press starts may bounce very slightly:
+press-started opens (the container-transform menus, popovers and selects with a trigger, and the
+phone ⋯ and file menus) use `openSpring`, `quick`'s 0.28 s with bounce 0.25 (ζ 0.75), about 3 %
+overshoot, settling inside A-10. It is not a token. Closes, drags, flings, sheets, the capsule and
+bars never bounce; they keep the zero-bounce tokens above.
 
 ### 7.2 CSS form
 

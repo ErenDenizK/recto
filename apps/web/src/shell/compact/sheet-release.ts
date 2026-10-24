@@ -6,13 +6,23 @@
  * spring that takes the sheet to a detent (medium or large), or away, starts at the finger's
  * speed instead of from rest, so the sheet neither stalls nor jerks at the hand-off. CSS
  * transitions cannot take a velocity, but a `linear()` curve can carry one: as the finger lifts,
- * `releaseCurves()` writes two curves for this one release, `springToLinear()` of the sheet
+ * `releaseCurves()` writes two curves for this one release, `springEasing()` of the sheet
  * token with the release velocity in distances per second, one toward the detent the release
  * heads for (`releaseTarget()`, Base UI's own choice restated, since the curves must be on the
  * panel before its next style) and one toward the closed position. The stylesheet picks the one
  * whose end state Base UI then sets (`[data-ending-style]` or not), and the attribute is cleared
  * when that transition ends. Releases faster than 300 px/s take `fling` (one small overshoot),
  * slower ones `glide`. Under reduced motion nothing is written: the sheet fades (§7.5).
+ *
+ * **A turn mid-entrance (MOT-18, wave 2).** A CSS transition that reverses cannot keep its
+ * speed: the browser enters the new curve part-way along (the reversing-adjusted start), so a
+ * sheet closed while rising turned in one frame from -4100 px/s to +2900 px/s (a corner, not
+ * a turn). While a transform transition runs the panel's offset is sampled once a frame; when
+ * `data-ending-style` lands on it, the close is taken from the transition by a spring on Web
+ * Animations (`animateStyle`) that starts at the present place with the present speed
+ * (`turnClose()`: `fling` or `glide` by the release rule, 3 distances/s at most away from the
+ * closed position). Base UI waits for it before it unmounts the sheet; a sheet opened again
+ * meanwhile hands back to the stylesheet where it is.
  *
  * **The glass.** While the sheet moves (it rises, follows a finger, changes detent or leaves)
  * it draws its tier's solid twin, and once it rests its glass clears where it stands
@@ -21,7 +31,14 @@
  */
 import { FLING_SPEED } from '../../ui/sheet/presentation';
 import { glassMoving, glassSettle } from '../../ui/glass-moving';
-import { reducedMotion, springToLinear, velocityTracker, type VelocityTracker } from '../../motion';
+import {
+  animateStyle,
+  type Motion,
+  reducedMotion,
+  springEasing,
+  velocityTracker,
+  type VelocityTracker,
+} from '../../motion';
 
 /** The release velocity carried toward the end state, and away from it, in distances per second. */
 export const TOWARD_MAX = 20;
@@ -47,14 +64,48 @@ export function releaseCurves(toTarget: number, velocity: number, toClosed: numb
   // (a downward flick that Base UI still snaps back) turns the sheet, but only up to 3: at 20
   // the turn would first carry it almost half the way further down before it came back.
   const cap = (v: number) => Math.max(-AWAY_MAX, Math.min(TOWARD_MAX, v));
-  const open = springToLinear(token, cap(toOpen));
-  const close = springToLinear(token, cap(toClose));
+  const open = springEasing(token, cap(toOpen));
+  const close = springEasing(token, cap(toClose));
   return {
     '--release-open-ease': open.easing,
     '--release-open-ms': `${open.duration}ms`,
     '--release-close-ease': close.easing,
     '--release-close-ms': `${close.duration}ms`,
   };
+}
+
+/** A sampled offset of the panel: `t` ms (`performance.now()`), `y` px. */
+export interface OffsetSample {
+  readonly t: number;
+  readonly y: number;
+}
+
+/** Samples nearer than this to the present say nothing about the speed (ms). */
+const MIN_SPAN = 4;
+
+/**
+ * The panel's vertical speed (px/s, down positive) at `now` ms and offset `y`, from the latest
+ * sample at least `MIN_SPAN` ms old; 0 when there is none.
+ */
+export function turnVelocity(samples: readonly OffsetSample[], now: number, y: number): number {
+  for (let i = samples.length - 1; i >= 0; i--) {
+    const s = samples[i];
+    if (s && now - s.t >= MIN_SPAN) return ((y - s.y) / (now - s.t)) * 1000;
+  }
+  return 0;
+}
+
+/**
+ * The spring of a sheet turned back to close while it moves at `velocity` px/s (down positive),
+ * `toClosed` px above the closed position: the release's token and caps, in px/s.
+ */
+export function turnClose(
+  velocity: number,
+  toClosed: number,
+): { readonly token: 'fling' | 'glide'; readonly velocity: number } {
+  const distance = Math.max(1, toClosed);
+  const cap = Math.max(-AWAY_MAX, Math.min(TOWARD_MAX, velocity / distance));
+  return { token: Math.abs(velocity) > FLING_SPEED ? 'fling' : 'glide', velocity: cap * distance };
 }
 
 /** Base UI's release thresholds (`DrawerViewport`): px/ms, and the projection's reach. */
@@ -141,8 +192,63 @@ export function watchSheet(
       }),
     );
   };
+  // The offset once a frame while a transform transition runs, for a turn (see the header).
+  let samples: OffsetSample[] = [];
+  let raf = 0;
+  const sample = () => {
+    samples.push({ t: performance.now(), y: offsetOf(panel) });
+    if (samples.length > 4) samples.shift();
+    raf = requestAnimationFrame(sample);
+  };
+  const trace = () => {
+    if (raf || reducedMotion()) return;
+    samples = [];
+    raf = requestAnimationFrame(sample);
+  };
+  const untrace = () => {
+    cancelAnimationFrame(raf);
+    raf = 0;
+    samples = [];
+  };
+  let closing: Motion<readonly number[]> | null = null;
+  const turned = new MutationObserver(() => {
+    if (!panel.hasAttribute('data-ending-style')) {
+      // Opened again while the close ran: the stylesheet takes it from where the spring was.
+      // `stop()` leaves the stopped transform inline, which would override the sheet's own
+      // (the drawer's snap and drag); it is read as computed, then removed, so the stylesheet's
+      // transition starts from that place.
+      if (closing) {
+        closing.stop();
+        closing = null;
+        void panel.getBoundingClientRect();
+        panel.style.removeProperty('transform');
+        panel.style.removeProperty('will-change');
+      }
+      return;
+    }
+    if (!raf || panel.hasAttribute('data-swiping') || panel.hasAttribute('data-released')) return;
+    if (reducedMotion()) return;
+    const y = offsetOf(panel);
+    const end = panel.offsetHeight + gap;
+    const turn = turnClose(turnVelocity(samples, performance.now(), y), end - y);
+    untrace();
+    moving();
+    closing = animateStyle(panel, 'transform', [0, y, 1], [0, end, 1], {
+      spring: turn.token,
+      velocity: [0, turn.velocity, 0],
+      keep: true,
+      turn: true,
+    });
+    const run = closing;
+    void run.finished.then(() => {
+      if (closing === run) closing = null;
+    });
+  });
+  turned.observe(panel, { attributes: true, attributeFilter: ['data-ending-style'] });
   const started = (event: TransitionEvent) => {
-    if (event.target === panel && event.propertyName === 'transform') moving();
+    if (event.target !== panel || event.propertyName !== 'transform') return;
+    moving();
+    if (!panel.hasAttribute('data-ending-style')) trace();
   };
   const ended = (event: TransitionEvent) => {
     if (event.target !== panel || event.propertyName !== 'transform') return;
@@ -151,7 +257,10 @@ export function watchSheet(
     const still = panel
       .getAnimations()
       .some((a) => (a as Partial<CSSTransition>).transitionProperty === 'transform');
-    if (!still && !panel.hasAttribute('data-swiping') && panel.hasAttribute('data-glass-moving')) {
+    // The spring of a turned close moves the sheet under this transition: still moving (MOT-12).
+    const sprung = still || closing !== null;
+    if (!still) untrace();
+    if (!sprung && !panel.hasAttribute('data-swiping') && panel.hasAttribute('data-glass-moving')) {
       glassSettle(panel);
     }
   };
@@ -163,6 +272,9 @@ export function watchSheet(
   panel.addEventListener('transitionend', ended);
   panel.addEventListener('transitioncancel', ended);
   return () => {
+    turned.disconnect();
+    closing?.stop();
+    untrace();
     document.removeEventListener('pointermove', move, true);
     document.removeEventListener('pointerup', up, true);
     document.removeEventListener('pointercancel', up, true);
