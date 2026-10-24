@@ -109,11 +109,12 @@ export function placeMargin(input: MarginInput): MarginPlacement | null {
   if (input.windowWidth < MIN_WINDOW || input.entries === 0 || input.pages === null) return null;
   const leftRoom = input.pages.left - PAGE_GAP - (input.freeLeft + EDGE);
   const rightRoom = input.freeRight - EDGE - (input.pages.right + PAGE_GAP);
-  if (Math.max(leftRoom, rightRoom) < MIN_WIDTH) return null;
-  // The roomier side, the left on a tie (where a contents list is read).
-  if (leftRoom >= rightRoom) {
+  // The left whenever it has the room (where the sidebar's Contents lives and reading starts);
+  // the right only when the left is too narrow (a sidebar open) and the right has room.
+  if (leftRoom >= MIN_WIDTH) {
     return { side: 'left', left: input.freeLeft + EDGE, width: Math.min(MAX_WIDTH, leftRoom) };
   }
+  if (rightRoom < MIN_WIDTH) return null;
   return {
     side: 'right',
     left: input.pages.right + PAGE_GAP,

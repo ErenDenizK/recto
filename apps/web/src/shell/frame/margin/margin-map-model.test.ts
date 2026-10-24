@@ -104,7 +104,18 @@ describe('placeMargin', () => {
     expect((place?.left ?? 0) + (place?.width ?? 0)).toBeLessThanOrEqual(300 - PAGE_GAP);
   });
 
-  it('uses the right margin when the sidebar takes the left', () => {
+  it('stays on the left while the left has room, even when the right has more', () => {
+    const place = placeMargin({
+      windowWidth: 1440,
+      freeLeft: 0,
+      freeRight: 1440,
+      entries: 5,
+      pages: { left: 300, right: 1000 },
+    });
+    expect(place?.side).toBe('left');
+  });
+
+  it('uses the right margin when the left is too narrow (the sidebar is open)', () => {
     const place = placeMargin({
       windowWidth: 1440,
       freeLeft: 300,
