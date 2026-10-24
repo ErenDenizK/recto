@@ -3,7 +3,7 @@
  * document power tools the README sells, as a menu above the dock. Each row is a doorway to the
  * command the title menu already runs (DSN-46: a second appearance needs a reason, recorded in
  * DSN-76), so `commandRegistry.execute(id)` is the whole act and a row dims with the command's
- * own reason. The menu is the dock's More recipe (`ui/Menu.module.css`, Base UI Menu): Esc
+ * own reason, and no tooltip repeats the visible label (RA-20). The menu is the dock's More recipe (`ui/Menu.module.css`, Base UI Menu): Esc
  * closes it and returns focus to the entry, the arrows move through the rows.
  */
 import { Menu } from '@base-ui/react/menu';
@@ -14,40 +14,38 @@ import { m } from '../../i18n';
 import { abovePalette } from '../../markup/anchor';
 import { Icon, type IconName } from '../../ui/Icon';
 import menuStyles from '../../ui/Menu.module.css';
-import { Tooltip } from '../../ui/Tooltip';
 import styles from './Dock.module.css';
 import toolStyles from './ToolsMenu.module.css';
 
 export interface ToolEntry {
   /** The command the title menu (or the dock's More) runs for the same act. */
   readonly id: string;
-  readonly label: () => string;
+  /** The label the command already wears where it lives (DSN-52: one command, one label). */
+  readonly label?: () => string;
   readonly description: () => string;
   readonly icon: IconName;
 }
 
-/** The tools, in the order the README sells them; every id is a registered command. */
+/**
+ * The tools, in the order the README sells them; every id is a registered command. A row wears
+ * the title menu's label for its command (`command.title`, or the override the title menu
+ * passes: Split…, Compare with…), Redact the dock More's.
+ */
 export const TOOL_ENTRIES: readonly ToolEntry[] = [
-  { id: 'tool.redact', label: m.tools_redact, description: m.tools_redact_hint, icon: 'redact' },
-  { id: 'document.ocr', label: m.tools_ocr, description: m.tools_ocr_hint, icon: 'scan' },
   {
-    id: 'mode.compare',
-    label: m.tools_compare,
-    description: m.tools_compare_hint,
-    icon: 'compare',
+    id: 'tool.redact',
+    label: m.dock_more_redact,
+    description: m.tools_redact_hint,
+    icon: 'redact',
   },
-  {
-    id: 'documents.mergeAll',
-    label: m.tools_combine,
-    description: m.tools_combine_hint,
-    icon: 'stack',
-  },
-  { id: 'section.split', label: m.tools_split, description: m.tools_split_hint, icon: 'columns' },
+  { id: 'document.ocr', description: m.tools_ocr_hint, icon: 'scan' },
+  { id: 'mode.compare', label: m.menu_compare, description: m.tools_compare_hint, icon: 'compare' },
+  { id: 'documents.mergeAll', description: m.tools_combine_hint, icon: 'stack' },
+  { id: 'section.split', label: m.menu_split, description: m.tools_split_hint, icon: 'scissors' },
   {
     id: 'document.compress',
-    label: m.tools_compress,
     description: m.tools_compress_hint,
-    icon: 'file',
+    icon: 'arrows-in-simple',
   },
 ];
 
@@ -55,21 +53,19 @@ export function ToolsMenu() {
   const [trigger, setTrigger] = useState<HTMLElement | null>(null);
   return (
     <Menu.Root>
-      <Tooltip label={m.dock_tools()} side="top">
-        <Menu.Trigger
-          ref={setTrigger}
-          className={`btn btn-quiet ${styles.item}`}
-          data-capsule-item="tools"
-          data-dock-item="tools"
-        >
-          <Icon name="sliders-horizontal" className={styles.icon} />
-          <span data-btn-label="">{m.dock_tools()}</span>
-        </Menu.Trigger>
-      </Tooltip>
+      <Menu.Trigger
+        ref={setTrigger}
+        className={`btn btn-quiet ${styles.item}`}
+        data-capsule-item="tools"
+        data-dock-item="tools"
+      >
+        <Icon name="wrench" className={styles.icon} />
+        <span data-btn-label="">{m.dock_tools()}</span>
+      </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner
           side="top"
-          align="center"
+          align="end"
           sideOffset={8}
           collisionPadding={8}
           anchor={abovePalette(() => trigger)}
@@ -99,7 +95,7 @@ function ToolItem({ tool }: { readonly tool: ToolEntry }) {
     >
       <Icon name={tool.icon} aria-hidden="true" />
       <span className={toolStyles.text}>
-        <span className={menuStyles.label}>{tool.label()}</span>
+        <span className={menuStyles.label}>{tool.label?.() ?? command.title}</span>
         <span className={toolStyles.hint}>{reason ?? tool.description()}</span>
       </span>
     </Menu.Item>

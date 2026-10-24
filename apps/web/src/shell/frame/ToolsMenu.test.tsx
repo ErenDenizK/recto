@@ -98,4 +98,33 @@ describe('Tools entry', () => {
     await vi.waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
     expect(document.activeElement).toBe(entry);
   });
+
+  it('keeps Redact out of More while Tools is shown (DSN-76, DSN-47), in More otherwise', async () => {
+    for (const [search, inMore] of [
+      ['', true],
+      ['?tools=1', false],
+    ] as const) {
+      setSearch(search);
+      await mount();
+      await userEvent.click(within(dock()).getByRole('button', { name: 'More' }));
+      const menu = await screen.findByRole('menu', { name: 'More' });
+      await settled(menu);
+      expect(within(menu).queryByRole('menuitem', { name: 'Redact' }) !== null, search).toBe(
+        inMore,
+      );
+      await userEvent.keyboard('{Escape}');
+      await vi.waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+      cleanup();
+    }
+  });
+
+  it("wears the title menu's labels (DSN-52)", async () => {
+    setSearch('?tools=1');
+    await mount();
+    await userEvent.click(within(dock()).getByRole('button', { name: 'Tools' }));
+    const menu = await screen.findByRole('menu', { name: 'Tools' });
+    await settled(menu);
+    for (const name of ['Split…', 'Compare with…'])
+      expect(within(menu).getByRole('menuitem', { name: new RegExp(name) })).toBeDefined();
+  });
 });

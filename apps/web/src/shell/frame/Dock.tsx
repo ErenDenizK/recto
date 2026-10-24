@@ -26,7 +26,7 @@
  * - **Announcements:** "Markup on. Select armed." once when a door opens it (A-14); the palette
  *   and the guard say the rest.
  *
- * The dock's pieces carry `data-capsule-item` keys (`pages`, `markup`, `sign`, `locked`, `more`),
+ * The dock's pieces carry `data-capsule-item` keys (`pages`, `markup`, `sign`, `tools`, `locked`, `more`),
  * so Pages and More slide into their Locked places instead of fading.
  */
 import { Menu } from '@base-ui/react/menu';
@@ -150,7 +150,7 @@ const keysOf = (id: string) => {
   return shortcuts.map((s) => toAriaKeyShortcut(s, currentPlatform)).join(' ');
 };
 
-/** The dock's resting items (F10 §2): Pages · Markup · Fill & sign · More, or Locked. */
+/** The dock's resting items (F10 §2): Pages · Markup · Fill & sign · Tools (`?tools=1`) · More, or Locked. */
 function DockItems({ locked, doc }: { readonly locked: boolean; readonly doc: VirtualDocument }) {
   const ref = useRef<HTMLDivElement>(null);
   const frame = useSizeClass();
@@ -376,6 +376,9 @@ const MORE_ITEMS: readonly MoreEntry[] = [
   // DSN-68: the one door to Save a copy outside the title menu (first-session test, item 1).
   { id: 'file.export', label: m.save_a_copy, icon: 'export' },
 ];
+/** DSN-76 (DSN-47): with the Tools entry shown, Redact lives there only, not in More too. */
+const moreItems = (): readonly MoreEntry[] =>
+  toolsEntryEnabled() ? MORE_ITEMS.filter((item) => item.id !== 'tool.redact') : MORE_ITEMS;
 const MORE_APP_ITEMS: readonly MoreEntry[] = [
   { id: 'view.palette', label: m.dock_more_commands, icon: 'list-magnifying-glass' },
   { id: 'help.shortcuts', label: m.frame_keyboard_shortcuts, icon: 'keyboard', fineOnly: true },
@@ -410,7 +413,7 @@ function MoreMenu() {
           anchor={abovePalette(() => trigger)}
         >
           <Menu.Popup className={menuStyles.popup} aria-label={m.dock_more()}>
-            {MORE_ITEMS.map((item) => (
+            {moreItems().map((item) => (
               <MoreItem key={item.id} id={item.id} label={item.label()} icon={item.icon} />
             ))}
             <Menu.Separator className={menuStyles.separator} />
