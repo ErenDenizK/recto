@@ -204,7 +204,7 @@ export function stepField(direction: 1 | -1): void {
     widget: -1,
     pageId: '' as PageId,
   };
-  moveField(from, direction);
+  moveField(from, direction, { wrap: true });
 }
 
 export function FieldStepper() {

@@ -19,7 +19,7 @@ import { handKeysTo } from '../commands/key-handoff';
 import { getEngineService } from '../engine/engine-service';
 import { revealWhenShown } from '../motion/catalogue';
 import { reducedMotion } from '../motion/reduced-motion';
-import { springToLinear } from '../motion/springs';
+import { springEasing } from '../motion/springs';
 import { EASE, SPRING_CSS_MS } from '../motion/tokens';
 import { showOverlaySidebar } from '../shell/frame/frame-store';
 import { frameClassOf } from '../shell/frame/size-class';
@@ -485,7 +485,7 @@ const PULSE_SCALE = 1.18;
 function pulseHit(hit: Element | null): void {
   if (!(hit instanceof HTMLElement) || typeof hit.animate !== 'function' || reducedMotion()) return;
   // Out on the entry ease, home on the zero-bounce spring's curve, in `pop`'s time.
-  const home = springToLinear('quick').easing;
+  const home = springEasing('quick').easing;
   hit.animate(
     [
       { scale: '1', easing: EASE.out },

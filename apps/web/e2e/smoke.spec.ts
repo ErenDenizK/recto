@@ -76,14 +76,14 @@ test('the launcher says what Recto does and offers its first steps, in both lang
   await page.goto('./?lang=tr');
   await expect(
     launcher.getByRole('heading', {
-      name: 'PDF’leri okuyun, işaretleyin, imzalayın ve düzenleyin.',
+      name: 'PDF’leri okuyun, işaretleyin, imzalayın ve sayfalarını düzenleyin.',
     }),
   ).toBeVisible();
   await expect(launcher.getByText('Hiçbir şey bu cihazdan çıkmaz.')).toBeVisible();
   for (const name of ['PDF aç…', 'Dosyaları birleştir…']) {
     await expect(launcher.getByRole('button', { name })).toBeVisible();
   }
-  await expect(sample).toHaveAccessibleName('Örnek belgeyi deneyin');
+  await expect(sample).toHaveAccessibleName('Örnek belgeyi dene');
 });
 
 test('the palette finds commands by keywords in both languages, without diacritics', async ({

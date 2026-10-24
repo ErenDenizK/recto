@@ -61,7 +61,8 @@ describe('shift', () => {
     // A turn: never pending a frame, which would draw the turn's position twice.
     const [turned] = el.getAnimations();
     expect(turned?.pending).toBe(false);
-    expect(turned?.startTime).toBe(Number(document.timeline.currentTime));
+    // Equal to the frame's time, give or take the float noise of the engine's own time units.
+    expect(Number(turned?.startTime)).toBeCloseTo(Number(document.timeline.currentTime), 6);
   });
 
   it('does nothing for a move under half a pixel, and jumps under reduced motion', () => {

@@ -8,7 +8,7 @@
  * - **The title** as text centred between the circles, cut in its middle when long (DSN-38,
  *   `title-fit.ts`), in the theme's text colour (GLS-20), with a ▾ in its grey dot
  *   that opens the **title menu**, the reader's one menu (DSN-53): a card with the file's name
- *   (whole, on up to two lines, where the title truncates), "PDF · size · pages", then Share or
+ *   (whole, on up to two lines, where the title truncates; its size and pages are Document info's, said once: DSN-52), then Share or
  *   Download a copy (the "Changed" rows once edited), Document info, Contents (when the file has
  *   an outline) and, after a rule, Settings (About is its last row). The ⋯ circle that held
  *   Contents and About is gone: one or two rows were a second menu for little (DSN-53), and
@@ -29,8 +29,7 @@ import { Menu } from '@base-ui/react/menu';
 import type { VirtualDocument } from '@pdf-editor/document-model';
 import { useEffect, useRef } from 'react';
 
-import { formatFileSize } from '../../home/home-model';
-import { getLocale, m } from '../../i18n';
+import { m } from '../../i18n';
 import { Icon } from '../../ui/Icon';
 import { IconButton } from '../../ui/IconButton';
 import type { SplitTopParts } from './CompactChrome';
@@ -101,11 +100,6 @@ function FileMenu({
   const title = useMiddleTitle(doc.title, headingRef, textRef);
   const file = useFileInfo(doc);
   const name = file?.name ?? doc.title;
-  const facts = [
-    'PDF',
-    file ? formatFileSize(file.size, getLocale()) : '',
-    m.pages_count({ count: doc.pages.length }),
-  ].filter((fact) => fact !== '');
   return (
     <Menu.Root
       open={open}
@@ -145,7 +139,6 @@ function FileMenu({
                 <span className={styles.cardName} data-testid="compact-file-name">
                   {name}
                 </span>
-                <span className={styles.cardFacts}>{facts.join(' · ')}</span>
               </span>
             </div>
             <Menu.Separator className={classes.menuSeparator} />

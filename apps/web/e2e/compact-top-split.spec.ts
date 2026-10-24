@@ -239,7 +239,6 @@ test.describe('the split top (DSN-34)', () => {
       'Settings',
     ]);
     await expect(fileMenu.getByTestId('compact-file-name')).toHaveText(/\.pdf$/);
-    await expect(fileMenu).toContainText(/PDF · .+ · \d+ pages/);
     await expectGlassClean(page, 'the split top with its menu open');
     const menuBox = await fileMenu.boundingBox();
     if (!menuBox) throw new Error('no menu');

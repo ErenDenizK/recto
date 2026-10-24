@@ -522,7 +522,7 @@ lock banner (no document act). Search with no match: "No setting matches “x”
 | Light · Motion · Haptics | Ambient light: Auto · Still · Off · Reduce motion: System · On · Haptics | Ortam ışığı: Otomatik · Durgun · Kapalı · Hareketi azalt: Sistem · Açık · Dokunsal geri bildirim |
 | Background glow (owner feedback 2026-10-09, G5; on by default) | Background glow · A soft light behind the pages, as in the Library. | Arka plan ışıltısı · Sayfaların arkasında, Kitaplık’taki gibi yumuşak bir ışık. |
 | System line | Solid, set by your system | Opak, sisteminiz tarafından ayarlandı |
-| Language | English · Türkçe · Follow the browser (English) | English · Türkçe · Tarayıcıya uy (Türkçe) |
+| Language | English · Türkçe · Browser (English) | English · Türkçe · Tarayıcıya uy (Türkçe) |
 | Pen and touch | Pen writes without Markup · Pen draws in Markup with Select · Draw with finger: Auto · On · Off · Keep tools visible | Kalem İşaretleme olmadan yazsın · Kalem, Seçim etkinken İşaretleme'de çizsin · Parmakla çiz: Otomatik · Açık · Kapalı · Araçlar hep görünsün |
 | Hints | Auto turns on when a pen is first used. · Auto: fingers draw until a pen is seen. | Otomatik, kalem ilk kullanıldığında açılır. · Otomatik: kalem görülene kadar parmak çizer. |
 | Documents | Open documents locked · Keep changes on this device · Kept documents · Saved signatures · 2 of 5 · Name on comments · Show tips and facts again | Belgeler kilitli açılsın · Değişiklikler bu cihazda saklansın · Saklanan belgeler · Kayıtlı imzalar · 2/5 · Yorumlardaki ad · İpuçlarını ve bilgileri yeniden göster |

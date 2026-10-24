@@ -18,7 +18,7 @@
  */
 import { animate, type Motion } from '../../motion/animate';
 import { reducedMotion } from '../../motion/reduced-motion';
-import { springToLinear } from '../../motion/springs';
+import { springEasing } from '../../motion/springs';
 import { EASE } from '../../motion/tokens';
 import { velocityTracker } from '../../motion/velocity';
 import type { SheetSnapshot } from './cells';
@@ -108,7 +108,7 @@ export function lift(
         preview.remove();
         return Promise.resolve();
       }
-      const smooth = springToLinear('smooth');
+      const smooth = springEasing('smooth');
       const from = preview.style.transform;
       const to = `translate(${home.left}px, ${home.top}px)`;
       const flight = preview.animate([{ transform: from }, { transform: to }], {
@@ -139,7 +139,7 @@ export function lift(
  */
 function gatherUnder(shots: readonly SheetSnapshot[], to: DOMRect): void {
   if (shots.length === 0) return;
-  const quick = springToLinear('quick');
+  const quick = springEasing('quick');
   for (const shot of shots.slice(0, 12)) {
     const ghost = document.createElement('div');
     ghost.setAttribute('aria-hidden', 'true');
