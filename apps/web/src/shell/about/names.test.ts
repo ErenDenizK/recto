@@ -109,6 +109,9 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:input-policy:v1',
       // The one-time `1` migration notice (commands/keymap-notice.ts, D2-7).
       'pdf-editor:keymap-notice:v1',
+      // The labelled palette flag, ?labels=1|0, and its session count (markup/palette-labels.ts, DSN-71).
+      'pdf-editor:labels-sessions:v1',
+      'pdf-editor:labels:v1',
       'pdf-editor:locale:v1',
       // The one reload into cross-origin isolation (sessionStorage, office/flag.ts, ADR-0035 §4).
       'pdf-editor:office-reload:v1',
