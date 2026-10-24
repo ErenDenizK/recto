@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { springToLinear } from '../../motion';
-import { releaseCurves, releaseTarget } from './sheet-release';
+import { releaseCurves, releaseTarget, turnClose, turnVelocity, watchSheet } from './sheet-release';
 
 /** The first stop after 0 of a `linear()` curve: how far it gets in its first instant. */
 const firstStop = (easing: string) => Number(/linear\(0, ([\d.-]+)/.exec(easing)?.[1]);
@@ -74,5 +74,59 @@ describe('releaseTarget', () => {
   it('closes on a quick flick down, or past halfway to closed', () => {
     expect(releaseTarget(310, 900, offsets, height)).toBeNull();
     expect(releaseTarget(560, 0, offsets, height)).toBeNull();
+  });
+});
+
+describe('a sheet turned back mid-entrance (MOT-18)', () => {
+  it('reads the speed from the latest sample at least 4 ms old', () => {
+    const samples = [
+      { t: 0, y: 400 },
+      { t: 16, y: 380 },
+      { t: 32, y: 340 },
+    ];
+    // 340 -> 300 over 16 ms is -2500 px/s (up), and a sample 1 ms old is skipped.
+    expect(turnVelocity([...samples, { t: 47, y: 301 }], 48, 300)).toBeCloseTo(-2500, 0);
+    expect(turnVelocity([], 10, 300)).toBe(0);
+    expect(turnVelocity([{ t: 9, y: 310 }], 10, 300)).toBe(0);
+  });
+
+  it('closes on a spring that starts at the speed it had, capped away from the closed side', () => {
+    // Rising at 4100 px/s with 800 px to go: away from closing, so 3 distances/s at most.
+    expect(turnClose(-4100, 800)).toEqual({ token: 'fling', velocity: -2400 });
+    // Rising slowly keeps its speed; falling is carried up to 20 distances/s.
+    expect(turnClose(-300, 800)).toEqual({ token: 'glide', velocity: -300 });
+    expect(turnClose(9000, 400)).toEqual({ token: 'fling', velocity: 8000 });
+    expect(turnClose(0, 400)).toEqual({ token: 'glide', velocity: 0 });
+  });
+});
+
+describe('watchSheet: a turned close (MOT-18)', () => {
+  const frames = (n: number) =>
+    new Promise<void>((resolve) => {
+      const step = (left: number) =>
+        left <= 0 ? resolve() : requestAnimationFrame(() => step(left - 1));
+      step(n);
+    });
+
+  it('hands back to the stylesheet when reopened mid-turn: no inline transform is left', async () => {
+    const panel = document.createElement('div');
+    panel.style.cssText = 'position:fixed;left:0;top:0;width:100px;height:100px';
+    document.body.append(panel);
+    const stop = watchSheet(panel, () => [0], 12);
+    panel.style.transform = 'translateY(40px)';
+    panel.dispatchEvent(new TransitionEvent('transitionrun', { propertyName: 'transform' }));
+    await frames(4);
+    panel.style.removeProperty('transform');
+    panel.setAttribute('data-ending-style', '');
+    await frames(1);
+    // The close runs as a spring on the panel.
+    expect(panel.getAnimations().length).toBeGreaterThan(0);
+    panel.removeAttribute('data-ending-style');
+    await Promise.resolve();
+    expect(panel.style.transform).toBe('');
+    expect(panel.style.willChange).toBe('');
+    expect(panel.getAnimations()).toHaveLength(0);
+    stop();
+    panel.remove();
   });
 });

@@ -12,7 +12,7 @@
  * and opacity are functions of it, so an open reversed mid-way closes from exactly where it is,
  * with its velocity (Q-10), and a close reopened mid-way turns the same way.
  *
- * - Open on `quick`, close on `press` (the quicker close, MC-16). Opacity is 0 → 1 over the
+ * - Open on `openSpring` (`quick` with MOT-19's 2.8 % bounce), close on `press` (the quicker close, MC-16). Opacity is 0 → 1 over the
  *   first `FADE_SPAN` of the progress, so the glass is whole while it grows and the last part
  *   of a close fades into the trigger.
  * - It runs on Web Animations, keyframes sampled from the analytic spring at 120 Hz (as
@@ -27,7 +27,7 @@
  * module loads with the first popup's container transform (`ui/container-transform.ts`).
  */
 import { reducedMotion } from './reduced-motion';
-import { energy, solve, springs } from './springs';
+import { energy, openSpring, solve, springs } from './springs';
 import { EASE, REDUCED_DURATION_MS } from './tokens';
 import { clamp } from './velocity';
 
@@ -179,7 +179,9 @@ export function containerMotion(
           fill: 'forwards',
         });
       } else {
-        const s = next === 1 ? springs.quick : springs.press;
+        // Open: the press-started bounce (MOT-19; a click, Enter or Space on the trigger, or a reopen
+        // during a close; a popup with no trigger never gets a motion here); close: `press`, none.
+        const s = next === 1 ? openSpring : springs.press;
         seg = { s, target: next, x0: p - next, v0: v, reduced: false, from: p };
         const settle = energy(s, seg.x0, v) * PRECISION;
         const frames: Keyframe[] = [];

@@ -67,7 +67,8 @@
   transform: scale(var(--exit-scale));
   transition:
     opacity var(--duration-fast) var(--ease-exit),
-    transform var(--duration-fast) var(--ease-exit);
+    /* The exit's move is the spring curve over the quicker close (MC-16, MOT-18), not an ease. */
+    transform var(--duration-fast) var(--ease-spring);
 }
 
 /* The popover's positioner (Base UI's, `role="presentation"`) stacks above the floating bars
