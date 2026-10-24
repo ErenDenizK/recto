@@ -906,7 +906,7 @@
   "cmd_reverse_document": "Reverse pages of document",
   "cmd_split_document": "Split document…",
   "cmd_interleave": "Interleave with another document…",
-  "interleave_needs_another": "Open a second document to interleave",
+  "interleave_needs_another": "Needs a second open document",
   "cmd_rename_document": "Rename document",
   "cmd_rename_document_note": "Or double-click a tab or section title.",
   "cmd_insert_images": "Insert images as pages…",

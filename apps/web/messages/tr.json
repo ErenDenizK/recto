@@ -700,7 +700,7 @@
   "cmd_reverse_document": "Belgenin sayfalarını ters çevir",
   "cmd_split_document": "Belgeyi böl…",
   "cmd_interleave": "Başka bir belgeyle harmanla…",
-  "interleave_needs_another": "Harmanlamak için ikinci bir belge açın",
+  "interleave_needs_another": "Önce ikinci bir belge açın",
   "cmd_rename_document": "Belgeyi yeniden adlandır",
   "cmd_rename_document_note": "Ya da sekmeye veya bölüm başlığına çift tıklayın.",
   "cmd_insert_images": "Görselleri sayfa olarak ekle…",

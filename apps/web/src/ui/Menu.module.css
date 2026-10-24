@@ -251,11 +251,11 @@
   flex: none;
   max-width: 220px;
   margin-inline-start: auto;
-  overflow: hidden;
   color: var(--text-tertiary);
   font-size: var(--type-footnote);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* A long reason wraps onto a further line, right-aligned, rather than being cut (DSN-52). */
+  text-align: end;
+  white-space: normal;
 }
 
 /* A label and its reason that do not fit one line (a locked file's "Insert pages from file…"
