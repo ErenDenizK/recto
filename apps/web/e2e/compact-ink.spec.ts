@@ -15,7 +15,7 @@ import { join } from 'node:path';
 
 import { type CDPSession, expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, useFileInputPicker } from './helpers';
+import { fixturePath, useFileInputPicker, motionDone } from './helpers';
 
 const SHOTS = process.env.CAPTURE_SCREENSHOTS;
 
@@ -29,7 +29,7 @@ interface Area {
 async function shot(page: Page, name: string, settle = 500): Promise<void> {
   if (!SHOTS) return;
   const size = page.viewportSize();
-  if (settle > 0) await page.waitForTimeout(settle);
+  if (settle > 0) await motionDone(page);
   const scheme = await page.evaluate(() => document.documentElement.dataset.theme ?? 'dark');
   await page.screenshot({
     path: join(SHOTS, `${name}-${scheme}-${size?.width}x${size?.height}.png`),

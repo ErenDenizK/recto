@@ -74,8 +74,8 @@ Use the limit, do not race to exhaust it (owner, 2026-10-18): the owner's portfo
 the same limit every day, so Recto takes a fair, steady share, and a heavier day is fine when the
 work earns it. The caps below are working defaults the CEO may move, and must record when it does.
 
-- **Cadence:** three operating cycles a day (02:53, 10:53, 18:53 Istanbul), a scheduled task that
-  wakes the lead session. The 18:53 cycle ends with the daily report; Sunday's also writes the weekly review.
+- **Cadence:** three wake-ups a day (10:53 and 22:53 deep cycles, 18:53 heartbeat, Istanbul), a
+  scheduled task that wakes the lead session. The 18:53 cycle ends with the daily report; Sunday's also writes the weekly review.
 - **Per cycle:** at most three build lanes and one research lane at a time, at most about 1.2 M
   agent tokens (the harness totals), and about five hours of wall time. A cycle that hits a cap
   stops opening lanes and finishes what is open.
@@ -88,8 +88,13 @@ work earns it. The caps below are working defaults the CEO may move, and must re
   - **Deep cycles** (planning): choose and shape epics, hire long lanes, run the fresh-eyes check.
     Normal cadence: 10:53 and 22:53 Istanbul (the night one launches the longest lanes).
   - **Heartbeats** (cheap, minutes): merge green PRs, unblock red ones, start a queued lane only
-    if a slot is free, update HQ. Normal cadence: 02:53, 06:53, 14:53, 18:53 (18:53 also writes
-    the daily report). A heartbeat with nothing to do writes nothing and stops.
+    if a slot is free, update HQ. Normal cadence: one a day, 18:53, which also writes the daily
+    report (since 2026-10-24: in the 22–24 Oct push most clock heartbeats found nothing to do,
+    because merges and lanes already wake the lead on their own). A heartbeat with nothing to do
+    writes nothing and stops.
+  - **Merge pass:** while the merge queue is not empty, the lead keeps one self check-in about
+    every 45 minutes (`send_later`) that takes one step: merge a green, current PR or catch up the
+    next one. It stops when the queue is empty.
   - **Lane check-ins:** each lane, when hired, gets its own check-in timed to its expected length
     (an hour for a small fix, a night for an epic lane), and agents' own completion wakes the lead.
   The CEO moves these times and the per-cycle budget (about 1.5 M agent tokens for a deep cycle,
