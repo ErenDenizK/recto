@@ -44,7 +44,9 @@ export function ReduceMotionRow() {
       <Line
         label={m.settings_reduce_motion()}
         labelHidden
-        description={system ? m.switch_system_on() : m.settings_reduce_motion_hint()}
+        description={
+          system ? m.settings_reduce_motion_system_note() : m.settings_reduce_motion_hint()
+        }
       >
         <div className={styles.segmented}>
           <Segmented<MotionSetting>
@@ -58,13 +60,13 @@ export function ReduceMotionRow() {
                 value: 'system',
                 label: m.settings_reduce_motion_system(),
                 disabled: system,
-                reason: system ? m.switch_system_on() : undefined,
+                reason: system ? m.settings_reduce_motion_system_note() : undefined,
               },
               {
                 value: 'reduced',
                 label: m.settings_reduce_motion_on(),
                 disabled: system,
-                reason: system ? m.switch_system_on() : undefined,
+                reason: system ? m.settings_reduce_motion_system_note() : undefined,
               },
             ]}
           />

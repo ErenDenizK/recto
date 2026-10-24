@@ -251,7 +251,7 @@ test.describe('the compact edition', () => {
     await expect(page.getByRole('button', { name: 'PDF aç' })).toBeVisible();
     await expect(page.getByText('Tüm araçlar bilgisayar ve tablette.')).toBeVisible();
     await expect(page.getByTestId('compact-tools')).toContainText('İmza');
-    await expect(page.getByRole('button', { name: 'Örnek belgeyi deneyin' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Örnek belgeyi dene' })).toBeVisible();
     // Turkish is longer: nothing in the Library clips or spills sideways.
     const clipped = await page.evaluate(() =>
       [...document.querySelectorAll('[data-testid="compact-library"] *')]
