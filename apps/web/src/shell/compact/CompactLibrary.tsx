@@ -50,7 +50,6 @@ import { PRODUCT_NAME } from '../about/build-info';
 import { CompactSheets } from './CompactSheets';
 import { isOpenEntry, openRecentEntry, pickAndOpen, trySample } from './compact-actions';
 import { useContinueShown } from '../../home/continue-shown';
-import { resumeCompact } from './compact-resume';
 import { openSheet, useCompactStore } from './compact-store';
 import controls from './controls.module.css';
 import styles from './CompactLibrary.module.css';
@@ -135,7 +134,12 @@ function ContinueSlot() {
   if (!homeFlagEnabled(HOME_CONTINUE_FLAG)) return null;
   return (
     <Suspense fallback={null}>
-      <ContinueCard variant="phone" onResume={(id, point) => void resumeCompact(id, point)} />
+      <ContinueCard
+        variant="phone"
+        onResume={(id, point) =>
+          void import('./compact-resume').then((v) => v.resumeCompact(id, point))
+        }
+      />
     </Suspense>
   );
 }
@@ -217,9 +221,10 @@ function Recents() {
   const empty = entries.length === 0;
   // The open document first, then the rest newest first; while Continue shows the open one, its
   // "Reading now" row would say it twice (DSN-66).
-  const ordered = continued
-    ? entries.filter((e) => !isOpenEntry(e))
-    : [...entries.filter(isOpenEntry), ...entries.filter((e) => !isOpenEntry(e))];
+  const ordered = [
+    ...(continued ? [] : entries.filter(isOpenEntry)),
+    ...entries.filter((e) => !isOpenEntry(e)),
+  ];
   // Nothing else to list: the section would be an empty card under its title.
   if (continued && ordered.length === 0) return null;
   return (

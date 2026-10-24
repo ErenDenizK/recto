@@ -210,9 +210,9 @@ function readResume(value: unknown, path: string): Pick<DocumentPlace, 'resume'>
     const o = obj(value, path);
     return {
       resume: {
-        zoom: num(o.zoom, `${path}.zoom`),
-        fit: o.fit === null ? null : oneOf(o.fit, ['width', 'page'] as const, `${path}.fit`),
-        offset: num(o.offset, `${path}.offset`),
+        zoom: num(o.zoom, path),
+        fit: o.fit === null ? null : oneOf(o.fit, ['width', 'page'] as const, path),
+        offset: num(o.offset, path),
       },
     };
   } catch {

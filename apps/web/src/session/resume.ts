@@ -52,26 +52,13 @@ export function setResume(id: DocumentId, point: ResumePoint, options?: { quiet?
     const quiet = options?.quiet === true;
     const last = quiet ? s.last : id;
     const same =
-      known?.page === point.page &&
-      known.total === point.total &&
-      known.zoom === point.zoom &&
-      known.fit === point.fit &&
-      known.offset === point.offset;
+      known !== undefined &&
+      (Object.keys(point) as (keyof ResumePoint)[]).every(
+        (k) => k === 'at' || known[k] === point[k],
+      );
     if (same) return last === s.last ? s : { ...s, last };
     return { points: { ...s.points, [id]: point }, last };
   });
-}
-
-/** A restored or reopened document's place, from its snapshot (`DocumentPlace.resume`). */
-export function seedResume(
-  id: DocumentId,
-  place: { readonly page: number; readonly resume?: ResumeDetail },
-  total: number,
-): void {
-  if (place.resume === undefined) return;
-  // A page past the end (a snapshot of a longer document) shows as the last page.
-  const page = Math.min(Math.max(0, place.page), Math.max(0, total - 1));
-  setResume(id, { ...place.resume, page, total, at: Date.now() }, { quiet: true });
 }
 
 /** Fraction of the document read when the page `page` (0-based) is reached, 0..1. */

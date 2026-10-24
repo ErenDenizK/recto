@@ -42,7 +42,9 @@ import { useViewStore } from '../../state/view-store';
 import { clearSearch } from '../../viewer/search';
 import { announce } from '../announcer';
 import { showReader, useCompactStore } from './compact-store';
-import './compact-resume';
+
+// Behind `?home=continue` the resume wiring loads on its own, outside the phone's first load.
+if (homeFlagEnabled(HOME_CONTINUE_FLAG)) void import('./compact-resume');
 
 const set = (patch: Partial<ReturnType<typeof useCompactStore.getState>>) =>
   useCompactStore.setState(patch);
@@ -242,7 +244,7 @@ async function openKept(
     // Behind `?home=continue` it opens at the zoom and offset it was left at (DSN-66).
     const resume =
       place.resume !== undefined && homeFlagEnabled(HOME_CONTINUE_FLAG)
-        ? { ...place.resume, page: place.page, total: doc.pages.length, at: Date.now() }
+        ? await import('./compact-resume').then((v) => v.keptResume(doc, place))
         : undefined;
     set({
       openedDocument: isDocumentChanged(doc.id) ? null : doc,
@@ -251,9 +253,7 @@ async function openKept(
       sheet: null,
     });
     showReader();
-    if (resume !== undefined) {
-      void import('../../session/resume-view').then((v) => v.settleResume(doc.id, resume));
-    }
+    if (resume !== undefined) void import('./compact-resume').then((v) => v.settle(doc.id, resume));
     announce(m.announce_opened({ name: result.record.title }));
     return 'opened';
   } finally {

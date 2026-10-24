@@ -68,6 +68,18 @@ function offsetOf(page: number): number | undefined {
   return Math.round(el.getBoundingClientRect().top - target.getBoundingClientRect().top);
 }
 
+/** A restored or reopened document's place, from its snapshot (`DocumentPlace.resume`). */
+export function seedResume(
+  id: DocumentId,
+  place: { readonly page: number; readonly resume?: ResumeDetail },
+  total: number,
+): void {
+  if (place.resume === undefined) return;
+  // A page past the end (a snapshot of a longer document) shows as the last page.
+  const page = Math.min(Math.max(0, place.page), Math.max(0, total - 1));
+  setResume(id, { ...place.resume, page, total, at: Date.now() }, { quiet: true });
+}
+
 /**
  * Records where the page view of `id` (the active document) is now. Nothing is recorded while
  * the page view is not mounted, so leaving it never overwrites the place with a blank one; the

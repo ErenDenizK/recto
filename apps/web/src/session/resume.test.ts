@@ -5,16 +5,16 @@
 import type { DocumentId, VirtualPage, Workspace } from '@pdf-editor/document-model';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { homeCards } from '../home/home-model';
+import { homeCards } from '../home/home-cards';
 import { parseKeptRecord, parseSessionManifest } from './format';
 import {
   progressOf,
   type ResumePoint,
   resetResumeStore,
-  seedResume,
   setResume,
   useResumeStore,
 } from './resume';
+import { seedResume } from './resume-view';
 
 const a = 'a' as DocumentId;
 const b = 'b' as DocumentId;

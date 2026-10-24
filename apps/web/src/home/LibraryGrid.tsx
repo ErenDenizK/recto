@@ -47,12 +47,12 @@ import { useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { toast } from '../ui/Toast/toast';
 import { type GridSnapshot, playGrid, snapshotGrid } from './card-motion';
+import type { HomeCardData } from './home-cards';
 import { closeSelected, focusCardSoon, moveCard, openInRead, selectOnHome } from './home-actions';
 import {
   clickSelection,
   gapToIndex,
   gridStep,
-  type HomeCardData,
   liveSelection,
   rangeBetween,
   toggleSelection,
