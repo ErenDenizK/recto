@@ -239,6 +239,8 @@ interface AnnotationState {
   readonly pathSelection: PathSelection | null;
   readonly editor: InlineEditor | null;
   readonly styles: Readonly<Record<StyleGroup, ToolStyle>>;
+  /** The person picked a text colour this session (TXT-23): the page never overrides it. */
+  readonly textColorChosen: boolean;
   readonly author: string;
   readonly pendingStamp: PendingStamp | null;
   /** The pen presets and the armed one (spec §6.2). */
@@ -363,6 +365,7 @@ export const useAnnotationStore = create<AnnotationState>()((set, get) => ({
   pathSelection: null,
   editor: null,
   styles: readToolStyles(initialPen),
+  textColorChosen: false,
   author: readAuthor(),
   pendingStamp: null,
   pen: initialPen,
@@ -477,7 +480,8 @@ export const useAnnotationStore = create<AnnotationState>()((set, get) => ({
     const styles = { ...current, [group]: next };
     writeJson(TOOL_STYLES_STORAGE_KEY, { v: 2, styles });
     if (pen) writeJson(PEN_PRESETS_STORAGE_KEY, pen);
-    set(pen ? { styles, pen } : { styles });
+    const chosen = group === 'text' && patch.color !== undefined;
+    set({ styles, ...(pen ? { pen } : {}), ...(chosen ? { textColorChosen: true } : {}) });
   },
   applyStyle: (patch) => {
     const { selection } = get();
@@ -687,6 +691,7 @@ export function resetAnnotationStore(): void {
     editor: null,
     pen,
     styles: readToolStyles(pen),
+    textColorChosen: false,
     pendingStamp: null,
   });
 }
