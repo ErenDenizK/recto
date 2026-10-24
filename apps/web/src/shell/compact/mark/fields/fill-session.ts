@@ -15,8 +15,8 @@
  *   keyboard down. **Done**, Enter, a tap away from the field or the keyboard's own dismissal
  *   commits and ends the flow: the zoom goes back to where it was and, while reading, the
  *   Undo toast offers the last fill.
- * - **A signature field** opens Sign (EDN-14): editing begins with Sign armed and its drawer
- *   open on the saved signatures and New.
+ * - **A signature field** opens Sign (EDN-14): the editing chunk loads (EDN-21), then editing
+ *   begins with Sign armed and its drawer open on the saved signatures and New.
  * - **Locked** or **read-only**: one short toast; nothing fills.
  */
 import type { FormField } from '@pdf-editor/engine';
@@ -39,7 +39,7 @@ import { useWorkspaceStore } from '../../../../state/workspace-store';
 import { toast } from '../../../../ui/Toast';
 import { canChangeActive } from '../../../../viewer/input-state';
 import { requestZoom, setDrawerOpen, setTyping, useCompactStore } from '../../compact-store';
-import { armTool, enterEditing } from '../bridge';
+import { loadMark } from '../../mark-host';
 import { holdKeyboard, releaseKeyboard } from '../keyboard-hold';
 import { editorsNow, loadEditors } from './editors';
 import { fieldZoom, stepStop, takesKeyboard, toggleValue } from './fill-flow';
@@ -307,9 +307,17 @@ function openSign(): void {
     toast.info(m.compact_fill_locked(), { key: TOAST_KEY });
     return;
   }
-  if (!useCompactStore.getState().editing) enterEditing();
-  armTool('sign');
-  setDrawerOpen(true);
+  // The editing chunk is not needed to fill: it loads now, as signing needs it (EDN-21).
+  void loadMark()
+    .then((mark) => {
+      // The reader may have left the document while the chunk loaded: then nothing opens.
+      if (!canChangeActive('targeted')) return;
+      if (!useCompactStore.getState().editing) mark.enterEditing();
+      if (!useCompactStore.getState().editing) return;
+      mark.armTool('sign');
+      setDrawerOpen(true);
+    })
+    .catch(() => undefined);
 }
 
 // The editor closing by itself (Enter, Esc, a tap away, the keyboard dismissed) ends the flow,

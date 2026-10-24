@@ -1,16 +1,16 @@
 /**
- * A probe that fails must not hide the form fields: the chunk loads for the page (EDN-21).
+ * A probe that fails must not hide the form fields: the fields' chunk loads for the page (EDN-21).
  */
 import type { VirtualDocument } from '@pdf-editor/document-model';
 import { render, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getEngineService } from '../../engine/engine-service';
-import { useLoadMarkForForms } from './mark-host';
+import { useLoadFieldsForForms } from './mark-host';
 
 const chunk = vi.hoisted(() => ({ loads: 0 }));
 
-vi.mock('./mark', () => {
+vi.mock('./mark/fields', () => {
   chunk.loads += 1;
   return {};
 });
@@ -20,7 +20,7 @@ const doc = {
 } as unknown as VirtualDocument;
 
 function Probe() {
-  useLoadMarkForForms(doc);
+  useLoadFieldsForForms(doc);
   return null;
 }
 
@@ -30,7 +30,7 @@ describe('the form probe fails', () => {
     vi.spyOn(getEngineService(), 'editor').mockRejectedValue(new Error('no engine'));
   });
 
-  it('loads the chunk anyway', async () => {
+  it('loads the fields chunk anyway', async () => {
     render(<Probe />);
     await waitFor(() => expect(chunk.loads).toBe(1));
   });

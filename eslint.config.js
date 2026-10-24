@@ -32,6 +32,10 @@ const engineBarrelMessage =
   '(PF-1): write `import type { … }`, take values from a light subpath such as ' +
   "'@pdf-editor/engine/client' (PF-2) or '/constants', or load the engine with `await import()`.";
 
+const editChunkMessage =
+  'EDN-21: the form fields load without the editing chunk; take nothing from it ' +
+  "(sign opens through mark-host's loadMark).";
+
 /** Q-9 and Q-14's native and hand-styled controls, which ui/ replaces (system audit §3.11). */
 const Q9_CONTROLS = [
   {
@@ -364,6 +368,44 @@ export default defineConfig(
           selector:
             "ImportDeclaration[importKind='value'][source.value='@pdf-editor/engine'], ExportNamedDeclaration[exportKind='value'][source.value='@pdf-editor/engine'], ExportAllDeclaration[source.value='@pdf-editor/engine']",
           message: engineBarrelMessage,
+        },
+      ],
+    },
+  },
+
+  // EDN-21: the phone's form fields fill without the editing chunk. Nothing under
+  // `shell/compact/mark/fields/` takes a value from the edit chunk's modules (the bridge, the
+  // chunk's index, the annotation actions and editors, the history actions, Segmented): those
+  // would pull ~140 KB gzip into a read session. Types are fine; the signature field loads the
+  // chunk through `mark-host`'s `loadMark`. This block restates the engine path because a later
+  // block's options replace the earlier one's.
+  {
+    files: ['apps/web/src/shell/compact/mark/fields/**/*.{ts,tsx}'],
+    ignores: ['**/*.test.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            { name: '@pdf-editor/engine', allowTypeImports: true, message: engineBarrelMessage },
+            { name: '..', allowTypeImports: true, message: editChunkMessage },
+            { name: '../index', allowTypeImports: true, message: editChunkMessage },
+          ],
+          patterns: [
+            {
+              group: [
+                '../bridge',
+                '**/annotations/actions',
+                '**/annotations/InlineEditors',
+                '**/annotations/AnnotationLayer',
+                '**/annotations/annotation-store',
+                '**/history/actions',
+                '**/ui/Segmented',
+              ],
+              allowTypeImports: true,
+              message: editChunkMessage,
+            },
+          ],
         },
       ],
     },
