@@ -4941,6 +4941,41 @@
   "file_picker_markdown": "Markdown files",
   "text_to_pdf_failed": "Could not turn {name} into a PDF",
   "text_to_pdf_too_large": "{name} is too large to turn into a PDF (over 2 MB).",
+  "palette_scope_section": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "For the selected page",
+        "countPlural=*": "For {count} selected pages"
+      }
+    }
+  ],
+  "palette_scope_name": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Actions for 1 page. Backspace shows every command.",
+        "countPlural=*": "Actions for {count} pages. Backspace shows every command."
+      }
+    }
+  ],
+  "palette_scope_clear": "Show every command",
+  "palette_suggested_doc": "Suggested for this document",
+  "palette_suggest_fill": "This document has form fields",
+  "palette_suggest_recognize": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 page has no searchable text",
+        "countPlural=*": "{count} pages have no searchable text"
+      }
+    }
+  ],
+  "palette_open_documents": "Open documents",
+  "palette_switch_to": "Switch",
   "palette_intent_group": "Suggested",
   "palette_recent_files": "Recent files",
   "palette_intent_go_page": "Go to page {page}",

@@ -21,7 +21,15 @@ import {
   useState,
 } from 'react';
 
+import { getActiveDocument } from '@pdf-editor/document-model';
+
 import { fuzzyFilter } from '../commands/fuzzy';
+import {
+  hasFormFields,
+  OPEN_DOCUMENTS_SHOWN,
+  PAGE_SCOPE_COMMANDS,
+  suggestionsFor,
+} from '../commands/palette-scope';
 import { type Command, commandRegistry, groupCommands } from '../commands/registry';
 import { parseShortcut } from '../commands/shortcuts';
 import { useCommands } from '../commands/use-commands';
@@ -31,7 +39,12 @@ import type * as PaletteIntent from '../commands/palette-intent';
 import { m } from '../i18n';
 import { animateStyle, type Motion } from '../motion/animate';
 import { useUiStore } from '../state/ui-store';
+import { useWorkspaceStore } from '../state/workspace-store';
+import { openMarkupDoor } from '../markup/doors';
+import { usePagesBarSelection } from '../stage/grid/PagesBar';
+import { useTextless } from './sidebar/textless';
 import { Icon } from '../ui/Icon';
+import { IconButton } from '../ui/IconButton';
 import { Keycaps } from '../ui/Keycaps';
 import styles from './CommandPalette.module.css';
 import { paletteGroupLabelOfCommand } from '../markup/palette-groups';
@@ -82,10 +95,14 @@ const HIDDEN_WHEN_EMPTY = new Set(['file.clearRecents']);
 
 /** Internal id of the recents section; its heading is translated when rendered. */
 const RECENT_GROUP = 'Recent';
+/** Internal id of the selection's section ("For 3 selected pages"), translated when rendered. */
+export const SCOPE_GROUP = 'Scope';
 
 /**
  * Builds the visible sections: recents first when the query is empty, else by relevance. A
- * dimmed row carries its reason (`reasonOf`, the registry's `disabledReason`).
+ * dimmed row carries its reason (`reasonOf`, the registry's `disabledReason`). Commands in
+ * `scopeIds` (the selection's actions, PRD-29) lead as their own section in both states, ranked
+ * among themselves, and leave the sections below.
  */
 export function buildSections(
   query: string,
@@ -93,6 +110,7 @@ export function buildSections(
   recents: readonly string[],
   isEnabled: (command: Command) => boolean,
   reasonOf: (command: Command) => string | undefined = () => undefined,
+  scopeIds: readonly string[] = [],
 ): Section[] {
   const visible = commands.filter((c) => !c.hiddenInPalette);
   const toRow = (command: Command, positions: readonly number[] = []): Row => {
@@ -101,11 +119,15 @@ export function buildSections(
   };
 
   if (query.trim() === '') {
-    const recentCommands = recents
+    const scoped = scopeIds
       .map((id) => visible.find((c) => c.id === id))
       .filter((c): c is Command => c !== undefined);
-    const rest = visible.filter((c) => !recentCommands.includes(c));
+    const recentCommands = recents
+      .map((id) => visible.find((c) => c.id === id))
+      .filter((c): c is Command => c !== undefined && !scoped.includes(c));
+    const rest = visible.filter((c) => !recentCommands.includes(c) && !scoped.includes(c));
     const sections: Section[] = [];
+    if (scoped.length > 0) sections.push({ group: SCOPE_GROUP, rows: scoped.map((c) => toRow(c)) });
     if (recentCommands.length > 0) {
       sections.push({ group: RECENT_GROUP, rows: recentCommands.map((c) => toRow(c)) });
     }
@@ -121,12 +143,22 @@ export function buildSections(
     (c) => c.title,
     (c) => [...(c.keywords ?? []), c.group],
   );
-  // Groups are ordered by their best match; items keep their rank inside a group.
-  const grouped = groupCommands(ranked.map((r) => ({ ...r, group: r.item.group })));
-  return grouped.map(({ group, items }) => ({
-    group,
-    rows: items.map((r) => toRow(r.item, r.positions)),
-  }));
+  // Groups are ordered by their best match; items keep their rank inside a group. The
+  // selection's matches lead (08-feedback §6: a selection action outranks a global one).
+  const inScope = (id: string) => scopeIds.includes(id);
+  const grouped = groupCommands(
+    ranked.filter((r) => !inScope(r.item.id)).map((r) => ({ ...r, group: r.item.group })),
+  );
+  const scoped = ranked.filter((r) => inScope(r.item.id));
+  return [
+    ...(scoped.length > 0
+      ? [{ group: SCOPE_GROUP, rows: scoped.map((r) => toRow(r.item, r.positions)) }]
+      : []),
+    ...grouped.map(({ group, items }) => ({
+      group,
+      rows: items.map((r) => toRow(r.item, r.positions)),
+    })),
+  ];
 }
 
 /** The entrance delay of the row at `index` (the first six one after another). */
@@ -264,6 +296,12 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
   const recentFiles = useRecentsStore((s) => s.entries);
   const [query, setQuery] = useState('');
   const [intents, setIntents] = useState<IntentModule | null>(intentModule);
+  // The selected pages scope the list until the chip is removed (PRD-29, 08-feedback §6).
+  const selectedPages = usePagesBarSelection().length;
+  const [scopeOff, setScopeOff] = useState(false);
+  const scopeCount = scopeOff ? 0 : selectedPages;
+  const workspace = useWorkspaceStore((s) => s.workspace);
+  const activeDoc = getActiveDocument(workspace);
   const deferredQuery = useDeferredValue(query);
   // The active option is tracked by row key and derived into an index, so it survives
   // re-ranking and falls back to the first enabled row when filtered out.
@@ -281,8 +319,11 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
       });
   }, []);
 
+  const emptyQuery = deferredQuery.trim() === '';
+  const textless = useTextless(emptyQuery ? activeDoc : undefined);
+
   const sections = useMemo<ListSection[]>(() => {
-    const empty = deferredQuery.trim() === '';
+    const empty = emptyQuery;
     const result: ListSection[] = [];
     // A query that reads as an intent (a page, a range, a heading, a file) shows it first, with
     // what it will do; nothing runs unseen (Epic 4).
@@ -314,6 +355,60 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
         })),
       });
     }
+    const commandSections = buildSections(
+      deferredQuery,
+      empty ? commands.filter((c) => !HIDDEN_WHEN_EMPTY.has(c.id)) : commands,
+      recents,
+      (c) => commandRegistry.isEnabled(c),
+      (c) => commandRegistry.disabledReason(c),
+      scopeCount > 0 ? PAGE_SCOPE_COMMANDS : [],
+    );
+    const scope = commandSections.find((section) => section.group === SCOPE_GROUP);
+    if (scope) {
+      result.push({
+        id: SCOPE_GROUP,
+        label: m.palette_scope_section({ count: scopeCount }),
+        ariaLabel: m.palette_scope_section({ count: scopeCount }),
+        rows: scope.rows.map((row) => commandRow(row, false, pushRecent, onClose)),
+      });
+    }
+    const suggested =
+      empty && activeDoc
+        ? suggestionsFor({
+            fields: hasFormFields(workspace, activeDoc),
+            textlessPages: textless?.pages.length ?? 0,
+          })
+        : [];
+    if (suggested.length > 0) {
+      result.push({
+        id: 'suggested',
+        label: m.palette_suggested_doc(),
+        ariaLabel: m.palette_suggested_doc(),
+        rows: suggested.map((kind) =>
+          kind === 'fill-sign'
+            ? suggestionRow(
+                'suggest-fill-sign',
+                m.dock_fill_sign(),
+                m.palette_suggest_fill(),
+                () => {
+                  onClose();
+                  openMarkupDoor('sign');
+                },
+              )
+            : suggestionRow(
+                'suggest-recognize',
+                m.ocr_cmd(),
+                m.palette_suggest_recognize({ count: textless?.pages.length ?? 0 }),
+                () => {
+                  onClose();
+                  commandRegistry.execute('document.ocr').catch((error: unknown) => {
+                    console.error('Recognize text failed', error);
+                  });
+                },
+              ),
+        ),
+      });
+    }
     if (empty && recentFiles.length > 0) {
       result.push({
         id: 'recent-files',
@@ -322,14 +417,40 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
         rows: recentFiles.slice(0, RECENT_FILES_SHOWN).map((entry) => fileRow(entry, onClose)),
       });
     }
-    const commandSections = buildSections(
-      deferredQuery,
-      empty ? commands.filter((c) => !HIDDEN_WHEN_EMPTY.has(c.id)) : commands,
-      recents,
-      (c) => commandRegistry.isEnabled(c),
-      (c) => commandRegistry.disabledReason(c),
+    // Other open documents: all of them up to four when nothing is typed, else the title matches.
+    const others = workspace.documentOrder.flatMap((id) =>
+      id !== workspace.activeDocument && workspace.documents[id] ? [workspace.documents[id]] : [],
     );
+    const documents = empty
+      ? others.slice(0, OPEN_DOCUMENTS_SHOWN).map((doc) => ({ doc, positions: [] as number[] }))
+      : fuzzyFilter(deferredQuery, others, (doc) => doc.title).map((r) => ({
+          doc: r.item,
+          positions: r.positions,
+        }));
+    if (documents.length > 0) {
+      result.push({
+        id: 'open-documents',
+        label: m.palette_open_documents(),
+        ariaLabel: m.palette_open_documents(),
+        rows: documents.map(({ doc, positions }) => ({
+          key: `doc-${doc.id}`,
+          title: doc.title,
+          positions,
+          enabled: true,
+          focusable: true,
+          reason: undefined,
+          hint: m.palette_switch_to(),
+          shortcut: undefined,
+          command: undefined,
+          run: () => {
+            onClose();
+            useWorkspaceStore.getState().setActive(doc.id);
+          },
+        })),
+      });
+    }
     for (const section of commandSections) {
+      if (section.group === SCOPE_GROUP) continue;
       const recent = section.group === RECENT_GROUP;
       result.push({
         id: section.group,
@@ -339,7 +460,20 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
       });
     }
     return result;
-  }, [deferredQuery, commands, recents, recentFiles, pushRecent, onClose, intents]);
+  }, [
+    deferredQuery,
+    emptyQuery,
+    commands,
+    recents,
+    recentFiles,
+    pushRecent,
+    onClose,
+    intents,
+    scopeCount,
+    workspace,
+    activeDoc,
+    textless,
+  ]);
   const rows = useMemo(() => sections.flatMap((s) => s.rows), [sections]);
   const matchedIndex = rows.findIndex((r) => r.key === activeId && r.focusable);
   const activeIndex = matchedIndex >= 0 ? matchedIndex : rows.findIndex((r) => r.focusable);
@@ -375,6 +509,10 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
     } else if (event.key === 'Enter') {
       event.preventDefault();
       active?.run();
+    } else if (event.key === 'Backspace' && query === '' && scopeCount > 0) {
+      // Backspace in an empty input removes the scope chip: every command again (08-feedback §6).
+      event.preventDefault();
+      setScopeOff(true);
     }
   };
 
@@ -389,6 +527,30 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
       <Dialog.Title className="visually-hidden">{m.palette_title()}</Dialog.Title>
       <div className={styles.searchRow}>
         <Icon name="magnifying-glass" className={styles.searchIcon} />
+        {scopeCount > 0 ? (
+          <span
+            className={styles.scopeChip}
+            role="group"
+            aria-label={m.palette_scope_name({ count: scopeCount })}
+            data-testid="palette-scope"
+          >
+            <Icon name="squares-four" className={styles.scopeIcon} />
+            {m.palette_intent_count({ count: scopeCount })}
+            <IconButton
+              size="row"
+              label={m.palette_scope_clear()}
+              icon={<Icon name="x" />}
+              tabIndex={-1}
+              onPointerDown={(event) => {
+                event.preventDefault();
+              }}
+              onClick={() => {
+                setScopeOff(true);
+                inputRef.current?.focus();
+              }}
+            />
+          </span>
+        ) : null}
         <input
           ref={inputRef}
           className={styles.input}
@@ -525,6 +687,22 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
       </div>
     </Dialog.Popup>
   );
+}
+
+/** A suggestion for the open document: its title, why it is offered, and what it does. */
+function suggestionRow(key: string, title: string, reason: string, run: () => void): ListRow {
+  return {
+    key,
+    title,
+    positions: [],
+    enabled: true,
+    focusable: true,
+    reason,
+    hint: undefined,
+    shortcut: undefined,
+    command: undefined,
+    run,
+  };
 }
 
 /** A recent file in the empty state: opens it as the Library's row does (L7 §6). */

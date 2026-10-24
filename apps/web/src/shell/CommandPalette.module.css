@@ -83,6 +83,29 @@
   color: var(--text-tertiary);
 }
 
+/* The scope chip (08-feedback §2, PRD-29): the selected pages the list is scoped to, on the
+   on-surface fill; its ✕ (or Backspace in an empty input) shows every command again. */
+.scopeChip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1h);
+  height: var(--control-h-sm);
+  padding: 0 var(--space-1) 0 var(--space-2);
+  border-radius: var(--radius-capsule);
+  background: var(--surface-on);
+  color: var(--text-primary);
+  font-size: var(--type-footnote);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.scopeIcon {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  color: var(--text-secondary);
+}
+
 .input {
   flex: 1;
   min-width: 0;

@@ -5,6 +5,7 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
+import { showSidebar } from './helpers';
 import { sampleEntry } from './sample-manifest';
 
 const FULL = sampleEntry('en', 'full');
@@ -119,5 +120,30 @@ test.describe('palette intents', () => {
     await expect(page.getByRole('option', { name: /Clear recents/ })).toHaveCount(0);
     await page.getByRole('combobox', { name: 'Search commands' }).fill('clear recents');
     await expect(page.getByRole('option', { name: /Clear recents/ })).toBeVisible();
+  });
+
+  test('the empty state suggests what the document is for', async ({ page }) => {
+    await openSample(page);
+    await page.keyboard.press('ControlOrMeta+k');
+    // The sample has form fields: Fill & sign leads the document's suggestions.
+    const group = page.getByRole('group', { name: 'Suggested for this document' });
+    await expect(group.getByRole('option', { name: /Fill & sign/ })).toBeVisible();
+    await page.keyboard.press('Escape');
+  });
+
+  test('selected pages scope the list; Backspace removes the chip', async ({ page }) => {
+    await openSample(page);
+    const sidebar = await showSidebar(page, 'Pages', 'Thumbnails');
+    const thumbs = sidebar.getByRole('listbox', { name: /^Pages of/ }).getByRole('option');
+    await thumbs.nth(1).click({ modifiers: ['ControlOrMeta'] });
+    await thumbs.nth(2).click({ modifiers: ['ControlOrMeta'] });
+    await page.keyboard.press('ControlOrMeta+k');
+    const chip = page.getByTestId('palette-scope');
+    await expect(chip).toHaveText(/2 pages/);
+    const first = page.getByRole('group', { name: 'For 2 selected pages' }).getByRole('option');
+    await expect(first.first()).toContainText('Rotate pages right');
+    await page.getByRole('combobox', { name: 'Search commands' }).press('Backspace');
+    await expect(chip).toHaveCount(0);
+    await expect(page.getByRole('group', { name: 'For 2 selected pages' })).toHaveCount(0);
   });
 });

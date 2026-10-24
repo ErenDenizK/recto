@@ -3301,6 +3301,41 @@
   "file_picker_markdown": "Markdown dosyaları",
   "text_to_pdf_failed": "{name} PDF’ye dönüştürülemedi",
   "text_to_pdf_too_large": "{name} PDF’ye dönüştürülemeyecek kadar büyük (2 MB’tan fazla).",
+  "palette_scope_section": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Seçili sayfa için",
+        "countPlural=*": "Seçili {count} sayfa için"
+      }
+    }
+  ],
+  "palette_scope_name": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 sayfaya ait eylemler. Tüm komutlar için geri silme tuşuna basın.",
+        "countPlural=*": "{count} sayfaya ait eylemler. Tüm komutlar için geri silme tuşuna basın."
+      }
+    }
+  ],
+  "palette_scope_clear": "Tüm komutları göster",
+  "palette_suggested_doc": "Bu belge için öneriler",
+  "palette_suggest_fill": "Bu belgede form alanları var",
+  "palette_suggest_recognize": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 sayfada aranabilir metin yok",
+        "countPlural=*": "{count} sayfada aranabilir metin yok"
+      }
+    }
+  ],
+  "palette_open_documents": "Açık belgeler",
+  "palette_switch_to": "Geç",
   "palette_intent_group": "Önerilen",
   "palette_recent_files": "Son dosyalar",
   "palette_intent_go_page": "{page}. sayfaya git",
