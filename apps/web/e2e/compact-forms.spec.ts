@@ -226,7 +226,8 @@ test.describe('form filling on phones (MOB-1)', () => {
     await bringToThird(page, 'agree');
     const at = await centreOf(target(page, 'agree'));
     await tap(cdp, at);
-    await motionDone(page);
+    // The tap is ink: once the stroke is committed (Undo on), a toggle would have landed too.
+    await expect(page.getByTestId('compact-undo')).not.toHaveAttribute('aria-disabled', 'true');
     await expect(target(page, 'agree')).toHaveAttribute('aria-checked', 'false');
     // The chip off (Select): the field fills again.
     await page.getByTestId('compact-tool-chip').click();

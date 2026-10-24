@@ -125,7 +125,6 @@ async function idleFor(page: Page): Promise<IdleReport> {
     probe.counting = true;
   });
   // The measurement itself: A-23's two seconds of no input.
-  // The measurement itself: two seconds with no input.
   await page.waitForTimeout(IDLE_MS);
   return page.evaluate(() => {
     const probe = (
@@ -997,7 +996,6 @@ async function tour(page: Page, o: { readonly door: boolean }): Promise<void> {
   await expect(page.locator('[data-region="toasts"] [data-toast-id]')).toHaveCount(1);
   await settleAnimations(page);
   await page.keyboard.press('ControlOrMeta+z');
-  await settleAnimations(page);
   await settleAnimations(page);
   // Back to the page (1: Read; R would rotate the selected page here).
   await page.keyboard.press('1');

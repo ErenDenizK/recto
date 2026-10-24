@@ -16,7 +16,13 @@ import { join } from 'node:path';
 
 import { type CDPSession, expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, useFileInputPicker, waitForSnapshot, motionDone } from './helpers';
+import {
+  fixturePath,
+  motionDone,
+  pastDeadline,
+  useFileInputPicker,
+  waitForSnapshot,
+} from './helpers';
 
 const SHOTS = process.env.CAPTURE_SCREENSHOTS;
 
@@ -221,7 +227,7 @@ test.describe('the drawer open on Text (EDN-18)', () => {
     await expect(field(page)).toBeFocused();
     await expect(drawer).toHaveCount(0);
     // Closing the drawer never takes the focus back from the new box.
-    await motionDone(page);
+    await pastDeadline(page, 800); // the window in which a late focus steal would show
     await expect(field(page)).toBeFocused();
     await page.keyboard.type('Through');
     await page.getByTestId('compact-text-done').click();
