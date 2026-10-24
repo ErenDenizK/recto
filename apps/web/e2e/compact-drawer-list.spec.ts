@@ -201,6 +201,7 @@ test.describe('the drawer’s list variant (EDN-16)', () => {
     await swipe(cdp, { x: head.x + head.width * 0.3, y: head.y + 40 }, -120);
     const pad = await sheet.locator('canvas[data-strokes]').boundingBox();
     if (pad) await swipe(cdp, { x: pad.x + pad.width / 2, y: pad.y + 10 }, -60);
+    // Nothing may scroll: the swipes' momentum has no signal to wait on.
     await page.waitForTimeout(300);
     expect(await pages.evaluate((el) => el.scrollTop)).toBe(before);
 

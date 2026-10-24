@@ -1,0 +1,83 @@
+/* The margin map (DSN-72): plain text on the canvas, no material (content is solid, DSN-2). It
+   sits above the page scroller and below the glass pieces; it fades in and out and never loops
+   (MOT-4). Reduced motion keeps the fade (the shorter tokens). */
+.map {
+  position: fixed;
+  top: calc(var(--free-top, 0px) + 64px);
+  bottom: calc(var(--free-bottom, 0px) + 64px);
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-slow) var(--ease-standard);
+}
+
+.map[data-shown] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 100%;
+  width: 100%;
+  overflow-y: auto;
+  scrollbar-width: none;
+  /* A soft end where a long list runs past the box. */
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 16px,
+    #000 calc(100% - 16px),
+    transparent 100%
+  );
+}
+
+.item {
+  margin: 0;
+}
+
+.link {
+  display: block;
+  width: 100%;
+  padding: var(--space-1h) var(--space-2);
+  text-decoration: none;
+  border-radius: var(--radius-xs);
+  color: var(--text-tertiary);
+  font: inherit;
+  font-size: var(--type-body);
+  line-height: 1.35;
+  text-align: start;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  transition: color var(--duration-base) var(--ease-standard);
+}
+
+.link[data-level='2'] {
+  padding-inline-start: 22px;
+  font-size: var(--type-footnote);
+}
+
+.link:hover {
+  color: var(--text-secondary);
+}
+
+.link[aria-current='location'] {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--focus-light);
+  outline-offset: var(--focus-offset-in);
+  color: var(--text-primary);
+}
+
+@media (forced-colors: active) {
+  .link[aria-current='location'] {
+    text-decoration: underline;
+  }
+}

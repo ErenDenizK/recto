@@ -10,7 +10,14 @@
  */
 import { type CDPSession, expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, PAGE_CANVAS, quiet, trackEngine, useFileInputPicker } from './helpers';
+import {
+  openFixtures,
+  PAGE_CANVAS,
+  quiet,
+  trackEngine,
+  useFileInputPicker,
+  pastDeadline,
+} from './helpers';
 
 type Phase = 'start' | 'end';
 
@@ -71,7 +78,7 @@ test('a long press on a page opens the page menu at the press, once', async ({
 
   // A short press (held 200 ms) is no long press.
   await touchAt(page, 'start', x, y, cdp);
-  await page.waitForTimeout(200);
+  await pastDeadline(page, 200); // a hold shorter than the long press, the rule under test
   await touchAt(page, 'end', x, y, cdp);
   await quiet(page);
   await expect(menu).toHaveCount(0);
@@ -84,7 +91,7 @@ test('a long press on a page opens the page menu at the press, once', async ({
   expect(Math.abs((at?.x ?? 0) - x)).toBeLessThan(16);
   // Past Android's own long-press time, then lift: still one menu, still open (its
   // `contextmenu` and the release's click were swallowed).
-  await page.waitForTimeout(400);
+  await pastDeadline(page, 400); // past the platform's own long-press time, the rule under test
   await touchAt(page, 'end', x, y, cdp);
   await quiet(page);
   await expect(menu).toHaveCount(1);

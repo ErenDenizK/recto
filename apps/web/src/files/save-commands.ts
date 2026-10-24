@@ -51,6 +51,13 @@ export function registerSaveCommands(registry: CommandRegistry): () => void {
         if (!doc) return false;
         return revertAvailability(useWorkspaceStore.getState().workspace, doc.id).available;
       },
+      // The dimmed row says why (DSN-52): the availability's own reason.
+      reason: () => {
+        const doc = activeDocument();
+        if (!doc) return undefined;
+        const availability = revertAvailability(useWorkspaceStore.getState().workspace, doc.id);
+        return availability.available ? undefined : availability.reason;
+      },
       run: () => {
         const doc = activeDocument();
         if (doc) void askToRevert(doc.id);
