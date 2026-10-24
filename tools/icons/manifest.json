@@ -23,6 +23,7 @@
     "arrow-up": {},
     "arrow-up-right": { "fill": true },
     "arrows-clockwise": {},
+    "arrows-in-simple": {},
     "arrows-out-cardinal": {},
     "arrows-out-simple": {},
     "book-open-text": {},
@@ -98,6 +99,7 @@
     "redact": { "from": "eye-slash", "fill": true },
     "rows": { "fill": true },
     "scan": { "fill": true },
+    "scissors": {},
     "seal-check": { "fill": true },
     "seal-warning": {},
     "selection": {},
@@ -123,6 +125,7 @@
     "user": {},
     "warning": {},
     "wave-sine": { "fill": true },
+    "wrench": {},
     "x": {},
     "x-circle": {}
   },

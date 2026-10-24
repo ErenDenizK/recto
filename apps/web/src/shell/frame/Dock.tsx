@@ -9,6 +9,8 @@
  *   armed (`M`, alias `2`; `G` arms the last signature, D2-7); More lists the tools that act on
  *   the page in place (Edit text, Redact) and the app's doors, ⌘K first (flows §4.2; DSN-47:
  *   OCR, Compare and Crop are the title menu's rows, so they left More).
+ * - **Tools** (DSN-76, prototype behind `?tools=1`): between Fill & sign and More, a menu of
+ *   Redact, OCR, Compare, Combine, Split and Compress that run the title menu's commands.
  * - **Locked** (F10 §2, §4): a locked document's dock is Pages · Locked · More. Locked replaces
  *   Markup and Fill & sign, opening the title menu with its Lock switch until the Unlock
  *   popover of `lock/` lands (spec X4). Lock engaging while the palette is open morphs it into
@@ -24,7 +26,7 @@
  * - **Announcements:** "Markup on. Select armed." once when a door opens it (A-14); the palette
  *   and the guard say the rest.
  *
- * The dock's pieces carry `data-capsule-item` keys (`pages`, `markup`, `sign`, `locked`, `more`),
+ * The dock's pieces carry `data-capsule-item` keys (`pages`, `markup`, `sign`, `tools`, `locked`, `more`),
  * so Pages and More slide into their Locked places instead of fading.
  */
 import { Menu } from '@base-ui/react/menu';
@@ -66,6 +68,8 @@ import { type DockLabelForm, dockLabelForm, dockRoom } from './dock-labels';
 import { openTitleMenu } from './frame-store';
 import { usePointerCapabilities } from './input-modality';
 import { type SizeClass, useSizeClass } from './size-class';
+import { ToolsMenu } from './ToolsMenu';
+import { toolsEntryEnabled } from './tools-flag';
 
 /**
  * Opens Markup on `set` through a dock door (flows §4.2): the palette with Select armed, on its
@@ -146,7 +150,7 @@ const keysOf = (id: string) => {
   return shortcuts.map((s) => toAriaKeyShortcut(s, currentPlatform)).join(' ');
 };
 
-/** The dock's resting items (F10 §2): Pages · Markup · Fill & sign · More, or Locked. */
+/** The dock's resting items (F10 §2): Pages · Markup · Fill & sign · Tools (`?tools=1`) · More, or Locked. */
 function DockItems({ locked, doc }: { readonly locked: boolean; readonly doc: VirtualDocument }) {
   const ref = useRef<HTMLDivElement>(null);
   const frame = useSizeClass();
@@ -219,6 +223,8 @@ function DockItems({ locked, doc }: { readonly locked: boolean; readonly doc: Vi
             focusOnArrival={door === 'sign'}
             onActivate={() => openMarkupFrom('sign')}
           />
+          {/* DSN-76: the document tools' visible door, behind `?tools=1`. */}
+          {toolsEntryEnabled() ? <ToolsMenu /> : null}
         </>
       )}
       <MoreMenu />
@@ -370,6 +376,9 @@ const MORE_ITEMS: readonly MoreEntry[] = [
   // DSN-68: the one door to Save a copy outside the title menu (first-session test, item 1).
   { id: 'file.export', label: m.save_a_copy, icon: 'export' },
 ];
+/** DSN-76 (DSN-47): with the Tools entry shown, Redact lives there only, not in More too. */
+const moreItems = (): readonly MoreEntry[] =>
+  toolsEntryEnabled() ? MORE_ITEMS.filter((item) => item.id !== 'tool.redact') : MORE_ITEMS;
 const MORE_APP_ITEMS: readonly MoreEntry[] = [
   { id: 'view.palette', label: m.dock_more_commands, icon: 'list-magnifying-glass' },
   { id: 'help.shortcuts', label: m.frame_keyboard_shortcuts, icon: 'keyboard', fineOnly: true },
@@ -404,7 +413,7 @@ function MoreMenu() {
           anchor={abovePalette(() => trigger)}
         >
           <Menu.Popup className={menuStyles.popup} aria-label={m.dock_more()}>
-            {MORE_ITEMS.map((item) => (
+            {moreItems().map((item) => (
               <MoreItem key={item.id} id={item.id} label={item.label()} icon={item.icon} />
             ))}
             <Menu.Separator className={menuStyles.separator} />
