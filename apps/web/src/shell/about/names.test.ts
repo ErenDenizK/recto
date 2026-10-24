@@ -111,12 +111,19 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:input-policy:v1',
       // The one-time `1` migration notice (commands/keymap-notice.ts, D2-7).
       'pdf-editor:keymap-notice:v1',
+      // The labelled palette flag, ?labels=1|0, and its session count (markup/palette-labels.ts, DSN-71).
+      'pdf-editor:labels-sessions:v1',
+      'pdf-editor:labels:v1',
       'pdf-editor:locale:v1',
+      // The margin map flag, ?margin=1|0 (shell/frame/margin/margin-map-flag.ts, DSN-72).
+      'pdf-editor:margin:v1',
       // The one reload into cross-origin isolation (sessionStorage, office/flag.ts, ADR-0035 §4).
       'pdf-editor:office-reload:v1',
       // The Office conversion flag, ?office=1|0 (office/flag.ts, ADR-0035 §6).
       'pdf-editor:office:v1',
       // Open one file from the Library to its page, ?open=page|0 (home/home-flags.ts, Epic 3).
+      // The open moment flag, ?open=light|0 (home/home-flags.ts, R26 concept 2, DSN-64).
+      'pdf-editor:open-light:v1',
       'pdf-editor:open-page:v1',
       // The Markup palette flag, ?palette=groups|labels|row (markup/palette-variant.ts, R25-7).
       'pdf-editor:palette:v1',

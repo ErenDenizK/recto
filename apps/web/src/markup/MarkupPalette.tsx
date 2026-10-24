@@ -42,7 +42,9 @@ import { Menu } from '@base-ui/react/menu';
 import { Popover } from '@base-ui/react/popover';
 import {
   type KeyboardEvent,
+  lazy,
   type ReactNode,
+  Suspense,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -91,6 +93,7 @@ import {
 } from './palette-groups';
 import styles from './MarkupPalette.module.css';
 import { type Measured, setAvailable, setMeasured, usePaletteLayout } from './palette-measure';
+import { labelsEnabled } from './palette-labels';
 import { paletteVariant } from './palette-variant';
 import { useRovingTabindex } from './roving';
 import {
@@ -532,6 +535,9 @@ export function paletteEscape(event: KeyboardEvent<HTMLElement>): void {
   else closeMarkupDoor();
 }
 
+/** The labels that bloom (DSN-71): its code loads only with `?labels=1`, for the larger frames. */
+const PaletteBloom = lazy(() => import('./PaletteBloom'));
+
 /** The palette's row: what the capsule's content slot holds (module header). */
 export function MarkupPaletteContent() {
   const rowRef = useRef<HTMLDivElement>(null);
@@ -542,6 +548,7 @@ export function MarkupPaletteContent() {
   const mode = useToolStore((s) => s.mode);
   const activePen = useAnnotationStore((s) => s.pen.active);
   const { candidates, state } = useRowState(door);
+  const bloomed = useSizeClass().size !== 'compact' && labelsEnabled();
   // Snapped again when the grouped palette opens another group: the row stretches to the
   // minimum the snap set, so its narrower items would never resize anything it observes, and
   // the capsule would keep the old group's width.
@@ -601,6 +608,11 @@ export function MarkupPaletteContent() {
         <PaletteRow candidates={candidates} state={state} />
       </div>
       <ToolEditor rowRef={rowRef} />
+      {bloomed ? (
+        <Suspense fallback={null}>
+          <PaletteBloom contentRef={contentRef} />
+        </Suspense>
+      ) : null}
     </div>
   );
 }

@@ -229,13 +229,16 @@ export function CombineSheet({
             onChange={(event) => setDraft((d) => ({ ...d, name: event.target.value }))}
           />
         </SheetRow>
-        <SheetRow full>
-          {/* Below two documents the primary's reason line says so (RA-21); the summary says it
-              once there, not twice (owner brief B-16: no repeated text). */}
-          <p className={styles.summary} role="status">
-            {enough ? m.combine_preview({ pages: pagesPhrase(total) }) : null}
-          </p>
-        </SheetRow>
+        {/* Below two documents the primary's reason line says so (RA-21); the summary says it
+            once there, not twice (owner brief B-16), and without it the row is not drawn: an
+            empty one was a grey block under the name (sweep #9). */}
+        {enough ? (
+          <SheetRow full>
+            <p className={styles.summary} role="status">
+              {m.combine_preview({ pages: pagesPhrase(total) })}
+            </p>
+          </SheetRow>
+        ) : null}
       </SheetGroup>
     </Sheet>
   );

@@ -146,7 +146,7 @@ function DeadLinks({ doc }: { readonly doc: VirtualDocument }) {
 }
 
 /** Goes to an outline target: Read scrolls to it (and its position); Arrange selects it. */
-function goToDestination(destination: Extract<Destination, { kind: 'page' }>): void {
+export function goToDestination(destination: Extract<Destination, { kind: 'page' }>): void {
   const pageId = destination.page;
   if (stageView(useUiStore.getState()) === 'grid') {
     useSelectionStore.getState().apply({

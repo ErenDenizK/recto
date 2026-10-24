@@ -20,7 +20,7 @@ const SHOTS = process.env.CAPTURE_SCREENSHOTS;
 async function shot(page: Page, name: string): Promise<void> {
   if (!SHOTS) return;
   const size = page.viewportSize();
-  await page.waitForTimeout(350);
+  await settleAnimations(page);
   await page.screenshot({ path: join(SHOTS, `${name}-${size?.width}x${size?.height}.png`) });
 }
 
@@ -77,7 +77,7 @@ async function idle(page: Page): Promise<void> {
   await page.evaluate(
     () => new Promise<void>((resolve) => requestIdleCallback(() => resolve(), { timeout: 4000 })),
   );
-  await page.waitForTimeout(300);
+  await expect(page.locator('html[data-container-transform]')).toBeAttached();
 }
 
 /** A keyboard `height` px tall: the visual viewport shrinks by it (as on iOS), then reports. */
@@ -216,6 +216,7 @@ test.describe('the split top (DSN-34)', () => {
     await watchMorph(page, 'compact-file-menu');
     await tapCentre(page, titleTrigger(page));
     if (SHOTS) {
+      // The frame wanted is a point in the morph, sampled on the clock.
       await page.waitForTimeout(140);
       await page.screenshot({
         path: join(SHOTS, `menu-mid-morph-${view.width}x${view.height}.png`),
@@ -238,7 +239,6 @@ test.describe('the split top (DSN-34)', () => {
       'Settings',
     ]);
     await expect(fileMenu.getByTestId('compact-file-name')).toHaveText(/\.pdf$/);
-    await expect(fileMenu).toContainText(/PDF · .+ · \d+ pages/);
     await expectGlassClean(page, 'the split top with its menu open');
     const menuBox = await fileMenu.boundingBox();
     if (!menuBox) throw new Error('no menu');

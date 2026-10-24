@@ -29,6 +29,7 @@ export {
   cmd_file_print_keywords,
   cmd_file_revert_keywords,
   cmd_file_sample_keywords,
+  cmd_file_markdown_to_pdf_keywords,
   cmd_file_text_to_pdf_keywords,
   cmd_file_save_keywords,
   cmd_forms_design_keywords,

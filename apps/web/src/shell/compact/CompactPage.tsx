@@ -101,6 +101,7 @@ export function CompactPage({
       className={styles.page}
       data-page-id={page.id}
       data-page-index={index}
+      data-resized={frame === undefined ? undefined : ''}
       style={{ top: box.top, left: box.left, width: box.width, height: box.height }}
     >
       <ResizedContent frame={frame}>

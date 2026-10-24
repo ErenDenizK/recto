@@ -156,23 +156,26 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: var(--space-2);
+  gap: var(--space-1) var(--space-2);
 }
 
 .chip {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1h);
-  height: 32px;
-  padding: 0 var(--space-3) 0 var(--space-2);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-capsule);
-  background: var(--surface-hover);
-  color: var(--text-primary);
+  color: var(--text-secondary);
   font-size: var(--type-footnote);
   font-weight: var(--weight-medium);
   line-height: var(--type-footnote-lh);
   white-space: nowrap;
+}
+
+/* A plain list of names, not controls: no pill, border or fill (presentability #18), a dot
+   between the names so the row still reads as four. */
+.chip + .chip::before {
+  content: '·';
+  margin-inline-end: var(--space-1);
+  color: var(--text-tertiary);
 }
 
 .chip svg {

@@ -11,6 +11,8 @@ import { type CDPSession, devices, expect, type Page, test } from '@playwright/t
 
 import { Job } from './support/job-report';
 
+import { pastDeadline } from './helpers';
+
 // `defaultBrowserType` is a worker-level option and cannot be set in a file.
 const { defaultBrowserType: _browser, ...pixel } = devices['Pixel 7'];
 
@@ -107,7 +109,7 @@ for (const size of SIZES) {
           await page.touchscreen.tap(x, y);
         });
         await expect.poll(zoom).toBe(2);
-        await page.waitForTimeout(400);
+        await pastDeadline(page, 400); // the double-tap window, the rule under test
         await page.evaluate(
           () =>
             new Promise<void>((resolve) => requestIdleCallback(() => resolve(), { timeout: 3000 })),

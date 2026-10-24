@@ -14,7 +14,11 @@
  * The tile (brand plan §5.3): always dark, n3 at the top to n1 at the bottom, one soft glow in
  * the mark's lime behind it, no specular or shadow. The mark is 56 % of the tile's height and
  * centred, inside the maskable 80 % circle and well above iOS's 19 % bottom clearance.
+ *
+ * The two 512 px manifest tiles are palette-quantised (`quantise`): their gradient and glow made
+ * 143 and 126 KiB of truecolour PNG, and the browser downloads them when it installs the app.
  */
+import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -88,6 +92,35 @@ function tile({ radius, scale }: { radius: number; scale: number }): string {
   ].join('');
 }
 
+/**
+ * The PNG as an 8-bit palette image with transparency (ffmpeg, as `encode.ts` uses it). 112
+ * colours stay free of visible banding on the tile's gradient; 64 do not.
+ */
+function quantise(png: Buffer): Buffer {
+  const filter =
+    'split[a][b];[a]palettegen=max_colors=112:reserve_transparent=1:stats_mode=full[p];[b][p]paletteuse=dither=none';
+  return execFileSync(
+    'ffmpeg',
+    [
+      '-hide_banner',
+      '-loglevel',
+      'error',
+      '-i',
+      'pipe:0',
+      '-vf',
+      filter,
+      '-compression_level',
+      '100',
+      '-f',
+      'image2pipe',
+      '-c:v',
+      'png',
+      'pipe:1',
+    ],
+    { input: png, maxBuffer: 16 * 1024 * 1024 },
+  );
+}
+
 function write(path: string, text: string): void {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, text);
@@ -141,15 +174,16 @@ async function main(): Promise<void> {
       );
       return page.screenshot({ type: 'png', omitBackground: true });
     };
-    const png = async (name: string, svg: string, size: number) => {
+    const png = async (name: string, svg: string, size: number, palette = false) => {
       const path = join(ICONS_DIR, name);
-      writeFileSync(path, await render(svg, size));
+      const image = await render(svg, size);
+      writeFileSync(path, palette ? quantise(image) : image);
       console.log(`app-icons: ${path.slice(ROOT.length)}`);
     };
     await png('apple-touch-icon.png', bleed, 180);
     await png('icon-192.png', rounded, 192);
-    await png('icon-512.png', rounded, 512);
-    await png('icon-maskable-512.png', bleed, 512);
+    await png('icon-512.png', rounded, 512, true);
+    await png('icon-maskable-512.png', bleed, 512, true);
     const sizes = [16, 32, 48];
     const images = [];
     for (const size of sizes) images.push({ size, png: await render(small, size) });

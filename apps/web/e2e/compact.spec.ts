@@ -16,7 +16,14 @@ import { join } from 'node:path';
 
 import { type CDPSession, expect, type Locator, type Page, test } from '@playwright/test';
 
-import { fixturePath, useFileInputPicker, waitForSnapshot } from './helpers';
+import {
+  fixturePath,
+  useFileInputPicker,
+  waitForSnapshot,
+  motionDone,
+  frames,
+  pastDeadline,
+} from './helpers';
 
 const SHOTS = process.env.CAPTURE_SCREENSHOTS;
 
@@ -202,7 +209,7 @@ function contrast(a: string, b: string): number {
 async function shot(page: Page, name: string): Promise<void> {
   if (!SHOTS) return;
   const size = page.viewportSize();
-  await page.waitForTimeout(350);
+  await motionDone(page);
   await page.screenshot({ path: join(SHOTS, `${name}-${size?.width}x${size?.height}.png`) });
 }
 
@@ -251,7 +258,7 @@ test.describe('the compact edition', () => {
     await expect(page.getByRole('button', { name: 'PDF aç' })).toBeVisible();
     await expect(page.getByText('Tüm araçlar bilgisayar ve tablette.')).toBeVisible();
     await expect(page.getByTestId('compact-tools')).toContainText('İmza');
-    await expect(page.getByRole('button', { name: 'Örnek belgeyi deneyin' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Örnek belgeyi dene' })).toBeVisible();
     // Turkish is longer: nothing in the Library clips or spills sideways.
     const clipped = await page.evaluate(() =>
       [...document.querySelectorAll('[data-testid="compact-library"] *')]
@@ -346,7 +353,7 @@ test.describe('the compact edition', () => {
         });
       }
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-      await page.waitForTimeout(150);
+      await frames(page, 2);
     }
     await expect.poll(async () => (await scrolled())?.top ?? 0).toBeGreaterThan(0);
     await expect
@@ -523,7 +530,7 @@ test.describe('the compact edition', () => {
     );
     // The chrome did not toggle on a double tap.
     await expectHidden(topBar(page), false);
-    await page.waitForTimeout(400);
+    await pastDeadline(page, 400); // the double-tap window
     await idle(page);
     await page.touchscreen.tap(centre.x, centre.y);
     await page.touchscreen.tap(centre.x, centre.y);
@@ -742,14 +749,14 @@ test.describe('the compact edition', () => {
     await touch('touchStart');
     for (let i = 1; i <= 6; i++) {
       await touch('touchMove', at.y + i * 12);
-      await page.waitForTimeout(16);
+      await frames(page);
     }
     await expect(goto).toHaveAttribute('data-glass-moving', '');
     await expect.poll(async () => (await goto.boundingBox())?.y ?? 0).toBeGreaterThan(box.y + 40);
     // A quick swipe on closes it, and the chrome comes back.
     for (let i = 7; i <= 14; i++) {
       await touch('touchMove', at.y + i * 24);
-      await page.waitForTimeout(16);
+      await frames(page);
     }
     await touch('touchEnd');
     await expect(goto).toHaveCount(0);
@@ -888,7 +895,7 @@ test.describe('the compact edition', () => {
     const toast = page.getByTestId('session-notice');
     await expect(toast).toContainText('Restored simple-text');
     await expect(capsule(page)).toBeVisible();
-    await page.waitForTimeout(600);
+    await motionDone(page);
     const t = await toast.boundingBox();
     const c = await capsule(page).boundingBox();
     if (!t || !c) throw new Error('not laid out');

@@ -19,6 +19,8 @@ import { type CDPSession, expect, type Page, test } from '@playwright/test';
 
 import { sampleEntry } from './sample-manifest';
 
+import { motionDone } from './helpers';
+
 /**
  * The feature page of the phone cut, 0-based, and the first words of its fourth paragraph, the
  * last of column 1: free lines under it, so typed words grow into them and Done commits
@@ -38,7 +40,7 @@ const WORD = 'Brightly';
 async function shot(page: Page, name: string, settle = 400): Promise<void> {
   if (!SHOTS) return;
   const size = page.viewportSize();
-  if (settle > 0) await page.waitForTimeout(settle);
+  if (settle > 0) await motionDone(page);
   const scheme = await page.evaluate(() => document.documentElement.dataset.theme ?? 'dark');
   const lang = await page.evaluate(() => document.documentElement.lang || 'en');
   await page.screenshot({
@@ -167,7 +169,7 @@ test.describe('editing text on phones (M10 WP5)', () => {
     const at = await paragraphPoint(page);
     // With the drawer still open, the tap on the paragraph closes it and acts (EDN-18), where
     // the drawer leaves the paragraph uncovered (a phone held upright).
-    await page.waitForTimeout(500);
+    await motionDone(page);
     const top = (await drawer(page).boundingBox())?.y ?? 0;
     if (at.y >= top - 8) {
       await page.getByTestId('compact-drawer-done').click();
