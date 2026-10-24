@@ -36,6 +36,8 @@ const ROOT = resolve(import.meta.dirname, '../..');
 const OUT = join(ROOT, 'apps/web/node_modules/.cache/recto/compact-session.json');
 const MIN_WAIT_MS = 15_000;
 const QUIET_MS = 5_000;
+/** The longest a scenario may take to settle after page 1, before it is broken. */
+const SETTLE_LIMIT_MS = 60_000;
 const RUNS = 2;
 
 /** Static `import … from "./x.js"` edges, as in bundle-budget.ts. */
@@ -56,7 +58,12 @@ const TYPES: Readonly<Record<string, string>> = {
 
 function serve(dist: string): Promise<{ origin: string; close: () => void }> {
   const server = createServer((req, res) => {
-    const path = decodeURIComponent((req.url ?? '/').split('?')[0] as string);
+    let path = '/';
+    try {
+      path = decodeURIComponent((req.url ?? '/').split('?')[0] as string);
+    } catch {
+      // A malformed escape falls through to the app shell.
+    }
     let file = resolve(dist, `.${path}`);
     if (!file.startsWith(dist) || !existsSync(file) || statSync(file).isDirectory())
       file = join(dist, 'index.html');
@@ -86,24 +93,31 @@ function reach(assets: string, entries: readonly string[]): Set<string> {
 }
 
 /**
- * The files only worker entries reach statically: the main frame does not load them. Playwright
- * attributes a worker's fetches to its frame, so these are dropped by name. What the entry or
- * the phone edition reaches stays, even when a worker shares it.
+ * What the main frame loaded, out of what was recorded. Playwright attributes a worker's fetches
+ * to its frame, so the record holds files only a worker loaded. Seeds are the recorded files no
+ * worker entry reaches statically; a recorded file stays when the seeds or the entries reach it
+ * (a chunk shared by a worker and a main-thread chunk stays), and `.worker-` scripts never do.
  */
-function workerOnly(assets: string, names: readonly string[]): Set<string> {
+function mainFrameOnly(assets: string, recorded: ReadonlySet<string>): string[] {
+  const names = readdirSync(assets);
   const workers = names.filter((name) => /\.worker-[\w-]+\.js$/.test(name));
-  const main = names.filter((name) => /^(?:main|CompactApp)-[\w-]{8}\.js$/.test(name));
-  const skip = reach(assets, workers);
-  for (const name of reach(assets, main)) skip.delete(name);
-  return skip;
+  const entries = names.filter((name) => /^(?:main|CompactApp)-[\w-]{8}\.js$/.test(name));
+  const workerReach = reach(assets, workers);
+  const seeds = [...recorded].filter((name) => !workerReach.has(name));
+  const kept = reach(assets, [...seeds, ...entries]);
+  return [...recorded].filter((name) => kept.has(name) && !name.includes('.worker-')).sort();
 }
 
-async function quiet(page: Page, lastRequest: () => number): Promise<void> {
-  while (Date.now() - lastRequest() < QUIET_MS) await page.waitForTimeout(250);
+/** Waits for `QUIET_MS` without a request; throws at `deadline` (a scenario that never settles). */
+async function quiet(page: Page, lastRequest: () => number, deadline: number): Promise<void> {
+  while (Date.now() - lastRequest() < QUIET_MS) {
+    if (Date.now() > deadline) throw new Error(`No ${QUIET_MS / 1000} s quiet window.`);
+    await page.waitForTimeout(250);
+  }
 }
 
 /** One session: the read steps, then (with `openMore`) a tap on ⋯. Returns the script names. */
-async function session(origin: string, openMore: boolean): Promise<[string[], string[]]> {
+async function session(origin: string, openMore: boolean): Promise<[string[], string[] | null]> {
   const browser = await chromium.launch(chromiumLaunchOptions());
   try {
     const context = await browser.newContext({
@@ -136,18 +150,23 @@ async function session(origin: string, openMore: boolean): Promise<[string[], st
     await page.locator(`[data-page-index="${lastIndex}"]`).scrollIntoViewIfNeeded();
     await rendered(lastIndex).waitFor({ timeout: 60_000 });
     await page.waitForTimeout(Math.max(0, MIN_WAIT_MS - (Date.now() - firstRendered)));
-    await quiet(page, () => last);
+    await quiet(page, () => last, firstRendered + SETTLE_LIMIT_MS);
+    let opened: string[] | null = null;
     if (openMore) {
-      target = more;
-      const trigger = page.getByTestId('compact-title-menu-trigger');
-      // Scrolling hides the chrome; the top of the document shows it again.
-      await page.locator('[data-page-index="0"]').scrollIntoViewIfNeeded();
-      await page.waitForTimeout(1_000);
-      await trigger.tap({ timeout: 10_000 });
-      await page.waitForTimeout(1_000);
-      await quiet(page, () => last);
+      // Ungated: a failure here warns and leaves the scenario out of the record.
+      try {
+        target = more;
+        // Scrolling hides the chrome; the top of the document shows it again.
+        await page.locator('[data-page-index="0"]').scrollIntoViewIfNeeded();
+        await page.getByTestId('compact-title-menu-trigger').tap({ timeout: 10_000 });
+        last = Date.now();
+        await quiet(page, () => last, Date.now() + SETTLE_LIMIT_MS);
+        opened = [...more].filter((name) => !read.has(name));
+      } catch (error) {
+        console.warn(`The title-menu scenario failed, so it is left out: ${String(error)}`);
+      }
     }
-    return [[...read], [...more].filter((name) => !read.has(name))];
+    return [[...read], opened];
   } finally {
     await browser.close();
   }
@@ -167,24 +186,27 @@ async function main(): Promise<void> {
   }
   const server = await serve(dist);
   try {
-    const union = new Set<string>();
-    let moreOpened: string[] = [];
+    const runs: Set<string>[] = [];
+    let moreOpened: string[] | null = null;
     for (let run = 0; run < RUNS; run++) {
       const [files, more] = await session(server.origin, run === 0);
-      for (const file of files) union.add(file);
+      runs.push(new Set(files));
       if (run === 0) moreOpened = more;
       console.log(`run ${run + 1}: ${files.length} files`);
     }
-    const skip = workerOnly(assets, readdirSync(assets));
-    const keep = (name: string) => !skip.has(name) && !name.includes('.worker-');
-    const files = [...union].filter(keep).sort();
-    const opened = moreOpened.filter((name) => keep(name) && !union.has(name)).sort();
+    const union = new Set(runs.flatMap((run) => [...run]));
+    const once = [...union].filter((name) => runs.some((run) => !run.has(name))).sort();
+    if (once.length > 0) console.log(`Seen by only one run: ${once.join(', ')}`);
+    const files = mainFrameOnly(assets, union);
+    const opened = moreOpened?.filter((name) => !union.has(name)).sort() ?? null;
     mkdirSync(join(OUT, '..'), { recursive: true });
     writeFileSync(
       OUT,
       `${JSON.stringify({ version: SCENARIO_VERSION, main: entry, files, moreOpened: opened }, null, 2)}\n`,
     );
-    console.log(`${files.length} session files, ${opened.length} more after ⋯. Wrote ${OUT}.`);
+    console.log(
+      `${files.length} session files, ${opened?.length ?? 'no'} more after the title menu. Wrote ${OUT}.`,
+    );
   } finally {
     server.close();
   }

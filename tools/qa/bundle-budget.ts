@@ -26,7 +26,9 @@
  *   the gzip of the main-frame scripts tools/qa/compact-session.ts recorded in a browser, sized
  *   here from `dist`. It fails when that file is missing, from another build or scenario version,
  *   or lacks a file of the static `compact` closure. Its growth cap waits for a baseline the
- *   owner signs off (PRC-11); until then it prints "baseline pending owner sign-off". The files
+ *   owner signs off (PRC-11; only `--write-session-baseline` writes it, never `--write-baseline`);
+ *   its absolute ceiling is active. Without a record a local run warns and skips it (CI fails).
+ *   Until then it prints "baseline pending owner sign-off". The files
  *   after paint (outside the static closure) and the ungated "⋯ opened" scenario print under it.
  * - `engineClient`: the closure of the `client` chunk, `@pdf-editor/engine/client` (PF-2): the
  *   engine code the main thread loads to open the first document (the worker proxies and pure
@@ -63,12 +65,12 @@ const CONFIG_PATH = join(import.meta.dirname, 'bundle-budget.json');
 /** The module report `recto:bundle-modules` writes at each build (apps/web/vite.config.ts). */
 const MODULES_PATH = join(ROOT, 'apps/web/node_modules/.cache/recto/bundle-modules.json');
 /** Chunks per closure, and modules per chunk, in the breakdown. */
+const TOP_CHUNKS = 6;
+const TOP_MODULES = 3;
 /** SCENARIO_VERSION of tools/qa/compact-session.ts. */
 const SESSION_VERSION = 1;
 /** The recorder's output (tools/qa/compact-session.ts). */
 const SESSION_PATH = join(ROOT, 'apps/web/node_modules/.cache/recto/compact-session.json');
-const TOP_CHUNKS = 6;
-const TOP_MODULES = 3;
 
 type MeasureName =
   | 'firstPaint'
@@ -116,7 +118,8 @@ const LAB_MARKER = 'recto-lab-build';
 
 function main(): void {
   const args = process.argv.slice(2);
-  const writeBaseline = args.includes('--write-baseline');
+  const writeSessionBaseline = args.includes('--write-session-baseline');
+  const writeBaseline = args.includes('--write-baseline') || writeSessionBaseline;
   const distArg = args.find((arg) => !arg.startsWith('--'));
   const dist = resolve(ROOT, distArg ?? 'apps/web/dist');
   if (!existsSync(join(dist, 'index.html'))) {
@@ -190,11 +193,11 @@ function main(): void {
   const engineClient = closure([chunk('client')]);
   const pdfiumWorker = closure([chunk('pdfium.worker')]);
   const session = readSession(dist, assetFiles, compact, sizeOf);
-  const measures: Record<MeasureName, number> = {
+  const measures: Partial<Record<MeasureName, number>> = {
     firstPaint: firstPaint.gzip,
     editor: editor.gzip,
     compact: compact.gzip,
-    compactSession: session.measured.gzip,
+    ...(session ? { compactSession: session.measured.gzip } : {}),
     engineClient: engineClient.gzip,
     pdfiumWorker: pdfiumWorker.raw,
     precache: precacheBytes,
@@ -203,7 +206,7 @@ function main(): void {
     firstPaint: firstPaint.files.length,
     editor: editor.files.length,
     compact: compact.files.length,
-    compactSession: session.measured.files.length,
+    ...(session ? { compactSession: session.measured.files.length } : {}),
     engineClient: engineClient.files.length,
     pdfiumWorker: pdfiumWorker.files.length,
     precache: precacheList.length,
@@ -213,6 +216,12 @@ function main(): void {
   const rows: string[] = [];
   for (const name of Object.keys(MEASURE_LABELS) as MeasureName[]) {
     const value = measures[name];
+    if (value === undefined) {
+      rows.push(
+        `${MEASURE_LABELS[name].padEnd(38)} ${'skipped'.padStart(10)}  no session record (local run)`,
+      );
+      continue;
+    }
     const gate = config.gates[name];
     const base = config.baseline[name];
     const cap = base === undefined ? undefined : Math.floor(base * (1 + config.growthCap));
@@ -274,10 +283,14 @@ function main(): void {
     `${'First paint CSS gzip (not gated)'.padEnd(38)} ${kb(firstPaintCss.gzip).padStart(10)}`,
   );
   console.log(rows.join('\n'));
-  console.log(`\nCompact read session, after paint (outside the static closure):`);
-  console.log(describeFiles(session.afterPaint, assets, sizeOf).join('\n'));
-  console.log(`\nCompact "⋯ opened" scenario, extra files (not gated):`);
-  console.log(describeFiles(session.opened, assets, sizeOf).join('\n'));
+  if (session) {
+    console.log(`\nCompact read session, after paint (outside the static closure):`);
+    console.log(describeFiles(session.afterPaint, assets, sizeOf).join('\n'));
+    console.log(`\nCompact "⋯ opened" scenario, extra files (not gated):`);
+    console.log(
+      session.opened ? describeFiles(session.opened, assets, sizeOf).join('\n') : '  not recorded',
+    );
+  }
   const modules = readModules();
   const breakdown: [string, Closure][] = [
     [MEASURE_LABELS.firstPaint, firstPaint],
@@ -290,7 +303,12 @@ function main(): void {
     console.log(describeClosure(measured, assets, sizeOf, modules).join('\n'));
   }
   if (writeBaseline) {
-    const next: BudgetConfig = { ...config, baseline: measures };
+    // PRC-11: the session baseline is the owner's sign-off, so only its own flag writes it.
+    const { compactSession, ...rest } = measures;
+    const baseline = { ...config.baseline, ...rest };
+    if (writeSessionBaseline && compactSession !== undefined)
+      baseline.compactSession = compactSession;
+    const next: BudgetConfig = { ...config, baseline };
     writeFileSync(CONFIG_PATH, `${JSON.stringify(next, null, 2)}\n`);
     console.log(`\nBaseline written to ${CONFIG_PATH}.`);
   }
@@ -307,7 +325,7 @@ interface SessionReport {
   /** The recorded files outside the static `compact` closure, largest first. */
   readonly afterPaint: readonly string[];
   /** Files the "⋯ opened" scenario added, largest first. */
-  readonly opened: readonly string[];
+  readonly opened: readonly string[] | null;
 }
 
 /**
@@ -320,14 +338,16 @@ function readSession(
   assetFiles: readonly string[],
   compact: Closure,
   sizeOf: (path: string) => { raw: number; gzip: number },
-): SessionReport {
-  let report: { version?: number; main?: string; files?: string[]; moreOpened?: string[] };
+): SessionReport | null {
+  let report: { version?: number; main?: string; files?: string[]; moreOpened?: string[] | null };
   try {
     report = JSON.parse(readFileSync(SESSION_PATH, 'utf8')) as typeof report;
   } catch {
-    return fail(
-      `No compact session record at ${SESSION_PATH}. Run tools/qa/compact-session.ts after the build.`,
-    );
+    const message = `No compact session record at ${SESSION_PATH}. Run tools/qa/compact-session.ts after the build.`;
+    // CI always records one; a local run without Chromium skips the measure.
+    if (process.env.CI) return fail(message);
+    console.warn(`${message} Skipping the compact session measure.\n`);
+    return null;
   }
   const entry = assetFiles.find((file) => /^main-[\w-]{8}\.js$/.test(file));
   if (report.version !== SESSION_VERSION || report.main !== entry)
@@ -338,7 +358,7 @@ function readSession(
   const assets = join(dist, 'assets');
   const paths = (names: readonly string[] = []) => names.map((name) => join(assets, name));
   const files = paths(report.files);
-  const gone = files.concat(paths(report.moreOpened)).filter((file) => !existsSync(file));
+  const gone = files.concat(paths(report.moreOpened ?? [])).filter((file) => !existsSync(file));
   if (gone.length > 0) fail(`Compact session files missing from dist: ${gone.join(', ')}`);
   const listed = new Set(files);
   const absent = compact.files.filter((file) => !listed.has(file));
@@ -355,7 +375,7 @@ function readSession(
       gzip: files.reduce((sum, file) => sum + sizeOf(file).gzip, 0),
     },
     afterPaint: files.filter((file) => !inClosure.has(file)),
-    opened: paths(report.moreOpened),
+    opened: report.moreOpened ? paths(report.moreOpened) : null,
   };
 }
 
