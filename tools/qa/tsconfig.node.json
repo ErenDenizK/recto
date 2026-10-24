@@ -13,6 +13,7 @@
   "include": [
     "vitest.config.ts",
     "bundle-budget.ts",
+    "compact-session.ts",
     "slowest-specs.ts",
     "decisions-index.ts",
     "../../tooling/*.ts"
