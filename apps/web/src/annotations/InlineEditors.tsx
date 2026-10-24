@@ -26,6 +26,7 @@ import { createAnnotations, updateAnnotations } from './actions';
 import { type InlineEditor, useAnnotationStore } from './annotation-store';
 import { noteIconRect, type PageFrame, rectToCss, roundRect } from './geometry';
 import styles from './AnnotationLayer.module.css';
+import { explicitTextColor, LIGHT_TEXT, pageColorUnder, textColorOn } from './text-contrast';
 
 /** The open editor's commit (at most one editor is open at a time). */
 let openCommit: (() => void) | null = null;
@@ -109,7 +110,16 @@ function FreeTextEditor({
         ),
   );
   const fontSize = existing?.kind === 'free-text' ? existing.fontSize : style.fontSize;
-  const color = existing?.kind === 'free-text' ? (existing.textColor ?? '#000000') : style.color;
+  const chosen = useAnnotationStore((s) => s.textColorChosen);
+  const [onPage, setOnPage] = useState<string | undefined>();
+  // A new box takes the person's colour, else the one that reads on the page under it
+  // (TXT-23); the preview and the committed box use this one colour.
+  const color =
+    existing?.kind === 'free-text'
+      ? (existing.textColor ?? '#000000')
+      : explicitTextColor(chosen, style.color)
+        ? style.color
+        : (onPage ?? style.color);
   const [text, setText] = useState(editor.text);
   const [heightPt, setHeightPt] = useState(Math.max(editor.rect.height, lineHeight(fontSize) + 4));
   const ref = useRef<HTMLTextAreaElement>(null);
@@ -129,6 +139,15 @@ function FreeTextEditor({
   useEffect(() => {
     ref.current?.focus();
   }, []);
+
+  // Once, as a new box opens (the page does not move under it).
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || editor.id !== undefined) return;
+    const r = el.getBoundingClientRect();
+    const under = pageColorUnder({ left: r.left, top: r.top, width: r.width, height: r.height });
+    if (under) setOnPage(textColorOn(under));
+  }, [editor.id]);
 
   useLayoutEffect(() => {
     const el = ref.current;
@@ -197,6 +216,7 @@ function FreeTextEditor({
         fontSize: fontSize * s * lift,
         lineHeight: 1.25,
         color,
+        ...(color === LIGHT_TEXT ? { background: 'rgb(0 0 0 / 0.55)' } : {}),
         ...(lift === 1 ? {} : { borderWidth: lift, padding: `${lift}px ${2 * lift}px` }),
         transform:
           [
