@@ -4,7 +4,7 @@
  * `./mark/` and loads by `import()`, so the static compact path gains only this loader, the ✎
  * button, the mode fields and the page overlay slot (PRC-11's 320 KB gate). The chunk is
  * loads on intent (EDN-21), never on idle: at ✎ pointerdown (or tap), at the first text
- * selection (`selection-host.tsx`), and when the open document has form fields. The island
+ * selection (`selection-host.tsx`), and when a page with form fields comes near the view. The island
  * shows once it is here.
  */
 import { type ComponentType, useEffect, useSyncExternalStore } from 'react';
@@ -49,31 +49,66 @@ export function useMark(): Mark | null {
 }
 
 /**
- * Loads the chunk when `doc` has form fields (EDN-21): the fields mount in reading (MOB-1), so
- * their layer must be here. The probe asks the engine already open for the page renders; the
- * form store is not loaded for it, being part of the chunk.
+ * Loads the chunk when a page of `doc` that has form fields comes near the view (EDN-21): the
+ * fields mount in reading (MOB-1), so their layer must be here when the reader reaches them.
+ * The probe asks the engine already open, once per document, which pages have fields (the form
+ * store lives in the chunk); "near" is the reader's mounted window of pages, checked after the
+ * probe and whenever pages mount. A document without fields never loads it.
  */
 export function useLoadMarkForForms(doc: VirtualDocument): void {
-  const sources = [
-    ...new Set(doc.pages.flatMap((p) => (p.ref.kind === 'source' ? [p.ref.source] : []))),
-  ].join();
+  // The pages' sources, by position: the effect re-runs when these change, not on every edit.
+  const refs = doc.pages
+    .map((p) => (p.ref.kind === 'source' ? `${p.ref.source}:${p.ref.index}` : '-'))
+    .join();
   useEffect(() => {
-    if (loaded || sources === '') return;
+    if (loaded) return;
+    const pages = refs.split(',').map((ref) => {
+      const cut = ref.lastIndexOf(':');
+      return cut < 0
+        ? null
+        : { source: ref.slice(0, cut) as SourceId, index: Number(ref.slice(cut + 1)) };
+    });
     let live = true;
+    let stop: () => void = () => undefined;
     void (async () => {
       const editor = await getEngineService().editor();
-      for (const source of sources.split(',')) {
-        if (!live) return;
-        if ((await editor.listFormFields(source as SourceId)).length > 0) {
-          await loadMark();
-          return;
+      const withFields = new Map<SourceId, Set<number>>();
+      for (const page of pages) if (page) withFields.set(page.source, new Set());
+      for (const [source, indexes] of withFields) {
+        for (const field of await editor.listFormFields(source)) {
+          for (const w of field.widgets ?? [{ pageIndex: field.pageIndex }])
+            indexes.add(w.pageIndex);
         }
       }
+      const positions = pages.flatMap((page, position) =>
+        page && withFields.get(page.source)?.has(page.index) ? [position] : [],
+      );
+      if (!live || positions.length === 0) return;
+      let frame = 0;
+      const near = () =>
+        positions.some((p) => document.querySelector(`[data-page-index="${p}"]`) !== null);
+      const check = () => {
+        frame = 0;
+        if (!live || !near()) return;
+        stop();
+        void loadMark().catch(() => undefined);
+      };
+      const onMount = () => {
+        if (frame === 0) frame = requestAnimationFrame(check);
+      };
+      const observer = new MutationObserver(onMount);
+      observer.observe(document.body, { childList: true, subtree: true });
+      stop = () => {
+        observer.disconnect();
+        cancelAnimationFrame(frame);
+      };
+      check();
     })().catch(() => undefined);
     return () => {
       live = false;
+      stop();
     };
-  }, [sources]);
+  }, [refs]);
 }
 
 /**
