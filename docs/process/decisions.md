@@ -80,6 +80,7 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PF-19](decisions/product.md) | Read mode's whole-page bitmap is capped at 4 MP on every edition; tiles keep the visible page 1:1 | In force | 2026-10-22 |
 | [PF-21](decisions/product.md) | Sheets opened from menus load on first use behind a lazy host; commands and stores never import the sheet module | In force | 2026-10-22 |
 | [PF-22](decisions/product.md) | In WebKit page renders leave the worker as RGBA pixels and the main thread makes the bitmap (a transferred ImageBitmap can carry a later same-size tile's pixels); other engines keep the transferred bitmap | In force | 2026-10-22 |
+| [PF-23](decisions/product.md) | The phone size gate measures a read session (compactSession): baseline 533.6 KB gzip, 1 % growth cap; the static compact closure keeps only its 320 KB ceiling | In force | 2026-10-24 |
 
 ## Design
 
@@ -347,7 +348,7 @@ Full rows: [`decisions/process.md`](decisions/process.md).
 | [PRC-8](decisions/process.md) | Mechanical work on a lighter model | In force | 2026-10-09 |
 | [PRC-9](decisions/process.md) | Each deploy ends with an owner task script for the iPad | In force | 2026-10-09 |
 | [PRC-10](decisions/process.md) | Work moves to production without delay | In force | 2026-10-04 |
-| [PRC-11](decisions/process.md) | Bundle gates are not raised to fit a change | In force | 2026-10-10 |
+| [PRC-11](decisions/process.md) | Bundle gates are not raised to fit a change (the compact growth cap moved to compactSession, PF-23) | In force | 2026-10-10 |
 | [PRC-13](decisions/process.md) | The family | In force | 2026-10-10 |
 | [PRC-12](decisions/process.md) | Push a verified merge promptly | In force | 2026-10-10 |
 | [PRC-14](decisions/process.md) | Motion e2e tests read the animation's clock, not frames | In force | 2026-10-11 |
