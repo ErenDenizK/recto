@@ -54,21 +54,32 @@ export function openField(stop: ActiveField): void {
 }
 
 /**
- * Moves from `from` to the next (1) or previous (-1) fillable field, wrapping around.
- * Returns false when there is nowhere to go.
+ * Moves from `from` to the next (1) or previous (-1) fillable field. Tab does not wrap (spec
+ * document-tools §1, 05-canvas §19.5): past the first or last field it returns false and the
+ * browser's Tab goes on to the chrome. The stepper passes `wrap` to cycle.
  */
-export function moveField(from: ActiveField, direction: 1 | -1): boolean {
+export function moveField(
+  from: ActiveField,
+  direction: 1 | -1,
+  options: { readonly wrap?: boolean } = {},
+): boolean {
   const stops = activeStops();
   if (stops.length === 0) return false;
   const index = stops.findIndex((s) => sameStop(s, from));
-  const nextIndex =
-    index < 0
-      ? direction > 0
-        ? 0
-        : stops.length - 1
-      : (index + direction + stops.length) % stops.length;
+  let nextIndex: number;
+  if (index < 0) nextIndex = direction > 0 ? 0 : stops.length - 1;
+  else if (options.wrap) nextIndex = (index + direction + stops.length) % stops.length;
+  else nextIndex = index + direction;
   const next = stops[nextIndex];
   if (!next || (index >= 0 && nextIndex === index)) return false;
   openField({ ...next, selectAll: true });
   return true;
+}
+
+/** True when `moveField` would land on another field (no wrap). */
+export function canMoveField(from: ActiveField, direction: 1 | -1): boolean {
+  const stops = activeStops();
+  const index = stops.findIndex((s) => sameStop(s, from));
+  if (index < 0) return stops.length > 0;
+  return index + direction >= 0 && index + direction < stops.length;
 }

@@ -31,7 +31,13 @@ export interface PageOverlayProps {
   readonly visible: boolean;
 }
 
-export type PageOverlayComponent = ComponentType<PageOverlayProps>;
+export type PageOverlayComponent = ComponentType<PageOverlayProps> & {
+  /**
+   * Mounts after every other overlay, whatever the registration order, so Tab reaches the
+   * page's fields before its links (spec 05-canvas §19.5). Draw order is by z-index.
+   */
+  tabLast?: boolean;
+};
 
 let overlays: readonly PageOverlayComponent[] = [];
 const listeners = new Set<() => void>();
@@ -59,9 +65,10 @@ function snapshot(): readonly PageOverlayComponent[] {
 export function PageOverlays(props: PageOverlayProps) {
   const components = useSyncExternalStore(subscribe, snapshot, snapshot);
   if (components.length === 0) return null;
+  const ordered = [...components.filter((c) => !c.tabLast), ...components.filter((c) => c.tabLast)];
   return (
     <div className="page-overlays" data-page-overlays>
-      {components.map((Overlay, i) => (
+      {ordered.map((Overlay, i) => (
         <Overlay key={Overlay.displayName ?? Overlay.name ?? i} {...props} />
       ))}
     </div>
