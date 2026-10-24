@@ -289,13 +289,20 @@
   margin-inline: auto;
   padding: 4px;
   border-radius: var(--radius-capsule);
-  animation: find-rise var(--duration-base) var(--ease-out);
+  animation:
+    find-rise var(--spring-smooth) var(--ease-spring),
+    find-fade var(--duration-base) var(--ease-out);
 }
 
 @keyframes find-rise {
   from {
-    opacity: 0;
     transform: translateY(var(--rise-distance, 8px));
+  }
+}
+
+@keyframes find-fade {
+  from {
+    opacity: 0;
   }
 }
 
@@ -521,6 +528,17 @@
     [data-compact-chrome][data-hidden] {
     --hide-fade: 196ms;
     --hide-fade-delay: 123ms;
+  }
+}
+
+/*
+ * Engines without `linear()` (MOT-18) take the token's `cubic-bezier()` stand-in for the scroll's
+ * steps: the four curves above would otherwise leave the move on the default ease. The durations
+ * stay the steps' own.
+ */
+@supports not (transition-timing-function: linear(0, 1)) {
+  :global(:root[data-chrome-spring]:not([data-motion='reduced'])) [data-compact-chrome] {
+    --hide-ease: var(--ease-spring);
   }
 }
 

@@ -61,7 +61,8 @@
   transform: scale(var(--exit-scale));
   transition:
     opacity var(--duration-fast) var(--ease-exit),
-    transform var(--duration-fast) var(--ease-exit);
+    /* The exit's move is the spring curve over the quicker close (MC-16, MOT-18), not an ease. */
+    transform var(--duration-fast) var(--ease-spring);
 }
 
 .searchRow {
@@ -164,7 +165,9 @@
    with the entry fade; the rest come in with the sixth. Reduced motion: the fade alone. */
 .option[data-stagger],
 .groupLabel[data-stagger] {
-  animation: palette-row-in var(--duration-base) var(--ease-out) backwards;
+  animation:
+    palette-row-in var(--spring-smooth) var(--ease-spring) backwards,
+    palette-row-fade var(--duration-base) var(--ease-out) backwards;
   /* 20 ms a row: a third of --duration-instant, so the stagger goes with it under reduced
      motion (0). */
   animation-delay: calc(var(--row-index, 0) * var(--duration-instant) / 3);
@@ -172,8 +175,13 @@
 
 @keyframes palette-row-in {
   from {
-    opacity: 0;
     transform: translateY(var(--rise-distance));
+  }
+}
+
+@keyframes palette-row-fade {
+  from {
+    opacity: 0;
   }
 }
 
