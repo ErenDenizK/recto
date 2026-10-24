@@ -3,9 +3,9 @@
  * code-audit §2 Highlight, §4c): a long press selects words natively in the page's text layer
  * (`CompactTextLayer`); once the selection has settled and no finger is down, the compact
  * selection bar (`selection-bar.tsx`) shows above it. The bar is split again: it loads on the
- * first selection, and brings the edit chunk with it (EDN-21), never on the static compact path. Mounted
- * whenever the edit chunk is here (`CompactChrome`), reading and editing alike, since Highlight
- * and Copy work in both.
+ * first selection, and brings the edit chunk with it (EDN-21), never on the static compact path.
+ * Always mounted (`CompactChrome`), reading and editing alike, since Highlight and Copy work in
+ * both.
  *
  * The bar stays while it offers to undo a Highlight made while reading (`onKeep`), after the
  * selection that made it has gone. It never shows with the tool drawer open.

@@ -6,7 +6,7 @@ import { render, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getEngineService } from '../../engine/engine-service';
-import { prepareEditing, useLoadMarkForForms } from './mark-host';
+import { prepareEditing, useLoadFieldsForForms } from './mark-host';
 
 const chunk = vi.hoisted(() => ({ loads: 0 }));
 const list = vi.hoisted(() => vi.fn(() => Promise.resolve([] as unknown[])));
@@ -34,7 +34,7 @@ describe('the editing chunk loads on intent', () => {
   });
 
   it('does not load by itself, for a document without form fields', async () => {
-    render(<Probe useIt={useLoadMarkForForms} />);
+    render(<Probe useIt={useLoadFieldsForForms} />);
     await waitFor(() => expect(list).toHaveBeenCalled());
     await frame();
     await frame();

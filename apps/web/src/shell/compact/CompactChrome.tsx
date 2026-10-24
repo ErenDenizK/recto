@@ -74,7 +74,7 @@ import {
   prepareEditing,
   startEditing,
   takeCapsuleSnapshot,
-  useLoadMarkForForms,
+  useLoadFieldsForForms,
   useMark,
 } from './mark-host';
 import { openOverview } from './overview-host';
@@ -504,7 +504,7 @@ export function CompactCapsule({ doc }: { readonly doc: VirtualDocument }) {
   const mark = useMark();
   const island = editing && mark !== null;
   const capsuleRef = useRef<HTMLElement>(null);
-  useLoadMarkForForms(doc);
+  useLoadFieldsForForms(doc);
   // Reading and editing: the one capsule morphs between its contents (Q-6, README §2), from the
   // box it had before the swap (`snapshotCapsule`).
   useLayoutEffect(() => {
