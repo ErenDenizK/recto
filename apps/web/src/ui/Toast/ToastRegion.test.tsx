@@ -251,6 +251,18 @@ describe('Undo toasts', () => {
     expect(opened).toBe(1);
   });
 
+  it('never stacks two "Newer changes" toasts: the newest one stays (DSN-70)', () => {
+    setHistoryOpener(() => undefined);
+    useWorkspaceStore.getState().rotatePages([firstPage()], 90);
+    toast.undo('Rotated page 1');
+    useWorkspaceStore.getState().deletePages([firstPage()]);
+    toast.undo('Deleted page 1');
+    expect(shownTexts()).toEqual(['Newer changes came after this', 'Deleted page 1']);
+    useWorkspaceStore.getState().rotatePages([firstPage()], 90);
+    expect(shownTexts()).toEqual(['Newer changes came after this']);
+    setHistoryOpener(undefined);
+  });
+
   it('stays current when its own step grows by coalescing, and undoes the whole step (MOB-4)', async () => {
     const before = useWorkspaceStore.getState().history.past.length;
     const page = firstPage();
