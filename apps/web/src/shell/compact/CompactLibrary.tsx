@@ -29,7 +29,7 @@
  *
  * A file that did not open leaves one line saying why (`role="alert"`), under the sample.
  */
-import { lazy, Suspense, useState } from 'react';
+import { lazy, type ReactNode, Suspense, useState } from 'react';
 
 import { BrandMark } from '../../brand/BrandMark';
 import {
@@ -49,7 +49,6 @@ import { announce } from '../announcer';
 import { PRODUCT_NAME } from '../about/build-info';
 import { CompactSheets } from './CompactSheets';
 import { isOpenEntry, openRecentEntry, pickAndOpen, trySample } from './compact-actions';
-import { useContinueShown } from '../../home/continue-shown';
 import { openSheet, useCompactStore } from './compact-store';
 import controls from './controls.module.css';
 import styles from './CompactLibrary.module.css';
@@ -66,12 +65,34 @@ const TOOLS: readonly { readonly icon: IconName; readonly label: () => string }[
   { icon: 'signature', label: m.compact_tool_sign },
 ];
 
+/**
+ * The Library. Behind `?home=continue` it is `ContinuedLibrary` (DSN-66, EDN-10), a lazy chunk
+ * that adds the Continue card and the one-lime swap; without the flag the phone carries none of
+ * it, and the plain screen shows meanwhile.
+ */
+const ContinuedLibrary = lazy(() => import('./ContinuedLibrary'));
+
 export function CompactLibrary() {
+  const plain = <LibraryScreen continued={false} slot={null} />;
+  if (!homeFlagEnabled(HOME_CONTINUE_FLAG)) return plain;
+  return (
+    <Suspense fallback={plain}>
+      <ContinuedLibrary />
+    </Suspense>
+  );
+}
+
+/** `continued`: while Continue shows it holds the one lime and Open PDF is secondary (DSN-66). */
+export function LibraryScreen({
+  continued,
+  slot,
+}: {
+  readonly continued: boolean;
+  readonly slot: ReactNode;
+}) {
   const opening = useCompactStore((s) => s.opening);
   const openError = useCompactStore((s) => s.openError);
   const firstRun = useRecentsStore((s) => s.loaded && s.entries.length === 0);
-  // While Continue shows it holds the one lime and Open PDF is the secondary piece (DSN-66).
-  const continued = useContinueShown((s) => s.shown);
   return (
     <main
       className={styles.library}
@@ -95,7 +116,7 @@ export function CompactLibrary() {
         <Icon name="gear-six" />
       </button>
       <div className={styles.body}>
-        <ContinueSlot />
+        {slot}
         <div className={styles.intro}>
           <p className={styles.promise}>{m.compact_library_promise()}</p>
           <Tools />
@@ -106,7 +127,7 @@ export function CompactLibrary() {
             </p>
           ) : null}
         </div>
-        <Recents />
+        <Recents continued={continued} />
       </div>
       <div className={styles.dock}>
         <div className={styles.dockPiece} data-testid="compact-library-dock">
@@ -124,23 +145,6 @@ export function CompactLibrary() {
       </div>
       <CompactSheets />
     </main>
-  );
-}
-
-/** Continue, "Where you left off", loaded only behind `?home=continue` (DSN-66, EDN-10). */
-const ContinueCard = lazy(() => import('../../home/ContinueCard'));
-
-function ContinueSlot() {
-  if (!homeFlagEnabled(HOME_CONTINUE_FLAG)) return null;
-  return (
-    <Suspense fallback={null}>
-      <ContinueCard
-        variant="phone"
-        onResume={(id, point) =>
-          void import('./compact-resume').then((v) => v.resumeCompact(id, point))
-        }
-      />
-    </Suspense>
   );
 }
 
@@ -208,12 +212,11 @@ function ClearButton() {
  * card holds one quiet row of the list's shape in their place ("No files yet"), under the same
  * title and without Clear: one section, so the two states cannot drift apart.
  */
-function Recents() {
+function Recents({ continued }: { readonly continued: boolean }) {
   const entries = useRecentsStore((s) => s.entries);
   const loaded = useRecentsStore((s) => s.loaded);
   const access = useRecentsStore((s) => s.access);
   const note = useRecentsStore((s) => s.note);
-  const continued = useContinueShown((s) => s.shown);
   const locale = getLocale();
   // Relative times ("5 minutes ago") are read once per visit.
   const [now] = useState(() => Date.now());

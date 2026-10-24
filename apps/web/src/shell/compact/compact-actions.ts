@@ -242,10 +242,11 @@ async function openKept(
     // A document with changes is not the file as opened: its copy goes through the export.
     const { place } = result.record;
     // Behind `?home=continue` it opens at the zoom and offset it was left at (DSN-66).
-    const resume =
+    const resumed =
       place.resume !== undefined && homeFlagEnabled(HOME_CONTINUE_FLAG)
-        ? await import('./compact-resume').then((v) => v.keptResume(doc, place))
+        ? await import('./compact-resume')
         : undefined;
+    const resume = resumed?.keptResume(doc, place);
     set({
       openedDocument: isDocumentChanged(doc.id) ? null : doc,
       zoom: resume?.zoom ?? 1,
@@ -253,7 +254,7 @@ async function openKept(
       sheet: null,
     });
     showReader();
-    if (resume !== undefined) void import('./compact-resume').then((v) => v.settle(doc.id, resume));
+    if (resume !== undefined) resumed?.settle(doc.id, resume);
     announce(m.announce_opened({ name: result.record.title }));
     return 'opened';
   } finally {

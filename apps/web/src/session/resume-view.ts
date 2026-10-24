@@ -22,7 +22,7 @@ import type { DocumentId } from '@pdf-editor/document-model';
 import { type FitMode, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
-import { type ResumePoint, type ResumeDetail, setResume } from './resume';
+import { type ResumePoint, type ResumeDetail, setResume, useResumeStore } from './resume';
 
 // ---------------------------------------------------------------------------
 // Zoom, per edition
@@ -68,6 +68,14 @@ function offsetOf(page: number): number | undefined {
   return Math.round(el.getBoundingClientRect().top - target.getBoundingClientRect().top);
 }
 
+/** The zoom and offset kept for `id`, for the session snapshot (`DocumentPlace.resume`). */
+export function resumeDetailOf(id: DocumentId): ResumeDetail | undefined {
+  const point = useResumeStore.getState().points[id];
+  return point === undefined
+    ? undefined
+    : { zoom: point.zoom, fit: point.fit, offset: point.offset };
+}
+
 /** A restored or reopened document's place, from its snapshot (`DocumentPlace.resume`). */
 export function seedResume(
   id: DocumentId,
@@ -105,7 +113,11 @@ const CAPTURE_DELAY_MS = 220;
  * Keeps the points up to date while the app runs (started with the session). Returns the stop
  * function.
  */
-export function watchResume(): () => void {
+export function watchResume(onPoints: () => void): () => void {
+  // A changed point is a change to keep (`session.ts`).
+  const offPoints = useResumeStore.subscribe((state, previous) => {
+    if (state.points !== previous.points) onPoints();
+  });
   let timer = 0;
   const later = () => {
     window.clearTimeout(timer);
@@ -140,6 +152,7 @@ export function watchResume(): () => void {
     offView();
     offUi();
     offWorkspace();
+    offPoints();
   };
 }
 

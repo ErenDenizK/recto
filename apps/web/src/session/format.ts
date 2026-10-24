@@ -205,7 +205,6 @@ function readPlace(value: unknown, path: string): DocumentPlace {
  * damaged one is dropped and the rest of the place is kept: a hint must never cost the session.
  */
 function readResume(value: unknown, path: string): Pick<DocumentPlace, 'resume'> {
-  if (value === undefined) return {};
   try {
     const o = obj(value, path);
     return {
