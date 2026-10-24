@@ -84,6 +84,7 @@ export {
   type SpringPreset,
   settleTime,
   solve,
+  openSpring,
   springEasing,
   springs,
   springToLinear,

@@ -17,7 +17,7 @@ import type { PageId } from '@pdf-editor/document-model';
 
 import { m } from '../../../i18n';
 import { reducedMotion } from '../../../motion/reduced-motion';
-import { springToLinear } from '../../../motion/springs';
+import { springEasing } from '../../../motion/springs';
 import { announce } from '../../announcer';
 import { useCompactStore } from '../compact-store';
 import { type GridLayout, slotBox, TILE_GAP } from './overview-layout';
@@ -72,7 +72,7 @@ interface Press {
 /** A small press tick on the tile (a visual stand-in for a haptic). */
 function tick(tile: HTMLElement): void {
   if (reducedMotion() || typeof tile.animate !== 'function') return;
-  const curve = springToLinear('press');
+  const curve = springEasing('press');
   tile.animate([{ scale: '0.94' }, { scale: '1' }], {
     duration: curve.duration,
     easing: curve.easing,
