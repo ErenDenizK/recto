@@ -91,6 +91,20 @@ describe('the rows (F5 §5)', () => {
     }
   });
 
+  it('gives every dimmed row its reason (DSN-52): Interleave on a fresh single document; Revert stays quiet', () => {
+    const rows = () => shownTitleMenu(commandRegistry.list()).flatMap((s) => s.rows);
+    const row = (key: string) => rows().find((r) => r.key === key);
+    // Revert says nothing: the header card above already reads "No changes" (DSN-52).
+    expect(row('file.revert')).toMatchObject({ enabled: false, reason: undefined });
+    expect(row('section.interleave')).toMatchObject({
+      enabled: false,
+      reason: 'Needs a second open document',
+    });
+    for (const r of rows()) {
+      if (!r.enabled && r.key !== 'file.revert') expect(r.reason, r.key).toBeTruthy();
+    }
+  });
+
   it('shows each command once: Save and Close only in the narrow bar (DSN-47)', () => {
     const keys = (narrow: boolean) =>
       shownTitleMenu(commandRegistry.list(), { narrow }).flatMap((s) => s.rows.map((r) => r.key));
