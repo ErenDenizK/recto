@@ -21,15 +21,15 @@
  *   the audit's "118 KB" baseline; the stylesheets it links are printed beside it, not gated.
  * - `editor` (V1-P2): the closure of the `app` chunk (the editor, loaded before the first page),
  *   JS gzip.
- * - `compact`: the closure of the `CompactApp` chunk (the phone edition, ADR-0033), JS gzip.
+ * - `compact`: the closure of the `CompactApp` chunk (the phone edition, ADR-0033), JS gzip. Only
+ *   its absolute gate applies; the phone's growth cap is on `compactSession` (PF-23).
  * - `compactSession`: what a read-only phone session loads (docs/research/perf/compact-session-2026-10.md):
  *   the gzip of the main-frame scripts tools/qa/compact-session.ts recorded in a browser, sized
  *   here from `dist`. It fails when that file is missing, from another build or scenario version,
- *   or lacks a file of the static `compact` closure. Its growth cap waits for a baseline the
- *   owner signs off (PRC-11; only `--write-session-baseline` writes it, never `--write-baseline`);
- *   its absolute ceiling is active. Without a record a local run warns and skips it (CI fails).
- *   Until then it prints "baseline pending owner sign-off". The files
- *   after paint (outside the static closure) and the ungated "⋯ opened" scenario print under it.
+ *   or lacks a file of the static `compact` closure. It carries the phone's 1 % growth cap
+ *   over its baseline, which the owner signed off (PF-23; only `--write-session-baseline` writes
+ *   it, never `--write-baseline`), and its absolute ceiling. Without a record a local run warns
+ *   and skips it (CI fails). The files after paint (outside the static closure) and the ungated "⋯ opened" scenario print under it.
  * - `engineClient`: the closure of the `client` chunk, `@pdf-editor/engine/client` (PF-2): the
  *   engine code the main thread loads to open the first document (the worker proxies and pure
  *   helpers, never pdf-lib or EmbedPDF), JS gzip. The audit's ceiling is 120 KB.
@@ -227,16 +227,19 @@ function main(): void {
     const cap = base === undefined ? undefined : Math.floor(base * (1 + config.growthCap));
     const growth =
       base === undefined
-        ? name === 'compactSession'
-          ? ' (baseline pending owner sign-off; growth cap inactive)'
-          : ''
-        : ` (${signedPercent(value / base - 1)} vs baseline ${kb(base)})`;
+        ? ''
+        : name === 'compact'
+          ? ` (${signedPercent(value / base - 1)} vs baseline ${kb(base)}; not capped, PF-23)`
+          : ` (${signedPercent(value / base - 1)} vs baseline ${kb(base)})`;
     rows.push(
       `${MEASURE_LABELS[name].padEnd(38)} ${kb(value).padStart(10)}  gate ${kb(gate)}, ${fileCounts[name]} files${growth}`,
     );
     if (value > gate)
       problems.push(`${MEASURE_LABELS[name]}: ${kb(value)} is over the gate of ${kb(gate)}.`);
+    // PF-23: the phone's growth cap is on `compactSession`; the static `compact` closure keeps
+    // only its absolute gate.
     if (
+      name !== 'compact' &&
       !writeBaseline &&
       !(writeSessionBaseline && name === 'compactSession') &&
       cap !== undefined &&
