@@ -18,7 +18,7 @@ import type { DocumentId } from '@pdf-editor/document-model';
 
 import { commitOpenEditor } from '../annotations/InlineEditors';
 import { useAnnotationStore } from '../annotations/annotation-store';
-import { documentSources, useFormStore, widgetsOf } from '../forms/form-store';
+import { documentSources, type FieldStop, useFormStore, widgetsOf } from '../forms/form-store';
 import { activeStops } from '../forms/navigation';
 import { m } from '../i18n';
 import { announce } from '../shell/announcer';
@@ -91,6 +91,11 @@ async function revealFirstField(id: DocumentId): Promise<void> {
   if (stops.some((stop) => stop.position === current)) return;
   const stop = stops.find((s) => s.position > current) ?? stops[0];
   if (stop === undefined) return;
+  revealStop(stop);
+}
+
+/** Brings one field widget into view in the free rectangle (the page, and the widget's rect). */
+export function revealStop(stop: FieldStop): void {
   const rect = widgetsOf(stop.field)[stop.widget]?.rect;
   useViewStore
     .getState()

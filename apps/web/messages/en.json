@@ -4609,6 +4609,7 @@
   "markup_find_sensitive": "Find sensitive data…",
   "markup_fields": "Fields",
   "markup_field_position": "{n}/{total}",
+  "fillbar_field_position": "{n} / {total}",
   "markup_field_count": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -4624,6 +4625,9 @@
   "markup_field_next": "Next field",
   "markup_field_outlines": "Show field outlines",
   "markup_no_fields": "This file has no form fields",
+  "fillbar_no_fields": "No fields",
+  "fillbar_date": "Date",
+  "fillbar_date_tooltip": "Fill in today’s date, or click a page to place it",
   "dock_label": "Document tools",
   "dock_pages": "Pages",
   "dock_markup": "Markup",
