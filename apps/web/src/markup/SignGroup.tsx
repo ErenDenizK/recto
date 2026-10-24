@@ -28,7 +28,14 @@ import { activateTool } from '../annotations/commands';
 import { toolDefinition } from '../annotations/tools';
 import { commandRegistry } from '../commands/registry';
 import { FIELD_KINDS, kindName } from '../forms/create';
-import { documentSources, fieldStops, isFillable, useFormStore } from '../forms/form-store';
+import {
+  type ActiveField,
+  documentSources,
+  type FieldStop,
+  fieldStops,
+  isFillable,
+  useFormStore,
+} from '../forms/form-store';
 import { moveField } from '../forms/navigation';
 import { Odometer } from '../forms/Odometer';
 import { formatNumber, m } from '../i18n';
@@ -207,33 +214,57 @@ export function stepField(direction: 1 | -1): void {
   moveField(from, direction, { wrap: true });
 }
 
-export function FieldStepper() {
+/**
+ * The place of the focused field among `stops` (0-based), or -1 when none is focused (or the
+ * focused one is not a stop). The stepper's readout and the Fill & sign bar's (DSN-75) count
+ * from it.
+ */
+export function fieldIndex(stops: readonly FieldStop[], active: ActiveField | null): number {
+  if (active === null) return -1;
+  return stops.findIndex(
+    (s) =>
+      s.source === active.source &&
+      s.fieldId === active.fieldId &&
+      s.name === active.name &&
+      s.widget === active.widget &&
+      s.pageId === active.pageId,
+  );
+}
+
+/**
+ * The stepper. With `always` (the Fill & sign bar, DSN-75) a file without fields keeps it,
+ * its buttons disabled and `hint` in place of the readout; else it is absent without fields.
+ */
+export function FieldStepper({
+  always = false,
+  hint,
+}: {
+  readonly always?: boolean;
+  readonly hint?: string;
+}) {
   const stops = useFieldStops();
   const active = useFormStore((s) => s.active);
-  if (stops.length === 0) return null;
-  const index = active
-    ? stops.findIndex(
-        (s) =>
-          s.source === active.source &&
-          s.fieldId === active.fieldId &&
-          s.name === active.name &&
-          s.widget === active.widget &&
-          s.pageId === active.pageId,
-      )
-    : -1;
+  if (stops.length === 0 && !always) return null;
+  const none = stops.length === 0;
+  const index = fieldIndex(stops, active);
   const total = stops.length;
-  const readout =
-    index >= 0
+  const readout = none
+    ? (hint ?? m.markup_no_fields())
+    : index >= 0
       ? m.markup_field_position({ n: formatNumber(index + 1), total: formatNumber(total) })
       : m.markup_field_count({ count: total });
-  const name =
-    index >= 0
+  const name = none
+    ? m.markup_no_fields()
+    : index >= 0
       ? m.markup_field_named({
           n: formatNumber(index + 1),
           total: formatNumber(total),
           name: stops[index]?.name ?? '',
         })
       : m.markup_field_count({ count: total });
+  const step = (direction: 1 | -1) => () => {
+    if (!none) stepField(direction);
+  };
   return (
     <span
       role="group"
@@ -244,16 +275,22 @@ export function FieldStepper() {
       <PaletteButton
         label={m.markup_field_previous()}
         icon={<Icon name="caret-left" />}
-        onClick={() => stepField(-1)}
+        aria-disabled={none ? 'true' : undefined}
+        onClick={step(-1)}
         data-field-step="previous"
       />
-      <span className={styles.stepperReadout} aria-live="polite" aria-label={name}>
+      <span
+        className={none ? `${styles.stepperReadout} ${styles.stepperHint}` : styles.stepperReadout}
+        aria-live="polite"
+        aria-label={name}
+      >
         <Odometer text={readout} />
       </span>
       <PaletteButton
         label={m.markup_field_next()}
         icon={<Icon name="caret-right" />}
-        onClick={() => stepField(1)}
+        aria-disabled={none ? 'true' : undefined}
+        onClick={step(1)}
         data-field-step="next"
       />
     </span>

@@ -224,6 +224,11 @@
   white-space: nowrap;
 }
 
+/* The Fill & sign bar's stepper on a file without fields (DSN-75): the hint, quieter. */
+.stepperHint {
+  color: var(--text-secondary);
+}
+
 /* --- Saved-signature chips (MK-12) ------------------------------------------------------ */
 
 .chips {

@@ -40,23 +40,12 @@
  */
 import { Menu } from '@base-ui/react/menu';
 import { Popover } from '@base-ui/react/popover';
-import {
-  type KeyboardEvent,
-  lazy,
-  type ReactNode,
-  Suspense,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react';
+import { lazy, type ReactNode, Suspense, useLayoutEffect, useRef, useState } from 'react';
 
 import { useAnnotationStore } from '../annotations/annotation-store';
 import {
   activateTool,
   armBuiltinStamp,
-  clearAnnotationTools,
-  hasAnnotationToolState,
   hasToolEditor,
   pickImageStamp,
 } from '../annotations/commands';
@@ -66,11 +55,10 @@ import { isHighlighter, PRESET_INDICES } from '../annotations/pen/presets';
 import { BUILTIN_STAMPS } from '../annotations/stamps';
 import { StyleControls } from '../annotations/StyleControls';
 import { toolDefinition } from '../annotations/tools';
-import { isEditableTarget } from '../commands/use-shortcuts';
 import { m } from '../i18n';
 import { useLocale } from '../i18n/use-locale';
 import { useSizeClass } from '../shell/frame/size-class';
-import { isMarkupOpenActive, useUiStore } from '../state/ui-store';
+import { useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { Icon } from '../ui/Icon';
 import { centredRoom, snapToWholePixels } from '../ui/whole-pixels';
@@ -80,9 +68,11 @@ import { useCoarsePointer } from '../ui/Slider';
 import { isShapeMode, SHAPE_MODES, type ToolMode, useToolStore } from '../viewer/tool-store';
 import { abovePalette } from './anchor';
 import { ChoiceTool } from './ChoiceTool';
-import { closeMarkupDoor } from './doors';
+import { fillBarShows } from './fill-bar-flag';
+import { DoneButton, FillSignBar } from './FillSignBar';
 import { useStripKind } from './InkStrip';
 import { MoreTools } from './MoreTools';
+import { paletteEscape, usePageEscape } from './palette-escape';
 import { foldPalette, type FoldResult, type FoldStep } from './palette-fold';
 import {
   FOLD_STEPS,
@@ -316,19 +306,7 @@ function PaletteItemView({
   const named = paletteVariant() === 'labels' && labelledHere(item) && !bare.has(item);
   switch (item) {
     case 'done':
-      return (
-        <PaletteButton
-          item={item}
-          label={m.markup_done()}
-          tooltip={m.markup_done_tooltip()}
-          icon={<Icon name="check" />}
-          showLabel={!bare.has(item)}
-          className={styles.done}
-          aria-description={m.markup_done_description()}
-          data-markup-done=""
-          onClick={() => closeMarkupDoor()}
-        />
-      );
+      return <DoneButton item={item} showLabel={!bare.has(item)} />;
     case 'select':
       return <SimpleTool mode="select" item={item} showLabel={named} />;
     case 'pens': {
@@ -513,6 +491,8 @@ export function usePaletteStrip(): StripContent | null {
   const kind = useStripKind();
   const signatures = useSignatures();
   const { state } = useRowState(door);
+  // The Fill & sign bar (DSN-75) carries the saved signatures itself.
+  if (fillBarShows(door)) return null;
   if (kind !== null) return kind;
   const chips =
     door === 'sign' &&
@@ -522,24 +502,20 @@ export function usePaletteStrip(): StripContent | null {
   return chips ? 'chips' : null;
 }
 
-/**
- * The Esc ladder inside the palette and its strip (§5): Esc disarms to Select, then closes
- * Markup. Keys React carries from portals (the editors, menus) are theirs.
- */
-export function paletteEscape(event: KeyboardEvent<HTMLElement>): void {
-  if (event.key !== 'Escape' || event.defaultPrevented) return;
-  if (!(event.target instanceof Node) || !event.currentTarget.contains(event.target)) return;
-  event.preventDefault();
-  event.stopPropagation();
-  if (hasAnnotationToolState()) clearAnnotationTools();
-  else closeMarkupDoor();
-}
-
 /** The labels that bloom (DSN-71): its code loads only with `?labels=1`, for the larger frames. */
 const PaletteBloom = lazy(() => import('./PaletteBloom'));
 
-/** The palette's row: what the capsule's content slot holds (module header). */
+/**
+ * What the capsule's palette slot holds: the shared palette's row, or, with `?fillbar=1` on the
+ * Fill & sign door, the Fill & sign bar (`FillSignBar.tsx`, DSN-75).
+ */
 export function MarkupPaletteContent() {
+  const door = usePaletteDoor();
+  return fillBarShows(door) ? <FillSignBar /> : <PaletteRowContent />;
+}
+
+/** The palette's row: what the capsule's content slot holds (module header). */
+function PaletteRowContent() {
   const rowRef = useRef<HTMLDivElement>(null);
   // The capsule rests at this content's size, centred in the dock: its width rounds so the
   // palette's glass rests on whole pixels (Q-2; it sat at x 190.88, V2 review item 16).
@@ -565,27 +541,7 @@ export function MarkupPaletteContent() {
     '[data-tool][aria-pressed="true"], [data-pen-preset][aria-pressed="true"]',
     `${mode}|${activePen}`,
   );
-  // The ladder's last step from the page (§5): with nothing armed or selected (the window's
-  // Escape disarmed it on the press before), Esc closes Markup and focus stays on the page. In
-  // the bubble phase on the document, so a widget that takes Esc (an editor, a menu, the
-  // lasso, a dialog) claims it first, and before the window's shortcut listener.
-  useEffect(() => {
-    const onKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) return;
-      const target = event.target;
-      if (isEditableTarget(target)) return;
-      if (target instanceof Element && target.closest('[aria-modal="true"], [role="dialog"]')) {
-        return;
-      }
-      if (target instanceof Element && target.closest('[data-markup-palette]')) return;
-      if (hasAnnotationToolState() || !isMarkupOpenActive()) return;
-      const selection = window.getSelection();
-      if (selection && !selection.isCollapsed) return;
-      closeMarkupDoor();
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, []);
+  usePageEscape();
 
   return (
     <div

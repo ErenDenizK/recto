@@ -101,6 +101,8 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:edit-policy:v1',
       // The session's ?edition override (sessionStorage, shell/frame/edition.ts).
       'pdf-editor:edition:v1',
+      // The Fill & sign bar flag, ?fillbar=1|0 (markup/fill-bar-flag.ts, DSN-75).
+      'pdf-editor:fillbar:v1',
       // Not stored: the window event an applied undo or redo fires (history/history-applied.ts).
       'pdf-editor:history-applied',
       // The Library's Continue flag, ?home=continue|0 (home/home-flags.ts, DSN-66).

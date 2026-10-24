@@ -32,7 +32,7 @@ import { reducedMotion } from '../motion/reduced-motion';
 import { duration, EASE } from '../motion/tokens';
 import { snapToWholePixels } from '../ui/whole-pixels';
 import { InkStrip, type StripKind } from './InkStrip';
-import { paletteEscape } from './MarkupPalette';
+import { paletteEscape } from './palette-escape';
 import { SignatureChips } from './SignGroup';
 import styles from './StripPiece.module.css';
 

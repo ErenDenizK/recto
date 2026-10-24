@@ -163,6 +163,7 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-64](decisions/design.md) | Opening in light: no Read page is ever bare white (cached bitmap, else a soft quarter-scale render, else paper tone); behind `?open=light` a card's sheet grows on `glide` and the light pulses once per session | In force; flag | 2026-10-23 |
 | [DSN-67](decisions/design.md) | The save receipt: Save a copy's sizes show at once (approximate, then exact); behind `?receipt=1` the changed pages, size bars, the page's flight to the tab and the "never left this device" toast | Size fix in force; receipt behind `?receipt=1` | 2026-10-23 |
 | [DSN-74](decisions/design.md) | Turkish copy rules: *siz* in sentences, bare imperatives on controls, past passives in history; *karart* means redaction only (Dim pages is "Sayfa parlaklığını azalt"); ’ before suffixes on names and abbreviations | In force | 2026-10-23 |
+| [DSN-75](decisions/design.md) | Fill & sign gets its own short bar (field stepping, Signature, Date, Done) behind `?fillbar=1`, replacing the shared palette on that door when on | Prototype; owner taste open | 2026-10-24 |
 
 ## Motion
 
