@@ -24,7 +24,7 @@ import {
 } from './file-filters';
 import { isOfficeFile, OFFICE_ACCEPT, OFFICE_PICKER_TYPES } from '../office/office-files';
 import { IMAGE_ACCEPT, isImageFile } from './images';
-import { isTextFile, TEXT_ACCEPT, TEXT_PICKER_TYPES } from './text-files';
+import { isTextFile, MARKDOWN_PICKER_TYPES, PLAIN_PICKER_TYPES, TEXT_ACCEPT } from './text-files';
 
 export const PDF_ACCEPT = 'application/pdf,.pdf';
 
@@ -82,7 +82,7 @@ function isAbort(error: unknown): boolean {
 
 /**
  * Asks for files of a kind: 'pdf', 'images' (PNG, JPEG, WebP), 'openable' (both) or 'text'
- * (.txt, which become PDFs: `text-files.ts`).
+ * (.txt and .md, which become PDFs: `text-files.ts`).
  * Resolves to an empty array when the user cancels. Needs a user gesture.
  *
  * `office` also offers Word, Excel and PowerPoint files (ADR-0035 §6, behind its flag): the
@@ -116,7 +116,7 @@ export async function pickFiles(
           : kind === 'images'
             ? IMAGE_PICKER_TYPES
             : kind === 'text'
-              ? TEXT_PICKER_TYPES
+              ? PLAIN_PICKER_TYPES
               : { 'application/pdf': ['.pdf'], ...IMAGE_PICKER_TYPES };
       const handles = await picker.call(window, {
         multiple: true,
@@ -141,7 +141,10 @@ export async function pickFiles(
           ...(office
             ? [{ description: m.office_picker_types(), accept: OFFICE_PICKER_TYPES }]
             : []),
-          ...(text ? [{ description: m.file_picker_text(), accept: TEXT_PICKER_TYPES }] : []),
+          ...(text ? [{ description: m.file_picker_text(), accept: PLAIN_PICKER_TYPES }] : []),
+          ...(text || kind === 'text'
+            ? [{ description: m.file_picker_markdown(), accept: MARKDOWN_PICKER_TYPES }]
+            : []),
         ],
       });
       const files = await Promise.all(

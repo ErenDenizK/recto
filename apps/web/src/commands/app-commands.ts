@@ -215,8 +215,11 @@ export async function openFilesFromPicker(): Promise<void> {
   if (active && ui().destination !== 'home') focusOpenedPage(active, before);
 }
 
-/** "Text to PDF…": the file dialog on .txt, then the same open path as a dropped text file. */
-export async function textToPdfFromPicker(): Promise<void> {
+/**
+ * "Text to PDF…" and "Markdown to PDF…": the file dialog on .txt and .md, then the same open
+ * path as a dropped text file.
+ */
+export async function convertTextFromPicker(): Promise<void> {
   // Where the focus was: the opened document's pages take it if it has not moved since.
   const before = document.activeElement;
   const files = await pickFiles('text');
@@ -406,7 +409,14 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       title: m.cmd_text_to_pdf(),
       group: m.group_file(),
       act: null,
-      run: textToPdfFromPicker,
+      run: convertTextFromPicker,
+    }),
+    registry.register({
+      id: 'file.markdownToPdf',
+      title: m.cmd_markdown_to_pdf(),
+      group: m.group_file(),
+      act: null,
+      run: convertTextFromPicker,
     }),
     registry.register({
       id: 'file.clearRecents',
