@@ -26,6 +26,14 @@
   box-shadow: var(--page-shadow);
 }
 
+/* Paper, not stark white, only while the bitmap is still to come (DSN-64: nothing yet, a soft
+   thumbnail); a rendered sheet keeps its exact colour. */
+.page:not([data-resized]):has(
+  canvas[data-layer='page']:is([data-state='placeholder'], [data-soft])
+) {
+  background: var(--page-paper);
+}
+
 /* Layers registered through stage/page-overlays.tsx sit over the canvas. */
 .page :global(.page-overlays),
 .page :global(.page-overlays) > * {

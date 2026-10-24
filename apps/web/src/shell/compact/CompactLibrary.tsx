@@ -290,7 +290,7 @@ function RecentRow({
         aria-current={reading || undefined}
         data-reading={reading || undefined}
         // No await before the reopen: a permission prompt needs this tap's activation.
-        onClick={() => void openRecentEntry(entry)}
+        onClick={(event) => void openRecentEntry(entry, event.currentTarget)}
       >
         <span className={styles.recentGlyph} aria-hidden="true">
           <Icon name="file-text" />

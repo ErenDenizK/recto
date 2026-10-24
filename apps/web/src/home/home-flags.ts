@@ -1,7 +1,7 @@
 /**
- * The Library's two flags, read like the Office flag (`office/flag.ts`): `?open=page` (Epic 3,
+ * The Library's flags, read like the Office flag (`office/flag.ts`): `?open=page` (Epic 3,
  * 3a: opening one file from the Library goes to its page, until board question 1 is answered)
- * and `?home=search` (3d: Recents search and sort, until the design director has seen it).
+ * `?open=light` (R26 concept 2, DSN-64) and `?home=search` (3d: Recents search and sort, until the design director has seen it).
  * Each flag has its own word; `?open=0` and `?home=0` turn it off again. The choice is kept in
  * `localStorage`; when storage is unavailable it lasts as long as the address carries it.
  */
@@ -15,6 +15,12 @@ export const OPEN_PAGE_FLAG: HomeFlag = {
   param: 'open',
   on: 'page',
   key: 'pdf-editor:open-page:v1',
+};
+/** R26 concept 2, DSN-64: the open moment (`library-transition.ts` `openInLight`). */
+export const OPEN_LIGHT_FLAG: HomeFlag = {
+  param: 'open',
+  on: 'light',
+  key: 'pdf-editor:open-light:v1',
 };
 export const HOME_SEARCH_FLAG: HomeFlag = {
   param: 'home',
