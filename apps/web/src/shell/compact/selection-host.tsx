@@ -3,7 +3,7 @@
  * code-audit §2 Highlight, §4c): a long press selects words natively in the page's text layer
  * (`CompactTextLayer`); once the selection has settled and no finger is down, the compact
  * selection bar (`selection-bar.tsx`) shows above it. The bar is split again: it loads on the
- * first selection, never on the static compact path nor with the edit chunk itself. Mounted
+ * first selection, and brings the edit chunk with it (EDN-21), never on the static compact path. Mounted
  * whenever the edit chunk is here (`CompactChrome`), reading and editing alike, since Highlight
  * and Copy work in both.
  *
@@ -12,10 +12,16 @@
  */
 import { lazy, Suspense, useEffect, useState, useSyncExternalStore } from 'react';
 
-import { TEXT_LAYER_ATTR } from '../../../viewer/text-model';
-import { useCompactStore } from '../compact-store';
+import { TEXT_LAYER_ATTR } from '../../viewer/text-model';
+import { useCompactStore } from './compact-store';
+import { loadMark } from './mark-host';
 
-const SelectionBar = lazy(() => import('./selection-bar'));
+// The bar's actions enter editing through the chunk's island, so the first selection brings it
+// too (EDN-21).
+const SelectionBar = lazy(() => {
+  void loadMark().catch(() => undefined);
+  return import('./mark/selection-bar');
+});
 
 /** The selection must hold this long without change before the bar shows, ms. */
 export const SELECTION_SETTLE_MS = 250;
