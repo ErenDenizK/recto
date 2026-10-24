@@ -14,7 +14,7 @@
  * real, and `interactive-widget=resizes-content`, so the keyboard shrinks the layout instead
  * of covering Find), without touching `index.html`, which the full edition keeps as it is.
  */
-import { useEffect, useLayoutEffect } from 'react';
+import { lazy, Suspense, useEffect, useLayoutEffect, useState } from 'react';
 
 import { getEngineService } from '../../engine/engine-service';
 import { loadRecents } from '../../files/recents';
@@ -27,9 +27,8 @@ import { watchSessionNotice } from '../../session/session-toast';
 import { useAppearanceRoot, useAppearanceStore } from '../../state/appearance-store';
 import { requestPassword } from '../../state/password-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
-import { installScrollThumbs } from '../../ui/scroll-thumbs';
-import { ToastRegion } from '../../ui/Toast/ToastRegion';
-import { clearLinksForSource } from '../../viewer/LinkLayer';
+import { useToastStore } from '../../ui/Toast/toast-store';
+import { clearLinksForSource } from '../../viewer/link-cache';
 import { FIND_MAP } from '../../viewer/find-map-flag';
 import { installCopyHandler } from '../../viewer/text-spans';
 import { LiveRegion } from '../LiveRegion';
@@ -38,6 +37,11 @@ import { CompactLibrary } from './CompactLibrary';
 import { CompactReader } from './CompactReader';
 import { openPdf, shareOrDownload } from './compact-actions';
 import { capsuleAway, showLibrary, showReader, useCompactStore } from './compact-store';
+
+/** The toast region loads with the first toast: most sessions never show one (PRC-11). */
+const ToastRegion = lazy(() =>
+  import('../../ui/Toast/ToastRegion').then((module) => ({ default: module.ToastRegion })),
+);
 
 const VIEWPORT =
   'width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content';
@@ -60,7 +64,18 @@ function applyViewport(): () => void {
 export function CompactApp() {
   useLayoutEffect(() => applyViewport(), []);
   // The app's one scroll bar over every scroller, the phone's lists and sheets too (GLS-26).
-  useLayoutEffect(() => installScrollThumbs(), []);
+  // It loads after the first paint (bundle budget, PRC-11), as the page's links do.
+  useEffect(() => {
+    let installed: (() => void) | undefined;
+    let cancelled = false;
+    void import('../../ui/scroll-thumbs').then(({ installScrollThumbs }) => {
+      if (!cancelled) installed = installScrollThumbs();
+    });
+    return () => {
+      cancelled = true;
+      installed?.();
+    };
+  }, []);
   // The find map's rail: Find's hit ticks on the reader's edge (R26, DSN-65; `?findmap=1`).
   useEffect(() => {
     if (FIND_MAP) void import('../../viewer/search-ticks');
@@ -132,7 +147,15 @@ function CompactToasts() {
     (s) => s.place === 'reader' && capsuleAway(s) && s.overview === 'closed',
   );
   const covered = useCompactStore((s) => s.scrimSheets > 0);
-  return <ToastRegion edition="compact" band={away ? 'away' : 'shown'} covered={covered} />;
+  const shown = useToastStore((s) => s.shown.length > 0);
+  const [wanted, setWanted] = useState(false);
+  if (shown && !wanted) setWanted(true);
+  if (!wanted) return null;
+  return (
+    <Suspense fallback={null}>
+      <ToastRegion edition="compact" band={away ? 'away' : 'shown'} covered={covered} />
+    </Suspense>
+  );
 }
 
 function CompactRoot() {

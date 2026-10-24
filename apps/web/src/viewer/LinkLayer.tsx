@@ -15,11 +15,9 @@
  * link is not followed.
  */
 import { Popover } from '@base-ui/react/popover';
-import type { SourceId } from '@pdf-editor/document-model';
-import type { Annotation, LinkAnnotation } from '@pdf-editor/engine';
+import type { LinkAnnotation } from '@pdf-editor/engine';
 import { type PointerEvent as ReactPointerEvent, useEffect, useState } from 'react';
 
-import { getEngineService } from '../engine/engine-service';
 import { m } from '../i18n';
 import { openableUrl } from '../shell/OutlinePanel.tree';
 import type { PageOverlayProps } from '../stage/page-overlays';
@@ -33,9 +31,8 @@ import { userRectToCss } from './geometry';
 import { isLive, linkDragSelects } from './hit-order';
 import { usePageInput } from './input-state';
 import styles from './LinkLayer.module.css';
+import { pageLinks } from './link-cache';
 import { pageFrame } from './page-frame';
-
-const MAX_CACHED_PAGES = 300;
 
 /**
  * Hover marks a link only once the pointer has moved over it (DSN-3: nothing looks selected on
@@ -50,38 +47,6 @@ export const hoverMark = {
     delete event.currentTarget.dataset.hover;
   },
 };
-const links = new Map<string, Promise<readonly LinkAnnotation[]>>();
-
-function isLink(annotation: Annotation): annotation is LinkAnnotation {
-  return annotation.kind === 'link';
-}
-
-/** Link annotations of a source page (memoized; failures are not kept). */
-export function pageLinks(sourceId: SourceId, index: number): Promise<readonly LinkAnnotation[]> {
-  const key = `${sourceId}:${index}`;
-  const cached = links.get(key);
-  if (cached) return cached;
-  const pending = getEngineService()
-    .editor()
-    .then((editor) => editor.listAnnotations(sourceId, index))
-    .then((annotations) => annotations.filter(isLink));
-  pending.catch(() => links.delete(key));
-  links.set(key, pending);
-  if (links.size > MAX_CACHED_PAGES) {
-    const oldest = links.keys().next().value;
-    if (oldest !== undefined) links.delete(oldest);
-  }
-  return pending;
-}
-
-/** Forgets the cached links of a source (call when it closes; its ids are never reused). */
-export function clearLinksForSource(sourceId: SourceId): void {
-  const prefix = `${sourceId}:`;
-  for (const key of [...links.keys()]) {
-    if (key.startsWith(prefix)) links.delete(key);
-  }
-}
-
 export function LinkLayer(props: PageOverlayProps) {
   const { sourceId, sourceIndex, pageIndex } = props;
   const near = useViewStore((s) => distanceFromView(pageIndex, s.visibleRange) <= 1);

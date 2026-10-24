@@ -66,7 +66,7 @@ import { getEngineService } from '../engine/engine-service';
 import { m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { useWorkspaceStore } from '../state/workspace-store';
-import { clearLinksForSource } from '../viewer/LinkLayer';
+import { clearLinksForSource } from '../viewer/link-cache';
 import { isRedactMark, type RedactMark } from './marks';
 import { markKeyOf, useRedactionStore } from './redaction-store';
 import { textUnderQuads } from './text-index';

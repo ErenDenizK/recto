@@ -8,7 +8,7 @@ import { getEngineService } from '../engine/engine-service';
 import { registerPageOverlay } from '../stage/page-overlays';
 import { isPageView, useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
-import { clearLinksForSource } from '../viewer/LinkLayer';
+import { clearLinksForSource } from '../viewer/link-cache';
 import { useToolStore } from '../viewer/tool-store';
 import { AnnotationLayer } from './AnnotationLayer';
 import { useAnnotationStore } from './annotation-store';

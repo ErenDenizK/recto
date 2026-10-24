@@ -10,6 +10,8 @@ import { userEvent } from 'vitest/browser';
 
 import simpleUrl from '../../../../../test/fixtures/simple-text.pdf?url';
 import { resetWorkspace } from '../../state/workspace-store';
+import { toast } from '../../ui/Toast/toast';
+import { resetToasts } from '../../ui/Toast/toast-store';
 import {
   decideEdition,
   launchEdition,
@@ -62,6 +64,16 @@ describe('CompactApp', () => {
     expect(screen.getByText('Every tool on a computer or tablet.')).toBeVisible();
     expect(screen.getByTestId('compact-tools')).toBeVisible();
     expect(screen.queryByTestId('app-shell')).toBeNull();
+  });
+
+  it('loads the toast region with the first toast, not before', async () => {
+    resetToasts();
+    const region = () => document.querySelector('[data-region="toasts"]');
+    render(<CompactApp />);
+    expect(region()).toBeNull();
+    toast.info('Copied');
+    await waitFor(() => expect(region()).not.toBeNull(), { timeout: 15_000 });
+    resetToasts();
   });
 
   it('opens a file read-only, and the Library lists it first', async () => {

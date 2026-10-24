@@ -3,7 +3,7 @@ import type { PdfEditor } from '@pdf-editor/engine';
 import { describe, expect, it, vi } from 'vitest';
 
 import { getEngineService } from '../engine/engine-service';
-import { clearLinksForSource, pageLinks } from './LinkLayer';
+import { clearLinksForSource, pageLinks } from './link-cache';
 
 describe('link cache', () => {
   it('memoizes per source page and forgets a closed source', async () => {

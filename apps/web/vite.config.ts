@@ -175,6 +175,21 @@ function editionGroups(): (
         result.set(id, 'editions');
       }
     }
+    // What the compact edition imports on demand (the toast region, the link layer) and the full
+    // edition reaches by static imports: one shared chunk. The default would scatter it over
+    // several small chunks, each costing the editor its framing and one merging with the
+    // editor's facade (PRC-11).
+    for (const id of own.compact) {
+      if (own.full.has(id)) continue;
+      for (const target of dynamics.get(id) ?? []) {
+        for (const lazy of reach(target, null, false)) {
+          const shared = own.full.has(lazy) && !own.compact.has(lazy);
+          if (shared && !first.has(lazy) && !targets.has(lazy) && !result.has(lazy)) {
+            result.set(lazy, 'editions-lazy');
+          }
+        }
+      }
+    }
     return result;
   };
 

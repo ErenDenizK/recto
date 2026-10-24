@@ -20,6 +20,7 @@ import {
   type VirtualPage,
   type Workspace,
 } from '@pdf-editor/document-model';
+import { lazy, Suspense } from 'react';
 
 import { READ_BITMAP_PIXELS, RENDER_PRIORITY } from '../../engine/engine-service';
 import { m } from '../../i18n';
@@ -28,7 +29,6 @@ import { rotationPhrase } from '../../pages/page-geometry';
 import { needsTiles, TiledPage } from '../../pages/TiledPage';
 import type { PageOverlayProps } from '../../stage/page-overlays';
 import { contentFrame, ResizedContent } from '../../stage/ResizedContent';
-import { LinkLayer } from '../../viewer/LinkLayer';
 import { pageFrame } from '../../viewer/page-frame';
 import { SearchHighlights } from '../../viewer/SearchHighlights';
 import { useCompactStore } from './compact-store';
@@ -37,6 +37,14 @@ import { CompactTextLayer } from './CompactTextLayer';
 import styles from './CompactReader.module.css';
 import { NoteLayer } from './NoteLayer';
 import type { PageBox } from './reader-layout';
+
+/**
+ * The link hotspots load on demand: they draw only once the page's links are listed, and their
+ * popover and tooltip are the heaviest of the reading layers (bundle budget, PRC-11).
+ */
+const LinkLayer = lazy(() =>
+  import('../../viewer/LinkLayer').then((module) => ({ default: module.LinkLayer })),
+);
 
 /** Debounce before a zoom change asks for sharper bitmaps (as Read mode). */
 const ZOOM_RENDER_DELAY_MS = 160;
@@ -136,7 +144,9 @@ export function CompactPage({
       <div className="page-overlays" data-page-overlays>
         <CompactTextLayer {...overlay} />
         <SearchHighlights {...overlay} />
-        <LinkLayer {...overlay} />
+        <Suspense fallback={null}>
+          <LinkLayer {...overlay} />
+        </Suspense>
         <NoteLayer {...overlay} />
         {layers.map(({ Layer, reading }, i) =>
           editing || reading ? (
