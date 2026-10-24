@@ -4638,7 +4638,7 @@
   "dock_more_commands": "All commands…",
   "dock_tools": "Tools",
   "tools_redact_hint": "Black out text and areas for good",
-  "tools_ocr_hint": "Make a scan searchable (OCR)",
+  "tools_ocr_hint": "Make a scan searchable",
   "tools_compare_hint": "See what changed between two files",
   "tools_combine_hint": "Join files into one",
   "tools_split_hint": "Cut the document into parts",
