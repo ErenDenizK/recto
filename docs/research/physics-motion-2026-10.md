@@ -222,6 +222,41 @@ Budgets of wave 1 (`tools/qa/bundle-budget.ts`, no baseline written): first pain
 286.5 → 287.0 KB, first-paint CSS 9.0 KB unchanged.
 
 
+## 4b. Wave 2 evidence
+
+Recorded on the production build (`RECTO_RENDER_OVERRIDE=1`) in Playwright Chromium 1194
+(SwiftShader), per animation frame in the page, three runs per build; before is `origin/develop`
+(wave 1 + #89), after is wave 2.
+
+| Scenario | Measure | Before → after |
+|---|---|---|
+| Document menu opened from its button, 1440 × 900 (first open of a session) | rests past its place by | 0 px (0 %) → 1.7 px of a 62.8 px move (2.7 %; MOT-19's preset is 2.8 %), back at rest after ≈ 200 ms |
+| Phone sheet (Settings) closed while it rises, 390 × 844 | sheet velocity around the turn (px/s, per frame) | −4099 → **+2890** → +4037 (a corner: the CSS reversal enters the new curve part-way along) → −4099 → −141 → +660 → +1140 → +1384 (a curve) |
+| same | position through the turn (px) | 618 → 666 → 733 (falls 48 px in the first frame) → 618 → 616 → 627 → 646 (carries 2 px on, then turns) |
+
+Reading them:
+
+- **The CSS reversal cannot keep a speed.** The first attempt wrote the release's `linear()` close
+  curve with the speed it had as the transition's curve; the trace did not change at all, because a
+  reversing transition enters its new timing function at the reversing-adjusted start, not at 0.
+  The turn is therefore taken from the transition by a spring on Web Animations (`turnClose()`),
+  as the capsule, drawer and desktop sheets already do. The cap is the release's: 3 distances/s
+  away from the closed side, so the speed is carried but not all of it (4100 px/s becomes 2400).
+- **MOT-19's overshoot is the preset's** (ζ 0.75, 2.8 % of the move), calm because a menu moves
+  60 px; the width of a menu popup overshoots 0.4 % with its scale.
+- The first open of a session is the run that shows the move in full; later opens in the same page
+  are only the 11 px rise the menu already sits within.
+
+Bundle (`tools/qa/bundle-budget.ts`, same machine, develop build vs wave 2): first paint JS 74.2 →
+74.2 KB gzip, editor initial 777.9 → 778.0 KB (+0.1 KB, cap +1.5 KB), compact 287.3 → 287.3 KB, first-paint CSS
+9.0 KB unchanged.
+
+Tests: `src/motion`, capsule, compact, ui, stage, styles and frame unit tests (the new ones are
+`openSpring` and the sheet turn); `capsule.spec`, `sheets.spec`, `glass-perf.spec`, `menus.spec`
+and `motion.spec` on Chromium. Two unit failures are not wave 2's: `section-operations.test.tsx`
+("splits every N pages…") fails the same on `origin/develop`, and `shift.test.ts` ("a second
+shift mid-flight…") fails in multi-file runs on `origin/develop` too and passes alone.
+
 ## 5. What did not change
 
 The seven tokens' values, every duration in `motion.css` §1, reduced motion's blocks, the View

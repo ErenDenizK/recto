@@ -129,8 +129,9 @@ describe('capsule', () => {
     expect(style.backdropFilter).toContain('blur(6px)');
     expect(width()).toBeCloseTo(DOCK, 0);
     expect(el.getAttribute('data-region')).toBe('toolbar');
-    // No role of its own: the content names itself.
-    expect(el.getAttribute('role')).toBeNull();
+    // A named region landmark (axe "region"); the content inside keeps its own toolbar role.
+    expect(el.getAttribute('role')).toBe('region');
+    expect(el.getAttribute('aria-label')).toBeTruthy();
   });
 
   it('morphs its own width on a spring, keeps its node and filter, and rests with nothing inline', async () => {

@@ -179,7 +179,7 @@ export function registerAppearanceCommands(registry: CommandRegistry): () => voi
           'reading',
           'page',
           'toggle',
-          'karart',
+          'azalt',
           'parlaklık',
           'koyu',
           'gece',

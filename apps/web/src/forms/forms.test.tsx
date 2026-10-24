@@ -236,6 +236,22 @@ describe('form layer', () => {
     expect(await screen.findByRole('textbox', { name: 'name' })).toHaveFocus();
   });
 
+  it('Shift+Tab from the first field does not wrap or trap (document-tools §1)', async () => {
+    const { source, pages } = await openFile(await fixtureFile(formsAUrl, 'forms-a.pdf'));
+    render(<FormLayer {...overlayProps(source, pages, 0, { width: 612, height: 792 })} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'name' }));
+    const editor = await screen.findByRole('textbox', { name: 'name' });
+    const event = new KeyboardEvent('keydown', {
+      key: 'Tab',
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    editor.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+    expect(useFormStore.getState().active).toBeNull();
+  });
+
   it('is inert with a drawing tool', async () => {
     const { source, pages } = await openFile(await fixtureFile(formsAUrl, 'forms-a.pdf'));
     const { container } = render(
