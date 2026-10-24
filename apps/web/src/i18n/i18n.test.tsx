@@ -99,7 +99,7 @@ describe('Language command', () => {
     await userEvent.keyboard('{Enter}');
     expect(
       await screen.findByRole('heading', {
-        name: 'PDF’leri okuyun, işaretleyin, imzalayın ve düzenleyin.',
+        name: 'PDF’leri okuyun, işaretleyin, imzalayın ve sayfalarını düzenleyin.',
       }),
     ).toBeVisible();
     expect(screen.getByText('Hiçbir şey bu cihazdan çıkmaz.')).toBeVisible();

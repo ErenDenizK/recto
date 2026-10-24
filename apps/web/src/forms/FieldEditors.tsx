@@ -33,7 +33,7 @@ import type { Box, PageFrame } from '../viewer/geometry';
 import { commitFieldValue, type FieldValue, fieldLabel } from './actions';
 import { type ActiveField, useFormStore } from './form-store';
 import styles from './FormLayer.module.css';
-import { moveField } from './navigation';
+import { canMoveField, moveField } from './navigation';
 
 interface EditorProps {
   readonly field: FormField;
@@ -125,12 +125,18 @@ function useEditorKeys(
       event.stopPropagation();
       revert();
     } else if (event.key === 'Tab') {
+      const direction = event.shiftKey ? -1 : 1;
+      if (!onMove && !canMoveField(here, direction)) {
+        // First or last field: commit, close the editor and let the browser's Tab go on.
+        commit();
+        useFormStore.getState().setActive(null);
+        return;
+      }
       event.preventDefault();
       event.stopPropagation();
       commit();
-      const direction = event.shiftKey ? -1 : 1;
       if (onMove) onMove(direction);
-      else if (!moveField(here, direction)) useFormStore.getState().setActive(null);
+      else moveField(here, direction);
     } else if (event.key === 'Enter' && (!allowEnter || event.metaKey || event.ctrlKey)) {
       event.preventDefault();
       event.stopPropagation();

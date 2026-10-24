@@ -346,6 +346,7 @@ export default function SettingsSheet() {
           className={styles.scroller}
           viewportClassName={styles.viewport}
           viewportRef={scrollRef}
+          label={m.settings_title()}
         >
           {page ? (
             PAGES[page]()

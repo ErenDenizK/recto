@@ -6,8 +6,10 @@
  * the menu recipe (M4); guard: none, nothing here changes a document.
  */
 import { Menu } from '@base-ui/react/menu';
+import { useRef } from 'react';
 
 import { commandRegistry } from '../commands/registry';
+import { openSettings } from '../settings/open-settings';
 import { PRODUCT_NAME } from '../shell/about/build-info';
 import { usePointerCapabilities } from '../shell/frame/input-modality';
 import { m } from '../i18n';
@@ -19,7 +21,7 @@ import { Tooltip } from '../ui/Tooltip';
 interface Item {
   readonly id: string;
   readonly label: () => string;
-  readonly run: () => void;
+  readonly run: (trigger: HTMLElement | null) => void;
   /** Shown only with a fine pointer (Keyboard shortcuts, 02.18). */
   readonly fineOnly?: boolean;
 }
@@ -28,7 +30,8 @@ const ITEMS: readonly Item[] = [
   {
     id: 'settings',
     label: m.settings_command,
-    run: () => void commandRegistry.execute('settings.open'),
+    // Focus returns to the ⋯ trigger when Settings closes (the menu has closed by then).
+    run: (trigger) => openSettings(undefined, { returnTo: trigger }),
   },
   {
     id: 'shortcuts',
@@ -45,11 +48,13 @@ const ITEMS: readonly Item[] = [
 
 export function LibraryMenu({ className }: { readonly className?: string | undefined }) {
   const pointers = usePointerCapabilities();
+  const trigger = useRef<HTMLButtonElement>(null);
   const fine = pointers.primary === 'fine' || pointers.anyFine;
   return (
     <Menu.Root>
       <Tooltip label={m.library_more()}>
         <Menu.Trigger
+          ref={trigger}
           className={[iconButtonStyles.button, className].filter(Boolean).join(' ')}
           data-size="bar"
           aria-label={m.library_more()}
@@ -66,7 +71,7 @@ export function LibraryMenu({ className }: { readonly className?: string | undef
                 key={item.id}
                 className={menuStyles.item}
                 data-testid={`library-menu-${item.id}`}
-                onClick={item.run}
+                onClick={() => item.run(trigger.current)}
               >
                 <span className={menuStyles.label}>{item.label()}</span>
               </Menu.Item>

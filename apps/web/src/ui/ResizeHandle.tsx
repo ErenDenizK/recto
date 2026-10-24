@@ -5,6 +5,7 @@
 /* eslint-disable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */
 import { type KeyboardEvent, type PointerEvent, useRef } from 'react';
 
+import { m } from '../i18n';
 import styles from './ResizeHandle.module.css';
 
 interface ResizeHandleProps {
@@ -88,6 +89,7 @@ export function ResizeHandle({
       aria-label={label}
       aria-controls={controls}
       aria-valuenow={value}
+      aria-valuetext={m.nav_resize_value({ value })}
       aria-valuemin={min}
       aria-valuemax={max}
       tabIndex={0}
