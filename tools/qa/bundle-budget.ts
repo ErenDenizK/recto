@@ -119,7 +119,7 @@ const LAB_MARKER = 'recto-lab-build';
 function main(): void {
   const args = process.argv.slice(2);
   const writeSessionBaseline = args.includes('--write-session-baseline');
-  const writeBaseline = args.includes('--write-baseline') || writeSessionBaseline;
+  const writeBaseline = args.includes('--write-baseline');
   const distArg = args.find((arg) => !arg.startsWith('--'));
   const dist = resolve(ROOT, distArg ?? 'apps/web/dist');
   if (!existsSync(join(dist, 'index.html'))) {
@@ -236,7 +236,12 @@ function main(): void {
     );
     if (value > gate)
       problems.push(`${MEASURE_LABELS[name]}: ${kb(value)} is over the gate of ${kb(gate)}.`);
-    if (!writeBaseline && cap !== undefined && value > cap) {
+    if (
+      !writeBaseline &&
+      !(writeSessionBaseline && name === 'compactSession') &&
+      cap !== undefined &&
+      value > cap
+    ) {
       problems.push(
         `${MEASURE_LABELS[name]}: ${kb(value)} grew more than ${config.growthCap * 100} % over the baseline ` +
           `${kb(base as number)}. Shrink it, or record a growth the owner accepted with --write-baseline.`,
@@ -302,10 +307,11 @@ function main(): void {
     console.log(`\n${label}, largest chunks:`);
     console.log(describeClosure(measured, assets, sizeOf, modules).join('\n'));
   }
-  if (writeBaseline) {
-    // PRC-11: the session baseline is the owner's sign-off, so only its own flag writes it.
+  if (writeBaseline || writeSessionBaseline) {
+    // PRC-11: the session baseline is the owner's sign-off. `--write-baseline` leaves it alone and
+    // `--write-session-baseline` writes it alone, leaving every other baseline and check as is.
     const { compactSession, ...rest } = measures;
-    const baseline = { ...config.baseline, ...rest };
+    const baseline = { ...config.baseline, ...(writeBaseline ? rest : {}) };
     if (writeSessionBaseline && compactSession !== undefined)
       baseline.compactSession = compactSession;
     const next: BudgetConfig = { ...config, baseline };

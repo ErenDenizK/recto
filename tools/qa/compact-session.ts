@@ -198,7 +198,9 @@ async function main(): Promise<void> {
     const once = [...union].filter((name) => runs.some((run) => !run.has(name))).sort();
     if (once.length > 0) console.log(`Seen by only one run: ${once.join(', ')}`);
     const files = mainFrameOnly(assets, union);
-    const opened = moreOpened?.filter((name) => !union.has(name)).sort() ?? null;
+    const opened = moreOpened
+      ? mainFrameOnly(assets, new Set(moreOpened.filter((name) => !union.has(name))))
+      : null;
     mkdirSync(join(OUT, '..'), { recursive: true });
     writeFileSync(
       OUT,
