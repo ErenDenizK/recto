@@ -22,6 +22,8 @@ import { type CDPSession, expect, type Locator, type Page, test } from '@playwri
 
 import { sampleEntry } from './sample-manifest';
 
+import { motionDone } from './helpers';
+
 /** The form page of the phone cut, 0-based (the same in both languages). */
 const FORM_INDEX = sampleEntry('en', 'phone').formPage - 1;
 /** The fill bar's stops: one a widget, so the fee's two radios are two. */
@@ -32,7 +34,7 @@ const SHOTS = process.env.CAPTURE_SCREENSHOTS;
 async function shot(page: Page, name: string, settle = 500): Promise<void> {
   if (!SHOTS) return;
   const size = page.viewportSize();
-  if (settle > 0) await page.waitForTimeout(settle);
+  if (settle > 0) await motionDone(page);
   const scheme = await page.evaluate(() => document.documentElement.dataset.theme ?? 'dark');
   const lang = await page.evaluate(() => document.documentElement.lang || 'en');
   await page.screenshot({
@@ -224,7 +226,7 @@ test.describe('form filling on phones (MOB-1)', () => {
     await bringToThird(page, 'agree');
     const at = await centreOf(target(page, 'agree'));
     await tap(cdp, at);
-    await page.waitForTimeout(300);
+    await motionDone(page);
     await expect(target(page, 'agree')).toHaveAttribute('aria-checked', 'false');
     // The chip off (Select): the field fills again.
     await page.getByTestId('compact-tool-chip').click();
