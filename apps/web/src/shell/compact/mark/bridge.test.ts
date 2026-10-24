@@ -25,6 +25,7 @@ import {
   toggleTool,
   toolOff,
 } from './bridge';
+import { registerCompactTool } from './registry';
 import './tools';
 
 const compact = () => useCompactStore.getState();
@@ -75,9 +76,18 @@ describe('the editing bridge', () => {
   });
 
   it('a soon tool does not arm; a stub arms Select or its mode', () => {
+    const drop = registerCompactTool({
+      id: 'edit-text',
+      glyph: 'edit-text',
+      label: () => 'Soon',
+      place: 'tile',
+      order: 50,
+      soon: true,
+    });
     enterEditing();
     armTool('pen');
     armTool('edit-text');
+    drop();
     expect(compact().tool).toBe('pen');
     armTool('text');
     expect(mode()).toBe('text-box');

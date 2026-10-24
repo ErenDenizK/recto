@@ -9,7 +9,9 @@ import { getEngineService } from '../../engine/engine-service';
 import { useLoadMarkForForms } from './mark-host';
 
 const chunk = vi.hoisted(() => ({ loads: 0 }));
-const engine = vi.hoisted(() => ({ fields: [{ name: 'a', pageIndex: 1 }] as unknown[] }));
+const list = vi.hoisted(() =>
+  vi.fn(() => Promise.resolve([{ name: 'a', pageIndex: 1 }] as unknown[])),
+);
 
 vi.mock('./mark', () => {
   chunk.loads += 1;
@@ -20,6 +22,8 @@ const doc = {
   pages: [0, 1].map((index) => ({ ref: { kind: 'source', source: 'src-1', index } })),
 } as unknown as VirtualDocument;
 
+const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+
 function Probe({ useIt }: { readonly useIt: (d: VirtualDocument) => void }) {
   useIt(doc);
   return null;
@@ -27,16 +31,18 @@ function Probe({ useIt }: { readonly useIt: (d: VirtualDocument) => void }) {
 
 describe('the editing chunk loads for form fields', () => {
   beforeEach(() => {
-    vi.spyOn(getEngineService(), 'editor').mockResolvedValue({
-      listFormFields: () => Promise.resolve(engine.fields),
-    } as never);
+    vi.spyOn(getEngineService(), 'ensureOpen').mockResolvedValue({ ok: true, value: undefined });
+    vi.spyOn(getEngineService(), 'editor').mockResolvedValue({ listFormFields: list } as never);
   });
 
   it('waits for the field page to mount, then loads once', async () => {
     const stage = document.body.appendChild(document.createElement('div'));
+    stage.setAttribute('data-read-viewport', '');
     stage.innerHTML = '<div data-page-index="0"></div>';
     render(<Probe useIt={useLoadMarkForForms} />);
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    await waitFor(() => expect(list).toHaveBeenCalled());
+    await frame();
+    await frame();
     expect(chunk.loads).toBe(0);
     stage.insertAdjacentHTML('beforeend', '<div data-page-index="1"></div>');
     await waitFor(() => expect(chunk.loads).toBe(1));

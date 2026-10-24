@@ -2,10 +2,10 @@
  * The door to phone editing's lazy chunk (`design/phone-2026-10/README.md` §7;
  * `research/phone-2026-10/code-audit.md` §4): everything that edits on a phone lives in
  * `./mark/` and loads by `import()`, so the static compact path gains only this loader, the ✎
- * button, the mode fields and the page overlay slot (PRC-11's 320 KB gate). The chunk is
- * loads on intent (EDN-21), never on idle: at ✎ pointerdown (or tap), at the first text
- * selection (`selection-host.tsx`), and when a page with form fields comes near the view. The island
- * shows once it is here.
+ * button, the mode fields and the page overlay slot (PRC-11's 320 KB gate). The chunk loads on
+ * intent (EDN-21), never on idle: at ✎ pointerdown (or tap), at the first text selection
+ * (`selection-host.tsx`), and when a page with form fields comes near the view. The island shows
+ * once it is here.
  */
 import { type ComponentType, useEffect, useSyncExternalStore } from 'react';
 
@@ -71,10 +71,12 @@ export function useLoadMarkForForms(doc: VirtualDocument): void {
     let live = true;
     let stop: () => void = () => undefined;
     void (async () => {
-      const editor = await getEngineService().editor();
+      const engine = getEngineService();
+      const editor = await engine.editor();
       const withFields = new Map<SourceId, Set<number>>();
       for (const page of pages) if (page) withFields.set(page.source, new Set());
       for (const [source, indexes] of withFields) {
+        await engine.ensureOpen(source);
         for (const field of await editor.listFormFields(source)) {
           for (const w of field.widgets ?? [{ pageIndex: field.pageIndex }])
             indexes.add(w.pageIndex);
@@ -86,7 +88,9 @@ export function useLoadMarkForForms(doc: VirtualDocument): void {
       if (!live || positions.length === 0) return;
       let frame = 0;
       const near = () =>
-        positions.some((p) => document.querySelector(`[data-page-index="${p}"]`) !== null);
+        positions.some(
+          (p) => document.querySelector(`[data-read-viewport] [data-page-index="${p}"]`) !== null,
+        );
       const check = () => {
         frame = 0;
         if (!live || !near()) return;
@@ -103,7 +107,10 @@ export function useLoadMarkForForms(doc: VirtualDocument): void {
         cancelAnimationFrame(frame);
       };
       check();
-    })().catch(() => undefined);
+    })().catch(() => {
+      // A failed probe must not hide the fields: load for the page (EDN-21).
+      if (live) void loadMark().catch(() => undefined);
+    });
     return () => {
       live = false;
       stop();
