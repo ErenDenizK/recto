@@ -123,7 +123,7 @@ Arc (stepped near-black surfaces, a 1 px top highlight and a hairline ring on me
 ## 6. After M6
 
 Build `develop` @ `c18dea5`, same setup (Chromium with SwiftShader, 1440×900, reduced
-motion, English). The frames are in [`screenshots/`](screenshots/) and are rewritten by the
+motion, English). The frames are in [`screenshots/`](../../design/screenshots/) and are rewritten by the
 end-to-end specs with `CAPTURE_SCREENSHOTS=1`; V1's before/after pairs of the visual
 refresh are in [`audit-2026-10/`](audit-2026-10/V1-RESULTS.md). The accessibility pass
 (A11) and the independent review (R) were still running when this was written.
