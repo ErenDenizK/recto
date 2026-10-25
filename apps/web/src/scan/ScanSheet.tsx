@@ -446,11 +446,7 @@ export function ScanSheet() {
                 quad={selected.quad}
                 onChange={(quad) => setQuad(selected.id, quad)}
               />
-              <Button
-                variant="prominent"
-                data-testid="scan-adjust-done"
-                onClick={() => setView('review')}
-              >
+              <Button data-testid="scan-adjust-done" onClick={() => setView('review')}>
                 {m.scan_adjust_done()}
               </Button>
             </div>

@@ -4,19 +4,30 @@
  * The outline is found and goes solid, Auto captures once and waits for the page to leave, and
  * one automatic and two manual captures are reordered and made into one new document with three pages.
  */
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
 import { chromiumLaunchOptions } from '../../../tooling/playwright-chromium.ts';
-import { scanPageY4m } from '../../../tools/fixtures/scan-y4m.ts';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Fake camera files are Chromium-only');
 
 const feed = join(mkdtempSync(join(tmpdir(), 'recto-scan-')), 'page.y4m');
-writeFileSync(feed, scanPageY4m());
+// The generator is a script of its own (tools/fixtures), run with Node's own type stripping.
+execFileSync(
+  process.execPath,
+  [
+    '--experimental-strip-types',
+    '--no-warnings=ExperimentalWarning',
+    fileURLToPath(new URL('../../../tools/fixtures/scan-y4m.ts', import.meta.url)),
+    feed,
+  ],
+  { stdio: 'inherit' },
+);
 
 test.use({
   viewport: { width: 1440, height: 900 },
