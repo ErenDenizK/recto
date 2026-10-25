@@ -90,9 +90,9 @@ describe('dock', () => {
     resetLockStore();
   });
 
-  it('rests as Pages · Markup · Fill & sign · More in one toolbar, labels beside, 40 px', async () => {
+  it('rests as Pages · Markup · Fill & sign · Tools · More in one toolbar, labels beside, 40 px', async () => {
     await mount();
-    expect(names()).toEqual(['Pages', 'Markup', 'Fill & sign', 'More']);
+    expect(names()).toEqual(['Pages', 'Markup', 'Fill & sign', 'Tools', 'More']);
     expect(dock()).toHaveAttribute('data-labels', 'beside');
     // One piece high (--piece-h, G1).
     expect(capsule().getBoundingClientRect().height).toBeCloseTo(40, 0);

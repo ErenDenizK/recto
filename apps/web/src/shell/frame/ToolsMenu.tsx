@@ -1,5 +1,5 @@
 /**
- * The dock's Tools entry (R28 tools-visibility prototype, DSN-76; flag `tools-flag.ts`): the
+ * The dock's Tools entry (R28 tools-visibility, DSN-76, in force): the
  * document power tools the README sells, as a menu above the dock. Each row is a doorway to the
  * command the title menu already runs (DSN-46: a second appearance needs a reason, recorded in
  * DSN-76), so `commandRegistry.execute(id)` is the whole act and a row dims with the command's
