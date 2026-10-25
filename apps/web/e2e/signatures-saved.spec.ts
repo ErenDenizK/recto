@@ -145,9 +145,10 @@ test('J8A: five presses the first time, three with a saved signature after a rel
   await expect(sheet).toBeHidden();
   await expect(layer(page)).toHaveAttribute('data-tool', 'signature');
   // DSN-77: a short hint says where the next click goes.
-  await expect(
-    page.getByText('Click or drag on a page to place the signature').first(),
-  ).toBeVisible();
+  const hint = page
+    .locator('[data-region="toasts"]')
+    .getByText('Click or drag on a page to place the signature');
+  await expect(hint).toBeVisible();
   if (process.env.CAPTURE_SCREENSHOTS) {
     await page.screenshot({
       path: `${process.env.CAPTURE_SCREENSHOTS}/signature-hint-1440x900.png`,
@@ -155,6 +156,8 @@ test('J8A: five presses the first time, three with a saved signature after a rel
   }
   await first.run(() => placeOnPage(page, 0.3, 0.38));
   await expect(stamps).toHaveCount(1, { timeout: 10_000 });
+  // Placed: the hint has done its job.
+  await expect(hint).toBeHidden();
   expect(first.count).toBe(5);
 
   // Kept on this device: after a reload the signature is one press from armed.

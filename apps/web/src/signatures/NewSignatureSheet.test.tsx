@@ -15,6 +15,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
+import { useToolStore } from '../viewer/tool-store';
 import { useAnnotationStore } from '../annotations/annotation-store';
 import { closeSheet, useSheetStore } from '../ui/sheet';
 import { hasToast } from '../ui/Toast';
@@ -41,6 +42,8 @@ vi.mock('../viewer/input-state', async (original: () => Promise<Record<string, u
 beforeEach(async () => {
   useSheetStore.setState({ open: null, front: null, confirm: null, drafts: {} });
   useAnnotationStore.getState().setAuthor('');
+  useAnnotationStore.getState().setPendingStamp(null);
+  useToolStore.getState().setMode('select');
   resetToasts();
   setSignatureBackend(memorySignatureBackend());
   await page.viewport(1440, 900);
@@ -189,6 +192,9 @@ describe('New signature', () => {
     await waitFor(() => expect(useSheetStore.getState().open).toBeNull(), { timeout: 5000 });
     await waitFor(() => expect(useAnnotationStore.getState().pendingStamp).not.toBeNull());
     expect(hasToast('signature-place')).toBe(true);
+    // Cancelling the arm (the tool leaves Signature) takes the hint down.
+    act(() => useToolStore.getState().setMode('select'));
+    expect(hasToast('signature-place')).toBe(false);
   });
 
   it('at five kept, says the oldest goes, and it does', async () => {

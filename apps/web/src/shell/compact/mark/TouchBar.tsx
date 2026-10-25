@@ -9,8 +9,8 @@
  * Installed in place of `AnnotationBar` through `annotations/selection-chrome.ts`.
  *
  * The pill keeps off the page's form fields (DSN-77): it takes the side of the selection, above
- * or below, where it covers no field target (the 44 px boxes the field layer taps), or the side
- * that covers the least, so a signature placed beside a field never hides it (the sample's
+ * or below, where it covers no field target (the 44 px boxes the field layer taps) and no check
+ * box or radio label, or the side that covers the least (a field before a label), so a signature placed beside a field never hides it (the sample's
  * agreement page).
  */
 import { deleteAnnotations } from '../../../annotations/actions';
@@ -29,6 +29,8 @@ import styles from './TouchBar.module.css';
 const BAR_HEIGHT = 56;
 /** Its width before it is laid out, for centring: the Delete pill. */
 const BAR_WIDTH = 120;
+/** A covered field box weighs this many times a covered label of the same area. */
+const FIELD_WEIGHT = 1000;
 /** The gap between the bar and the selection: clear of the handles' hit squares (38 px out). */
 const GAP = 40;
 
@@ -40,17 +42,20 @@ function overlap(a: Box, b: Box): number {
 }
 
 /**
- * The bar's top edge: the first of `candidates` (best first) that covers no field box, else the
- * one that covers the least (DSN-77). With no fields it is the first.
+ * The bar's top edge: the first of `candidates` (best first) that covers no field box and no
+ * label, else the one that covers the least (DSN-77). A covered field box counts far more than a
+ * covered label, so the bar hides a label before it hides a field. With neither it is the first.
  */
 export function clearOfFields(
   candidates: readonly number[],
   x: number,
   fields: readonly Box[],
+  labels: readonly Box[] = [],
 ): number {
   const covered = (y: number) => {
     const bar = { left: x - BAR_WIDTH / 2, top: y, width: BAR_WIDTH, height: BAR_HEIGHT };
-    return fields.reduce((sum, f) => sum + overlap(bar, f), 0);
+    const area = (boxes: readonly Box[]) => boxes.reduce((sum, b) => sum + overlap(bar, b), 0);
+    return area(fields) * FIELD_WEIGHT + area(labels);
   };
   let best = candidates[0] as number;
   let least = covered(best);
@@ -60,6 +65,30 @@ export function clearOfFields(
     if (area < least) [best, least] = [y, area];
   }
   return best;
+}
+
+/**
+ * The bar's top edges to try, best first: above the selection, then below it, each only where
+ * the whole bar stays on the page. When neither side fits, the above edge clamped onto the page.
+ */
+export function barSides(top: number, bottom: number, pageHeight: number): number[] {
+  const aboveY = top - BAR_HEIGHT - GAP;
+  const belowY = bottom + GAP;
+  const sides: number[] = [];
+  if (aboveY >= 0) sides.push(aboveY);
+  if (belowY + BAR_HEIGHT <= pageHeight) sides.push(belowY);
+  if (sides.length > 0) return sides;
+  return [Math.max(0, Math.min(aboveY, pageHeight - BAR_HEIGHT))];
+}
+
+/**
+ * Where a check box or radio's label sits for the bar: across the page to the right of its box
+ * (the sample's consent line), so the bar keeps off the label too. Other fields have none.
+ */
+export function labelStrip(kind: string, box: Box, pageWidth: number): Box | null {
+  if (kind !== 'checkbox' && kind !== 'radio') return null;
+  const left = box.left + box.width;
+  return pageWidth > left ? { ...box, left, width: pageWidth - left } : null;
 }
 
 export function TouchBar({ target, annotations, frame }: SelectionBarProps) {
@@ -74,21 +103,23 @@ export function TouchBar({ target, annotations, frame }: SelectionBarProps) {
     left = Math.min(left, box.left);
     right = Math.max(right, box.left + box.width);
   }
-  const pageWidth =
-    (frame.rotation === 90 || frame.rotation === 270 ? frame.size.height : frame.size.width) *
-    frame.scale;
-  const above = top - BAR_HEIGHT - GAP >= 0;
+  const turned = frame.rotation === 90 || frame.rotation === 270;
+  const pageWidth = (turned ? frame.size.height : frame.size.width) * frame.scale;
+  const pageHeight = (turned ? frame.size.width : frame.size.height) * frame.scale;
   const x = Math.min(Math.max((left + right) / 2, BAR_WIDTH / 2), pageWidth - BAR_WIDTH / 2);
   const fields: Box[] = [];
+  const labels: Box[] = [];
   for (const field of useSourceFields(target.source)) {
     for (const w of widgetsOf(field)) {
-      if (w.pageIndex === target.pageIndex) fields.push(growTarget(userRectToCss(frame, w.rect)));
+      if (w.pageIndex !== target.pageIndex) continue;
+      const box = growTarget(userRectToCss(frame, w.rect));
+      fields.push(box);
+      const label = labelStrip(field.kind, box, pageWidth);
+      if (label) labels.push(label);
     }
   }
-  const aboveY = top - BAR_HEIGHT - GAP;
-  const belowY = bottom + GAP;
-  const y = clearOfFields(above ? [aboveY, belowY] : [belowY], x, fields);
-  const side = y === belowY ? 'below' : 'above';
+  const y = clearOfFields(barSides(top, bottom, pageHeight), x, fields, labels);
+  const side = y > top ? 'below' : 'above';
   const locked = annotations.every((a) => a.flags?.locked);
   const first = annotations[0];
   const name =
