@@ -129,6 +129,7 @@ import {
   clearAnnotationString,
   pdfDate,
   setAnnotationAppearance,
+  updateAnnotationInPlace,
   withAnnotation,
 } from './host/annot-appearance';
 import type { RawAccess, RawAccessOptions } from './host/hosted-engine';
@@ -1123,8 +1124,10 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
    * Updates an annotation to `annotation` (the full new state; its id and kind select it).
    * For quad, path and vertex kinds the geometry is authoritative; when only `rect`
    * changed, the geometry is moved and scaled with it (a move or resize of the box).
-   * Changes EmbedPDF cannot apply in place (fewer quads, any stamp change) delete and
-   * recreate the annotation with the same /NM (it moves to the top of the z-order).
+   * A stamp keeps its appearance: with raw access only its /Rect, strings and flags are
+   * written (`updateAnnotationInPlace`). Changes EmbedPDF cannot apply in place (fewer quads,
+   * a new stamp image or name, a stamp without raw access) delete and recreate the annotation
+   * with the same /NM (it moves to the top of the z-order).
    */
   async updateAnnotation(
     id: SourceId,
@@ -1151,8 +1154,34 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
     if (next.kind === 'stamp' && next.imageBlob === undefined && !renamed) {
       // EmbedPDF updates a stamp in place by rebuilding its appearance from the annotation's
       // page objects, which no longer hold the image once the appearance is wrapped: a moved,
-      // resized or restyled image stamp (a placed signature) would draw nothing. Its current
-      // appearance is carried over instead, through the recreate below.
+      // resized or restyled image stamp (a placed signature) would draw nothing (fresh-25oct
+      // finding 1). With raw access its /Rect, strings and flags are written instead, and the
+      // appearance stream and its place in /Annots stay as they are.
+      const rawTask = this.rawTask;
+      if (rawTask) {
+        const stamp = next;
+        const strings: Record<string, string> = {};
+        if ((stamp.contents ?? '') !== (before?.contents ?? '')) {
+          strings.Contents = stamp.contents ?? '';
+        }
+        if (stamp.author !== undefined && stamp.author !== before?.author) {
+          strings.T = stamp.author;
+        }
+        await rawTask(
+          id,
+          (raw) =>
+            updateAnnotationInPlace(raw, stamp.pageIndex, annotation.id, {
+              rect: stamp.rect,
+              strings,
+              ...(stamp.flags ? { flags: stamp.flags } : {}),
+            }),
+          options.signal ? { signal: options.signal } : {},
+        );
+        this.remember(id, stamp, annotation.id);
+        return this.reread(id, annotation.pageIndex, annotation.id, stamp, options);
+      }
+      // Without raw access the current appearance is carried over through the recreate below
+      // (each pass wraps it once more, so this is for adapters that edit a stamp a few times).
       const appearance = await this.run(
         engine.exportAnnotationAppearanceAsPdf(doc, page, existing),
         options,

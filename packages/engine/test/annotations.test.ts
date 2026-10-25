@@ -13,6 +13,7 @@ import rotatedUrl from '../../../test/fixtures/rotated-pages.pdf?url';
 import annotationsUrl from '../../../test/fixtures/annotations.pdf?url';
 import { checkAnnotationConformance } from '../src/annotations/conformance';
 import { PdfLibAssembler } from '../src/pdflib/pdflib-assembler';
+import { createHostedEngine } from '../src/pdfium/host';
 import { PdfiumAdapter } from '../src/pdfium/pdfium-adapter';
 import {
   type Annotation,
@@ -28,6 +29,7 @@ import { makePdf, sid, wasmUrl } from './helpers';
 
 let adapter: PdfiumAdapter;
 let counter = 0;
+const ZERO_RECT = { x: 0, y: 0, width: 0, height: 0 };
 
 async function fixture(url: string): Promise<ArrayBuffer> {
   return (await fetch(url)).arrayBuffer();
@@ -81,17 +83,28 @@ function expectSameGeometry(actual: Annotation | undefined, expected: NewAnnotat
   }
 }
 
-beforeAll(() => {
+/** An adapter with raw access, as the worker builds it (stamps are then updated in place). */
+let rawAdapter: PdfiumAdapter;
+
+beforeAll(async () => {
   adapter = new PdfiumAdapter({ wasmUrl, inspector: new PdfLibAssembler() });
+  const host = await createHostedEngine({ wasm: wasmUrl });
+  rawAdapter = new PdfiumAdapter({
+    wasmUrl,
+    inspector: new PdfLibAssembler(),
+    engineFactory: () => host.engine,
+    rawTask: (sourceId, fn, options) => host.withRawTask(sourceId, fn, options),
+  });
 });
 
 afterAll(async () => {
   await adapter.destroy();
+  await rawAdapter.destroy();
 });
 
-async function openBlank(pages = 1): Promise<ReturnType<typeof sid>> {
+async function openBlank(pages = 1, engine = adapter): Promise<ReturnType<typeof sid>> {
   const id = sid(`doc-${++counter}`);
-  await adapter.open(
+  await engine.open(
     id,
     await makePdf(Array.from({ length: pages }, () => ({ size: [612, 792], text: 'Annotations' }))),
   );
@@ -404,35 +417,129 @@ describe('stamps', () => {
     await adapter.close(id);
   });
 
-  test('a moved image stamp still draws, after save → re-open and after the undo update', async () => {
-    const id = await openBlank();
+  test.each([
+    ['with raw access', () => rawAdapter],
+    ['without raw access', () => adapter],
+  ])(
+    'a moved image stamp still draws, after save → re-open and after the undo update (%s)',
+    async (_, engineOf) => {
+      const engine = engineOf();
+      const id = await openBlank(1, engine);
+      const at = { x: 100, y: 100, width: 60, height: 60 };
+      const to = { x: 300, y: 400, width: 60, height: 60 };
+      const stamp = await engine.createAnnotation(id, {
+        kind: 'stamp',
+        pageIndex: 0,
+        rect: at,
+        imageBlob: pngBlob(),
+      });
+      expect(await redPixels(engine, id, at)).toBeGreaterThan(1000);
+      // A drag commits the stamp with only its rect changed (no imageBlob), like the UI does.
+      await engine.updateAnnotation(id, { ...stamp, rect: to });
+      expect(await redPixels(engine, id, to)).toBeGreaterThan(1000);
+      expect(await redPixels(engine, id, at)).toBe(0);
+
+      const saved = await engine.save(id);
+      const reopened = sid(`doc-${++counter}`);
+      await engine.open(reopened, saved);
+      expect(await redPixels(engine, reopened, to)).toBeGreaterThan(1000);
+      await engine.close(reopened);
+
+      // Undo replays the previous state as another rect-only update.
+      await engine.updateAnnotation(id, { ...stamp, rect: at });
+      expect(await redPixels(engine, id, at)).toBeGreaterThan(1000);
+      // A style change (the selection bar's opacity) is an update too.
+      await engine.updateAnnotation(id, { ...stamp, rect: at, opacity: 0.8 });
+      expect(await redPixels(engine, id, at)).toBeGreaterThan(1000);
+      await engine.close(id);
+    },
+  );
+
+  test('a stamp moved back and forth 25 times, with Undo and Redo, still draws and stays small', async () => {
+    const id = await openBlank(1, rawAdapter);
     const at = { x: 100, y: 100, width: 60, height: 60 };
     const to = { x: 300, y: 400, width: 60, height: 60 };
-    const stamp = await adapter.createAnnotation(id, {
+    const stamp = await rawAdapter.createAnnotation(id, {
       kind: 'stamp',
       pageIndex: 0,
       rect: at,
       imageBlob: pngBlob(),
     });
-    expect(await redPixels(adapter, id, at)).toBeGreaterThan(1000);
-    // A drag commits the stamp with only its rect changed (no imageBlob), like the UI does.
-    await adapter.updateAnnotation(id, { ...stamp, rect: to });
-    expect(await redPixels(adapter, id, to)).toBeGreaterThan(1000);
-    expect(await redPixels(adapter, id, at)).toBe(0);
-
-    const saved = await adapter.save(id);
+    await rawAdapter.updateAnnotation(id, { ...stamp, rect: to });
+    const firstMove = (await rawAdapter.save(id)).byteLength;
+    for (let i = 1; i < 25; i++) {
+      await rawAdapter.updateAnnotation(id, { ...stamp, rect: i % 2 === 0 ? to : at });
+    }
+    // Undo and Redo replay the neighbouring states as further updates (edits/apply.ts).
+    for (let i = 0; i < 4; i++) {
+      await rawAdapter.updateAnnotation(id, { ...stamp, rect: i % 2 === 0 ? to : at });
+    }
+    expect(await redPixels(rawAdapter, id, at)).toBeGreaterThan(1000);
+    expect(await redPixels(rawAdapter, id, to)).toBe(0);
+    // A resize scales the same appearance into the new rect.
+    const big = { x: 300, y: 400, width: 120, height: 120 };
+    await rawAdapter.updateAnnotation(id, { ...stamp, rect: big });
+    expect(await redPixels(rawAdapter, id, big)).toBeGreaterThan(4 * 1000);
+    await rawAdapter.updateAnnotation(id, { ...stamp, rect: at });
+    const saved = await rawAdapter.save(id);
+    expect(saved.byteLength).toBeLessThan(firstMove * 1.2);
     const reopened = sid(`doc-${++counter}`);
-    await adapter.open(reopened, saved);
-    expect(await redPixels(adapter, reopened, to)).toBeGreaterThan(1000);
-    await adapter.close(reopened);
+    await rawAdapter.open(reopened, saved);
+    expect(await redPixels(rawAdapter, reopened, at)).toBeGreaterThan(1000);
+    await rawAdapter.close(reopened);
+    await rawAdapter.close(id);
+  });
 
-    // Undo replays the previous state as another rect-only update.
-    await adapter.updateAnnotation(id, { ...stamp, rect: at });
-    expect(await redPixels(adapter, id, at)).toBeGreaterThan(1000);
-    // A style change (the selection bar's opacity) is an in-place update too.
-    await adapter.updateAnnotation(id, { ...stamp, rect: at, opacity: 0.8 });
-    expect(await redPixels(adapter, id, at)).toBeGreaterThan(1000);
-    await adapter.close(id);
+  test('a moved or restyled stamp keeps its place in the z-order and its comment', async () => {
+    const id = await openBlank(1, rawAdapter);
+    const stamp = await rawAdapter.createAnnotation(id, {
+      kind: 'stamp',
+      pageIndex: 0,
+      rect: { x: 100, y: 100, width: 60, height: 60 },
+      imageBlob: pngBlob(),
+    });
+    await rawAdapter.createAnnotation(id, {
+      kind: 'ink',
+      pageIndex: 0,
+      rect: ZERO_RECT,
+      paths: [
+        [
+          { x: 90, y: 90 },
+          { x: 170, y: 170 },
+        ],
+      ],
+      strokeWidth: 4,
+      color: '#000000',
+    });
+    const kinds = async (doc: ReturnType<typeof sid>) =>
+      (await rawAdapter.listAnnotations(doc, 0)).map((a) => a.kind);
+    expect(await kinds(id)).toEqual(['stamp', 'ink']);
+    const restyled = await rawAdapter.updateAnnotation(id, {
+      ...stamp,
+      opacity: 0.6,
+      contents: 'Signed here',
+    });
+    expect(restyled).toMatchObject({ id: stamp.id, opacity: 0.6, contents: 'Signed here' });
+    expect(await kinds(id)).toEqual(['stamp', 'ink']);
+    await rawAdapter.updateAnnotation(id, {
+      ...restyled,
+      rect: { x: 200, y: 200, width: 60, height: 60 },
+    });
+    expect(await kinds(id)).toEqual(['stamp', 'ink']);
+    const reopened = sid(`doc-${++counter}`);
+    const saved = await rawAdapter.save(id);
+    // Listing reads a stamp's opacity from what the adapter keeps, so check the saved /CA.
+    const annots = (await PDFDocument.load(saved))
+      .getPage(0)
+      .node.lookup(PDFName.of('Annots')) as PDFArray;
+    expect((annots.lookup(0) as PDFDict).lookup(PDFName.of('CA'))?.toString()).toBe('0.6');
+    await rawAdapter.open(reopened, saved);
+    const listed = await rawAdapter.listAnnotations(reopened, 0);
+    expect(listed.map((a) => a.kind)).toEqual(['stamp', 'ink']);
+    expect(listed[0]).toMatchObject({ contents: 'Signed here' });
+    expectRect(listed[0]?.rect, { x: 200, y: 200, width: 60, height: 60 });
+    await rawAdapter.close(reopened);
+    await rawAdapter.close(id);
   });
 
   test('moved ink and text boxes still draw (the move path a stamp shares)', async () => {
