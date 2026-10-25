@@ -14,7 +14,7 @@
  * - `beamMesh` / `latticeShading`: Gouraud lattices (ShadingType 5) whose vertices carry light
  *   already screened onto the ground beneath (§5.1, §5.3).
  * - `FRAME_TIME` and the night ramps: each page id is an hour, its light and ground sampled
- *   from §3.2; `lampTab` draws the hour on the fore-edge.
+ *   from §3.2.
  */
 import {
   type PDFDocument,
@@ -26,7 +26,7 @@ import {
   pushGraphicsState,
 } from '@cantoo/pdf-lib';
 import { seededRandom } from '../lib/common.ts';
-import { PAGE_W, RIGHT, type Rgb, type Writer, r2, raw } from './kit.ts';
+import { type Rgb, type Writer, r2, raw } from './kit.ts';
 
 export type Stop = readonly [number, Rgb];
 
@@ -295,52 +295,11 @@ export const lightAt = (id: string) => sample(LIGHT_RAMP, nightOf(id));
 export const groundAt = (id: string) => sample(GROUND_RAMP, nightOf(id));
 
 /**
- * The lamp tab on the fore-edge (direction-v2.md §5.3): a 9 pt bleed tab, 64 pt tall, whose
- * height on the edge is the hour (top 18:52, bottom 07:04) and whose ground is that hour's
- * sky; in it a slit of that hour's light with a screened glow, clipped to the tab. Flipped
- * through, or seen in the Pages grid, the tabs step down the edge and cool from lemon to teal:
- * the night as a frame sequence. It stays 40 pt clear of the measure, so no paragraph's
- * wrap or gap reads it (direction-v2.md §5.4, editability).
+ * The lamp tab's size, kept for the flat plan's miniatures (`pages/flatplan.ts`). The tab itself
+ * was removed from every page (MOB-14/MOB-15 amendment, owner, 25 Oct): it read as a scroll thumb.
  */
 export const TAB_W = 9;
-/**
- * The tab stands 3 pt inside the trim as a capsule (B5, MOB-15): a bleed tab at the page's
- * edge read in the app as a scroll thumb on the page; inset and round it reads as a lamp
- * window in the fore-edge. The owner may still choose a light-only tab instead.
- */
 export const TAB_INSET = 3;
-export function lampTab(w: Writer, id: string): PDFOperator[] {
-  const f = nightOf(id);
-  const yc = 772 - f * 660;
-  const h = 64;
-  const x0 = PAGE_W - TAB_INSET - TAB_W;
-  const xc = x0 + TAB_W / 2;
-  if (x0 < RIGHT + 40) throw new Error('lamp tab: within 40 pt of the measure');
-  const ground = groundAt(id);
-  const light = lightAt(id);
-  const name = `Tab${id.replace(/[^a-z]/g, '')}`;
-  radialShading(w, `Sh${name}`, 0, 0, 1, [
-    [0, mix(light, [1, 1, 1], 0.55)],
-    [0.18, light],
-    [0.5, scale(light, 0.22)],
-    [1, [0, 0, 0]],
-  ]);
-  gs(w, 'GsScr', { BM: 'Screen' });
-  const r = TAB_W / 2;
-  const k = r * 0.5523;
-  const [t, b] = [yc + h / 2, yc - h / 2];
-  const capsule = `${r2(x0)} ${r2(b + r)} m ${r2(x0)} ${r2(t - r)} l ${r2(x0)} ${r2(t - r + k)} ${r2(xc - k)} ${r2(t)} ${r2(xc)} ${r2(t)} c ${r2(xc + k)} ${r2(t)} ${r2(x0 + TAB_W)} ${r2(t - r + k)} ${r2(x0 + TAB_W)} ${r2(t - r)} c ${r2(x0 + TAB_W)} ${r2(b + r)} l ${r2(x0 + TAB_W)} ${r2(b + r - k)} ${r2(xc + k)} ${r2(b)} ${r2(xc)} ${r2(b)} c ${r2(xc - k)} ${r2(b)} ${r2(x0)} ${r2(b + r - k)} ${r2(x0)} ${r2(b + r)} c h`;
-  return [
-    raw(`${r2(ground[0])} ${r2(ground[1])} ${r2(ground[2])} rg ${capsule} f`),
-    // The light: a slit down the tab's middle, glowing (a vertical anamorphic glow).
-    pushGraphicsState(),
-    raw(`${capsule} W n /GsScr gs 4 0 0 ${r2(h * 0.6)} ${r2(xc)} ${r2(yc)} cm /Sh${name} sh`),
-    popGraphicsState(),
-    raw(
-      `${r2(light[0])} ${r2(light[1])} ${r2(light[2])} rg ${r2(xc - 0.4)} ${r2(yc - h * 0.32)} 0.8 ${r2(h * 0.64)} re f`,
-    ),
-  ];
-}
 
 // ---------------------------------------------------------------------------
 // The beam as a Gouraud lattice (ShadingType 5)
