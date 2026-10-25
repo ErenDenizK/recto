@@ -12,14 +12,13 @@ recognise scans, compare, sign.
 [Open the app](https://erendenizk.github.io/recto/) · [How it works](#how-it-works) · [What it does not do](#what-it-does-not-do) · [Roadmap](docs/ROADMAP.md)
 
 [![CI](https://github.com/ErenDenizK/recto/actions/workflows/ci.yml/badge.svg)](https://github.com/ErenDenizK/recto/actions/workflows/ci.yml)
-[![Latest release](https://img.shields.io/github/v/release/ErenDenizK/recto?include_prereleases&sort=semver&label=release)](https://github.com/ErenDenizK/recto/releases)
 [![Licence: Apache-2.0](https://img.shields.io/badge/licence-Apache--2.0-blue)](LICENSE)
 
 </div>
 
 <a href="https://erendenizk.github.io/recto/"><img src="https://erendenizk.github.io/recto/media/00-hero.png" width="100%" alt="The Pages grid: three demo documents, each a section of page thumbnails"></a>
 
-**Status:** public beta (`1.0.0-beta` versions, [ADR-0017](docs/adr/0017-versioning-and-releases.md)).
+**Status:** public beta. Versioned releases are planned ([ADR-0017](docs/adr/0017-versioning-and-releases.md)); none is published yet.
 Built and maintained by one person; not audited by a third party. The end-to-end tests run in
 Chromium, Firefox and WebKit on every push ([`ci.yml`](.github/workflows/ci.yml)).
 
@@ -110,7 +109,11 @@ runs in Chromium only.
    fonts and OCR packs in the `pdf-editor-wasm`, `pdf-editor-fonts` and `pdf-editor-ocr`
    caches; saved recipes in the origin private file system (IndexedDB where that is missing);
    preferences such as language, layout, pen presets and reading positions in `localStorage`
-   under `pdf-editor:`. Open documents are not stored.
+   under `pdf-editor:`. Open documents are stored too, so a reload can restore them: the
+   bytes of each open file and its edits are kept in the origin private file system
+   ([`storage.ts`](apps/web/src/session/storage.ts)), and closed ones stay in Recents for 30 days or
+   up to 500 MB ([`retention.ts`](apps/web/src/session/retention.ts)). Nothing is uploaded. Delete it
+   with Clear in the privacy popover, with Remove or Clear recents, or by clearing the site's data.
 7. The media on this page were recorded by a script that logs every request and fails on any
    other origin ([`privacy.ts`](tools/media/lib/privacy.ts)); the log is published as
    [`requests.log`](https://erendenizk.github.io/recto/media/requests.log).
@@ -174,10 +177,9 @@ By category, not by product, as of 2026-09-26; sources in
   Chromium-based browser, Firefox or Safari.
 - Install it as an app: Install in the address bar of Chromium-based browsers, or File → Add
   to Dock in Safari on macOS. It works offline after the first visit (tested in Chromium).
-- Self-host: each [release](https://github.com/ErenDenizK/recto/releases) has
-  `recto-<version>-dist.zip` and `SHA256SUMS`. Unzip it at the root of any static host
-  served over HTTPS (the zip is built for the path `/`); for a sub-path, build from source
-  with `VITE_BASE_PATH=/your/path/ pnpm build`.
+- Self-host: build from source (see Development), then serve `apps/web/dist` from any static
+  host over HTTPS. `pnpm install`, then `pnpm build`; for a sub-path set
+  `VITE_BASE_PATH=/your/path/ pnpm build`.
 
 ## Development
 
