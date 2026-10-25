@@ -1,8 +1,9 @@
 # Roadmap
 
-> **Superseded from M9 on (2026-10-10).** The M9 rows below are the 2026-10-04 plan; most of it
-> has shipped and the live plan is `docs/plan/v1/PLAN.md` with `docs/process/decisions.md`.
-> M0–M8 stay as the record.
+> **Superseded from M9 on by [`docs/company/roadmap.md`](company/roadmap.md)** (PRC-24) with
+> [`docs/process/decisions.md`](process/decisions.md). The M9 rows below are the 2026-10-04 plan;
+> most of it has shipped. M0–M8 stay as the record. Kept in place because the About page, the
+> release notes and the issue template link to it.
 
 **Status:** revised 2026-10-03 after the owner's review of the beta (M8 added as Craft); M8
 built 2026-10-04; revised 2026-10-04 for the owner's redesign brief: M9 is the Redesign,
