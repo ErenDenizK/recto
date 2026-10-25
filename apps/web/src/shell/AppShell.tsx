@@ -35,6 +35,7 @@ import { isTextFile } from '../files/text-files';
 import { FurnitureHost } from '../furniture/FurnitureHost';
 import { Aura } from '../home/Aura';
 import { DocumentDropOverlay } from '../home/DropOverlay';
+import { installLaunchConsumer } from '../files/launch-queue';
 import { showOpened } from '../home/home-actions';
 import { m } from '../i18n';
 import { OcrSheetHost } from '../ocr';
@@ -98,6 +99,14 @@ export function AppShell() {
   // Pop-ups cap their height to the visual viewport (F2).
   useVisualViewportHeight();
   useEffect(() => registerAppearanceCommands(commandRegistry), []);
+
+  // "Open with" from the OS (PRD-31): a launch's files open like a drop.
+  useEffect(() => {
+    installLaunchConsumer(async (files) => {
+      const wasEmpty = useWorkspaceStore.getState().workspace.documentOrder.length === 0;
+      showOpened(await openDocuments(files), { wasEmpty });
+    });
+  }, []);
   // Settings… (Mod+,) and the commands that open the Settings sheet at a row (D0-10).
   useEffect(() => registerSettingsCommands(commandRegistry), []);
   // F and the Esc rung for Focus (F13), after `selection.clear` in the Esc ladder.
