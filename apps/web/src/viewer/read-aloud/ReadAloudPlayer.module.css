@@ -14,11 +14,11 @@
   z-index: 20;
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: 2px;
   box-sizing: border-box;
   max-width: calc(100vw - var(--free-left, 0px) - var(--free-right, 0px) - 2 * var(--space-2));
-  min-height: var(--piece-h);
-  padding: var(--palette-inset, var(--space-1));
+  height: var(--piece-h);
+  padding: var(--piece-pad);
   border-radius: calc(var(--piece-h) / 2);
   translate: -50% 0;
   color: var(--text-primary);
@@ -43,16 +43,30 @@
 }
 
 .speed {
-  min-width: 68px;
+  width: 68px;
 }
 
 .voice {
-  width: 168px;
+  width: 112px;
+}
+
+/* A touch window: the controls are 44 px, and the piece stays within the capsule's width. */
+@media (pointer: coarse), (any-pointer: coarse) {
+  .speed {
+    width: 72px;
+  }
+
+  .voice {
+    width: 96px;
+  }
 }
 
 .note {
   margin: 0;
   padding: 0 var(--space-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: var(--type-body);
   line-height: var(--type-body-lh);
 }

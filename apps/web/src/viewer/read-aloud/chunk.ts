@@ -48,23 +48,53 @@ export interface Span {
 interface Segmenter {
   segment(input: string): Iterable<{ index: number; segment: string }>;
 }
-const segmenter = (locale: string, granularity: 'sentence' | 'word'): Segmenter | undefined =>
-  typeof Intl !== 'undefined' && 'Segmenter' in Intl
-    ? new Intl.Segmenter(locale, { granularity })
-    : undefined;
+
+const LANGUAGE_TAG = /^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$/;
+
+/**
+ * The sentence segmenter for a /Lang or UI tag, or undefined when the tag is malformed (a PDF's
+ * /Lang is whatever its producer wrote: `en_US`, `x`, a stray word) or the browser has none.
+ */
+function sentenceSegmenter(locale: string): Segmenter | undefined {
+  const tag = locale.trim().replace(/_/g, '-');
+  if (!LANGUAGE_TAG.test(tag) || typeof Intl === 'undefined' || !('Segmenter' in Intl)) {
+    return undefined;
+  }
+  try {
+    return new Intl.Segmenter(tag, { granularity: 'sentence' });
+  } catch {
+    return undefined;
+  }
+}
+
+/** The longest span handed to the voice at once; a longer sentence is cut at a space. */
+export const MAX_SENTENCE = 300;
+
+function cut(text: string, start: number, end: number): Span[] {
+  const out: Span[] = [];
+  let from = start;
+  while (end - from > MAX_SENTENCE) {
+    const space = text.lastIndexOf(' ', from + MAX_SENTENCE);
+    const at = space > from ? space : from + MAX_SENTENCE;
+    out.push({ start: from, end: at });
+    from = at + (text.charAt(at) === ' ' ? 1 : 0);
+  }
+  out.push({ start: from, end });
+  return out;
+}
 
 /** Sentences of `text` with something to say, in order; trailing spaces stay out of a span. */
 export function sentences(text: string, locale = 'en'): Span[] {
   const found: Span[] = [];
-  const pieces = segmenter(locale, 'sentence')?.segment(text);
-  const cut = pieces
+  const pieces = sentenceSegmenter(locale)?.segment(text);
+  const parts = pieces
     ? [...pieces].map((p) => ({ index: p.index, segment: p.segment }))
     : [...text.matchAll(/[^.!?]+[.!?]*\s*/g)].map((p) => ({ index: p.index, segment: p[0] }));
-  for (const { index, segment } of cut) {
+  for (const { index, segment } of parts) {
     const trimmed = segment.trimEnd();
     const lead = trimmed.length - trimmed.trimStart().length;
     if (trimmed.trim() === '') continue;
-    found.push({ start: index + lead, end: index + trimmed.length });
+    found.push(...cut(text, index + lead, index + trimmed.length));
   }
   return found;
 }

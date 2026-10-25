@@ -45,3 +45,24 @@ export function availableVoices(
     .sort((a, b) => Number(b.isDefault) - Number(a.isDefault) || a.name.localeCompare(b.name));
   return mine.length === 0 ? { kind: 'no-language', language } : { kind: 'ready', voices: mine };
 }
+
+/**
+ * Resolves with the browser's voices once it lists some. Some browsers return none on the first
+ * call and fire `voiceschanged` later; after `timeoutMs` it resolves with whatever there is.
+ */
+export function waitForVoices(
+  synth: Pick<SpeechSynthesis, 'getVoices' | 'addEventListener' | 'removeEventListener'>,
+  timeoutMs = 1500,
+): Promise<SpeechSynthesisVoice[]> {
+  const now = synth.getVoices();
+  if (now.length > 0) return Promise.resolve(now);
+  return new Promise((resolve) => {
+    const done = () => {
+      clearTimeout(timer);
+      synth.removeEventListener('voiceschanged', done);
+      resolve(synth.getVoices());
+    };
+    const timer = setTimeout(done, timeoutMs);
+    synth.addEventListener('voiceschanged', done);
+  });
+}

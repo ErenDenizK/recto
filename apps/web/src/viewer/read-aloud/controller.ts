@@ -22,6 +22,7 @@ import {
   readingLanguage,
   type VoiceAvailability,
   type VoiceChoice,
+  waitForVoices,
 } from './voices';
 
 export const RATES = [0.8, 1, 1.25, 1.5] as const;
@@ -41,6 +42,10 @@ interface ReadAloudState {
   readonly pageEmpty: boolean;
   /** Boxes of the word being spoken, user space of `pageId`. */
   readonly word: readonly Rect[];
+  /** Boxes of the sentence being spoken: the mark that stays when a voice sends no word events. */
+  readonly sentence: readonly Rect[];
+  /** The page follows the voice; off once the person scrolls by hand, on at Play or a step. */
+  readonly following: boolean;
 }
 
 const INITIAL: ReadAloudState = {
@@ -53,6 +58,8 @@ const INITIAL: ReadAloudState = {
   pageId: null,
   pageEmpty: false,
   word: [],
+  sentence: [],
+  following: true,
 };
 
 export const useReadAloudStore = create<ReadAloudState>()(() => INITIAL);
@@ -69,6 +76,10 @@ let sentence = 0;
 // Kept so the engine cannot collect it before it ends (Chrome stops firing events then).
 let utterance: SpeechSynthesisUtterance | null = null;
 let voices: readonly SpeechSynthesisVoice[] = [];
+// A page turn is loading: Previous and Next wait for it.
+let loading = false;
+// The document ended: Play starts again from the first page.
+let ended = false;
 
 const synth = () => window.speechSynthesis;
 const activeDocument = () => getActiveDocument(useWorkspaceStore.getState().workspace);
@@ -103,11 +114,11 @@ async function loadPage(index: number): Promise<boolean> {
   const page = doc?.pages[index];
   if (!doc || !page) return false;
   const mine = run;
-  goToPageIndex(index, doc, 'step');
+  if (get().following) goToPageIndex(index, doc, 'step');
   speech = null;
   spans = [];
   sentence = 0;
-  set({ pageIndex: index, pageId: page.id, pageEmpty: false, word: [] });
+  set({ pageIndex: index, pageId: page.id, pageEmpty: false, word: [], sentence: [] });
   if (page.ref.kind === 'source') {
     const result = await getEngineService().getPageText(page.ref.source, page.ref.index);
     if (mine !== run) return true;
@@ -117,7 +128,6 @@ async function loadPage(index: number): Promise<boolean> {
     }
   }
   set({ pageEmpty: spans.length === 0 });
-  announce(m.read_aloud_page({ page: index + 1, count: doc.pages.length }));
   return true;
 }
 
@@ -146,6 +156,7 @@ function speakSentence(): void {
   u.voice = voice;
   u.lang = voice.lang;
   u.rate = get().rate;
+  set({ sentence: wordRects(speech, span.start, span.end), word: [] });
   const ring = (at: number, length?: number) => {
     if (mine !== run || !speech) return;
     const word = wordAt(text, at, length);
@@ -167,16 +178,27 @@ function speakSentence(): void {
   synth().speak(u);
 }
 
-/** A sentence on (+1) or back (-1), across pages; the end of the document stops. */
+/** A sentence on (+1) or back (-1), across pages; the end of the document leaves the player idle. */
 async function advance(direction: 1 | -1): Promise<void> {
   const next = sentence + direction;
   if (next >= 0 && next < spans.length) {
     sentence = next;
   } else {
     cancelSpeech();
+    loading = true;
     const found = await loadReadablePage(get().pageIndex + direction, direction);
-    if (!found) {
-      closeReadAloud();
+    loading = false;
+    if (!get().open) return;
+    if (!found && direction < 0) {
+      // Before the first sentence: stay at the start.
+      loading = true;
+      await loadReadablePage(0, 1);
+      loading = false;
+      if (!get().open) return;
+    } else if (!found) {
+      // Past the last page: quiet, and Play begins again.
+      ended = true;
+      set({ status: 'idle', word: [], sentence: [] });
       return;
     }
     if (direction > 0) sentence = 0;
@@ -188,36 +210,64 @@ async function advance(direction: 1 | -1): Promise<void> {
 export async function startReadAloud(): Promise<void> {
   if (get().open) return;
   const mine = ++run;
+  ended = false;
+  loading = false;
   set({ ...INITIAL, open: true, rate: get().rate });
   synth().addEventListener('voiceschanged', refreshVoices);
-  refreshVoices();
   set({ status: 'playing' });
+  // Some browsers list no voices until `voiceschanged`; wait for them rather than give up.
+  await waitForVoices(synth());
+  if (mine !== run) return;
+  refreshVoices();
   const found = await loadReadablePage(navigationBase(), 1);
   if (mine !== run) return;
   if (!found || get().availability?.kind !== 'ready') {
     set({ status: 'idle' });
     return;
   }
+  announce(
+    m.read_aloud_page({ page: get().pageIndex + 1, count: activeDocument()?.pages.length ?? 0 }),
+  );
   speakSentence();
 }
 
+/** Reads from the first page again, after the document ended. */
+async function startOver(): Promise<void> {
+  const mine = ++run;
+  ended = false;
+  loading = true;
+  set({ status: 'playing', following: true });
+  const found = await loadReadablePage(0, 1);
+  loading = false;
+  if (mine !== run || !get().open) return;
+  if (found) speakSentence();
+  else set({ status: 'idle' });
+}
+
 export function togglePlay(): void {
+  if (loading) return;
   const { status, availability } = get();
   if (status === 'playing') {
     synth().pause();
     set({ status: 'paused' });
   } else if (status === 'paused') {
     synth().resume();
-    set({ status: 'playing' });
+    set({ status: 'playing', following: true });
+  } else if (availability?.kind === 'ready' && ended) {
+    void startOver();
   } else if (availability?.kind === 'ready' && spans.length > 0) {
-    set({ status: 'playing' });
+    set({ status: 'playing', following: true });
     speakSentence();
   }
 }
 
 export function stepSentence(direction: 1 | -1): void {
-  if (!get().open) return;
-  set({ status: 'playing' });
+  if (!get().open || loading) return;
+  if (ended) {
+    void startOver();
+    return;
+  }
+  set({ status: 'playing', following: true });
   void advance(direction);
 }
 
@@ -240,6 +290,7 @@ export function setVoice(voiceUri: string): void {
 /** Closes the player and goes quiet. */
 export function closeReadAloud(): void {
   cancelSpeech();
+  loading = false;
   speech = null;
   spans = [];
   synth().removeEventListener('voiceschanged', refreshVoices);
@@ -254,4 +305,9 @@ export function watchReadAloudDocument(): () => void {
     was = s.workspace.activeDocument;
     if (get().open) closeReadAloud();
   });
+}
+
+/** The person scrolled by hand: the page stops following the voice until Play or a step. */
+export function stopFollowing(): void {
+  if (get().open && get().following) set({ following: false });
 }

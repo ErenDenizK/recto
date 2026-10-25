@@ -1,0 +1,33 @@
+/*
+ * The read-aloud marks (PRD-34): Find's lime (`--find-current-halo`), lighter than Find's own fill
+ * so the text under it stays legible. The sentence is a soft tint; the word a translucent fill
+ * with an underline, dark green on a light page and lime on a dark one (`data-tone`, from the
+ * page bitmap). Nothing here animates.
+ */
+.layer {
+  pointer-events: none;
+}
+
+.sentence,
+.word {
+  position: absolute;
+  border-radius: var(--radius-page);
+}
+
+.sentence {
+  background: rgb(200 251 61 / 0.16);
+}
+
+.word {
+  background: rgb(200 251 61 / 0.38);
+  box-shadow: 0 2px 0 var(--find-current-ring);
+}
+
+.sentence[data-tone='dark'] {
+  background: rgb(200 251 61 / 0.12);
+}
+
+.word[data-tone='dark'] {
+  background: rgb(200 251 61 / 0.3);
+  box-shadow: 0 2px 0 var(--find-current-halo);
+}

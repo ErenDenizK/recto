@@ -1177,7 +1177,7 @@
   "read_aloud_voice": "Voice",
   "read_aloud_close": "Stop reading",
   "read_aloud_page": "Reading page {page} of {count}",
-  "read_aloud_network_only": "This browser only has network voices, which would send the text away. Nothing is read aloud.",
+  "read_aloud_network_only": "Only network voices here; nothing is read aloud.",
   "read_aloud_no_voice": "No on-device voice for {language}.",
   "read_aloud_no_text": "This page has no text to read.",
   "cmd_find": "Find in document…",

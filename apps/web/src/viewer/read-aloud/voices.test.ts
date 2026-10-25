@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { availableVoices, readingLanguage } from './voices';
+import { availableVoices, readingLanguage, waitForVoices } from './voices';
 
 const voice = (name: string, lang: string, localService: boolean, def = false) =>
   ({ name, lang, localService, default: def, voiceURI: name }) as SpeechSynthesisVoice;
@@ -44,5 +44,49 @@ describe('readingLanguage', () => {
     expect(readingLanguage('tr', 'en')).toBe('tr');
     expect(readingLanguage(undefined, 'en')).toBe('en');
     expect(readingLanguage(' ', 'tr')).toBe('tr');
+  });
+});
+
+describe('waitForVoices', () => {
+  const fake = () => {
+    let list: SpeechSynthesisVoice[] = [];
+    let listener: (() => void) | undefined;
+    return {
+      fill: (voices: SpeechSynthesisVoice[]) => {
+        list = voices;
+        listener?.();
+      },
+      synth: {
+        getVoices: () => list,
+        addEventListener: (_: string, l: () => void) => {
+          listener = l;
+        },
+        removeEventListener: () => {
+          listener = undefined;
+        },
+      } as unknown as SpeechSynthesis,
+    };
+  };
+
+  it('resolves at once when voices are listed', async () => {
+    const f = fake();
+    f.fill([voice('Ada', 'en-US', true)]);
+    expect(await waitForVoices(f.synth)).toHaveLength(1);
+  });
+
+  it('waits for voiceschanged when the list is empty at first', async () => {
+    const f = fake();
+    const pending = waitForVoices(f.synth);
+    f.fill([voice('Ada', 'en-US', true)]);
+    expect(await pending).toHaveLength(1);
+  });
+
+  it('gives up after the timeout with an empty list', async () => {
+    vi.useFakeTimers();
+    const f = fake();
+    const pending = waitForVoices(f.synth, 500);
+    vi.advanceTimersByTime(500);
+    expect(await pending).toEqual([]);
+    vi.useRealTimers();
   });
 });

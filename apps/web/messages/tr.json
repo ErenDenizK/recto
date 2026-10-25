@@ -854,7 +854,7 @@
   "read_aloud_voice": "Ses",
   "read_aloud_close": "Okumayı durdur",
   "read_aloud_page": "{count} sayfadan {page}. sayfa okunuyor",
-  "read_aloud_network_only": "Bu tarayıcıda yalnızca ağ üzerinden çalışan sesler var; bunlar metni dışarı gönderir. Hiçbir şey sesli okunmuyor.",
+  "read_aloud_network_only": "Yalnızca ağ sesleri var; hiçbir şey okunmuyor.",
   "read_aloud_no_voice": "{language} için cihazda çalışan bir ses yok.",
   "read_aloud_no_text": "Bu sayfada okunacak metin yok.",
   "cmd_find": "Belgede bul…",

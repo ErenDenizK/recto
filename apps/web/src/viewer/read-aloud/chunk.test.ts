@@ -38,6 +38,19 @@ describe('sentences', () => {
     ]);
   });
 
+  it('survives a malformed language tag and an underscore tag', () => {
+    expect(sentences('One. Two.', 'x!!')).toHaveLength(2);
+    expect(sentences('One. Two.', 'en_US')).toHaveLength(2);
+    expect(sentences('One. Two.', '')).toHaveLength(2);
+  });
+
+  it('cuts a very long sentence at a space', () => {
+    const long = `${'word '.repeat(200)}end.`;
+    const spans = sentences(long);
+    expect(spans.length).toBeGreaterThan(2);
+    for (const span of spans) expect(span.end - span.start).toBeLessThanOrEqual(300);
+  });
+
   it('has none for blank text', () => {
     expect(sentences('  ')).toEqual([]);
   });

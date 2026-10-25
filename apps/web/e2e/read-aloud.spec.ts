@@ -66,18 +66,33 @@ async function openReader(page: Page) {
 const boxOf = (page: Page) =>
   page
     .getByTestId('read-aloud-word')
-    .locator('> div')
+    .locator('[data-word]')
     .first()
     .evaluate((el) => `${(el as HTMLElement).style.left},${(el as HTMLElement).style.top}`);
 
-test('reads the page and rings the word being spoken', async ({ page }) => {
+test('reads the page and rings the word being spoken', async ({ page, hasTouch }) => {
   await openReader(page);
   await page.keyboard.press('Shift+Alt+L');
   const player = page.getByTestId('read-aloud-player');
   await expect(player).toBeVisible();
 
+  // Q-9: one piece high (40, 48 on touch), no wider than the capsule; Play has focus.
+  const size = await player.boundingBox();
+  expect(size?.height).toBe(hasTouch ? 48 : 40);
+  const capsule = await page.locator('[data-region="toolbar"]').boundingBox();
+  expect(size!.width).toBeLessThanOrEqual(capsule!.width);
+  await expect(page.getByTestId('read-aloud-play')).toBeFocused();
+
   // The ring appears, then moves on to another word as boundary events arrive.
   await expect(page.getByTestId('read-aloud-word')).toBeVisible();
+  // The word never sits under the player.
+  await expect
+    .poll(async () => {
+      const word = await page.locator('[data-word]').boundingBox();
+      const top = (await player.boundingBox())!.y;
+      return word !== null && word.y + word.height <= top;
+    })
+    .toBe(true);
   const first = await boxOf(page);
   await expect.poll(() => boxOf(page)).not.toBe(first);
 

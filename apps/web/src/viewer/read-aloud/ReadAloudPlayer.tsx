@@ -1,9 +1,11 @@
 /**
- * The read-aloud player (PRD-34, behind `?read=1`): one small bar piece at the top of the free
+ * The read-aloud player (PRD-34, behind `?read=1`): one small bar piece above the capsule, in the free
  * area, in the capsule and ink strip's family (`mat-bar`, `--piece-h`). Play or Pause, Previous
  * and Next sentence, Speed (0.8× to 1.5×), the voice, and Close. With no on-device voice it says
  * so in place of the controls and speaks nothing.
  */
+import { useEffect, useRef } from 'react';
+
 import { getLocale, m } from '../../i18n';
 import { languageName } from '../../ocr/ocr-model';
 import { Icon } from '../../ui/Icon';
@@ -25,7 +27,33 @@ import styles from './ReadAloudPlayer.module.css';
 const rateLabel = (rate: number) => `${rate}×`;
 
 export function ReadAloudPlayer() {
-  const { open, status, availability, voiceUri, rate, pageEmpty } = useReadAloudStore();
+  const open = useReadAloudStore((s) => s.open);
+  const status = useReadAloudStore((s) => s.status);
+  const availability = useReadAloudStore((s) => s.availability);
+  const voiceUri = useReadAloudStore((s) => s.voiceUri);
+  const rate = useReadAloudStore((s) => s.rate);
+  const pageEmpty = useReadAloudStore((s) => s.pageEmpty);
+  const play = useRef<HTMLButtonElement>(null);
+  // Focus comes to Play when the player opens. A menu it opened from (More) hands focus back to
+  // its trigger as it closes, a moment later, so this asks again until that has happened.
+  useEffect(() => {
+    if (!open) return;
+    const take = () => {
+      const at = document.activeElement;
+      if (
+        !at ||
+        at === document.body ||
+        at.closest('[data-dock-item="more"], [data-read-viewport]')
+      ) {
+        play.current?.focus();
+      }
+    };
+    take();
+    const timers = [120, 320].map((ms) => window.setTimeout(take, ms));
+    return () => {
+      for (const timer of timers) window.clearTimeout(timer);
+    };
+  }, [open]);
   if (!open) return null;
   const choices = voiceChoices(availability);
   const note =
@@ -46,7 +74,14 @@ export function ReadAloudPlayer() {
       as="section"
       className={styles.player}
       aria-label={m.read_aloud_title()}
+      data-read-aloud-player=""
       data-testid="read-aloud-player"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          event.stopPropagation();
+          closeReadAloud();
+        }
+      }}
       data-status={status}
     >
       {note ? (
@@ -62,6 +97,7 @@ export function ReadAloudPlayer() {
             data-testid="read-aloud-previous"
           />
           <IconButton
+            ref={play}
             label={playing ? m.read_aloud_pause() : m.read_aloud_play()}
             icon={<Icon name={playing ? 'pause' : 'play'} filled />}
             onClick={togglePlay}
