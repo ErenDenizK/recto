@@ -61,6 +61,7 @@ import { m } from '../i18n';
 import { revealFor } from '../outline/current-view';
 import editStyles from '../outline/Outline.module.css';
 import {
+  addBookmarksFromHeadings,
   deleteBookmark,
   displayTitle,
   dropBookmark,
@@ -119,7 +120,18 @@ export function OutlinePanel() {
       <DeadLinks doc={doc} />
       {doc.outline.length === 0 ? (
         <div className={styles.empty}>
-          <EmptyNote title={m.outline_empty_title()} body={m.outline_empty_body()} />
+          <EmptyNote
+            title={m.outline_empty_title()}
+            body={m.outline_empty_body()}
+            action={
+              doc.pages.length > 0
+                ? {
+                    label: m.cmd_outline_from_headings(),
+                    onClick: () => void addBookmarksFromHeadings(doc.id),
+                  }
+                : undefined
+            }
+          />
         </div>
       ) : (
         <OutlineTree key={doc.id} doc={doc} />

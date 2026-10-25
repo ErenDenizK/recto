@@ -22,13 +22,16 @@ import {
   type Workspace,
 } from '@pdf-editor/document-model';
 
+import { convertDocumentPages, DEFAULT_CHOICE } from '../convert/convert-run';
 import { currentPlatform } from '../commands/shortcuts';
 import { m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { showOverlaySidebar } from '../shell/frame/frame-store';
 import { isNavigatorShowing, useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { toast } from '../ui/Toast/toast';
 import { currentViewDestination } from './current-view';
+import { outlineFromHeadings } from './headings-outline';
 import {
   followEdits,
   keyOf,
@@ -302,6 +305,53 @@ export function removeDeadLinks(documentId: DocumentId): boolean {
   if (done === undefined) return false;
   announce(m.announce_outline_dead_removed());
   return true;
+}
+
+/**
+ * Adds bookmarks from the document's headings (PRD-33): the Markdown export's heading
+ * detection (`convertDocumentPages`) read once, nested by level, inserted at the end of the
+ * outline as one history entry. Only for a document without an outline. With no headings it
+ * says so (a toast) and changes nothing. Returns the number of top-level bookmarks added.
+ */
+export async function addBookmarksFromHeadings(documentId: DocumentId): Promise<number> {
+  const doc = documentOf(documentId);
+  if (!doc || doc.outline.length > 0 || doc.pages.length === 0) return 0;
+  let nodes: OutlineNode[];
+  try {
+    const result = await convertDocumentPages(
+      documentId,
+      doc.pages.map((_, i) => i),
+      { ...DEFAULT_CHOICE, images: false },
+    );
+    // The tabs may have changed while the worker read the pages.
+    const now = documentOf(documentId);
+    if (!now || now.outline.length > 0 || now.pages.length !== doc.pages.length) return 0;
+    nodes = outlineFromHeadings(
+      result.report.headingList,
+      now.pages.map((p) => p.id),
+    );
+  } catch {
+    toast.failure(m.outline_from_headings_failed());
+    return 0;
+  }
+  if (nodes.length === 0) {
+    toast.info(m.outline_from_headings_none());
+    return 0;
+  }
+  const count = countNodes(nodes);
+  const done = commit(
+    documentId,
+    nodes.map((node, index) => ({ kind: 'insert', at: { parent: [], index }, node })),
+    m.history_outline_from_headings({ count }),
+    () => [0],
+  );
+  if (done === undefined) return 0;
+  announce(m.announce_outline_from_headings({ count, shortcut: undoHint() }));
+  return nodes.length;
+}
+
+function countNodes(nodes: readonly OutlineNode[]): number {
+  return nodes.reduce((sum, node) => sum + 1 + countNodes(node.children), 0);
 }
 
 /**

@@ -219,6 +219,8 @@ export interface RenderedPage {
     images: number;
     links: number;
   };
+  /** The page's headings with their level (plain text), in reading order. */
+  readonly headings: readonly { readonly level: number; readonly text: string }[];
 }
 
 /** One page as Markdown or plain text (no trailing newline; empty for an empty page). */
@@ -228,6 +230,7 @@ export function renderPage(
   options: RenderOptions,
 ): RenderedPage {
   const counts = { headings: 0, paragraphs: 0, listItems: 0, images: 0, links: 0 };
+  const headings: { level: number; text: string }[] = [];
   const usedLinks = new Set<number>();
   const parts: { text: string; list: boolean; ordered?: boolean }[] = [];
   // List nesting: marker left edges and content indents of the open levels.
@@ -257,6 +260,7 @@ export function renderPage(
     const inline = markdown ? markdownInline(pieces, page.links, usedLinks) : plain;
     if (c.kind === 'heading') {
       counts.headings++;
+      if (plain.trim() !== '') headings.push({ level: c.level, text: plain.trim() });
       parts.push({ text: markdown ? `${'#'.repeat(c.level)} ${inline}` : plain, list: false });
     } else if (c.kind === 'paragraph') {
       counts.paragraphs++;
@@ -299,5 +303,5 @@ export function renderPage(
     if (prev) text += part.list && prev.list && part.ordered === prev.ordered ? '\n' : '\n\n';
     text += part.text;
   });
-  return { text, counts };
+  return { text, counts, headings };
 }
