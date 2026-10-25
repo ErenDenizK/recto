@@ -9,7 +9,7 @@
 Open many PDFs, arrange their pages on one light table, annotate, fill, redact, edit text,
 recognise scans, compare, sign.
 
-[Open the app](https://erendenizk.github.io/recto/) · [How it works](#how-it-works) · [What it does not do](#what-it-does-not-do) · [Roadmap](docs/ROADMAP.md)
+[Open the app](https://erendenizk.github.io/recto/) · [How it works](#how-it-works) · [What it does not do](#what-it-does-not-do) · [Roadmap](docs/company/roadmap.md)
 
 [![CI](https://github.com/ErenDenizK/recto/actions/workflows/ci.yml/badge.svg)](https://github.com/ErenDenizK/recto/actions/workflows/ci.yml)
 [![Licence: Apache-2.0](https://img.shields.io/badge/licence-Apache--2.0-blue)](LICENSE)
@@ -143,8 +143,9 @@ file is written only on export. Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECT
 
 ## What it does not do
 
-- No Office conversion (Word, Excel, PowerPoint to or from PDF): no layout engine in the
-  browser reaches acceptable fidelity. No PDF/A claims: conformance cannot be validated in
+- Office files convert to PDF on desktop and tablet only, behind a flag (`?office=1`) and after a
+  one-time download of about 70 MB; PDF to Office does not exist
+  ([ADR-0035](docs/adr/0035-on-device-office-conversion.md)). No PDF/A claims: conformance cannot be validated in
   the browser ([`VISION.md`](docs/VISION.md)).
 - Signatures are Intact, Intact but changed later, Changed after signing, Broken or Cannot
   check, never "valid": signer identity, trust and revocation are not checked, and there is
@@ -157,7 +158,7 @@ file is written only on export. Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECT
 - One document is processed by one single-threaded WebAssembly worker; about 1 GB per
   document is the design ceiling ([ADR-0004](docs/adr/0004-hosting-and-isolation.md)).
 
-The known behaviours of each milestone are listed in [`docs/ROADMAP.md`](docs/ROADMAP.md).
+The live plan is [`docs/company/roadmap.md`](docs/company/roadmap.md); the known behaviours of milestones M0–M8 are listed in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## How it compares
 

@@ -1,6 +1,6 @@
 # Architecture
 
-**Status:** proposed (2026-09-26). Decisions referenced here are recorded as ADRs in
+**Status:** accepted; written 2026-09-26, refreshed 2026-10-25 (sections 10 to 12: editions, the Office worker, GPU glass). Decisions referenced here are recorded as ADRs in
 `docs/adr/`; anything marked *open* was discussed in `docs/archive/DISCUSSION.md` (closed);
 decisions since then live in `docs/process/decisions.md`.
 
@@ -290,7 +290,44 @@ repaired copy rather than an incremental save onto a broken xref.
 
 ## 9. Browser support
 
-Chromium 125+, Firefox current and ESR, Safari 18+. Desktop-first; the layout must not
-break on tablets, but touch-optimized interaction is a v2 item. Firefox and Safari lack
+Chromium 125+, Firefox current and ESR, Safari 18+. Desktops and tablets get the full app and
+come first; phones get the compact edition (section 10). Firefox and Safari lack
 the File System Access API; saving there uses OPFS + download link. Safari has no
 `getAsFileSystemHandle`; folder drops degrade to file drops.
+
+## 10. Editions: the full app and the compact edition (ADR-0033, ADR-0034)
+
+One build, no fork (EDN-1). The shell is chosen once per launch by device, not by window width
+(ADR-0033 §2.1, `edition.ts`): desktops and tablets get the full app at every window size
+(ADR-0031, the size-class shell); phones get the compact edition, which has its own shell in
+`apps/web/src/shell/compact/`: a reader with a bottom capsule, a Library, sheets and a page
+overview. It has been editable since EDN-7 (ADR-0034): its edit island, tool drawer, keyboard and
+selection live in `shell/compact/mark/` and offer pen, highlight, text, edit text and signature,
+not desktop tool parity. Both shells sit on the same document model, engine and commands, so a
+phone edit is a normal `commit()` through the change guard (ADR-0030). The decisions are the
+EDN-* and MOB-* rows of `docs/process/decisions.md`; the study behind them is
+`docs/plan/v1/editions.md`.
+
+## 11. Office conversion worker (ADR-0035, PRD-18)
+
+Word, Excel and PowerPoint files convert to PDF on the device with LibreOffice compiled to
+WebAssembly, on desktop and tablet only. The package is not a dependency and is in no bundle:
+`packages/engine/office/` pins it by checksum, fetches it at build time and the build serves it
+from our own origin under `convert/<directory>/` (about 70 MB). The user downloads it once, on
+consent, into Cache Storage. It runs in the package's own worker (`apps/web/src/office/converter.ts`
+talks to it through its message protocol) and needs cross-origin isolation, which GitHub Pages
+cannot send as headers; Recto's service worker adds them, after one reload (`office/isolation.ts`).
+The feature is behind `?office=1` until PRD-22's criteria hold and the owner switches it on. It
+amends ADR-0001 (licence) and ADR-0004 (isolation); nothing leaves the device (PRD-12).
+
+## 12. GPU glass (ADR-0024, GLS-7, GLS-12 to GLS-15)
+
+The main floating pieces (the phone capsule and top circles first) can be real glass drawn by the
+GPU: one WebGL2 canvas fixed over the viewport, under the chrome and above the pages, refracting
+the page bitmaps we already own (`apps/web/src/glass-gpu/`, GLS-12). A piece opts in with
+`data-gpu-glass` or `registerGpuGlass`. Every other surface, and every device that does not pass
+`gpuGlassEligible()` (WebGL2 on a hardware renderer, Glass Clear, no reduced transparency or
+contrast preference; GLS-13), wears CSS+ (GLS-8), a CSS material that imitates the look. Any GPU
+failure ends it for the session and the pieces fall back silently; Editing and Find pause it
+(GLS-14). The optics and the scroll edge are GLS-15. The materials themselves are
+`styles/materials.css` and `ui/Surface.tsx` (ADR-0024).
