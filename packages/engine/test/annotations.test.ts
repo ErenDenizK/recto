@@ -98,6 +98,30 @@ async function openBlank(pages = 1): Promise<ReturnType<typeof sid>> {
   return id;
 }
 
+/** Reddish pixels (red over green and blue by 60; `pngBlob` is half-transparent red) of an unrotated page render inside a user-space rect. */
+async function redPixels(
+  engine: PdfiumAdapter,
+  id: ReturnType<typeof sid>,
+  rect: Rect,
+): Promise<number> {
+  const r = await engine.renderPage(id, 0, { scale: 1 });
+  const canvas = new OffscreenCanvas(r.width, r.height);
+  const ctx = canvas.getContext('2d') as OffscreenCanvasRenderingContext2D;
+  ctx.drawImage(r.bitmap, 0, 0);
+  const data = ctx.getImageData(
+    Math.round(rect.x),
+    Math.round(r.height - rect.y - rect.height),
+    Math.round(rect.width),
+    Math.round(rect.height),
+  ).data;
+  let red = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    const [r0, g0, b0] = [data[i] ?? 0, data[i + 1] ?? 0, data[i + 2] ?? 0];
+    if (r0 - g0 > 60 && r0 - b0 > 60) red += 1;
+  }
+  return red;
+}
+
 describe('every kind', () => {
   test('create → list preserves geometry, save → re-open → list keeps it', async () => {
     const id = await openBlank();
@@ -377,6 +401,85 @@ describe('stamps', () => {
         imageBlob: new Blob(['GIF89a'], { type: 'image/gif' }),
       }),
     ).rejects.toMatchObject({ code: 'unsupported' });
+    await adapter.close(id);
+  });
+
+  test('a moved image stamp still draws, after save → re-open and after the undo update', async () => {
+    const id = await openBlank();
+    const at = { x: 100, y: 100, width: 60, height: 60 };
+    const to = { x: 300, y: 400, width: 60, height: 60 };
+    const stamp = await adapter.createAnnotation(id, {
+      kind: 'stamp',
+      pageIndex: 0,
+      rect: at,
+      imageBlob: pngBlob(),
+    });
+    expect(await redPixels(adapter, id, at)).toBeGreaterThan(1000);
+    // A drag commits the stamp with only its rect changed (no imageBlob), like the UI does.
+    await adapter.updateAnnotation(id, { ...stamp, rect: to });
+    expect(await redPixels(adapter, id, to)).toBeGreaterThan(1000);
+    expect(await redPixels(adapter, id, at)).toBe(0);
+
+    const saved = await adapter.save(id);
+    const reopened = sid(`doc-${++counter}`);
+    await adapter.open(reopened, saved);
+    expect(await redPixels(adapter, reopened, to)).toBeGreaterThan(1000);
+    await adapter.close(reopened);
+
+    // Undo replays the previous state as another rect-only update.
+    await adapter.updateAnnotation(id, { ...stamp, rect: at });
+    expect(await redPixels(adapter, id, at)).toBeGreaterThan(1000);
+    // A style change (the selection bar's opacity) is an in-place update too.
+    await adapter.updateAnnotation(id, { ...stamp, rect: at, opacity: 0.8 });
+    expect(await redPixels(adapter, id, at)).toBeGreaterThan(1000);
+    await adapter.close(id);
+  });
+
+  test('moved ink and text boxes still draw (the move path a stamp shares)', async () => {
+    const id = await openBlank();
+    const ink = await adapter.createAnnotation(id, {
+      kind: 'ink',
+      pageIndex: 0,
+      rect: { x: 0, y: 0, width: 0, height: 0 },
+      paths: [
+        [
+          { x: 100, y: 100 },
+          { x: 150, y: 150 },
+        ],
+      ],
+      strokeWidth: 6,
+      color: '#FF0000',
+    });
+    const box = await adapter.createAnnotation(id, {
+      kind: 'free-text',
+      pageIndex: 0,
+      rect: { x: 100, y: 300, width: 160, height: 40 },
+      text: 'WWWW',
+      fontSize: 28,
+      textColor: '#FF0000',
+    });
+    const dx = 250;
+    const dy = 200;
+    if (ink.kind !== 'ink' || box.kind !== 'free-text') throw new Error('unexpected kinds');
+    // What a drag commits (geometry.ts translateAnnotation): the rect and the paths moved.
+    await adapter.updateAnnotation(id, {
+      ...ink,
+      rect: { ...ink.rect, x: ink.rect.x + dx, y: ink.rect.y + dy },
+      paths: ink.paths.map((path) => path.map((p) => ({ x: p.x + dx, y: p.y + dy }))),
+    });
+    await adapter.updateAnnotation(id, {
+      ...box,
+      rect: { ...box.rect, x: box.rect.x + dx, y: box.rect.y + dy },
+    });
+    const inkTo = { x: 100 + dx, y: 100 + dy, width: 50, height: 50 };
+    const boxTo = { ...box.rect, x: box.rect.x + dx, y: box.rect.y + dy };
+    expect(await redPixels(adapter, id, inkTo)).toBeGreaterThan(100);
+    expect(await redPixels(adapter, id, boxTo)).toBeGreaterThan(100);
+    const reopened = sid(`doc-${++counter}`);
+    await adapter.open(reopened, await adapter.save(id));
+    expect(await redPixels(adapter, reopened, inkTo)).toBeGreaterThan(100);
+    expect(await redPixels(adapter, reopened, boxTo)).toBeGreaterThan(100);
+    await adapter.close(reopened);
     await adapter.close(id);
   });
 

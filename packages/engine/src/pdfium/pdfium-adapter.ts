@@ -1123,8 +1123,8 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
    * Updates an annotation to `annotation` (the full new state; its id and kind select it).
    * For quad, path and vertex kinds the geometry is authoritative; when only `rect`
    * changed, the geometry is moved and scaled with it (a move or resize of the box).
-   * Changes EmbedPDF cannot apply in place (fewer quads, a new stamp image or name) delete
-   * and recreate the annotation with the same /NM (it moves to the top of the z-order).
+   * Changes EmbedPDF cannot apply in place (fewer quads, any stamp change) delete and
+   * recreate the annotation with the same /NM (it moves to the top of the z-order).
    */
   async updateAnnotation(
     id: SourceId,
@@ -1143,11 +1143,25 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
       );
     }
     const freeTextFont = await this.freeTextFont(annotation);
-    const next = before ? followRect(before, annotation) : annotation;
+    let next = before ? followRect(before, annotation) : annotation;
+    const renamed =
+      next.kind === 'stamp' &&
+      before?.kind === 'stamp' &&
+      (next.name ?? '') !== (before.name ?? '');
+    if (next.kind === 'stamp' && next.imageBlob === undefined && !renamed) {
+      // EmbedPDF updates a stamp in place by rebuilding its appearance from the annotation's
+      // page objects, which no longer hold the image once the appearance is wrapped: a moved,
+      // resized or restyled image stamp (a placed signature) would draw nothing. Its current
+      // appearance is carried over instead, through the recreate below.
+      const appearance = await this.run(
+        engine.exportAnnotationAppearanceAsPdf(doc, page, existing),
+        options,
+        'updateAnnotation',
+      );
+      next = { ...next, imageBlob: new Blob([appearance], { type: 'application/pdf' }) };
+    }
     const recreate =
-      (next.kind === 'stamp' &&
-        (next.imageBlob !== undefined ||
-          (before?.kind === 'stamp' && (next.name ?? '') !== (before.name ?? '')))) ||
+      next.kind === 'stamp' ||
       ('quads' in next && before && 'quads' in before && next.quads.length < before.quads.length);
     if (recreate) {
       if (next.kind === 'stamp' && !next.imageBlob && !next.name) {
