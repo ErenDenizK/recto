@@ -5,19 +5,11 @@
  * its reader, does not load the full shell's modules.
  */
 import { getLocale } from '../i18n/locale';
-import { useSessionStore } from '../session/session-store';
+import { whenLaunchSettled } from '../session/session-store';
 import { type SampleLocale, takeSampleParam } from './sample-param';
 
 /** The link's sample, read once per page load: undefined until read, null once handled. */
 let linked: SampleLocale | null | undefined;
-
-/** Whether the launch's restore is over (or there is none), so a new tab cannot stop it. */
-function launchSettled(): boolean {
-  // No session running (a component test): nothing to wait for.
-  if (document.documentElement.dataset.session === undefined) return true;
-  const { keeping, restoring } = useSessionStore.getState();
-  return keeping === 'unavailable' || (keeping === 'available' && !restoring);
-}
 
 /**
  * The `?sample` link (L10 §6): reads and removes the parameter at once, then opens the sample
@@ -37,16 +29,7 @@ export function openSampleFromLink(open: (locale: SampleLocale) => Promise<unkno
     linked = null;
     if (locale) void open(locale);
   };
-  if (launchSettled()) {
-    go();
-    return () => undefined;
-  }
-  const unsubscribe = useSessionStore.subscribe(() => {
-    if (!launchSettled()) return;
-    unsubscribe();
-    go();
-  });
-  return unsubscribe;
+  return whenLaunchSettled(go);
 }
 
 /** Forgets that the link was read (tests). */

@@ -1,3 +1,5 @@
+> **Superseded by [`docs/company/roadmap.md`](../../company/roadmap.md)** (PRC-24) as the live plan. Kept in place because [`docs/process/decisions.md`](../../process/decisions.md) cites it as a source.
+
 # Recto: the unified V1 plan (R13, final)
 
 Date: 2026-10-09 · Tree: `develop` `8a78589` · Status: **proposal for the owner's review.**

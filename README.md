@@ -9,17 +9,16 @@
 Open many PDFs, arrange their pages on one light table, annotate, fill, redact, edit text,
 recognise scans, compare, sign.
 
-[Open the app](https://erendenizk.github.io/recto/) · [How it works](#how-it-works) · [What it does not do](#what-it-does-not-do) · [Roadmap](docs/ROADMAP.md)
+[Open the app](https://erendenizk.github.io/recto/) · [How it works](#how-it-works) · [What it does not do](#what-it-does-not-do) · [Roadmap](docs/company/roadmap.md)
 
 [![CI](https://github.com/ErenDenizK/recto/actions/workflows/ci.yml/badge.svg)](https://github.com/ErenDenizK/recto/actions/workflows/ci.yml)
-[![Latest release](https://img.shields.io/github/v/release/ErenDenizK/recto?include_prereleases&sort=semver&label=release)](https://github.com/ErenDenizK/recto/releases)
 [![Licence: Apache-2.0](https://img.shields.io/badge/licence-Apache--2.0-blue)](LICENSE)
 
 </div>
 
 <a href="https://erendenizk.github.io/recto/"><img src="https://erendenizk.github.io/recto/media/00-hero.png" width="100%" alt="The Pages grid: three demo documents, each a section of page thumbnails"></a>
 
-**Status:** public beta (`1.0.0-beta` versions, [ADR-0017](docs/adr/0017-versioning-and-releases.md)).
+**Status:** public beta. Versioned releases are planned ([ADR-0017](docs/adr/0017-versioning-and-releases.md)); none is published yet.
 Built and maintained by one person; not audited by a third party. The end-to-end tests run in
 Chromium, Firefox and WebKit on every push ([`ci.yml`](.github/workflows/ci.yml)).
 
@@ -110,7 +109,11 @@ runs in Chromium only.
    fonts and OCR packs in the `pdf-editor-wasm`, `pdf-editor-fonts` and `pdf-editor-ocr`
    caches; saved recipes in the origin private file system (IndexedDB where that is missing);
    preferences such as language, layout, pen presets and reading positions in `localStorage`
-   under `pdf-editor:`. Open documents are not stored.
+   under `pdf-editor:`. Open documents are stored too, so a reload can restore them: the
+   bytes of each open file and its edits are kept in the origin private file system
+   ([`storage.ts`](apps/web/src/session/storage.ts)), and closed ones stay in Recents for 30 days or
+   up to 500 MB ([`retention.ts`](apps/web/src/session/retention.ts)). Nothing is uploaded. Delete it
+   with Clear in the privacy popover, with Remove or Clear recents, or by clearing the site's data.
 7. The media on this page were recorded by a script that logs every request and fails on any
    other origin ([`privacy.ts`](tools/media/lib/privacy.ts)); the log is published as
    [`requests.log`](https://erendenizk.github.io/recto/media/requests.log).
@@ -140,8 +143,9 @@ file is written only on export. Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECT
 
 ## What it does not do
 
-- No Office conversion (Word, Excel, PowerPoint to or from PDF): no layout engine in the
-  browser reaches acceptable fidelity. No PDF/A claims: conformance cannot be validated in
+- Office files convert to PDF on desktop and tablet only, behind a flag (`?office=1`) and after a
+  one-time download of about 70 MB; PDF to Office does not exist
+  ([ADR-0035](docs/adr/0035-on-device-office-conversion.md)). No PDF/A claims: conformance cannot be validated in
   the browser ([`VISION.md`](docs/VISION.md)).
 - Signatures are Intact, Intact but changed later, Changed after signing, Broken or Cannot
   check, never "valid": signer identity, trust and revocation are not checked, and there is
@@ -154,7 +158,7 @@ file is written only on export. Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECT
 - One document is processed by one single-threaded WebAssembly worker; about 1 GB per
   document is the design ceiling ([ADR-0004](docs/adr/0004-hosting-and-isolation.md)).
 
-The known behaviours of each milestone are listed in [`docs/ROADMAP.md`](docs/ROADMAP.md).
+The live plan is [`docs/company/roadmap.md`](docs/company/roadmap.md); the known behaviours of milestones M0–M8 are listed in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## How it compares
 
@@ -174,10 +178,9 @@ By category, not by product, as of 2026-09-26; sources in
   Chromium-based browser, Firefox or Safari.
 - Install it as an app: Install in the address bar of Chromium-based browsers, or File → Add
   to Dock in Safari on macOS. It works offline after the first visit (tested in Chromium).
-- Self-host: each [release](https://github.com/ErenDenizK/recto/releases) has
-  `recto-<version>-dist.zip` and `SHA256SUMS`. Unzip it at the root of any static host
-  served over HTTPS (the zip is built for the path `/`); for a sub-path, build from source
-  with `VITE_BASE_PATH=/your/path/ pnpm build`.
+- Self-host: build from source (see Development), then serve `apps/web/dist` from any static
+  host over HTTPS. `pnpm install`, then `pnpm build`; for a sub-path set
+  `VITE_BASE_PATH=/your/path/ pnpm build`.
 
 ## Development
 
@@ -194,17 +197,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the workflow and repository layout.
 
 ## Documents
 
-| Document | Purpose |
-|---|---|
-| [`docs/VISION.md`](docs/VISION.md) | Thesis, principles, non-goals, v1.0 success criteria |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Engine layering, virtual document model, export pipeline, deployment, testing |
-| [`docs/ROADMAP.md`](docs/ROADMAP.md) | Milestones M0–M8 and the M9 plan (the live plan is `docs/plan/v1/PLAN.md`) |
-| [`docs/DESIGN.md`](docs/DESIGN.md) | Design intent, layout, tokens, interaction and accessibility rules |
-| [`docs/process/decisions.md`](docs/process/decisions.md) | Every owner and lead decision, with its source; it wins over older docs |
-| [`docs/archive/`](docs/archive/README.md) | Superseded documents kept as the record (the closed open-decisions list among them) |
-| [`docs/adr/`](docs/adr/) | Architecture Decision Records |
-| [`docs/research/`](docs/research/) | Research snapshots (engines, market and UX, platform constraints, feature feasibility) |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Workflow, conventions, standards |
+The newcomer set (vision, architecture, the decisions index, the live plan, the design language) is listed in [`docs/README.md`](docs/README.md). Finished and superseded documents are kept in [`docs/archive/`](docs/archive/README.md).
 
 ## Built on
 

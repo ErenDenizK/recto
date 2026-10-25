@@ -6,8 +6,8 @@ status: proposed
 
 > Wave 2 component spec. Binding inputs: [`flows.md`](../flows.md) (cited as F§) and
 > [`language.md`](../language.md) (cited as L§), with the ten amendments of F§13.2 applied.
-> Evidence: [`inventory.md`](../inventory.md) §5 (5.1–5.14), §10 (10.1–10.6), §11 (11.1–11.9),
-> §16 (INV-3, INV-9, INV-10, INV-11, INV-19, INV-21); [`current-flows.md`](../current-flows.md)
+> Evidence: [`inventory.md`](../../../archive/design/redesign-2026-10/inventory.md) §5 (5.1–5.14), §10 (10.1–10.6), §11 (11.1–11.9),
+> §16 (INV-3, INV-9, INV-10, INV-11, INV-19, INV-21); [`current-flows.md`](../../../archive/design/redesign-2026-10/current-flows.md)
 > J4, J12, J15; baseline frames `12-arrange-*`, `13-compare-*`, `14-find-*`, `15-review-1440`,
 > `35-compare-setup-1440`; research 15 (RA-7, RA-21), 18 (MC-9, MC-10, MC-27–MC-29), 19 (M-9,
 > M-10, M-15, M-20, M-21, M-31, M-38), 22 (A-11–A-15, A-20). Sibling specs: `01-frame.md` (F1–F13),

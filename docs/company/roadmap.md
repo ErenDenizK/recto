@@ -26,7 +26,7 @@ R23's eight items are done (#29–#46). Text (.txt) to PDF shipped in #47 (PRD-1
 - Findings of the user tests (they jump the queue when they arrive).
 - The ~60 remaining test waits that need app hooks (after the #46 sweep).
 - Phone first-load proposals P1–P6 (some need PF-17 and MOB-13 amendments).
-- Weekly routing comparison (Sonnet lanes against the Opus baseline, `model-routing.md`).
+- Weekly routing comparison (builder lanes against the judge baseline, `model-routing.md`).
 - Accessibility pass on keyboard and focus (PRD-3: not a V1 requirement, but cheap wins count).
 - Settings and Library copy read in Turkish by a native-quality reviewer pass.
 
