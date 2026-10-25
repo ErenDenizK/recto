@@ -21,7 +21,7 @@ const ELSEWHERE = [
   'husband',
   'partner',
   'emergency',
-  'user',
+  'user name',
   'username',
   'file',
   'bank',
@@ -30,7 +30,7 @@ const ELSEWHERE = [
   'anne',
   'es',
   'acil',
-  'kullanici',
+  'kullanici adi',
   'dosya',
   'banka',
 ];
@@ -39,13 +39,16 @@ const ELSEWHERE = [
 const RULES: readonly (readonly [token: string, phrases: readonly string[]])[] = [
   ['bday', ['date of birth', 'birth date', 'birthday', 'dob', 'dogum tarihi']],
   ['postal-code', ['postal code', 'post code', 'postcode', 'zip', 'zip code', 'posta kodu']],
-  ['email', ['email', 'e mail', 'eposta', 'e posta']],
-  ['tel', ['phone', 'telephone', 'mobile', 'tel', 'telefon', 'gsm', 'cep']],
+  ['email', ['email', 'e mail', 'eposta', 'e posta', 'epostasi', 'e postasi']],
+  [
+    'tel',
+    ['phone', 'telephone', 'mobile', 'tel', 'telefon', 'telefonu', 'telefonunuz', 'gsm', 'cep'],
+  ],
   ['country-name', ['country', 'ulke']],
   ['address-level1', ['il']],
   ['address-level2', ['city', 'town', 'sehir', 'ilce']],
   ['address-line2', ['address line 2', 'address 2', 'adres 2', 'adres satiri 2']],
-  ['street-address', ['street address', 'street', 'address', 'adres', 'adresi']],
+  ['street-address', ['street address', 'street', 'address', 'adres', 'adresi', 'adresiniz']],
   [
     'organization',
     ['organization', 'organisation', 'company', 'employer', 'kurum', 'sirket', 'firma'],
@@ -60,12 +63,13 @@ const RULES: readonly (readonly [token: string, phrases: readonly string[]])[] =
       'adi soyadi',
       'ad ve soyad',
       'adi ve soyadi',
+      'adiniz soyadiniz',
       'isim',
     ],
   ],
-  ['family-name', ['family name', 'last name', 'surname', 'soyad', 'soyadi']],
+  ['family-name', ['family name', 'last name', 'surname', 'soyad', 'soyadi', 'soyadiniz']],
   ['given-name', ['given name', 'first name', 'forename', 'ad', 'adi']],
-  ['name', ['your name', 'name']],
+  ['name', ['your name', 'name', 'adiniz']],
 ];
 
 /** Lower case (Turkish rules), accents folded, words split at case changes and punctuation. */
