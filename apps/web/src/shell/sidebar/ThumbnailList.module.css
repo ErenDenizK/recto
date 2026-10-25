@@ -270,3 +270,10 @@
     background: CanvasText;
   }
 }
+
+/* The tone flag (`?tone`, tokens.css §8): the drop gap beside the accent selected ring. */
+:global(:root[data-tone]) .gap,
+:global(:root[data-tone]) .gap::before,
+:global(:root[data-tone]) .gap::after {
+  background: var(--accent-ring);
+}

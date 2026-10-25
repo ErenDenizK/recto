@@ -2415,3 +2415,49 @@ function deltaE(a: Rgb, b: Rgb, matrix: readonly (readonly number[])[] | null): 
   const q = oklab(b, matrix);
   return 100 * Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
 }
+
+describe('the tone candidates (?tone, tokens.css §8)', () => {
+  const lightBase = new Map([
+    ...free,
+    ...declarations(/(?:^|\n)\[data-theme='light'\]\s*\{([^{}]*)\}/.exec(tokensSource)?.[1] ?? ''),
+  ]);
+  const base = { dark: new Map([...free, ...theme]), light: lightBase } as const;
+  const toneBlock = (tone: string, scheme: string) =>
+    declarations(
+      new RegExp(
+        `:root\\[data-tone='${tone}'\\]\\[data-theme='${scheme}'\\]\\s*\\{([^{}]*)\\}`,
+      ).exec(tokensSource)?.[1] ?? '',
+    );
+
+  for (const tone of ['beam', 'harbour', 'tideline'] as const) {
+    for (const scheme of ['dark', 'light'] as const) {
+      it(`${tone}, ${scheme}: only registered names, and the accent holds its floors`, () => {
+        const block = toneBlock(tone, scheme);
+        expect(block.size, 'block missing').toBeGreaterThan(0);
+        for (const name of block.keys()) expect(THEME_TOKENS, name).toContain(name);
+        const scope = new Map([...base[scheme], ...block]);
+        const c = (name: string): Rgb => parseColour(resolve(name, scope)).rgb;
+        const frame = c('--surface-frame');
+        const raised = c('--surface-raised');
+        // The accent as text and glyph, on the frame and on the raised surface.
+        atLeast(contrast(c('--accent'), frame), AA_TEXT, 'accent on frame');
+        atLeast(contrast(c('--accent'), raised), AA_TEXT, 'accent on raised');
+        // The primary fill and the armed tool carry their label.
+        atLeast(contrast(c('--primary-ink'), c('--primary-fill')), AA_TEXT, 'primary label');
+        atLeast(contrast(c('--tool-active-ink'), c('--tool-active-fill')), AA_TEXT, 'armed label');
+        atLeast(contrast(c('--check-badge-ink'), c('--check-badge-fill')), AA_TEXT, 'tick');
+        // The selected ring on the canvas is a glyph (WCAG 1.4.11).
+        atLeast(contrast(c('--accent-ring'), c('--canvas')), AA_NON_TEXT, 'ring on canvas');
+        // Text selection keeps its blue.
+        expect(block.has('--select')).toBe(false);
+      });
+    }
+  }
+
+  it('moves tag-0 off the harbour hue to moss, and no other tone touches it', () => {
+    expect(toneBlock('harbour', 'dark').get('--tag-0')).toBe('#a3ac69');
+    expect(toneBlock('harbour', 'light').get('--tag-0')).toBe('#676f2d');
+    expect(toneBlock('beam', 'dark').has('--tag-0')).toBe(false);
+    expect(toneBlock('tideline', 'light').has('--tag-0')).toBe(false);
+  });
+});

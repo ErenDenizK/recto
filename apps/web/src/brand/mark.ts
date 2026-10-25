@@ -55,5 +55,28 @@ export const MARK_GRADIENT_LIGHT = {
   ],
 } as const;
 
+/**
+ * The tone flag's gradient (`?tone`, tokens.css §8; tone study logo a2): the same geometry,
+ * angle and knee retoned teal → mint → lime, the beam of the cover, and its deepened twin for a
+ * light ground. Drawn instead of the two above while `data-tone` is on the root.
+ */
+export const MARK_GRADIENT_BEAM = {
+  ...MARK_GRADIENT,
+  stops: [
+    { offset: 0, color: '#2FB3A8' },
+    { offset: 0.5944, color: '#6EEDBB' },
+    { offset: 1, color: '#C8FB3D' },
+  ],
+} as const;
+
+export const MARK_GRADIENT_BEAM_LIGHT = {
+  ...MARK_GRADIENT,
+  stops: [
+    { offset: 0, color: '#0D5E57' },
+    { offset: 0.5944, color: '#136D5B' },
+    { offset: 1, color: '#3F8A2A' },
+  ],
+} as const;
+
 /** The mono treatments (the brand's near-black on light, white on dark). */
 export const MARK_INK = { black: '#0B0C0E', white: '#FFFFFF' } as const;

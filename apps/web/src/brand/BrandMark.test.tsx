@@ -6,7 +6,14 @@ import { render } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { BrandMark } from './BrandMark';
-import { MARK_GRADIENT, MARK_GRADIENT_LIGHT, MARK_PATHS, MARK_VIEWBOX } from './mark';
+import {
+  MARK_GRADIENT,
+  MARK_GRADIENT_BEAM,
+  MARK_GRADIENT_BEAM_LIGHT,
+  MARK_GRADIENT_LIGHT,
+  MARK_PATHS,
+  MARK_VIEWBOX,
+} from './mark';
 
 const fillOf = (svg: SVGSVGElement) => getComputedStyle(svg.querySelector('path') as Element).fill;
 
@@ -63,5 +70,24 @@ describe('BrandMark (docs/brand/README.md "The mark: files and usage")', () => {
     expect(
       [...(light?.querySelectorAll('stop') ?? [])].map((s) => s.getAttribute('stop-color')),
     ).toEqual(MARK_GRADIENT_LIGHT.stops.map((s) => s.color));
+  });
+});
+
+describe('the tone flag (?tone)', () => {
+  afterEach(() => {
+    document.documentElement.removeAttribute('data-tone');
+  });
+
+  it('draws the beam gradients while data-tone is on the root, the lime ones without', () => {
+    const stopsOf = (el: Element, at: number) =>
+      [...(el.querySelectorAll('linearGradient')[at]?.querySelectorAll('stop') ?? [])].map((s) =>
+        s.getAttribute('stop-color'),
+      );
+    const plain = render(<BrandMark tone="auto" />).container;
+    expect(stopsOf(plain, 0)).toEqual(MARK_GRADIENT.stops.map((s) => s.color));
+    document.documentElement.setAttribute('data-tone', 'harbour');
+    const toned = render(<BrandMark tone="auto" />).container;
+    expect(stopsOf(toned, 0)).toEqual(MARK_GRADIENT_BEAM.stops.map((s) => s.color));
+    expect(stopsOf(toned, 1)).toEqual(MARK_GRADIENT_BEAM_LIGHT.stops.map((s) => s.color));
   });
 });

@@ -7,8 +7,12 @@
  * CSP allows no inline script, and nothing is bundled before it); src/state/theme.test.ts runs
  * this file against that function. The app takes over once it mounts, and follows the device
  * while the setting is System.
+ *
+ * The tone flag (`?tone=beam|harbour|tideline`, tokens.css §8) rides here too, so its accent is
+ * in force at first paint: the query is kept for the tab's session like `?top`
+ * (`shell/compact/top-variant.ts`), `?tone=off` clears it, no flag leaves `data-tone` unset.
  */
-/* global document, localStorage, matchMedia */
+/* global document, localStorage, location, matchMedia, sessionStorage, URLSearchParams */
 (() => {
   const colours = { dark: '#08090c', light: '#e6e8eb' };
   let setting = 'system';
@@ -22,6 +26,19 @@
     typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: light)').matches;
   const theme = setting === 'system' ? (light ? 'light' : 'dark') : setting;
   document.documentElement.setAttribute('data-theme', theme);
+  const asked = new URLSearchParams(location.search).get('tone');
+  let tone = asked;
+  try {
+    if (asked === 'off') sessionStorage.removeItem('pdf-editor:tone:v1');
+    else if (asked === 'beam' || asked === 'harbour' || asked === 'tideline')
+      sessionStorage.setItem('pdf-editor:tone:v1', asked);
+    else tone = sessionStorage.getItem('pdf-editor:tone:v1');
+  } catch {
+    // Storage blocked: the query still applies to this load.
+  }
+  if (tone === 'beam' || tone === 'harbour' || tone === 'tideline') {
+    document.documentElement.setAttribute('data-tone', tone);
+  }
   for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
     const scheme = meta.media.includes('light') ? 'light' : 'dark';
     meta.content = colours[setting === 'system' ? scheme : theme];

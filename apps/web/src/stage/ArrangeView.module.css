@@ -537,3 +537,21 @@
     outline-color: Highlight;
   }
 }
+
+/* The tone flag (`?tone`, tokens.css §8): the drop and marquee marks select whole pages, an accent
+   role, so they follow the accent; the blue stays on the page's own selection. No flag, no rule. */
+:global(:root[data-tone]) .section[data-drop-outline]::after,
+:global(:root[data-tone]) .marquee {
+  border-color: var(--accent-ring);
+  background: var(--accent-subtle);
+}
+
+:global(:root[data-tone]) .cut,
+:global(:root[data-tone]) .insertionBar,
+:global(:root[data-tone]) .insertionBar[data-duplicate]::before {
+  background: var(--accent-ring);
+}
+
+:global(:root[data-tone]) .insertionBar[data-duplicate]::before {
+  color: var(--accent-ink);
+}

@@ -1370,3 +1370,155 @@
     --aurora-lemon: oklch(0.93 0.211 105);
   }
 }
+
+/* ── §8 Tone candidates (`?tone=beam|harbour|tideline`, kept for the tab's session; boot script
+   `public/theme.js`): the accent re-hued toward the lighthouse beam's blue-green, for trying on
+   a device. Only the names whose value differs from §1/§2 are repeated: the primary fill, armed
+   tool, ring and check badge follow `--accent` in dark. No flag, no change. Text selection keeps
+   `--select`. */
+
+:root[data-tone='beam'][data-theme='dark'] {
+  --accent: #6eedbb;
+  --accent-hover: #96f5cc;
+  --accent-pressed: #5bdcab;
+  --accent-subtle: rgb(110 237 187 / 0.08);
+  --accent-muted: rgb(110 237 187 / 0.12);
+  --accent-line: rgb(110 237 187 / 0.5);
+  --focus-light: #6eedbb;
+  --find-hit-multiply: #02a387;
+  --find-hit-screen: #216253;
+  --find-current-multiply: #00806a;
+  --find-current-screen: #2b7161;
+  --find-current-ring: #003227;
+  --find-current-halo: #6eedbb;
+  --aura-mint: rgb(65 200 190);
+  --aura-lime: rgb(110 237 187);
+  --aura-yellow: rgb(200 251 61);
+}
+
+:root[data-tone='beam'][data-theme='light'] {
+  --accent: #136d5b;
+  --accent-hover: #005e4d;
+  --accent-pressed: #004e40;
+  --accent-ink: #ffffff;
+  --accent-subtle: rgb(19 109 91 / 0.06);
+  --accent-muted: rgb(19 109 91 / 0.11);
+  --accent-line: #136d5b;
+  --primary-fill: #136d5b;
+  --primary-fill-hover: #005e4d;
+  --primary-fill-pressed: #004e40;
+  --primary-ink: #ffffff;
+  --tool-active-fill: #136d5b;
+  --tool-active-fill-hover: #005e4d;
+  --tool-active-fill-pressed: #004e40;
+  --tool-active-ink: #ffffff;
+  --accent-ring: #136d5b;
+  --focus-light: #6eedbb;
+  --find-hit-multiply: #02a387;
+  --find-hit-screen: #216253;
+  --find-current-multiply: #00806a;
+  --find-current-screen: #2b7161;
+  --find-current-ring: #003227;
+  --find-current-halo: #6eedbb;
+  --aura-mint: rgb(65 200 190);
+  --aura-lime: rgb(110 237 187);
+  --aura-yellow: rgb(200 251 61);
+}
+
+:root[data-tone='harbour'][data-theme='dark'] {
+  --accent: #63e6e1;
+  --accent-hover: #8eefea;
+  --accent-pressed: #4fd5d1;
+  --accent-subtle: rgb(99 230 225 / 0.08);
+  --accent-muted: rgb(99 230 225 / 0.12);
+  --accent-line: rgb(99 230 225 / 0.5);
+  --focus-light: #63e6e1;
+  --find-hit-multiply: #00a0a6;
+  --find-hit-screen: #156165;
+  --find-current-multiply: #007d83;
+  --find-current-screen: #1f7074;
+  --find-current-ring: #003134;
+  --find-current-halo: #63e6e1;
+  --aura-mint: rgb(60 170 200);
+  --aura-lime: rgb(99 230 225);
+  --aura-yellow: rgb(160 240 190);
+  --tag-0: #a3ac69; /* moss: sage sat on the new accent hue */
+}
+
+:root[data-tone='harbour'][data-theme='light'] {
+  --accent: #176a6e;
+  --accent-hover: #005c60;
+  --accent-pressed: #004c50;
+  --accent-ink: #ffffff;
+  --accent-subtle: rgb(23 106 110 / 0.06);
+  --accent-muted: rgb(23 106 110 / 0.11);
+  --accent-line: #176a6e;
+  --primary-fill: #176a6e;
+  --primary-fill-hover: #005c60;
+  --primary-fill-pressed: #004c50;
+  --primary-ink: #ffffff;
+  --tool-active-fill: #176a6e;
+  --tool-active-fill-hover: #005c60;
+  --tool-active-fill-pressed: #004c50;
+  --tool-active-ink: #ffffff;
+  --accent-ring: #176a6e;
+  --focus-light: #63e6e1;
+  --find-hit-multiply: #00a0a6;
+  --find-hit-screen: #156165;
+  --find-current-multiply: #007d83;
+  --find-current-screen: #1f7074;
+  --find-current-ring: #003134;
+  --find-current-halo: #63e6e1;
+  --aura-mint: rgb(60 170 200);
+  --aura-lime: rgb(99 230 225);
+  --aura-yellow: rgb(160 240 190);
+  --tag-0: #676f2d; /* moss: sage sat on the new accent hue */
+}
+
+:root[data-tone='tideline'][data-theme='dark'] {
+  --accent: #9bf687;
+  --accent-hover: #b6fea7;
+  --accent-pressed: #8be577;
+  --accent-subtle: rgb(155 246 135 / 0.08);
+  --accent-muted: rgb(155 246 135 / 0.12);
+  --accent-line: rgb(155 246 135 / 0.5);
+  --focus-light: #9bf687;
+  --find-hit-multiply: #15a383;
+  --find-hit-screen: #246251;
+  --find-current-multiply: #008066;
+  --find-current-screen: #2e715e;
+  --find-current-ring: #003225;
+  --find-current-halo: #9bf687;
+  --aura-mint: rgb(65 200 190);
+  --aura-lime: rgb(155 246 135);
+  --aura-yellow: rgb(220 250 110);
+}
+
+:root[data-tone='tideline'][data-theme='light'] {
+  --accent: #0b6e58;
+  --accent-hover: #005e4a;
+  --accent-pressed: #004f3e;
+  --accent-ink: #ffffff;
+  --accent-subtle: rgb(11 110 88 / 0.06);
+  --accent-muted: rgb(11 110 88 / 0.11);
+  --accent-line: #0b6e58;
+  --primary-fill: #0b6e58;
+  --primary-fill-hover: #005e4a;
+  --primary-fill-pressed: #004f3e;
+  --primary-ink: #ffffff;
+  --tool-active-fill: #0b6e58;
+  --tool-active-fill-hover: #005e4a;
+  --tool-active-fill-pressed: #004f3e;
+  --tool-active-ink: #ffffff;
+  --accent-ring: #0b6e58;
+  --focus-light: #9bf687;
+  --find-hit-multiply: #15a383;
+  --find-hit-screen: #246251;
+  --find-current-multiply: #008066;
+  --find-current-screen: #2e715e;
+  --find-current-ring: #003225;
+  --find-current-halo: #9bf687;
+  --aura-mint: rgb(65 200 190);
+  --aura-lime: rgb(155 246 135);
+  --aura-yellow: rgb(220 250 110);
+}

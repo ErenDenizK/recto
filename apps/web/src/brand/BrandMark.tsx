@@ -13,9 +13,21 @@
 import { type CSSProperties, useId } from 'react';
 
 import styles from './BrandMark.module.css';
-import { MARK_GRADIENT, MARK_GRADIENT_LIGHT, MARK_PATHS, MARK_VIEWBOX } from './mark';
+import {
+  MARK_GRADIENT,
+  MARK_GRADIENT_BEAM,
+  MARK_GRADIENT_BEAM_LIGHT,
+  MARK_GRADIENT_LIGHT,
+  MARK_PATHS,
+  MARK_VIEWBOX,
+} from './mark';
 
-type Gradient = typeof MARK_GRADIENT | typeof MARK_GRADIENT_LIGHT;
+type Gradient = Pick<typeof MARK_GRADIENT, 'x1' | 'y1' | 'x2' | 'y2'> & {
+  readonly stops: readonly { readonly offset: number; readonly color: string }[];
+};
+
+/** The tone flag (`?tone`, tokens.css §8) is on: the beam gradients replace the lime ones. */
+const toned = (): boolean => document.documentElement.hasAttribute('data-tone');
 
 function Ramp({ id, gradient }: { readonly id: string; readonly gradient: Gradient }) {
   return (
@@ -48,6 +60,7 @@ export function BrandMark({
 }) {
   // A document-unique id: one page can draw the mark several times (strip, header, sheets).
   const id = `recto-mark-${useId().replace(/[^\w-]/g, '')}`;
+  const beam = toned();
   const classes = [styles.mark, className].filter(Boolean).join(' ');
   // The light twin is drawn for `auto` only; the theme picks it through --mark-light
   // (BrandMark.module.css), so a theme change repaints without a render.
@@ -66,8 +79,13 @@ export function BrandMark({
     >
       {tone === 'mono' ? null : (
         <defs>
-          <Ramp id={id} gradient={MARK_GRADIENT} />
-          {tone === 'auto' ? <Ramp id={`${id}-light`} gradient={MARK_GRADIENT_LIGHT} /> : null}
+          <Ramp id={id} gradient={beam ? MARK_GRADIENT_BEAM : MARK_GRADIENT} />
+          {tone === 'auto' ? (
+            <Ramp
+              id={`${id}-light`}
+              gradient={beam ? MARK_GRADIENT_BEAM_LIGHT : MARK_GRADIENT_LIGHT}
+            />
+          ) : null}
         </defs>
       )}
       <g className={styles.fill} fill={tone === 'mono' ? 'currentColor' : `url(#${id})`}>

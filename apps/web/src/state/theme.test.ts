@@ -175,4 +175,25 @@ describe('the boot script (public/theme.js), before the first paint', () => {
       }
     }
   });
+
+  it('sets data-tone from ?tone, keeps it for the session, and ?tone=off clears it', () => {
+    const at = (search: string) => {
+      history.replaceState(null, '', `/${search}`);
+      document.documentElement.removeAttribute('data-tone');
+      boot();
+      return document.documentElement.getAttribute('data-tone');
+    };
+    try {
+      expect(at('')).toBeNull();
+      expect(at('?tone=harbour')).toBe('harbour');
+      expect(at('')).toBe('harbour');
+      expect(at('?tone=bogus')).toBe('harbour');
+      expect(at('?tone=off')).toBeNull();
+      expect(at('')).toBeNull();
+    } finally {
+      history.replaceState(null, '', '/');
+      sessionStorage.removeItem('pdf-editor:tone:v1');
+      document.documentElement.removeAttribute('data-tone');
+    }
+  });
 });
