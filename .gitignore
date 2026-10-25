@@ -38,3 +38,6 @@ pnpm-debug.log*
 
 # Office conversion package, fetched by packages/engine/office/fetch.ts (ADR-0035)
 packages/engine/office/vendor/
+
+# colour audit harness output (tools/colour-audit)
+tools/colour-audit/out/

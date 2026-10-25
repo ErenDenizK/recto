@@ -107,3 +107,11 @@ Pick the agent and model by `model-routing.md`: an `implementer` (Sonnet 5.5) on
 settles every decision; otherwise an Opus 5.5 agent. Before an `implementer` lane's PR opens, the lead
 checks its `git diff --stat` against the files in scope and adds the lane's row to
 `agent-metrics.md` once its first CI run is known.
+
+## Colour audit harness
+
+`tools/colour-audit/` measures text, icon and focus-ring contrast (WCAG 2.x and APCA) on the built
+app across desk, tablet and phone, light and dark, standard and more-contrast. A colour lane quotes
+its before and after against `tools/colour-audit/baseline/` (`agg.txt`, `top40.md`) in its PR
+(rendering is deterministic on the software rasteriser, so a re-run on the same tree matches within
+0.5 points per slice). Its README says how to rerun it; run the measures through `tools/dev/heavy.sh`.
