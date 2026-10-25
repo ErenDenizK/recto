@@ -3472,7 +3472,7 @@
   "library_card_progress": "{page}. sayfa / {total}",
   "scan_title": "Belge tara",
   "scan_document_title": "Tarama {date}",
-  "scan_button": "Tara",
+  "scan_button": "Tara…",
   "cmd_scan": "Belge tara…",
   "scan_camera_starting": "Kamera açılıyor…",
   "scan_denied": "Kamera erişimi engellendi. Tarayıcının site ayarlarından izin verin ya da bunun yerine fotoğraf çekin.",
@@ -3515,5 +3515,12 @@
   "scan_discard_title_one": "1 taranan sayfa silinsin mi?",
   "scan_discard_title": "{count} taranan sayfa silinsin mi?",
   "scan_discard_body": "Bitti’ye basana kadar hiçbir şey saklanmaz.",
-  "scan_discard": "Sil"
+  "scan_discard": "Sil",
+  "scan_hint_captured": "Çekildi · sıradaki sayfaya geçin",
+  "scan_hint_shutter": "Deklanşöre dokunun",
+  "scan_capture_failed": "Sayfa çekilemedi.",
+  "scan_detect_failed": "Sayfa algılama durdu. Deklanşörü kullanın ya da Tara’yı kapatıp yeniden açın.",
+  "scan_photos_skipped": "{count} fotoğraf okunamadı ve atlandı.",
+  "scan_apply": "Uygula",
+  "scan_back": "Geri"
 }

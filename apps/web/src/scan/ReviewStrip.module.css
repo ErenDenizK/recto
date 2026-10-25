@@ -29,24 +29,36 @@
   color: var(--text-secondary);
 }
 
-.actions {
-  display: grid;
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--space-2);
 }
 
-.row,
+.actions,
 .move {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* A small segmented control: the preview, not the filters, leads. */
+.filter {
+  width: 300px;
+  max-width: 100%;
 }
 
 .strip {
-  display: grid;
-  gap: var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .thumbs {
+  flex: 1;
+  min-width: 0;
   display: flex;
   gap: var(--space-2);
   margin: 0;

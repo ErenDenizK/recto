@@ -5139,7 +5139,7 @@
   "library_card_progress": "page {page} of {total}",
   "scan_title": "Scan document",
   "scan_document_title": "Scan {date}",
-  "scan_button": "Scan",
+  "scan_button": "Scan…",
   "cmd_scan": "Scan document…",
   "scan_camera_starting": "Starting the camera…",
   "scan_denied": "Camera access is blocked. Allow it in the browser’s site settings, or take a photo instead.",
@@ -5182,5 +5182,12 @@
   "scan_discard_title_one": "Discard 1 scanned page?",
   "scan_discard_title": "Discard {count} scanned pages?",
   "scan_discard_body": "Nothing is kept until you press Done.",
-  "scan_discard": "Discard"
+  "scan_discard": "Discard",
+  "scan_hint_captured": "Captured · move to the next page",
+  "scan_hint_shutter": "Tap the shutter",
+  "scan_capture_failed": "The page could not be captured.",
+  "scan_detect_failed": "Page detection stopped. Use the shutter, or close and open Scan again.",
+  "scan_photos_skipped": "{count} photos could not be read and were skipped.",
+  "scan_apply": "Apply",
+  "scan_back": "Back"
 }

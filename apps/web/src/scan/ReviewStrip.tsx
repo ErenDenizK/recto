@@ -1,15 +1,15 @@
 /**
- * The review (plan bm-scan-plan §3 "Review strip"): the selected page large, the actions on it
- * (adjust corners, rotate, filter, retake, delete) and the strip of every captured page. Reorder
- * is a pair of buttons on the selected page and ⌥← / ⌥→ on a focused thumbnail; a drag on touch
- * is a later refinement (plan: "long-press and drag"). The strip is a plain list of buttons, so
- * it reads and tabs like any list.
+ * The review (plan bm-scan-plan §3 "Review strip"): the selected page large, one row of icon
+ * actions on it (adjust corners, rotate, retake, delete; names in their tooltips) beside a small
+ * filter control, and the strip of every captured page with Move earlier / later and Scan another
+ * as icons. Reorder is those two buttons and ⌥← / ⌥→ on a focused thumbnail; a drag on touch is a
+ * known gap (PRD-34). The strip is a plain list of buttons, so it reads and tabs like any list.
  */
 import type { KeyboardEvent } from 'react';
 
 import { m } from '../i18n';
-import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
+import { IconButton } from '../ui/IconButton';
 import { Segmented } from '../ui/Segmented';
 import type { ScanFilter } from './encode';
 import styles from './ReviewStrip.module.css';
@@ -64,44 +64,40 @@ export function ReviewStrip({ pages, selected }: ReviewStripProps) {
       </div>
 
       {selected && (
-        <div className={styles.actions}>
+        <div className={styles.tools}>
+          <div className={styles.actions} role="group" aria-label={m.scan_title()}>
+            <IconButton
+              label={m.scan_adjust()}
+              icon={<Icon name="crop" />}
+              data-testid="scan-adjust"
+              onClick={() => setView('adjust')}
+            />
+            <IconButton
+              label={m.scan_rotate()}
+              icon={<Icon name="arrow-clockwise" />}
+              data-testid="scan-rotate"
+              onClick={() => rotatePage(selected.id)}
+            />
+            <IconButton
+              label={m.scan_retake()}
+              icon={<Icon name="scan" />}
+              data-testid="scan-retake"
+              onClick={() => retakePage(selected.id)}
+            />
+            <IconButton
+              label={m.scan_delete()}
+              icon={<Icon name="trash" />}
+              data-testid="scan-delete"
+              onClick={() => removePage(selected.id)}
+            />
+          </div>
           <Segmented
+            className={styles.filter}
             label={m.scan_filter()}
             value={selected.filter}
             onValueChange={(filter) => setFilter(selected.id, filter)}
             options={FILTERS.map((value) => ({ value, label: filterLabel(value) }))}
           />
-          <div className={styles.row} role="group" aria-label={m.scan_title()}>
-            <Button
-              icon={<Icon name="crop" />}
-              data-testid="scan-adjust"
-              onClick={() => setView('adjust')}
-            >
-              {m.scan_adjust()}
-            </Button>
-            <Button
-              icon={<Icon name="arrow-clockwise" />}
-              data-testid="scan-rotate"
-              onClick={() => rotatePage(selected.id)}
-            >
-              {m.scan_rotate()}
-            </Button>
-            <Button
-              icon={<Icon name="scan" />}
-              data-testid="scan-retake"
-              onClick={() => retakePage(selected.id)}
-            >
-              {m.scan_retake()}
-            </Button>
-            <Button
-              variant="danger"
-              icon={<Icon name="trash" />}
-              data-testid="scan-delete"
-              onClick={() => removePage(selected.id)}
-            >
-              {m.scan_delete()}
-            </Button>
-          </div>
         </div>
       )}
 
@@ -128,29 +124,26 @@ export function ReviewStrip({ pages, selected }: ReviewStripProps) {
           ))}
         </ul>
         <div className={styles.move} role="group" aria-label={m.scan_pages()}>
-          <Button
+          <IconButton
+            label={m.scan_earlier()}
             icon={<Icon name="caret-left" />}
             disabled={index <= 0}
             data-testid="scan-earlier"
             onClick={() => selected && movePage(selected.id, -1)}
-          >
-            {m.scan_earlier()}
-          </Button>
-          <Button
+          />
+          <IconButton
+            label={m.scan_later()}
             icon={<Icon name="caret-right" />}
             disabled={index < 0 || index >= pages.length - 1}
             data-testid="scan-later"
             onClick={() => selected && movePage(selected.id, 1)}
-          >
-            {m.scan_later()}
-          </Button>
-          <Button
+          />
+          <IconButton
+            label={m.scan_another()}
             icon={<Icon name="plus" />}
             data-testid="scan-another"
             onClick={() => setView('camera')}
-          >
-            {m.scan_another()}
-          </Button>
+          />
         </div>
       </div>
     </div>

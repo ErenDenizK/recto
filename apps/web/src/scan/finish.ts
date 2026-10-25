@@ -8,7 +8,7 @@ import { formatDay, m } from '../i18n';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { openImagesAsDocument } from '../stage/section-operations';
 import { Scanner } from './encode';
-import type { ScanPage } from './scan-store';
+import { insetQuad, type ScanPage } from './scan-store';
 
 /** Long side of a finished page, px (plan §2). */
 export const PAGE_SIDE = 3000;
@@ -27,7 +27,7 @@ export async function finishScan(pages: readonly ScanPage[]): Promise<boolean> {
     for (const [index, page] of pages.entries()) {
       const source = await createImageBitmap(page.source);
       try {
-        const { blob } = await scanner.page(source, page.quad, {
+        const { blob } = await scanner.page(source, insetQuad(page.quad), {
           filter: page.filter,
           longSide: PAGE_SIDE,
         });

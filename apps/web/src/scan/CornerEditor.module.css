@@ -33,7 +33,7 @@
 }
 
 .outline polygon {
-  fill: var(--accent-muted);
+  fill: none;
   stroke: var(--accent);
   stroke-width: 2;
   vector-effect: non-scaling-stroke;

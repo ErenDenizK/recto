@@ -1,7 +1,7 @@
 /* The scan sheet (plan bm-scan-plan §3): a solid stage, no glass over the video. */
 .body {
   display: grid;
-  height: min(64dvh, 620px);
+  height: min(68dvh, 660px);
   min-height: 320px;
 }
 
@@ -49,7 +49,7 @@
 }
 
 .outline polygon {
-  fill: var(--accent-muted);
+  fill: none;
   stroke: var(--accent);
   stroke-width: 3;
   stroke-dasharray: 8 6;
@@ -70,7 +70,8 @@
   border-radius: var(--radius-capsule);
   background: rgb(0 0 0 / 0.6);
   color: #fff;
-  font-size: 13px;
+  font-size: var(--type-body);
+  line-height: var(--type-body-lh);
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -129,14 +130,18 @@
   justify-self: end;
 }
 
+/* 72 px (plan §3). The fill and the outer ring are the primary text colour, which reads on the
+   sheet in both themes (well over 3:1); the sheet-coloured gap keeps the two apart. */
 .shutter {
-  width: 64px;
-  height: 64px;
+  width: 72px;
+  height: 72px;
   padding: 0;
-  border: 4px solid var(--surface-raised);
+  border: 0;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 0 0 2px var(--border-strong);
+  background: var(--text-primary);
+  box-shadow:
+    0 0 0 4px var(--surface-raised),
+    0 0 0 7px var(--text-primary);
   cursor: pointer;
 }
 
@@ -165,7 +170,12 @@
   grid-template-rows: minmax(0, 1fr) auto;
   gap: var(--space-3);
   min-height: 0;
-  justify-items: center;
+}
+
+.adjustBar {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
 }
 
 .adjust > :first-child {

@@ -37,9 +37,11 @@ import {
   beginScan,
   closeScanSheet,
   defaultQuad,
+  insetQuad,
   setAuto,
   setQuad,
   setPreview,
+  type ScanPage,
   setView,
   toPixels,
   useScanStore,
@@ -50,6 +52,8 @@ export const SCAN_SHEET = 'scan';
 const DETECT_INTERVAL_MS = 80;
 /** The review's preview, long side px. */
 const PREVIEW_SIDE = 900;
+/** How long "Captured" shows, ms. */
+const HINT_CAPTURED_MS = 1200;
 /** Flash length, ms; shorter and plain under reduced motion. */
 const FLASH_MS = 180;
 
@@ -58,6 +62,9 @@ interface Outline {
   readonly points: string;
   readonly locked: boolean;
 }
+
+/** A frame that is not ready yet: not an error. */
+class SkipFrame extends Error {}
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -96,22 +103,27 @@ function PhotoFallback({ onPhotos }: { readonly onPhotos: (files: File[]) => voi
 /** Adds each photo as a page; the corners are found on the photo. */
 async function addPhotos(files: readonly File[]): Promise<void> {
   const detector = new Detector();
+  let skipped = 0;
   try {
     for (const file of files) {
-      const bitmap = await createImageBitmap(file);
-      const { width, height } = bitmap;
-      const probe = await createImageBitmap(bitmap);
-      bitmap.close();
-      const found = await detector.detect(probe);
-      const quad =
-        (found.quad && toPixels(found.quad, width, height)) ?? defaultQuad(width, height);
-      addPage({ source: file, width, height, quad });
+      // One unreadable photo (HEIC off Safari) skips only itself.
+      try {
+        const bitmap = await createImageBitmap(file);
+        const { width, height } = bitmap;
+        const probe = await createImageBitmap(bitmap);
+        bitmap.close();
+        const found = await detector.detect(probe).catch(() => null);
+        const quad =
+          (found?.quad && toPixels(found.quad, width, height)) ?? defaultQuad(width, height);
+        addPage({ source: file, width, height, quad });
+      } catch {
+        skipped += 1;
+      }
     }
-  } catch {
-    // An unreadable photo is skipped; the others are kept.
   } finally {
     detector.dispose();
   }
+  if (skipped > 0) toast.failure(m.scan_photos_skipped({ count: skipped }));
   if (useScanStore.getState().pages.length > 0) setView('review');
 }
 
@@ -124,6 +136,7 @@ function CameraView({ active }: { readonly active: boolean }) {
   const [outline, setOutline] = useState<Outline | null>(null);
   const [flash, setFlash] = useState(0);
   const [generation, setGeneration] = useState(0);
+  const [captured, setCaptured] = useState(false);
   const latest = useRef<readonly { x: number; y: number }[] | null>(null);
   const armed = useRef(true);
   const capturing = useRef(false);
@@ -134,7 +147,10 @@ function CameraView({ active }: { readonly active: boolean }) {
     const el = video.current;
     let stream: MediaStream | null = null;
     let gone = false;
-    void openCamera().then(async (result) => {
+    // Only a camera that was running comes back with the tab: never after denied or missing, so
+    // WebKit is not asked again and the photo fallback is not hidden by a restart loop.
+    let resume = false;
+    void openCamera().then((result) => {
       if (gone) {
         if (result.ok) stopCamera(result.stream);
         return;
@@ -146,16 +162,18 @@ function CameraView({ active }: { readonly active: boolean }) {
       stream = result.stream;
       if (el) {
         el.srcObject = stream;
-        await el.play().catch(() => undefined);
+        // Not awaited: it settles when a frame arrives, which the status does not wait for.
+        void el.play().catch(() => undefined);
       }
       setStatus('live');
     });
     const onVisibility = () => {
       if (document.hidden) {
+        resume = stream !== null;
         stopCamera(stream);
         stream = null;
         if (el) el.srcObject = null;
-      } else if (!gone && !stream) {
+      } else if (!gone && !stream && resume) {
         setStatus('starting');
         setGeneration((g) => g + 1);
       }
@@ -173,6 +191,9 @@ function CameraView({ active }: { readonly active: boolean }) {
     const el = video.current;
     if (!el || el.videoWidth === 0 || capturing.current) return;
     capturing.current = true;
+    // The flash and the pulse answer the press, not the encoding.
+    setFlash((n) => n + 1);
+    setCaptured(true);
     try {
       const bitmap = await createImageBitmap(el);
       const { width, height } = bitmap;
@@ -181,9 +202,10 @@ function CameraView({ active }: { readonly active: boolean }) {
       const quad = (corners && toPixels(corners, width, height)) ?? defaultQuad(width, height);
       const retaking = useScanStore.getState().retaking !== null;
       addPage({ source, width, height, quad });
-      setFlash((n) => n + 1);
       announce(m.scan_announce_captured({ count: useScanStore.getState().pages.length }));
       if (retaking) setView('review');
+    } catch {
+      toast.failure(m.scan_capture_failed(), { key: 'scan-capture-failed' });
     } finally {
       capturing.current = false;
       armed.current = false;
@@ -204,7 +226,8 @@ function CameraView({ active }: { readonly active: boolean }) {
       while (!stop) {
         const started = performance.now();
         const el = video.current;
-        if (el && el.videoWidth > 0 && el.readyState >= 2) {
+        try {
+          if (!el || el.videoWidth === 0 || el.readyState < 2) throw new SkipFrame();
           if (size.width !== el.videoWidth || size.height !== el.videoHeight) {
             setSize({ width: el.videoWidth, height: el.videoHeight });
           }
@@ -225,6 +248,12 @@ function CameraView({ active }: { readonly active: boolean }) {
             await captureRef.current(result.quad);
             detector.reset();
           }
+        } catch (error) {
+          // A frame that fails costs that frame; say so once, and keep looking.
+          if (stop) break;
+          if (!(error instanceof SkipFrame)) {
+            toast.failure(m.scan_detect_failed(), { key: 'scan-detect-failed' });
+          }
         }
         await wait(Math.max(0, DETECT_INTERVAL_MS - (performance.now() - started)));
       }
@@ -237,6 +266,13 @@ function CameraView({ active }: { readonly active: boolean }) {
     // The loop reads the size from the element; it restarts only with the camera or the view.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, active]);
+
+  // "Captured" stays about 1.2 s.
+  useEffect(() => {
+    if (!captured) return undefined;
+    const timer = setTimeout(() => setCaptured(false), HINT_CAPTURED_MS);
+    return () => clearTimeout(timer);
+  }, [captured, flash]);
 
   // The flash ends by itself; the key restarts it for the next capture.
   useEffect(() => {
@@ -297,13 +333,17 @@ function CameraView({ active }: { readonly active: boolean }) {
                 aria-hidden="true"
               />
             )}
-            {status === 'starting' ? (
-              <p className={styles.hint}>{m.scan_camera_starting()}</p>
-            ) : (
-              <p className={styles.hint}>
-                {outline?.locked ? m.scan_hint_hold() : m.scan_hint_searching()}
-              </p>
-            )}
+            <p className={styles.hint} data-testid="scan-hint">
+              {status === 'starting'
+                ? m.scan_camera_starting()
+                : captured
+                  ? m.scan_hint_captured()
+                  : outline
+                    ? auto
+                      ? m.scan_hint_hold()
+                      : m.scan_hint_shutter()
+                    : m.scan_hint_searching()}
+            </p>
           </div>
         )}
       </div>
@@ -349,11 +389,18 @@ function CameraView({ active }: { readonly active: boolean }) {
 }
 
 /** Makes each page's small preview, one at a time, as pages and choices change. */
-function usePreviews(): void {
+function usePreviews(open: boolean): void {
   const pages = useScanStore((s) => s.pages);
   const scanner = useRef<Scanner | null>(null);
   const busy = useRef(false);
   const [tick, setTick] = useState(0);
+  // The warp's GL context goes with the sheet, not with the page.
+  useEffect(() => {
+    if (open) return undefined;
+    scanner.current?.dispose();
+    scanner.current = null;
+    return undefined;
+  }, [open]);
   useEffect(
     () => () => {
       scanner.current?.dispose();
@@ -370,7 +417,7 @@ function usePreviews(): void {
         scanner.current ??= new Scanner();
         const source = await createImageBitmap(stale.source);
         try {
-          const { blob } = await scanner.current.page(source, stale.quad, {
+          const { blob } = await scanner.current.page(source, insetQuad(stale.quad), {
             filter: stale.filter,
             longSide: PREVIEW_SIDE,
             quality: 0.8,
@@ -391,13 +438,47 @@ function usePreviews(): void {
   }, [pages, tick]);
 }
 
+/** Corner adjust with its own Apply, and Back, which puts the corners back as they were. */
+function AdjustView({ page }: { readonly page: ScanPage }) {
+  const [original] = useState(page.quad);
+  return (
+    <div className={styles.adjust}>
+      <CornerEditor
+        src={page.sourceUrl}
+        width={page.width}
+        height={page.height}
+        quad={page.quad}
+        onChange={(quad) => setQuad(page.id, quad)}
+      />
+      <div className={styles.adjustBar}>
+        <Button
+          data-testid="scan-adjust-back"
+          onClick={() => {
+            setQuad(page.id, original);
+            setView('review');
+          }}
+        >
+          {m.scan_back()}
+        </Button>
+        <Button
+          variant="prominent"
+          data-testid="scan-adjust-done"
+          onClick={() => setView('review')}
+        >
+          {m.scan_apply()}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function ScanSheet() {
   const open = useScanOpen();
   const view = useScanStore((s) => s.view);
   const pages = useScanStore((s) => s.pages);
   const selectedId = useScanStore((s) => s.selected);
   const [busy, setBusy] = useState(false);
-  usePreviews();
+  usePreviews(open);
   useEffect(() => {
     if (open) beginScan();
   }, [open]);
@@ -443,34 +524,26 @@ export function ScanSheet() {
       title={m.scan_title()}
       busy={busy}
       onClose={() => void close()}
-      primary={{
-        label: m.scan_done(),
-        onPress: () => void done(),
-        disabled: pages.length === 0,
-        busy,
-        busyLabel: m.scan_done_busy(),
-        icon: <Icon name="check" />,
-        testId: 'scan-done',
-      }}
+      // The corner editor has its own Apply and Back; the sheet's Cancel and Done wait.
+      primary={
+        view === 'adjust'
+          ? undefined
+          : {
+              label: m.scan_done(),
+              onPress: () => void done(),
+              disabled: pages.length === 0,
+              busy,
+              busyLabel: m.scan_done_busy(),
+              icon: <Icon name="check" />,
+              testId: 'scan-done',
+            }
+      }
     >
       {open && (
         <div className={styles.body}>
           <CameraView active={view === 'camera'} />
           {view === 'review' && <ReviewStrip pages={pages} selected={selected} />}
-          {view === 'adjust' && selected && (
-            <div className={styles.adjust}>
-              <CornerEditor
-                src={selected.sourceUrl}
-                width={selected.width}
-                height={selected.height}
-                quad={selected.quad}
-                onChange={(quad) => setQuad(selected.id, quad)}
-              />
-              <Button data-testid="scan-adjust-done" onClick={() => setView('review')}>
-                {m.scan_adjust_done()}
-              </Button>
-            </div>
-          )}
+          {view === 'adjust' && selected && <AdjustView page={selected} />}
         </div>
       )}
     </Sheet>

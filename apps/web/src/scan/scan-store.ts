@@ -66,6 +66,37 @@ export function toPixels(
   return [a, b, c, d].map((p) => ({ x: p.x * width, y: p.y * height })) as unknown as Quad;
 }
 
+/**
+ * The corners moved toward their centre so each edge sits `k` of its length inside the page. The
+ * detector's outline lands a few pixels outside the paper, and the warp would keep a jagged
+ * strip of desk along it (critic, 25 Oct). Every warp of a page goes through this.
+ */
+export function insetQuad(quad: Quad, k = 0.008): Quad {
+  const cx = (quad[0].x + quad[1].x + quad[2].x + quad[3].x) / 4;
+  const cy = (quad[0].y + quad[1].y + quad[2].y + quad[3].y) / 4;
+  const s = 1 - 2 * k;
+  return quad.map((p) => ({ x: cx + (p.x - cx) * s, y: cy + (p.y - cy) * s })) as unknown as Quad;
+}
+
+/**
+ * Where each corner sits on the picture: 0 top left, 1 top right, 2 bottom right, 3 bottom left.
+ * Rotating moves the quad's order, so a handle is named by its place, not its index.
+ */
+export function cornerPositions(quad: Quad): readonly number[] {
+  const sum = quad.map((p) => p.x + p.y);
+  const diff = quad.map((p) => p.x - p.y);
+  const at = (values: number[], pick: (...n: number[]) => number) =>
+    values.indexOf(pick(...values));
+  const found = [at(sum, Math.min), at(diff, Math.max), at(sum, Math.max), at(diff, Math.min)];
+  // A degenerate quad (two corners sharing a place) keeps its own order.
+  if (new Set(found).size !== 4) return [0, 1, 2, 3];
+  const place = [0, 0, 0, 0];
+  found.forEach((index, position) => {
+    place[index] = position;
+  });
+  return place;
+}
+
 /** A quarter turn clockwise: the page's left edge becomes its top. */
 export function rotateQuad(quad: Quad): Quad {
   const [tl, tr, br, bl] = quad;
@@ -132,8 +163,9 @@ export function setAuto(auto: boolean): void {
   set({ auto });
 }
 
+/** Changes the view; a retake lasts only while the camera shows. */
 export function setView(view: ScanView): void {
-  set({ view });
+  set(view === 'camera' ? { view } : { view, retaking: null });
 }
 
 export function selectPage(id: string): void {

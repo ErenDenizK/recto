@@ -64,22 +64,26 @@ export class Detector {
     type: 'module',
     name: 'scan-detect',
   });
-  private readonly waiting = new Map<number, (result: DetectResult) => void>();
+  private readonly waiting = new Map<
+    number,
+    { resolve: (result: DetectResult) => void; reject: (error: Error) => void }
+  >();
   private next = 0;
 
   constructor() {
     this.worker.onmessage = (event: MessageEvent<DetectResult>) => {
       const done = this.waiting.get(event.data.id);
       this.waiting.delete(event.data.id);
-      done?.(event.data);
+      done?.resolve(event.data);
     };
+    this.worker.onerror = () => this.rejectAll('The detection worker failed.');
   }
 
   /** Takes the bitmap (it is transferred). */
   detect(frame: ImageBitmap): Promise<DetectResult> {
     const id = ++this.next;
-    return new Promise((resolve) => {
-      this.waiting.set(id, resolve);
+    return new Promise((resolve, reject) => {
+      this.waiting.set(id, { resolve, reject });
       this.worker.postMessage({ type: 'detect', id, frame }, [frame]);
     });
   }
@@ -89,8 +93,14 @@ export class Detector {
     this.worker.postMessage({ type: 'reset' });
   }
 
+  private rejectAll(message: string): void {
+    const pending = [...this.waiting.values()];
+    this.waiting.clear();
+    for (const { reject } of pending) reject(new Error(message));
+  }
+
   dispose(): void {
     this.worker.terminate();
-    this.waiting.clear();
+    this.rejectAll('The detector was disposed.');
   }
 }

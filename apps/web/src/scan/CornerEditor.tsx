@@ -10,6 +10,7 @@ import { type CSSProperties, type KeyboardEvent, type PointerEvent, useRef } fro
 
 import { m } from '../i18n';
 import type { Quad } from './encode';
+import { cornerPositions } from './scan-store';
 import styles from './CornerEditor.module.css';
 
 const LABELS = [
@@ -30,6 +31,7 @@ export interface CornerEditorProps {
 
 export function CornerEditor({ src, width, height, quad, onChange }: CornerEditorProps) {
   const box = useRef<HTMLDivElement>(null);
+  const positions = cornerPositions(quad);
   const move = (index: number, x: number, y: number) => {
     const next = quad.map((p, i) =>
       i === index ? { x: Math.min(width, Math.max(0, x)), y: Math.min(height, Math.max(0, y)) } : p,
@@ -72,7 +74,7 @@ export function CornerEditor({ src, width, height, quad, onChange }: CornerEdito
             // eslint-disable-next-line recto/q9-controls
             className={styles.handle}
             style={{ left: `${(p.x / width) * 100}%`, top: `${(p.y / height) * 100}%` }}
-            aria-label={LABELS[index]?.()}
+            aria-label={LABELS[positions[index] ?? index]?.()}
             data-corner={index}
             onPointerDown={(e) => e.currentTarget.setPointerCapture(e.pointerId)}
             onPointerMove={(e) => drag(index, e)}
