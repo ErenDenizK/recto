@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { useSessionStore } from '../session/session-store';
 import { fileHandleOf } from './open-files';
 import { filesFromLaunch, installLaunchConsumer } from './launch-queue';
 
@@ -11,6 +12,8 @@ const handle = (name: string, type: string) => {
 describe('launch queue (PRD-31)', () => {
   afterEach(() => {
     delete (window as { launchQueue?: unknown }).launchQueue;
+    delete document.documentElement.dataset.session;
+    useSessionStore.setState({ keeping: 'pending', restoring: false });
   });
 
   it('keeps openable files with their handles and drops the rest', async () => {
@@ -34,6 +37,22 @@ describe('launch queue (PRD-31)', () => {
     const open = vi.fn();
     expect(installLaunchConsumer(open)).toBe(true);
     consumer({ files: [handle('a.pdf', 'application/pdf')] });
+    await vi.waitFor(() => expect(open).toHaveBeenCalledOnce());
+  });
+
+  it('waits for the launch’s session restore, which would replace an earlier tab', async () => {
+    document.documentElement.dataset.session = 'restoring';
+    useSessionStore.setState({ keeping: 'available', restoring: true });
+    let consumer: (p: { files: unknown[] }) => void = () => undefined;
+    (window as { launchQueue?: unknown }).launchQueue = {
+      setConsumer: (fn: typeof consumer) => (consumer = fn),
+    };
+    const open = vi.fn();
+    installLaunchConsumer(open);
+    consumer({ files: [handle('a.pdf', 'application/pdf')] });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(open).not.toHaveBeenCalled();
+    useSessionStore.setState({ restoring: false });
     await vi.waitFor(() => expect(open).toHaveBeenCalledOnce());
   });
 });
