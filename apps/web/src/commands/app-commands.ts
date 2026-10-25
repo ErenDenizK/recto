@@ -58,6 +58,7 @@ import { requestSidebarFocus } from '../shell/sidebar/sidebar-focus';
 import { useAuthorPrompt } from '../shell/comment-author';
 import { targetPages } from '../stage/arrange-data';
 import { enterGrid, leaveGrid } from '../stage/grid/grid-transition';
+import { openScan, scanEnabled } from '../scan/scan-flag';
 import { openImagesAsDocument } from '../stage/section-operations';
 import {
   gridSelecting,
@@ -406,6 +407,20 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       allowInInputs: true,
       run: openFilesFromPicker,
     }),
+    // Camera scan, a prototype behind `?scan=1` (PRD-32, PRC-25); its one menu home is the
+    // Library's Scan button (DSN-78), this is ⌘K's.
+    ...(scanEnabled()
+      ? [
+          registry.register({
+            id: 'file.scan',
+            title: m.cmd_scan(),
+            group: m.group_file(),
+            act: null,
+            keywords: ['camera', 'photo', 'document', 'scanner'],
+            run: openScan,
+          }),
+        ]
+      : []),
     registry.register({
       id: 'file.textToPdf',
       title: m.cmd_text_to_pdf(),

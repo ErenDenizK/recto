@@ -43,6 +43,7 @@ import { usePasswordStore } from '../state/password-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
+import { openScan, scanEnabled } from '../scan/scan-flag';
 import { commandRegistry } from '../commands/registry';
 import { useContinueShown } from './continue-shown';
 import { dropTitle } from './DropOverlay';
@@ -125,6 +126,17 @@ export function Launcher({ variant, dragging, dragCount, selecting = false }: La
       >
         {m.cmd_batch()}
       </Button>
+      {scanEnabled() && (
+        <Button
+          variant="standard"
+          size="lg"
+          icon={<Icon name="scan" />}
+          data-testid="library-scan"
+          onClick={() => void openScan()}
+        >
+          {m.scan_button()}
+        </Button>
+      )}
     </div>
   );
 

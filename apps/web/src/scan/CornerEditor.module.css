@@ -1,0 +1,74 @@
+/* Corner adjust (plan bm-scan-plan §3): the picture, its outline, four 44 px handles. */
+.frame {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  height: 100%;
+  padding: var(--space-3);
+}
+
+.box {
+  position: relative;
+  max-width: 100%;
+  max-height: 100%;
+  /* The picture's aspect sets the box; the larger side yields to the frame. */
+  width: auto;
+  height: 100%;
+  touch-action: none;
+  user-select: none;
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-sm);
+  object-fit: fill;
+}
+
+.outline {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.outline polygon {
+  fill: var(--accent-muted);
+  stroke: var(--accent);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.handle {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: var(--hit-min, 44px);
+  height: var(--hit-min, 44px);
+  padding: 0;
+  border: 0;
+  background: none;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  touch-action: none;
+}
+
+.handle:active {
+  cursor: grabbing;
+}
+
+.dot {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: var(--surface-raised);
+  box-shadow: 0 0 0 1px var(--border-opaque);
+}
+
+.handle:focus-visible .dot {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+}
