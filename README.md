@@ -201,7 +201,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the workflow and repository layout.
 | [`docs/VISION.md`](docs/VISION.md) | Thesis, principles, non-goals, v1.0 success criteria |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Engine layering, virtual document model, export pipeline, deployment, testing |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Milestones M0–M8 and the M9 plan (the live plan is `docs/plan/v1/PLAN.md`) |
-| [`docs/DESIGN.md`](docs/DESIGN.md) | Design intent, layout, tokens, interaction and accessibility rules |
+| [`docs/DESIGN.md`](docs/archive/DESIGN.md) | Design intent, layout, tokens, interaction and accessibility rules |
 | [`docs/process/decisions.md`](docs/process/decisions.md) | Every owner and lead decision, with its source; it wins over older docs |
 | [`docs/archive/`](docs/archive/README.md) | Superseded documents kept as the record (the closed open-decisions list among them) |
 | [`docs/adr/`](docs/adr/) | Architecture Decision Records |
