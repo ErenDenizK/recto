@@ -76,12 +76,14 @@ test('reads the page and rings the word being spoken', async ({ page, hasTouch }
   const player = page.getByTestId('read-aloud-player');
   await expect(player).toBeVisible();
 
-  // Q-9: one piece high (40, 48 on touch), no wider than the capsule; Play has focus.
+  // Q-9: one piece high (40, 48 on touch), no wider than the capsule; focus stays put.
   const size = await player.boundingBox();
   expect(size?.height).toBe(hasTouch ? 48 : 40);
   const capsule = await page.locator('[data-region="toolbar"]').boundingBox();
   expect(size!.width).toBeLessThanOrEqual(capsule!.width);
-  await expect(page.getByTestId('read-aloud-play')).toBeFocused();
+  // Opened by a key: no ring or tooltip nobody asked for.
+  await expect(page.getByTestId('read-aloud-play')).not.toBeFocused();
+  await expect(page.getByRole('tooltip')).toHaveCount(0);
 
   // The ring appears, then moves on to another word as boundary events arrive.
   await expect(page.getByTestId('read-aloud-word')).toBeVisible();

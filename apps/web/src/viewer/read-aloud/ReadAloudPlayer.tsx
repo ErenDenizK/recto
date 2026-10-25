@@ -34,18 +34,14 @@ export function ReadAloudPlayer() {
   const rate = useReadAloudStore((s) => s.rate);
   const pageEmpty = useReadAloudStore((s) => s.pageEmpty);
   const play = useRef<HTMLButtonElement>(null);
-  // Focus comes to Play when the player opens. A menu it opened from (More) hands focus back to
-  // its trigger as it closes, a moment later, so this asks again until that has happened.
+  // Opened from More, focus would go back to More as its menu closes a moment later; it comes to
+  // Play instead (asked again until the menu has let go). Opened by a key or the palette, focus
+  // stays where it was, so no ring or tooltip shows that nobody asked for.
   useEffect(() => {
     if (!open) return;
     const take = () => {
-      const at = document.activeElement;
-      if (
-        !at ||
-        at === document.body ||
-        at.closest('[data-dock-item="more"], [data-read-viewport]')
-      ) {
-        play.current?.focus();
+      if (document.activeElement?.closest('[data-dock-item="more"]')) {
+        play.current?.focus({ focusVisible: false });
       }
     };
     take();

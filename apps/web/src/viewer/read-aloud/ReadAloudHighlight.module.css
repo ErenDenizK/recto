@@ -15,7 +15,9 @@
 }
 
 .sentence {
-  background: rgb(200 251 61 / 0.16);
+  /* On a light page a multiply fill: a deeper lime that darkens the paper, text stays dark. */
+  background: rgb(150 205 20 / 0.3);
+  mix-blend-mode: multiply;
 }
 
 .word {
@@ -25,6 +27,7 @@
 
 .sentence[data-tone='dark'] {
   background: rgb(200 251 61 / 0.12);
+  mix-blend-mode: normal;
 }
 
 .word[data-tone='dark'] {
