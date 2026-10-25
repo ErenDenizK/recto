@@ -26,10 +26,16 @@
  *   the bar; the tab list and the Review chips, which mark their overflowing edge instead. `--scroll-inset-top` / `--scroll-inset-bottom` on a
  *   scroller that reaches under the chrome keep its bar in the free rectangle (the Pages grid).
  * - **Forced colours**: not installed; the system's bars come back.
+ * - **Glass bar** (R29 study, GLS-28; `?scroll=glass-a` / `glass-b`, `scroll-glass-flag.ts`): a
+ *   reader scroller with a page map (`setScrollMap`, from `ScrollProxies`) takes a 44 px wide bar
+ *   (dots per page, a capsule under a pointer or a pressing finger, Find's hits as accent dots on
+ *   the ticks' canvas) and, for B, the ruler of `scroll-glass.tsx`; every other scroller and the
+ *   flag-off bar are unchanged.
  *
  * Both editions install it (`app.tsx`, `CompactApp.tsx`): on the phone it is drawn on scroll
  * only (no hover), over the pages inside the safe area and over every list and sheet.
  */
+import { type ScrollGlassStyle, scrollGlassStyle } from './scroll-glass-flag';
 import styles from './scroll-thumbs.module.css';
 
 /** A bar fades out this long after the last scroll. */
@@ -50,6 +56,7 @@ interface Bar {
   travel: number;
   size: number;
   start: number;
+  left: number;
   timer: number;
   drag: { readonly pointerId: number; readonly grab: number } | null;
   text: string;
@@ -57,6 +64,12 @@ interface Bar {
 
 /** The bar's width under the pointer, and the edge zone that shows it, CSS px. */
 const HIT = 14;
+/** The glass bar's width: a 44 px target while it is expanded (the capsule is 22 px of it). */
+const GLASS_HIT = 44;
+/** The glass bar draws a dot per page only while the dots are at least this far apart, px. */
+const DOT_GAP = 7;
+/** The glass capsule's centre from the bar's trailing edge, px. */
+const GLASS_LANE = 19;
 /** The track keeps this far from the scroller's ends. */
 const END = 3;
 /** The shortest thumb, however long the content. */
@@ -64,6 +77,31 @@ const MIN_THUMB = 32;
 const OVERFLOW = /auto|scroll|overlay/;
 
 const labels = new WeakMap<Element, (scrollTop: number) => string>();
+const maps = new WeakMap<Element, ScrollMap>();
+
+/**
+ * What the glass bar (`?scroll=glass`, `scroll-glass-flag.ts`) knows about a reader scroller: how
+ * many pages it holds, the outline sections along it, and what lies under a scroll position (the
+ * page, its section's index in `sections` or -1, that section's title and the Find hits on the
+ * page). A scroller with a map takes the wide glass bar; `null` takes it away.
+ */
+export interface ScrollMap {
+  readonly pages: number;
+  readonly sections: readonly { readonly at: number; readonly title: string }[];
+  readonly at: (scrollTop: number) =>
+    | {
+        readonly page: number;
+        readonly section: number;
+        readonly heading: string;
+        readonly hits: number;
+      }
+    | undefined;
+}
+
+export function setScrollMap(el: Element, map: ScrollMap | null): void {
+  if (map) maps.set(el, map);
+  else maps.delete(el);
+}
 
 /**
  * Names what lies under the thumb at a scroll position while it is dragged (the reader's page
@@ -135,6 +173,21 @@ export function setScrollTicks(next: ScrollTicks | null): void {
   redrawTicks?.();
 }
 
+/** What the glass ruler (`scroll-glass.tsx`, option B) is told of the vertical bar. */
+export interface RulerState {
+  readonly map: ScrollMap;
+  readonly hot: boolean;
+  readonly drag: boolean;
+  /** The bar's left edge and its track's top and length, CSS px. */
+  readonly left: number;
+  readonly top: number;
+  readonly room: number;
+  /** The thumb's offset along the track and its scroller's position. */
+  readonly thumb: number;
+  readonly size: number;
+  readonly scrollTop: number;
+}
+
 let uninstall: (() => void) | null = null;
 
 /** Starts the app-wide bar (once; a second call returns the first one's stop). */
@@ -161,6 +214,10 @@ export function installScrollThumbs(): () => void {
 
 function start(): () => void {
   const root = document.documentElement;
+  const glass: ScrollGlassStyle | null = scrollGlassStyle();
+  /** The reach of a scroller's bar: the glass bar's width for a reader scroller with a map. */
+  const reach = (el: Element | null) => (glass && el && maps.has(el) ? GLASS_HIT : HIT);
+  let ruler: { sync: (state: RulerState | null) => void; destroy: () => void } | null = null;
   const layer = document.createElement('div');
   layer.className = styles.layer ?? '';
   layer.setAttribute('aria-hidden', 'true');
@@ -226,6 +283,7 @@ function start(): () => void {
       travel: 0,
       size: 0,
       start: 0,
+      left: 0,
       timer: 0,
       drag: null,
       text: '',
@@ -239,6 +297,8 @@ function start(): () => void {
       bar.drag = null;
       delete el.dataset.drag;
       bar.label.hidden = true;
+      if (event.pointerType === 'touch') setHot(bar, null);
+      syncRuler(bar);
       linger(bar);
     };
     el.addEventListener('pointerup', release);
@@ -272,9 +332,11 @@ function start(): () => void {
       const before = parseFloat(style.getPropertyValue('--scroll-inset-top')) || 0;
       const after = parseFloat(style.getPropertyValue('--scroll-inset-bottom')) || 0;
       room = Math.max(0, rect.height - before - after - 2 * END);
-      left = style.direction === 'rtl' ? rect.left : rect.right - HIT;
+      const wide = reach(target);
+      left = style.direction === 'rtl' ? rect.left : rect.right - wide;
       top = rect.top + before + END;
       bar.el.style.height = `${room}px`;
+      glassBar(bar, target, room, wide);
       bar.start = top;
     } else {
       // Clear of the vertical bar's corner when both scroll.
@@ -284,7 +346,8 @@ function start(): () => void {
       bar.el.style.width = `${room}px`;
       bar.start = left;
     }
-    bar.el.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
+    bar.left = Math.round(left);
+    bar.el.style.transform = `translate(${bar.left}px, ${Math.round(top)}px)`;
     bar.size =
       bar.range > 0 ? Math.min(room, Math.max(MIN_THUMB, (room * view) / (bar.range + view))) : 0;
     bar.travel = room - bar.size;
@@ -292,10 +355,46 @@ function start(): () => void {
     place(bar);
   };
 
+  /** Marks a bar as the glass one (wider, with its dots) while its scroller has a map. */
+  const glassBar = (bar: Bar, target: HTMLElement, room: number, wide: number) => {
+    const map = glass ? maps.get(target) : undefined;
+    bar.el.style.width = map ? `${wide}px` : '';
+    if (!map || !glass) {
+      delete bar.el.dataset.glass;
+      delete bar.el.dataset.dots;
+      return;
+    }
+    bar.el.dataset.glass = glass;
+    bar.el.style.setProperty('--scroll-pages', String(map.pages));
+    bar.el.toggleAttribute('data-dots', map.pages > 0 && room / map.pages >= DOT_GAP);
+  };
+
+  /** Tells option B's ruler where the vertical bar and its thumb are (nothing without a map). */
+  const syncRuler = (bar: Bar) => {
+    if (!ruler || bar.axis !== 'y') return;
+    const map = bar.target ? maps.get(bar.target) : undefined;
+    if (!map || !bar.target || !bar.shown) {
+      ruler.sync(null);
+      return;
+    }
+    ruler.sync({
+      map,
+      hot: bar.hot,
+      drag: bar.drag !== null,
+      left: bar.left,
+      top: bar.start,
+      room: bar.travel + bar.size,
+      thumb: offset(bar),
+      size: bar.size,
+      scrollTop: bar.target.scrollTop,
+    });
+  };
+
   /** One transform per scroll; while dragged, the label follows what lies under the thumb. */
   const place = (bar: Bar) => {
     const at = offset(bar);
     bar.thumb.style.transform = bar.axis === 'y' ? `translateY(${at}px)` : `translateX(${at}px)`;
+    syncRuler(bar);
     if (!bar.drag || !bar.target) return;
     const text = labels.get(bar.target)?.(bar.target.scrollTop) ?? '';
     if (text !== bar.text) {
@@ -330,6 +429,7 @@ function start(): () => void {
     bar.shown = false;
     delete bar.el.dataset.shown;
     letGoOfDetached(bar);
+    syncRuler(bar);
   };
   const linger = (bar: Bar) => {
     clearTimeout(bar.timer);
@@ -365,6 +465,8 @@ function start(): () => void {
     bar.drag = { pointerId: event.pointerId, grab };
     bar.el.dataset.drag = '';
     bar.el.setPointerCapture(event.pointerId);
+    // A finger has no hover: pressing the glass bar expands it.
+    if (event.pointerType === 'touch' && bar.el.dataset.glass) setHot(bar, bar.target);
     clearTimeout(bar.timer);
     scrollTo(bar, at - grab);
     place(bar);
@@ -398,6 +500,20 @@ function start(): () => void {
         for (const bar of bars) if (bar.target === el && bar.shown) measure(bar);
       }
     }
+    // The glass bar's reach is wider than its stand-in: the reader's stand-in answers for the
+    // whole reader while the pointer is anywhere over it.
+    const proxy = glass
+      ? document.querySelector<HTMLElement>('[data-scroll-proxy="vertical"]')
+      : null;
+    if (
+      proxy &&
+      maps.has(proxy) &&
+      proxy.parentElement?.contains(event.target) &&
+      !under.some((u) => u.el === proxy)
+    ) {
+      if (scrolls(proxy, 'y') && !optedOut(proxy))
+        under.push({ el: proxy, rect: proxy.getBoundingClientRect() });
+    }
   };
   const setHot = (bar: Bar, el: HTMLElement | null) => {
     if (el) {
@@ -412,7 +528,11 @@ function start(): () => void {
       delete bar.el.dataset.hot;
       linger(bar);
     }
+    syncRuler(bar);
   };
+  /** Whether `over` is on `el`, or, for a reader scroller with a map, anywhere in the reader. */
+  const within = (el: HTMLElement, over: Node) =>
+    el.contains(over) || (maps.has(el) && !!el.parentElement?.contains(over));
   const onMove = (event: PointerEvent) => {
     if (event.pointerType === 'touch' || bars.some((bar) => bar.drag)) return;
     const over = event.target instanceof Node ? event.target : null;
@@ -422,12 +542,12 @@ function start(): () => void {
     for (const { el, rect } of under) {
       // Only where the pointer is over the scroller itself, never over something laid on it
       // (a resize handle at a panel's edge keeps its pointer).
-      if (!el.isConnected || (!onBar && !(over && el.contains(over)))) continue;
+      if (!el.isConnected || (!onBar && !(over && within(el, over)))) continue;
       const { clientX: x, clientY: y } = event;
       const inY = y >= rect.top && y <= rect.bottom;
       const inX = x >= rect.left && x <= rect.right;
       const fromEnd = computed(el).direction === 'rtl' ? x - rect.left : rect.right - x;
-      if (!hitY && inY && fromEnd >= 0 && fromEnd <= HIT && scrolls(el, 'y')) hitY = el;
+      if (!hitY && inY && fromEnd >= 0 && fromEnd <= reach(el) && scrolls(el, 'y')) hitY = el;
       else if (!hitX && inX && rect.bottom - y >= 0 && rect.bottom - y <= HIT && scrolls(el, 'x'))
         hitX = el;
     }
@@ -446,6 +566,8 @@ function start(): () => void {
   canvas.hidden = true;
   canvas.dataset.scrollTicks = '';
   layer.prepend(canvas);
+  // Over the glass capsule, so the hits show through its tint.
+  if (glass) canvas.style.zIndex = '1';
   let tickKey = '';
   let drawn: ScrollTicks | null = null;
   const tickSize = new ResizeObserver(() => drawTicks());
@@ -472,19 +594,21 @@ function start(): () => void {
     const room = Math.max(0, rect.height - before - after - 2 * END);
     const dpr = window.devicePixelRatio || 1;
     const px = Math.floor(room * dpr);
-    const pad = ticks.map && matchMedia('(pointer: coarse)').matches ? RAIL : 0;
-    const left = (style.direction === 'rtl' ? rect.left : rect.right - HIT) - pad;
+    // The glass bar (a reader scroller with a map) is wide enough already: no extra rail.
+    const wide = reach(proxy);
+    const pad = wide === HIT && ticks.map && matchMedia('(pointer: coarse)').matches ? RAIL : 0;
+    const left = (style.direction === 'rtl' ? rect.left : rect.right - wide) - pad;
     const top = rect.top + before + END;
     const key = `${left}|${top}|${room}|${dpr}`;
     if (px < 1 || (!force && key === tickKey && drawn === ticks)) return;
     tickKey = key;
     drawn = ticks;
-    ticksAt = { left, top, room: px / dpr, width: HIT + pad };
+    ticksAt = { left, top, room: px / dpr, width: wide + pad };
     canvas.hidden = false;
     canvas.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
-    canvas.style.width = `${HIT + pad}px`;
+    canvas.style.width = `${wide + pad}px`;
     canvas.style.height = `${px / dpr}px`;
-    canvas.width = Math.round((HIT + pad) * dpr);
+    canvas.width = Math.round((wide + pad) * dpr);
     canvas.height = px;
     const tone = getComputedStyle(root);
     const ring = tone.getPropertyValue('--find-current-ring').trim();
@@ -497,7 +621,10 @@ function start(): () => void {
     // the map, where the tick is something to point at (6 px, 3 px).
     const big = ticks.map ? 1 : 0;
     const w = (4 + 2 * big) * dpr;
-    const x = (5 - big + pad) * dpr;
+    // Centred on the thumb's lane (7 px in on the plain bar); the glass bar's is its capsule's.
+    const rtl = style.direction === 'rtl';
+    const lane = wide === HIT ? 7 + pad : rtl ? GLASS_LANE : GLASS_HIT - GLASS_LANE;
+    const x = lane * dpr - w / 2;
     const h = Math.max(2 + big, Math.round(dpr * (2 + big)));
     const runs: number[] = [];
     for (let r = 0; r < px; ) {
@@ -512,14 +639,23 @@ function start(): () => void {
     }
     const edge = Math.max(1, Math.round(dpr / 2));
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // The glass bar draws its hits as accent dots (DSN-62, DSN-65), the plain bar as ticks.
+    const dot = (cy: number, r: number) => {
+      ctx.beginPath();
+      ctx.arc(lane * dpr, cy, r, 0, 2 * Math.PI);
+      ctx.fill();
+    };
+    const span = (i: number) => Math.max(h, runs[i + 1] as number);
     ctx.fillStyle = ring;
     for (let i = 0; i < runs.length; i += 2) {
       const y = runs[i] as number;
-      ctx.fillRect(x - edge, y - edge, w + 2 * edge, Math.max(h, runs[i + 1] as number) + 2 * edge);
+      if (wide === HIT) ctx.fillRect(x - edge, y - edge, w + 2 * edge, span(i) + 2 * edge);
+      else dot(y + span(i) / 2, 3 * dpr + edge);
     }
     ctx.fillStyle = halo;
     for (let i = 0; i < runs.length; i += 2) {
-      ctx.fillRect(x, runs[i] as number, w, Math.max(h, runs[i + 1] as number));
+      if (wide === HIT) ctx.fillRect(x, runs[i] as number, w, span(i));
+      else dot((runs[i] as number) + span(i) / 2, 3 * dpr);
     }
     // The current hit, and the tick the pointer is on (the map): wider and taller, dark with a
     // lime edge (distinct from the rest), centred on the lane.
@@ -529,6 +665,13 @@ function start(): () => void {
       const ch = Math.round(height * dpr);
       const cx = x + w / 2 - cw / 2;
       ctx.fillStyle = solid ? ring : halo;
+      if (wide !== HIT) {
+        // A larger dot than a page's, its edge as the tick's.
+        dot(y + h / 2, ch / 2 + 2 * dpr + edge);
+        ctx.fillStyle = solid ? halo : ring;
+        dot(y + h / 2, ch / 2 + 2 * dpr);
+        return;
+      }
       ctx.fillRect(cx - edge, y - edge - dpr, cw + 2 * edge, ch + 2 * edge + 2 * dpr);
       ctx.fillStyle = solid ? halo : ring;
       ctx.fillRect(cx, y - dpr, cw, ch + 2 * dpr);
@@ -545,11 +688,20 @@ function start(): () => void {
 
   document.body.append(layer);
   root.dataset.scrollThumbs = '';
+  // Option B's ruler and card are a chunk of their own, fetched when the flag is on.
+  let live = true;
+  if (glass === 'glass-b')
+    void import('./scroll-glass').then((module) => {
+      if (live) ruler = module.createRuler(layer);
+    });
   document.addEventListener('scroll', onScroll, { capture: true, passive: true });
   document.addEventListener('pointerover', onOver, { passive: true });
   document.addEventListener('pointermove', onMove, { passive: true });
   document.addEventListener('pointerout', onOut, { passive: true });
   return () => {
+    live = false;
+    ruler?.destroy();
+    ruler = null;
     delete root.dataset.scrollThumbs;
     document.removeEventListener('scroll', onScroll, { capture: true });
     tickSize.disconnect();

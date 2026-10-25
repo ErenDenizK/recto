@@ -227,6 +227,7 @@ Full rows: [`decisions/glass.md`](decisions/glass.md).
 | [GLS-25](decisions/glass.md) | Glass buttons: a lens of the same glass (owner, R21 brief B-11: "buttons that suit the glass … hover and click") | In force | 2026-10-16 |
 | [GLS-26](decisions/glass.md) | A scroll bar worth having: one overlay of the glass for every scroller (owner, R22 brief C-10: "the point is that it… | In force (amends GLS-24) | 2026-10-17 |
 | [GLS-27](decisions/glass.md) | The light theme's hover is a soft ink wash (lead's call, R22 brief C-7; owner: "a dark shade could work; I never use… | In force | 2026-10-17 |
+| [GLS-28](decisions/glass.md) | The glass scroll bar is a prototype behind `?scroll=glass` (R29 glass study; owner: "more glass, chic, modern and useful"; amends GLS-26) | Prototype; owner taste open | 2026-10-25 |
 
 ## Ink
 

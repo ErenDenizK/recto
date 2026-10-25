@@ -216,6 +216,8 @@ export default defineConfig({
         OFFICE_SPEC,
         // The find map's ticks by touch: the card, the tap that jumps (R26, DSN-65).
         '**/find-map.spec.ts',
+        // The glass scroll bar under a finger: the 44 px target, the drag to a page (R29).
+        '**/scroll-glass.spec.ts',
       ],
       use: touchDevice(TABLET, devices['Galaxy Tab S4'].userAgent, 2),
     },

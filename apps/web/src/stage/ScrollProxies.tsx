@@ -14,7 +14,12 @@
  */
 import { type CSSProperties, useEffect, useLayoutEffect, useRef } from 'react';
 
-import { refreshScrollTicks, setScrollLabel } from '../ui/scroll-thumbs';
+import {
+  refreshScrollTicks,
+  type ScrollMap,
+  setScrollLabel,
+  setScrollMap,
+} from '../ui/scroll-thumbs';
 import styles from './ReadView.module.css';
 import type { Size } from './stage-bleed';
 
@@ -30,6 +35,7 @@ export function ScrollProxies({
   size,
   thumb = true,
   label,
+  map,
 }: {
   /** The viewport the bars scroll. */
   readonly target: HTMLElement | null;
@@ -43,6 +49,8 @@ export function ScrollProxies({
   readonly thumb?: boolean;
   /** Names what lies under the vertical thumb at a scroll position while it is dragged. */
   readonly label?: ((scrollTop: number) => string) | undefined;
+  /** The glass bar's page map (`?scroll=glass`, `stage/scroll-map.ts`); none leaves the plain bar. */
+  readonly map?: ScrollMap | undefined;
 }) {
   const verticalRef = useRef<HTMLDivElement>(null);
   const horizontalRef = useRef<HTMLDivElement>(null);
@@ -106,6 +114,16 @@ export function ScrollProxies({
     setScrollLabel(bar, (scrollTop) => labelRef.current?.(scrollTop) ?? '');
     return () => setScrollLabel(bar, null);
   }, [vertical]);
+  useEffect(() => {
+    const bar = verticalRef.current;
+    if (!bar || !map) return;
+    setScrollMap(bar, map);
+    refreshScrollTicks(true);
+    return () => {
+      setScrollMap(bar, null);
+      refreshScrollTicks(true);
+    };
+  }, [vertical, map]);
   // Find's hit ticks follow the vertical bar as it comes and goes (DSN-62).
   useEffect(() => {
     refreshScrollTicks();

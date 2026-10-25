@@ -10,9 +10,12 @@ import '../styles/global.css';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { resetScrollGlassStyle } from './scroll-glass-flag';
 import {
   installScrollThumbs,
+  type ScrollMap,
   setScrollLabel,
+  setScrollMap,
   setScrollTicks,
   setTickPainter,
   tickGeometry,
@@ -179,5 +182,67 @@ describe('the app-wide scroll bar', () => {
     expect(document.documentElement).not.toHaveAttribute('data-scroll-thumbs');
     expect(document.querySelector('[data-axis]')).toBeNull();
     expect(getComputedStyle(scroller).scrollbarWidth).toBe('thin');
+  });
+});
+
+describe('the glass bar (R29, GLS-26 amendment; ?scroll=glass-a)', () => {
+  const map: ScrollMap = { pages: 8, sections: [], at: () => undefined };
+
+  beforeEach(() => {
+    stop();
+    history.replaceState(null, '', '/?scroll=glass-a');
+    resetScrollGlassStyle();
+    stop = installScrollThumbs();
+  });
+
+  afterEach(() => {
+    history.replaceState(null, '', '/');
+    resetScrollGlassStyle();
+    localStorage.clear();
+  });
+
+  it('is the plain bar for a scroller without a page map', async () => {
+    scroller.scrollTop = 1800;
+    await frame();
+    await frame();
+    expect(bar('y')).not.toHaveAttribute('data-glass');
+    expect(bar('y').getBoundingClientRect().width).toBe(14);
+  });
+
+  it('is 44 px wide with a dot per page for a reader scroller, and reaches 44 px for a pointer', async () => {
+    setScrollMap(scroller, map);
+    scroller.scrollTop = 1800;
+    await frame();
+    await frame();
+    const y = bar('y');
+    expect(y).toHaveAttribute('data-glass', 'glass-a');
+    expect(y).toHaveAttribute('data-dots');
+    expect(y.style.getPropertyValue('--scroll-pages')).toBe('8');
+    const box = y.getBoundingClientRect();
+    expect(box.width).toBe(44);
+    expect(box.right).toBeCloseTo(400, 0);
+    // 40 px from the edge, still the bar's reach; 50 px is not.
+    pointer('pointerover', row, 300, 300);
+    pointer('pointermove', row, 350, 300);
+    expect(y).not.toHaveAttribute('data-hot');
+    pointer('pointermove', row, 360, 300);
+    expect(y).toHaveAttribute('data-hot');
+    setScrollMap(scroller, null);
+  });
+
+  it('expands under a finger that presses it and settles when it lifts', async () => {
+    setScrollMap(scroller, map);
+    scroller.scrollTop = 1800;
+    await frame();
+    await frame();
+    const y = bar('y');
+    y.setPointerCapture = () => undefined;
+    pointer('pointerdown', y, 380, 103 + 197, { pointerType: 'touch' });
+    expect(y).toHaveAttribute('data-drag');
+    expect(y).toHaveAttribute('data-hot');
+    pointer('pointerup', y, 380, 300, { pointerType: 'touch' });
+    expect(y).not.toHaveAttribute('data-drag');
+    expect(y).not.toHaveAttribute('data-hot');
+    setScrollMap(scroller, null);
   });
 });

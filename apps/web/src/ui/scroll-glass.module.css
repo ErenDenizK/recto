@@ -1,0 +1,125 @@
+/*
+ * The contents ruler's titles and drag card (R29 study, GLS-26 amendment; `scroll-glass.tsx`,
+ * `?scroll=glass-b`).
+ *
+ * - **Solid** (Q-5): both move, so neither blurs. `mat-chip mat-opaque` is the scroll bar's own
+ *   page label (`scroll-thumbs.module.css`), here at a title's and a card's radius.
+ * - **Placed by `transform`** (the ruler at the track's top, a title by its offset along it, the
+ *   card by the thumb); they fade by `opacity` only (MOT-4), so reduced motion needs no rule
+ *   beyond the shorter durations of tokens.css. Above the bar's own layer.
+ */
+
+.ruler {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+.ruler[data-open] {
+  opacity: 1;
+  transition-duration: var(--duration-fast);
+}
+
+/* Its right edge stands 2 px right of the ruler's left edge: 12 px clear of the 22 px capsule. */
+.title {
+  composes: mat mat-chip mat-opaque from global;
+  --mat-rim: inset 0 1px 0 var(--mat-rim-top), inset 0 -1px 0 var(--mat-rim-bottom);
+  position: absolute;
+  top: 0;
+  right: -2px;
+  box-sizing: border-box;
+  max-width: 220px;
+  padding: 3px var(--space-2);
+  overflow: hidden;
+  border-radius: var(--radius-capsule);
+  box-shadow: var(--mat-rim), var(--scroll-thumb-edge);
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  translate: 0 -50%;
+}
+
+.title[data-skip]:not(.current) {
+  display: none;
+}
+
+.current {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.host {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 264px;
+  height: 84px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.host[data-open] {
+  opacity: 1;
+}
+
+.card {
+  composes: mat mat-chip mat-opaque from global;
+  --mat-rim: inset 0 1px 0 var(--mat-rim-top), inset 0 -1px 0 var(--mat-rim-bottom);
+  display: flex;
+  box-sizing: border-box;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  height: 100%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--mat-rim), var(--scroll-thumb-edge);
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: 18px;
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.head {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: var(--type-callout);
+  font-weight: 600;
+  line-height: var(--type-callout-lh);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  font-variant-numeric: tabular-nums;
+}
+
+.hits {
+  margin-inline-start: var(--space-2);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+@media (forced-colors: active) {
+  .card,
+  .title {
+    border: 1px solid CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+}

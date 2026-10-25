@@ -160,6 +160,111 @@
   display: none;
 }
 
+/*
+ * The glass bar (R29 study, GLS-26 amendment; `?scroll=glass-a` / `glass-b`, a prototype): on a
+ * reader scroller with a page map (`setScrollMap`) the bar is 44 px wide, so its target is 44 px
+ * while it is expanded, and draws its look 25 px in from the trailing edge. Only the thumb moves
+ * (GLS-22, Q-5): it takes `--lens-rim-flat`; the capsule and its dots stand still and use no
+ * backdrop filter, so nothing here runs a blur (Q-11). A touch can take the shown bar anywhere in
+ * its 44 px; `touch-action: none` keeps a drag from scrolling the page instead.
+ *
+ * - **A, the jog rail:** at rest the thumb is a 4 px bead; hot or dragged the capsule (22 px, the
+ *   chip glass's tint, one dot per page while the dots are 7 px apart or more) fades in and the
+ *   thumb widens into a lens.
+ * - **B, the contents ruler:** page ticks at rest; hot, the capsule tints and the titles come
+ *   (`scroll-glass.tsx`); dragged, a card shows the page.
+ */
+.bar[data-glass] {
+  touch-action: none;
+}
+
+@media (any-pointer: coarse) {
+  .bar[data-glass][data-shown] {
+    pointer-events: auto;
+  }
+}
+
+.bar[data-glass]::before {
+  inset-block: 0;
+  inset-inline-end: 8px;
+  width: 22px;
+  background-color: var(--glass-chip-tint);
+  box-shadow:
+    var(--lens-rim-flat),
+    inset 0 0 0 11px var(--scroll-groove),
+    var(--scroll-groove-rim);
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.bar[data-glass][data-dots]::before {
+  background-image: radial-gradient(circle, var(--scroll-thumb) 1.25px, transparent 1.75px);
+  background-repeat: repeat-y;
+  background-size: 100% calc(100% / var(--scroll-pages));
+}
+
+.bar[data-glass='glass-b']::before {
+  opacity: 1;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.bar[data-glass='glass-b'][data-hot]::before,
+.bar[data-glass='glass-b'][data-drag]::before {
+  background-color: var(--glass-chip-tint);
+  box-shadow:
+    var(--lens-rim-flat),
+    inset 0 0 0 11px var(--scroll-groove),
+    var(--scroll-groove-rim);
+}
+
+/* B's page ticks: a hairline across each page's cell, centred in the capsule. */
+.bar[data-glass='glass-b'][data-dots]::before {
+  background-image: linear-gradient(
+    to bottom,
+    transparent calc(50% - 0.5px),
+    var(--scroll-thumb) calc(50% - 0.5px),
+    var(--scroll-thumb) calc(50% + 0.5px),
+    transparent calc(50% + 0.5px)
+  );
+  background-position: 50% 0;
+  background-size: 8px calc(100% / var(--scroll-pages));
+}
+
+/* The thumb: a bead at rest, a lens (flat rim, GLS-22) in the capsule's width when expanded. */
+.bar[data-glass][data-axis='y'] .thumb {
+  inset-inline-end: 17px;
+  width: 4px;
+  box-shadow: var(--scroll-thumb-edge), var(--lens-rim-flat);
+}
+
+.bar[data-glass][data-axis='y'][data-hot] .thumb,
+.bar[data-glass][data-axis='y'][data-drag] .thumb {
+  inset-inline-end: 10px;
+  width: 18px;
+}
+
+.bar[data-glass='glass-b'][data-axis='y'][data-hot] .thumb,
+.bar[data-glass='glass-b'][data-axis='y'][data-drag] .thumb {
+  inset-inline-end: 12px;
+  width: 14px;
+}
+
+/* A's bubble: "page / total | section", larger and further from the thumb than the plain pill;
+   B names the page on its card instead. */
+.bar[data-glass] .label {
+  inset-inline-end: calc(100% + 22px);
+  min-width: 48px;
+  height: 40px;
+  padding-inline: var(--space-4);
+  font-size: var(--type-callout);
+}
+
+.bar[data-glass='glass-b'] .label {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .bar[data-axis] .thumb {
     transition: background-color var(--duration-fast) var(--ease-out);

@@ -75,6 +75,7 @@ import { PinchDetentChip } from './PinchDetentChip';
 import readStyles from './ReadView.module.css';
 import { type ContentFrame, contentFrame, ResizedContent } from './ResizedContent';
 import { ScrollProxies } from './ScrollProxies';
+import { useScrollMap } from './use-scroll-map';
 import { type Insets, scrollbarSize, scrollbarsNeeded, useStageBleed } from './stage-bleed';
 import { useCanvasZoom, type ZoomColumn } from './use-canvas-zoom';
 
@@ -311,6 +312,8 @@ export function ReadView({
     const page = pageAt.current?.(scrollTop);
     return page === undefined ? '' : `${page + 1} / ${doc.pages.length}`;
   };
+  // The glass scroll bar (`?scroll=glass`): the page map and its bubble, loaded only when asked.
+  const glassMap = useScrollMap(doc, ws, pageAt);
   const bleed = useStageBleed(frameRef);
   const { primary } = usePointerCapabilities();
   const barSize = scrollbarSize();
@@ -440,7 +443,8 @@ export function ReadView({
         horizontal={bars.horizontal}
         size={barSize}
         thumb={primary !== 'coarse' || doc.pages.length <= SCRUBBER_MIN_PAGES}
-        label={pageLabel}
+        label={glassMap ? glassMap.label : pageLabel}
+        map={glassMap?.map}
       />
     </div>
   );
