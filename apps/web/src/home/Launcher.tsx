@@ -7,13 +7,13 @@
  *    the headline and the promise. With documents the view has no title: the strip's
  *    "◆ Library" piece names the place (01-frame F2, DSN-49), and a large "Library" under it
  *    said the same word twice (B-13, DSN-50).
- * 2. **Open.** **Open PDFs…** (the view's one lime, first focus when empty, J1 = 2), then
+ * 2. **Open.** **Open files…** (the view's one lime, first focus when empty, J1 = 2), then
  *    **Combine files…** and **Batch…** as one group of equal standard buttons with their
  *    glyphs: the three ways to bring files from the disk. Try the sample is the Library's third
  *    tier, a card of its own after Recents (`SampleCard`).
  *
  * The actions sit in **one launcher shape** (§3.9, I-12): a lit capsule piece with every
- * action at the one L size (40 fine, 52 coarse; §3.3) as glass lenses (GLS-25), Open PDFs…
+ * action at the one L size (40 fine, 52 coarse; §3.3) as glass lenses (GLS-25), Open files…
  * first and lime, the drop line ending it in body ("or drop files anywhere"; on touch too,
  * iPadOS drags files in). No separate drop well: the whole window is the target, and the
  * piece says so.
@@ -21,16 +21,16 @@
  * - **Empty** (no document open): mark, headline and promise on the canvas about a third of
  *   the way down the view, the piece centred under them.
  * - **Row** (documents open): the piece alone, the column's width, at the top of the column.
- *   In Select mode the lime moves to the selection bar's Combine, so Open PDFs… turns
+ *   In Select mode the lime moves to the selection bar's Combine, so Open files… turns
  *   standard (one lime per view, principle 3).
  * - **Drag-over** (L9 on the Library): no overlay; the piece lifts 2 px with the e3 shadow and
  *   a dashed accent line; the empty headline becomes "Drop to open 2 files", the row's drop
  *   line says it.
- * - **Busy** (L2 §4): Open PDFs… is busy while the engine reads the picked files, but not while
+ * - **Busy** (L2 §4): Open files… is busy while the engine reads the picked files, but not while
  *   a password prompt (07-sheets S6) waits for the person: that wait is theirs, not the app's,
  *   and the prompt's own Open shows the busy state once a password is being tried.
  *
- * None of the actions changes an open document (no guard). Open PDFs… carries
+ * None of the actions changes an open document (no guard). Open files… carries
  * `data-library-open`, where focus goes after Start fresh and after closing the last card.
  */
 import { useEffect, useRef } from 'react';
@@ -68,7 +68,7 @@ export function Launcher({ variant, dragging, dragCount, selecting = false }: La
   const openRef = useRef<HTMLButtonElement>(null);
   const continued = useContinueShown((s) => s.shown);
 
-  // First focus on a first visit (J1, L1 §6): Open PDFs…, unless something already has it.
+  // First focus on a first visit (J1, L1 §6): Open files…, unless something already has it.
   // Focus placed by the page, not by a key, draws no ring yet (`data-quiet-focus`): a lime ring
   // around the lime button on arrival is noise; the first key press brings the ring back.
   useEffect(() => {

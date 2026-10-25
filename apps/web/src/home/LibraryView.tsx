@@ -25,7 +25,7 @@
  * changes its headline (L9); the document view's overlay is `DropOverlay`.
  *
  * Esc ladder (L1 §6): Esc clears the checks, then leaves Select mode; it never navigates. First
- * focus: Open PDFs… when no document is open (the launcher), else the card of the document last
+ * focus: Open files… when no document is open (the launcher), else the card of the document last
  * shown (`showHome` callers focus it). `scroll-padding-bottom` keeps a focused card clear of the
  * selection bar (A-12).
  */

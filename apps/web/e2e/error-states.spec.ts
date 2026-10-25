@@ -32,7 +32,7 @@ test.beforeEach(async ({ page }) => {
 async function openRaw(page: Page, file: ErrorFixture | string): Promise<void> {
   const chooser = page.waitForEvent('filechooser');
   await page
-    .getByRole('button', { name: /^(Open files|Open PDFs…)$/ })
+    .getByRole('button', { name: /^(Open files|Open files…)$/ })
     .first()
     .click();
   await (await chooser).setFiles(typeof file === 'string' ? fixturePath(file) : file);

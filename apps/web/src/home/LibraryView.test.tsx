@@ -3,7 +3,7 @@
  * lit cards in tab order, one click opens, Select mode by Shift, Mod, the ○ and right-click, the
  * static selection bar's dimmed reasons, Combine without a dialog in card order, Compare with the
  * older file as A, Pages and Close, the keys (Esc ladder, Alt+arrows, F2), drops and the
- * launcher's lift, Open PDFs… and Combine files…, the empty launcher, and Recents.
+ * launcher's lift, Open files… and Combine files…, the empty launcher, and Recents.
  */
 import '../styles/tokens.css';
 import '../styles/reset.css';
@@ -126,7 +126,7 @@ describe('Library', () => {
     expect(within(home).queryByText('Nothing leaves this device.')).toBeNull();
     // Open: the view's one lime, first in the row, and the row says files can be dropped.
     const launcher = screen.getByTestId('library-launcher');
-    const open = within(launcher).getByRole('button', { name: 'Open PDFs…' });
+    const open = within(launcher).getByRole('button', { name: 'Open files…' });
     expect(open).toHaveClass('btn-prominent');
     expect(launcher).toHaveTextContent('or drop files anywhere');
     // The other ways in: two equal standard buttons, each with its glyph.
@@ -484,7 +484,7 @@ describe('Library', () => {
     );
   }, 45_000);
 
-  it('checks the new cards after two files are picked with Open PDFs…', async () => {
+  it('checks the new cards after two files are picked with Open files…', async () => {
     const files = await Promise.all([
       fixture(simpleUrl, 'simple-text.pdf'),
       fixture(rotatedUrl, 'rotated-pages.pdf'),
@@ -498,7 +498,7 @@ describe('Library', () => {
       render(<App />);
       const empty = await screen.findByTestId('home');
       // First focus on a first visit (J1).
-      const open = within(empty).getByRole('button', { name: 'Open PDFs…' });
+      const open = within(empty).getByRole('button', { name: 'Open files…' });
       await waitFor(() => {
         expect(open).toHaveFocus();
       });
@@ -583,7 +583,7 @@ describe('Library', () => {
     expect(await screen.findByTestId('library-opened-toast')).toHaveTextContent('Opened 2 files');
   }, 45_000);
 
-  it('is the launcher with no file open: the headline, Open PDFs…, the sample and Combine files…', async () => {
+  it('is the launcher with no file open: the headline, Open files…, the sample and Combine files…', async () => {
     render(<App />);
     useUiStore.getState().showHome();
     const home = await screen.findByTestId('home');
@@ -596,7 +596,7 @@ describe('Library', () => {
       }),
     ).toBeVisible();
     expect(within(home).getByText('Nothing leaves this device.')).toBeVisible();
-    const open = within(home).getByRole('button', { name: 'Open PDFs…' });
+    const open = within(home).getByRole('button', { name: 'Open files…' });
     expect(open).toHaveClass('btn-prominent');
     expect(within(home).getByRole('button', { name: 'Combine files…' })).toBeVisible();
     // The sample's card under the launcher, centred on it, as wide as Recents at most (DSN-50).

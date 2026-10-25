@@ -13,6 +13,7 @@ import { page, userEvent } from 'vitest/browser';
 import fixtureUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import { App } from '../app';
 import { openDocuments } from '../commands/app-commands';
+import { showOpened } from '../home/home-actions';
 import { useSelectionStore } from '../state/selection-store';
 import { useUiStore } from '../state/ui-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
@@ -62,6 +63,20 @@ describe('engine integration', () => {
     });
     // The grid has no page pill; its header counts the pages (D2-5).
     expect(screen.queryByTestId('page-pill')).toBeNull();
+  }, 30_000);
+
+  it('a Markdown file opened while Home shows opens as a document, not on Home (PRD-30)', async () => {
+    render(<App />);
+    useUiStore.getState().showHome();
+    const wasEmpty = useWorkspaceStore.getState().workspace.documentOrder.length === 0;
+    const file = new File(['# Notes\n\n| a | b |\n|---|---|\n| 1 | 2 |\n'], 'notes.md', {
+      type: 'text/markdown',
+    });
+    const ids = await openDocuments([file]);
+    expect(ids).toHaveLength(1);
+    showOpened(ids, { wasEmpty });
+    expect(useUiStore.getState().destination).toBe('document');
+    expect(useWorkspaceStore.getState().workspace.activeDocument).toBe(ids[0]);
   }, 30_000);
 
   it('rotates the selection with Shift+R and undoes it with Mod+Z', async () => {

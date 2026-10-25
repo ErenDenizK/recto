@@ -66,7 +66,7 @@ test('?lang= overrides the language without persisting it', async ({ page }) => 
   ).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
   // The Library's launcher speaks Turkish.
-  await expect(page.getByRole('button', { name: 'PDF aç…' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Dosya aç…' })).toBeVisible();
 
   await page.goto('./');
   await expect(page.locator('html')).not.toHaveAttribute('lang', 'tr');
