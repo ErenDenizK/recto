@@ -34,7 +34,8 @@
 
 .line {
   margin: var(--space-2) 0 var(--space-8);
-  color: var(--text-secondary);
+  /* Body copy over the aurora: primary clears APCA Lc 75 (colour audit 25 Oct 2026, DSN-78). */
+  color: var(--text-primary);
   font-size: var(--type-callout);
   line-height: var(--type-callout-lh);
   letter-spacing: var(--track-callout);
