@@ -11,6 +11,23 @@ live, so `docs/archive/<old path>` is the file that was at `docs/<old path>`.
 | [`process/handoff-2026-10-15.md`](process/handoff-2026-10-15.md) | One lead session's hand-off for the text editing, phone and sample work (2026-10-12 → 15) | The owner approved its work on 2026-10-15; its decisions are rows in `decisions.md` (MOB-*, TXT-*), and the briefs since (`docs/process/brief-2026-10-16.md`, `brief-2026-10-17.md`) carry what it left open. |
 | [`plan/v1/old-roadmap-inventory.md`](plan/v1/old-roadmap-inventory.md) | R13's inventory of ideas left over from the earlier roadmap (2026-10-09) | Folded into `docs/plan/v1/PLAN.md` and `feature-decisions.md`, which the owner decided row by row. |
 
+Moved here in R29 (cleanup lane A, 2026-10-25), keeping their folder paths:
+
+| File | What it was | Why it is here |
+|---|---|---|
+| [`DESIGN.md`](DESIGN.md) | The M0 to M8 design document | Replaced by `docs/design/redesign-2026-10/language.md` and ADR-0022 to 0028; it still calls dark the default, the app defaults to System. |
+| [`specs/experience-redesign.md`](specs/experience-redesign.md) | The M6 draft of the experience redesign | Replaced by `docs/specs/redesign.md`. |
+| [`design/redesign-2026-10/proposals/`](design/redesign-2026-10/proposals/) | Proposals A (Markup toggle), B (pen-first studio), C (content and tasks) | The chosen model is in `docs/design/redesign-2026-10/flows.md`; B and C were not chosen. |
+| [`design/redesign-2026-10/current-flows.md`](design/redesign-2026-10/current-flows.md), [`inventory.md`](design/redesign-2026-10/inventory.md) | Snapshots of the app before the redesign | Pre-redesign; the redesign replaced every surface they describe. |
+| [`design/experience-audit-2026-10.md`](design/experience-audit-2026-10.md), [`audit/`](design/audit/README.md), [`audit-2026-10/`](design/audit-2026-10/V1-RESULTS.md), [`qa-2026-10-16.md`](design/qa-2026-10-16.md), [`audit-2026-10-16-menus.md`](design/audit-2026-10-16-menus.md), [`plan-2026-10-17-sheets-and-cleanup.md`](design/plan-2026-10-17-sheets-and-cleanup.md) | Finished audits and a finished plan | Their findings are rows in `docs/process/decisions.md`. |
+| [`process/brief-2026-10-16.md`](process/brief-2026-10-16.md), [`brief-2026-10-17.md`](process/brief-2026-10-17.md) | One-off briefs | Done. |
+| [`family/SESSION-PROMPT.md`](family/SESSION-PROMPT.md) | An assistant prompt | Not a project document. |
+| [`brand/design-language.md`](brand/design-language.md) | An orphan duplicate of `language.md` | `docs/design/redesign-2026-10/language.md` is the source. |
+
+The 9 MB of pre-redesign screenshots in `docs/design/redesign-2026-10/baseline/` were deleted, not
+moved (see below). To get one back:
+`git show 2e744b4:docs/design/redesign-2026-10/baseline/01-home-empty-1440.png > 01.png`.
+
 Moved here in R22 (brief C-9, work package D1, 2026-10-17). `docs/ROADMAP.md` stays where it is
 although it is superseded from M9 on: the app's About page, the release notes and the issue
 template link to it.

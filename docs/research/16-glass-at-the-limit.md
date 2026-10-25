@@ -4,6 +4,8 @@ date: 2026-10-04
 status: snapshot
 ---
 
+> **Snapshot.** Superseded by the glass decisions GLS-20 and GLS-21 in [`docs/process/decisions.md`](../process/decisions.md) and ADR-0024; read it as the record of what was known then.
+
 > Research snapshot gathered on 2026-10-04 for the M9 redesign. It extends research 13 (glass
 > and modes) and 14 (the glass spike) and does not repeat them. Apple's guidance was read from the
 > JSON data behind the Human Interface Guidelines and the developer documentation

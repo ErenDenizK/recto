@@ -14,6 +14,8 @@
  *   `FPDFAnnot_GetStringValue`), e.g. after a reopen in a later session.
  * - `annotationStringsOnPage`: one key of every annotation of a page that has it, by /NM
  *   (one pass over the page, for `listAnnotations`).
+ * - `updateAnnotationInPlace`: writes /Rect, text strings and flags, keeping the appearance
+ *   stream (a moved or restyled stamp).
  * - `clearAnnotationString`: empties a private key (PDFium has no public call that removes
  *   a key); an empty `/PdfEditorInkWidths` reads as "no widths".
  * - `appendInkPath`: appends one path to an Ink's `/InkList` and writes our appearance of the
@@ -89,26 +91,28 @@ function writeAppearance(
   name: string,
   write: AnnotationAppearanceWrite,
 ): void {
-  const m = access.module;
-  const mem = access.memory;
-  if (write.rect) {
-    const { x, y, width, height } = write.rect;
-    const ok = mem.withMem(16, (p) => {
-      // FS_RECTF: left, top, right, bottom (float32).
-      const f = mem.heap().HEAPF32;
-      f[p >> 2] = x;
-      f[(p >> 2) + 1] = y + height;
-      f[(p >> 2) + 2] = x + width;
-      f[(p >> 2) + 3] = y;
-      return m.FPDFAnnot_SetRect(annot, p);
-    });
-    if (!ok) throw new EngineError('internal', `FPDFAnnot_SetRect failed for ${name}`);
-  }
-  const set = mem.withWideString(write.content, (ptr) =>
-    m.FPDFAnnot_SetAP(annot, APPEARANCE_MODE_NORMAL, ptr),
+  if (write.rect) setRect(access, annot, name, write.rect);
+  const set = access.memory.withWideString(write.content, (ptr) =>
+    access.module.FPDFAnnot_SetAP(annot, APPEARANCE_MODE_NORMAL, ptr),
   );
   if (!set) throw new EngineError('internal', `FPDFAnnot_SetAP failed for ${name}`);
   setStrings(access, annot, write.strings ?? {});
+}
+
+/** Writes /Rect of an open `FPDF_ANNOTATION` (its appearance and /BBox stay as they are). */
+function setRect(access: RawAccess, annot: number, name: string, rect: UserRect): void {
+  const mem = access.memory;
+  const { x, y, width, height } = rect;
+  const ok = mem.withMem(16, (p) => {
+    // FS_RECTF: left, top, right, bottom (float32).
+    const f = mem.heap().HEAPF32;
+    f[p >> 2] = x;
+    f[(p >> 2) + 1] = y + height;
+    f[(p >> 2) + 2] = x + width;
+    f[(p >> 2) + 3] = y;
+    return access.module.FPDFAnnot_SetRect(annot, p);
+  });
+  if (!ok) throw new EngineError('internal', `FPDFAnnot_SetRect failed for ${name}`);
 }
 
 function setStrings(
@@ -134,6 +138,52 @@ export function setAnnotationAppearance(
   try {
     withAnnotation(access, pageIndex, name, (annot) => {
       writeAppearance(access, annot, name, write);
+    });
+  } finally {
+    // The next render and annotation read reload the page.
+    access.dropPageCache(pageIndex);
+  }
+}
+
+/** Annotation flags (/F) `updateAnnotationInPlace` sets or clears: Hidden, Print, Locked. */
+const ANNOT_FLAG_BITS = { hidden: 1 << 1, print: 1 << 2, locked: 1 << 7 } as const;
+
+/** What `updateAnnotationInPlace` writes; what is left out stays as it is. */
+export interface AnnotationInPlaceWrite {
+  readonly rect?: UserRect;
+  /** Text strings to write (e.g. `Contents`, `T`). */
+  readonly strings?: Readonly<Record<string, string>>;
+  /** Flags to set (true) or clear (false); flags left out keep their value. */
+  readonly flags?: { readonly [K in keyof typeof ANNOT_FLAG_BITS]?: boolean };
+}
+
+/**
+ * Changes /Rect, text strings and flags of annotation `name` and nothing else: its /AP stays
+ * the same stream, whose /BBox PDFium maps onto the new /Rect (a move, or a resize that
+ * scales the appearance), and it keeps its place in /Annots. For stamps, whose appearance
+ * EmbedPDF can only rebuild from the image it was created with (fresh-25oct finding 1).
+ */
+export function updateAnnotationInPlace(
+  access: RawAccess,
+  pageIndex: number,
+  name: string,
+  write: AnnotationInPlaceWrite,
+): void {
+  const m = access.module;
+  try {
+    withAnnotation(access, pageIndex, name, (annot) => {
+      if (write.rect) setRect(access, annot, name, write.rect);
+      setStrings(access, annot, write.strings ?? {});
+      if (write.flags) {
+        let flags = m.FPDFAnnot_GetFlags(annot);
+        for (const [key, bit] of Object.entries(ANNOT_FLAG_BITS)) {
+          const on = write.flags[key as keyof typeof ANNOT_FLAG_BITS];
+          if (on !== undefined) flags = on ? flags | bit : flags & ~bit;
+        }
+        if (!m.FPDFAnnot_SetFlags(annot, flags)) {
+          throw new EngineError('internal', `FPDFAnnot_SetFlags failed for ${name}`);
+        }
+      }
     });
   } finally {
     // The next render and annotation read reload the page.

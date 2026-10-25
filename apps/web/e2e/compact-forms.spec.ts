@@ -163,6 +163,8 @@ test.describe('form filling on phones (MOB-1)', () => {
     await tap(cdp, await centreOf(target(page, 'name')));
     await expect(editor(page, 'name')).toBeFocused();
     expect(await fontPx(editor(page, 'name'))).toBeGreaterThanOrEqual(16);
+    // PRD-32: the browser's autofill hint follows the field's name; Date has none.
+    await expect(editor(page, 'name')).toHaveAttribute('autocomplete', 'name');
     await expect(bar(page)).toBeVisible();
     // The tick's toast gives way to the bar.
     await expect(toast(page)).toHaveCount(0);
@@ -181,6 +183,7 @@ test.describe('form filling on phones (MOB-1)', () => {
     // › commits Name and moves to Date, the keyboard kept (the editor has the focus).
     await page.getByTestId('compact-fill-next').click();
     await expect(editor(page, 'date')).toBeFocused();
+    await expect(editor(page, 'date')).toHaveAttribute('autocomplete', 'off');
     await expect(bar(page)).toContainText(`2 of ${STOPS}`);
     // Kept above the bar riding on the keyboard.
     const field = await editor(page, 'date').boundingBox();

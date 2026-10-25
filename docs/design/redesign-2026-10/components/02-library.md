@@ -6,8 +6,8 @@ status: proposed
 
 > Wave 2 component spec. Binding inputs: [`flows.md`](../flows.md) (§2.1–§2.3, §4.6, §5.2–§5.3,
 > §6.3–§6.9, §7, §9, §10 row 4) and [`language.md`](../language.md) (with the ten amendments of
-> `flows.md` §13.2). Evidence: [`inventory.md`](../inventory.md) §3.1, §3.12, §4, §14.2, §14.8,
-> §15.1.3, [`current-flows.md`](../current-flows.md) J1, J3, J12, J14, the baseline frames
+> `flows.md` §13.2). Evidence: [`inventory.md`](../../../archive/design/redesign-2026-10/inventory.md) §3.1, §3.12, §4, §14.2, §14.8,
+> §15.1.3, [`current-flows.md`](../../../archive/design/redesign-2026-10/current-flows.md) J1, J3, J12, J14, the baseline frames
 > `01-home-empty-*`, `02-home-files-*`, and research 15 (RA-19), 17 (AU-4, AU-9, AU-12, AU-13),
 > 18 (MC-2, MC-3, MC-27–MC-31), 19 (M-13, M-20, M-34, M-35), 20 (X-5–X-7), 21 (BR-V1–BR-V3, About
 > hero), 22 (A-5, A-13). Code read: `home/HomeView.tsx`, `home/home-model.ts`,
