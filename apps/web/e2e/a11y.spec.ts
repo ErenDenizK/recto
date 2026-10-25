@@ -186,11 +186,11 @@ test.describe('keyboard', () => {
     // The launcher's actions first, then Select, then one Tab stop in the grid (L1 §6).
     const launcher = page.getByTestId('library-launcher').getByRole('button');
     const actions = await launcher.count();
-    // Open PDFs…, Combine files…, Batch…; Library ⋯ is in the top strip (L12) and Try the
+    // Open files…, Combine files…, Batch…; Library ⋯ is in the top strip (L12) and Try the
     // sample is the card after the documents (DSN-50).
     expect(actions).toBe(3);
     await launcher.first().focus();
-    await expect(launcher.first()).toHaveAccessibleName('Open PDFs…');
+    await expect(launcher.first()).toHaveAccessibleName('Open files…');
     for (let i = 1; i < actions; i++) {
       await page.keyboard.press('Tab');
       await expect(launcher.nth(i)).toBeFocused();

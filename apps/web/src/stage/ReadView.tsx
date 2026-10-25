@@ -1010,10 +1010,12 @@ function PageColumn({
     // Inside the unobscured rectangle.
     const visibleHeight = visibleHeightOf(el);
     const visibleWidth = el.clientWidth - view.left - view.right;
-    // Measured from where a running jump is heading, so a second reveal composes.
-    const viewTop = el.scrollTop + view.top;
+    // Measured from where a running jump is heading, so a second reveal composes: a region in
+    // view mid-flight is not yet shown, and keeping the mid-flight offset stops between pages.
+    const from = jumpTarget(el) ?? { top: el.scrollTop, left: el.scrollLeft };
+    const viewTop = from.top + view.top;
     const margin = Math.min(96, visibleHeight / 4);
-    let scrollTop = el.scrollTop;
+    let scrollTop = from.top;
     if (top < viewTop + margin || bottom > viewTop + visibleHeight - margin) {
       scrollTop = Math.max(0, top - view.top - visibleHeight / 3);
     }
@@ -1025,8 +1027,8 @@ function PageColumn({
     }
     const left = x + box.left;
     const right = left + box.width;
-    const viewLeft = el.scrollLeft + view.left;
-    let scrollLeft = el.scrollLeft;
+    const viewLeft = from.left + view.left;
+    let scrollLeft = from.left;
     if (left < viewLeft + 16 || right > viewLeft + visibleWidth - 16) {
       scrollLeft = Math.max(0, left - view.left - visibleWidth / 3);
     }

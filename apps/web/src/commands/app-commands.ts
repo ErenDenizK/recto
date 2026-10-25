@@ -106,8 +106,9 @@ function openAboutPage(): void {
 
 /**
  * Opens files as tabs (in the given order) and announces the outcome. PDFs open one tab
- * each; images (PNG, JPEG, WebP) become the pages of one new document. Resolves to the
- * documents opened from PDFs, in order.
+ * each; images (PNG, JPEG, WebP) become the pages of one new document, and each text or Markdown
+ * file a document of its own. Resolves to the documents opened, text first, then images, then
+ * PDFs, so `showOpened` takes the person to what they opened (PRD-30).
  *
  * Files that did not open get a visible failure toast (`errors/present.ts`, FB8; INV-6): the
  * damaged-file toast, the skipped-password toast with "Enter password…" (which asks again),
@@ -120,17 +121,18 @@ export async function openDocuments(all: readonly File[]): Promise<readonly Docu
   offerOfficeFiles(office);
   // Text files become new documents named after them, like images (conversion memo step 2).
   const { text, rest: files } = takeTextFiles(rest);
-  await openTextFiles(text);
-  if (files.length === 0) return [];
+  const generated = await openTextFiles(text);
+  if (files.length === 0) return generated;
   const { pdfs, images } = partitionFiles(files);
   // Opened images: one new unsaved document, each page fitted to A4 or Letter (PRD-24).
   if (images.length > 0) {
-    await openImagesAsDocument(images, {
+    const imageDocument = await openImagesAsDocument(images, {
       sizing: 'fit-paper',
       manyTitle: m.images_document_title(),
     });
+    if (imageDocument !== undefined) generated.push(imageDocument);
   }
-  if (pdfs.length === 0) return [];
+  if (pdfs.length === 0) return generated;
   const { opened, skipped } = await model().openFiles(pdfs);
   rememberOpened(pdfs, opened);
   if (opened.length === 1) announce(m.announce_opened({ name: opened[0]?.name ?? '' }));
@@ -150,7 +152,7 @@ export async function openDocuments(all: readonly File[]): Promise<readonly Docu
     }),
     pdfs.length,
   );
-  return opened.map((o) => o.documentId);
+  return [...generated, ...opened.map((o) => o.documentId)];
 }
 
 /** Entries that a reopen from Recents should replace, by the file it produced. */

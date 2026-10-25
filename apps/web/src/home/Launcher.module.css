@@ -40,14 +40,14 @@
   letter-spacing: var(--track-callout);
 }
 
-/* The arrival focus on Open PDFs… draws no ring until a key is pressed (Launcher.tsx). */
+/* The arrival focus on Open files… draws no ring until a key is pressed (Launcher.tsx). */
 .welcome [data-quiet-focus]:focus-visible {
   outline: none;
   box-shadow: none;
 }
 
 /*
- * The piece: Open PDFs… leads in lime, Combine files… and Batch… follow at the same height, and
+ * The piece: Open files… leads in lime, Combine files… and Batch… follow at the same height, and
  * the drop line ends it in the secondary ink. Empty, it takes its content's width and centres;
  * with documents it runs the column's width, first in it, and the line goes to the trailing end.
  * A narrow column wraps the line under the actions, and the corners stay concentric with the

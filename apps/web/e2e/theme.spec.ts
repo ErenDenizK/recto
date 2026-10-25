@@ -275,7 +275,7 @@ test.describe('axe in light (the a11y matrix’s light column)', () => {
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
     await axe(page, 'light: empty Library');
     const chooser = page.waitForEvent('filechooser');
-    await page.getByTestId('home').getByRole('button', { name: 'Open PDFs…' }).click();
+    await page.getByTestId('home').getByRole('button', { name: 'Open files…' }).click();
     await (await chooser).setFiles(['compare-a.pdf', 'compare-b.pdf'].map(fixturePath));
     await expect(page.getByTestId('home').locator('[role="option"]')).toHaveCount(2, {
       timeout: 20_000,
