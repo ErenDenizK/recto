@@ -202,7 +202,6 @@
   flex: 0 1 auto;
   /* XD-3: never narrower than one tab at its minimum, + and the ring's room. */
   min-width: calc(var(--tab-min) + var(--space-1) + var(--space-1) + var(--control-h));
-  margin-inline-start: var(--space-1);
 }
 
 /* With no document tabs there is no tab to keep room for: the piece hugs the logo, Library
@@ -273,6 +272,11 @@
   max-width: var(--tab-max);
   height: var(--control-h);
   border-radius: var(--radius-capsule);
+  /* The fill and the hover wash sit --tab-ring (4 px) inside the piece's outer edge on every
+     side, clear of the rim band (GLS-22): on a coarse pointer the 44 px tab keeps its hit area
+     and the fill draws 2 px inside it. Radii stay concentric (capsule). */
+  --tab-ring: 4px;
+  --tab-fill-inset: max(0px, calc(var(--tab-ring) - (var(--piece-h) - var(--control-h)) / 2));
   transition:
     background-color var(--duration-fast) var(--ease-out),
     scale var(--spring-press) var(--ease-spring);
@@ -304,23 +308,34 @@
   color: var(--text-primary);
 }
 
+/* The hover wash is a lens of the glass (GLS-25), inset like the fill. */
+.tabWrap::before {
+  content: '';
+  position: absolute;
+  inset: var(--tab-fill-inset);
+  border-radius: inherit;
+  background: var(--lens-hover);
+  opacity: 0;
+  pointer-events: none;
+}
+
 @media (hover: hover) {
-  .tabWrap:hover:not([data-selected]) {
-    background: var(--surface-hover);
+  .tabWrap:hover:not([data-selected])::before {
+    opacity: 1;
   }
 }
 
 /* The active tab: the n5 fill (F4 §3), no ring, no lime. The fill is its own element under the
    tab, which slides from the last active tab to this one (tab-motion.ts; G6): drawn only on
-   the selected tab, at once, so the two never print together mid-slide. */
+   the selected tab, at once, so the two never print together mid-slide. It is a lens of the
+   same glass with a --lens-rim edge (GLS-25), --tab-fill-inset from the wrap on every side
+   (R29, amends F4 §3). */
 .tabFill {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 100%;
+  inset: var(--tab-fill-inset);
   border-radius: inherit;
-  background: var(--surface-on);
+  background: rgb(var(--white-rgb) / 0.1);
+  box-shadow: var(--lens-rim);
   opacity: 0;
   pointer-events: none;
   /* The slide scales it along x about its leading edge (tab-motion.ts, MOT-15). */
@@ -329,6 +344,13 @@
 
 .tabWrap[data-selected] > .tabFill {
   opacity: 1;
+}
+
+:global(:root[data-theme='light']) .tabFill {
+  background: rgb(var(--white-rgb) / 0.92);
+  box-shadow:
+    var(--lens-rim),
+    0 1px 3px -1px rgb(var(--ink-rgb) / 0.2);
 }
 
 /* The active tab's menu open (F5): the fill a step deeper, as a pressed trigger (G6). */
