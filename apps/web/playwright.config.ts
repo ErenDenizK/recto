@@ -177,6 +177,8 @@ export default defineConfig({
         '**/smoke.spec.ts',
         '**/library.spec.ts',
         '**/long-press.spec.ts',
+        // A placed signature dragged with a finger keeps drawing (fresh-25oct finding 1).
+        '**/signature-move.spec.ts',
         '**/history.spec.ts',
         '**/tab-strip.spec.ts',
         // The frame's free rectangle and jobs on the medium class (spec D2-1).
