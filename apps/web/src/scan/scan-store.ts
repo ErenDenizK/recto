@@ -107,9 +107,12 @@ export const useScanStore = create<ScanState>()(() => CLOSED);
 const set = useScanStore.setState;
 const get = useScanStore.getState;
 
+const revokePreview = (page: ScanPage) => {
+  if (page.preview) URL.revokeObjectURL(page.preview);
+};
 const revoke = (page: ScanPage) => {
   URL.revokeObjectURL(page.sourceUrl);
-  if (page.preview) URL.revokeObjectURL(page.preview);
+  revokePreview(page);
 };
 
 let counter = 0;
@@ -179,7 +182,7 @@ export function setPreview(id: string, rev: number, preview: string): void {
     URL.revokeObjectURL(preview);
     return;
   }
-  revoke(page);
+  revokePreview(page);
   set({ pages: get().pages.map((p) => (p.id === id ? { ...p, preview, previewRev: rev } : p)) });
 }
 

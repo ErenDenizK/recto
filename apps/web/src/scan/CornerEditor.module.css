@@ -1,19 +1,17 @@
 /* Corner adjust (plan bm-scan-plan §3): the picture, its outline, four 44 px handles. */
 .frame {
+  container-type: size;
   display: grid;
   place-items: center;
   min-height: 0;
   height: 100%;
-  padding: var(--space-3);
 }
 
 .box {
   position: relative;
-  max-width: 100%;
-  max-height: 100%;
-  /* The picture's aspect sets the box; the larger side yields to the frame. */
-  width: auto;
-  height: 100%;
+  /* The picture's aspect, as large as the frame allows (`--ar` is width over height). */
+  width: min(100cqw, calc(100cqh * var(--ar)));
+  aspect-ratio: var(--ar);
   touch-action: none;
   user-select: none;
 }

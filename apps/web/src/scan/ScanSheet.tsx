@@ -15,7 +15,7 @@
  *   picture (plan §2); the review's corner editor fixes them.
  * - **Done** warps and filters every page (`finish.ts`) and opens one new unsaved document.
  */
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { m } from '../i18n';
 import { reducedMotion } from '../motion/reduced-motion';
@@ -263,7 +263,7 @@ function CameraView({ active }: { readonly active: boolean }) {
         ) : (
           <div
             className={styles.frame}
-            style={{ aspectRatio: `${size.width} / ${size.height}` }}
+            style={{ '--ar': size.width / size.height } as CSSProperties}
             aria-label={m.scan_camera_view()}
           >
             <video

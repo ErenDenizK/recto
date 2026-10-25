@@ -6,7 +6,7 @@
  * position maps straight to them. Limit: no loupe yet (plan §3), and a corner may cross another;
  * the warp then folds, which the preview shows before Done.
  */
-import { type KeyboardEvent, type PointerEvent, useRef } from 'react';
+import { type CSSProperties, type KeyboardEvent, type PointerEvent, useRef } from 'react';
 
 import { m } from '../i18n';
 import type { Quad } from './encode';
@@ -59,7 +59,7 @@ export function CornerEditor({ src, width, height, quad, onChange }: CornerEdito
 
   return (
     <div className={styles.frame} data-testid="scan-corners">
-      <div ref={box} className={styles.box} style={{ aspectRatio: `${width} / ${height}` }}>
+      <div ref={box} className={styles.box} style={{ '--ar': width / height } as CSSProperties}>
         {src && <img className={styles.image} src={src} alt="" draggable={false} />}
         <svg className={styles.outline} viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
           <polygon points={quad.map((p) => `${p.x},${p.y}`).join(' ')} />

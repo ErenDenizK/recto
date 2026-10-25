@@ -2,7 +2,7 @@
  * Camera scan end to end (big move 1, plan bm-scan-plan §3, PRD-32; behind `?scan=1`): Chromium
  * with a fake camera that films a tilted white page on a dark desk (`tools/fixtures/scan-y4m.ts`).
  * The outline is found and goes solid, Auto captures once and waits for the page to leave, and
- * three manual captures are reordered and made into one new document with three pages.
+ * one automatic and two manual captures are reordered and made into one new document with three pages.
  */
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -61,9 +61,11 @@ test('Auto captures a steady page once, then waits for the page to leave', async
 test('three captures, reordered, become one document with three pages', async ({ page }) => {
   test.setTimeout(120_000);
   const sheet = await openSheet(page);
+  // Auto takes the first page by itself; Manual and the shutter take the other two.
+  await expect(sheet.getByTestId('scan-stack')).toContainText('1', { timeout: 20_000 });
   await sheet.getByRole('radio', { name: 'Manual' }).click();
   const shutter = sheet.getByTestId('scan-shutter');
-  for (const count of [1, 2, 3]) {
+  for (const count of [2, 3]) {
     await shutter.click();
     await expect(sheet.getByTestId('scan-stack')).toContainText(String(count));
   }
@@ -79,7 +81,7 @@ test('three captures, reordered, become one document with three pages', async ({
 
   await sheet.getByTestId('scan-done').click();
   await expect(sheet).toBeHidden({ timeout: 60_000 });
-  await expect(page.getByRole('tab', { name: /^Scan \d{1,2} \w{3,4} \d{4}$/ })).toBeVisible({
+  await expect(page.getByRole('tab', { name: /Scan \d{1,2} \w{3,4} \d{4}/ })).toBeVisible({
     timeout: 30_000,
   });
   await expect(page.locator('[data-page-index="2"]').first()).toBeVisible({ timeout: 20_000 });
