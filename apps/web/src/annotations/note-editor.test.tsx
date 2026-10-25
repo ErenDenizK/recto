@@ -53,6 +53,15 @@ async function mountRead(height = 700): Promise<{ container: HTMLElement; target
   await waitFor(() => {
     if (!store().pages[pageKey(source, 0)]?.loaded) throw new Error('not loaded');
   }, SETTLE);
+  // The first paint settled: its paper veil (`paperFade`) sits between the canvas and the page
+  // overlays until its fade ends, and taking it away shifts the overlays' position in the
+  // sheet. A popup's element path taken by `userEvent` while it lies there no longer resolves
+  // once it is gone, and the action waits on it until the test times out.
+  await waitFor(() => {
+    const sheet = container.querySelector('[data-page-index="0"]');
+    if (!sheet?.querySelector('canvas[data-state="rendered"]')) throw new Error('not painted');
+    if (sheet.querySelector('[data-ghost]')) throw new Error('first paint still fading in');
+  }, SETTLE);
   return {
     container,
     target: { source, pageIndex: 0, pageId: first.id, position: 1 },
