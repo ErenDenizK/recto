@@ -2,9 +2,10 @@
  * A small Markdown parser for `.md` to PDF (PRD-28): a CommonMark subset, pure, no imports.
  *
  * Blocks: fenced code, thematic breaks, ATX and setext headings, block quotes, nested bullet and
- * numbered lists, paragraphs (hard breaks kept), form feeds as page breaks. Inline: escapes, code
- * spans, links (text, title dropped), autolinks, images as their alt text, `*` and `_` emphasis.
- * Not supported, kept as literal text: indented code, tables, HTML, strikethrough, footnotes.
+ * numbered lists, GFM pipe tables (header row, `:---:` alignment; PRD-30), paragraphs (hard
+ * breaks kept), form feeds as page breaks. Inline: escapes, code spans, links (text, title
+ * dropped), autolinks, images as their alt text, `*` and `_` emphasis.
+ * Not supported, kept as literal text: indented code, HTML, strikethrough, footnotes.
  */
 
 export interface InlineRun {
@@ -27,6 +28,17 @@ export interface ListBlock {
   readonly items: readonly ListItem[];
 }
 
+export type TableAlign = 'left' | 'center' | 'right';
+
+export interface TableBlock {
+  readonly kind: 'table';
+  /** One alignment per column, from the delimiter row (`:--`, `:-:`, `--:`; none is left). */
+  readonly align: readonly TableAlign[];
+  readonly head: readonly (readonly InlineRun[])[];
+  /** Body rows, each padded or cut to the header's column count. */
+  readonly rows: readonly (readonly (readonly InlineRun[])[])[];
+}
+
 export type MdBlock =
   | {
       readonly kind: 'heading';
@@ -37,6 +49,7 @@ export type MdBlock =
   | ListBlock
   | { readonly kind: 'code'; readonly lines: readonly string[] }
   | { readonly kind: 'quote'; readonly blocks: readonly MdBlock[] }
+  | TableBlock
   | { readonly kind: 'rule' }
   | { readonly kind: 'pagebreak' };
 
@@ -311,6 +324,37 @@ const SETEXT_2 = /^ {0,3}-+ *$/;
 
 const isBlank = (line: string) => line.trim() === '';
 
+/** A table's delimiter row: cells of dashes with optional colons, e.g. `|:--|:-:|--:|`. */
+const TABLE_DELIMITER = /^ {0,3}\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/;
+
+/** The cells of one table row: split on unescaped pipes, outer pipes dropped (`\|` is a pipe). */
+function splitRow(line: string): string[] {
+  const cells: string[] = [];
+  let cell = '';
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i] as string;
+    if (ch === '\\' && line[i + 1] === '|') {
+      cell += '|';
+      i++;
+    } else if (ch === '|') {
+      cells.push(cell);
+      cell = '';
+    } else cell += ch;
+  }
+  cells.push(cell);
+  const trimmed = cells.map((c) => c.trim());
+  if (line.trim().startsWith('|')) trimmed.shift();
+  if (line.trim().endsWith('|') && !line.trim().endsWith('\\|')) trimmed.pop();
+  return trimmed;
+}
+
+/** Whether `line` and the delimiter row after it open a table with the same column count. */
+function opensTable(line: string, next: string | undefined): boolean {
+  if (next === undefined || !line.includes('|') || !TABLE_DELIMITER.test(next)) return false;
+  if (!next.includes('|')) return false;
+  return splitRow(line).length === splitRow(next).length;
+}
+
 /** Whether `line` starts a block that may interrupt a paragraph (for lazy continuation). */
 function startsBlock(line: string): boolean {
   return (
@@ -423,6 +467,26 @@ function parseBlocks(lines: readonly string[]): MdBlock[] {
     if (isBlank(line)) {
       flushPara();
       i++;
+      continue;
+    }
+    if (opensTable(line, lines[i + 1])) {
+      flushPara();
+      const head = splitRow(line);
+      const align = splitRow(lines[i + 1] as string).map((c): TableAlign => {
+        const left = c.startsWith(':');
+        const right = c.endsWith(':');
+        return left && right ? 'center' : right ? 'right' : 'left';
+      });
+      const rows: InlineRun[][][] = [];
+      i += 2;
+      while (i < lines.length) {
+        const current = lines[i] as string;
+        if (isBlank(current) || (startsBlock(current) && !current.includes('|'))) break;
+        const cells = splitRow(current);
+        rows.push(head.map((_, c) => parseInline(cells[c] ?? '')));
+        i++;
+      }
+      blocks.push({ kind: 'table', align, head: head.map((c) => parseInline(c)), rows });
       continue;
     }
     if (para.length > 0 && SETEXT_1.test(line)) {

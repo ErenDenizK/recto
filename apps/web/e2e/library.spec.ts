@@ -3,8 +3,8 @@
  * journeys it carries, counted as a person does them (each click, tap, key press, drop and file
  * dialog choice is one step):
  *
- * - **J1** first visit: Open PDFs… · pick = 2 (Try the sample = 1).
- * - **J3** combine two: Open PDFs… · pick both · Combine 2 files = 3; by drop 2. The new
+ * - **J1** first visit: Open files… · pick = 2 (Try the sample = 1).
+ * - **J3** combine two: Open files… · pick both · Combine 2 files = 3; by drop 2. The new
  *   document exists at once in card order, opens in its Pages grid, "Combined 2 files · Undo".
  * - **J12** compare two open versions from the Library: ○ A · ○ B · Compare = 3.
  * - **J14** back via Recents: 0 when the document was open as the browser closed (restored),
@@ -86,18 +86,18 @@ const card = (page: Page, title: string) =>
     .getByRole('option', { name: new RegExp(`^${title},`) });
 const checked = (page: Page) => cards(page).and(page.getByRole('option', { selected: true }));
 const tabs = (page: Page) => page.getByRole('tablist', { name: 'Open documents' }).getByRole('tab');
-const openButton = (page: Page) => library(page).getByRole('button', { name: 'Open PDFs…' });
+const openButton = (page: Page) => library(page).getByRole('button', { name: 'Open files…' });
 
 test.beforeEach(async ({ page }) => {
   await useFileInputPicker(page);
 });
 
-test('J1: a first visit opens a PDF in two steps, with Open PDFs… focused', async ({ page }) => {
+test('J1: a first visit opens a PDF in two steps, with Open files… focused', async ({ page }) => {
   await page.goto('./?lang=en');
   await expect(
     page.getByRole('heading', { level: 1, name: 'Read, mark up, sign and arrange PDFs.' }),
   ).toBeVisible();
-  // The keyboard path's first step: Open PDFs… already has the focus.
+  // The keyboard path's first step: Open files… already has the focus.
   await expect(openButton(page)).toBeFocused();
   const person = new Person(page);
   await person.pick(openButton(page), ['simple-text.pdf']);
@@ -117,7 +117,7 @@ test('J1 by the sample: Try the sample opens it in one step', async ({ page }) =
   expect(person.steps).toBe(1);
 });
 
-test('J3: Open PDFs…, pick both, Combine 2 files: three steps, no dialog', async ({ page }) => {
+test('J3: Open files…, pick both, Combine 2 files: three steps, no dialog', async ({ page }) => {
   await page.goto('./?lang=en');
   const person = new Person(page);
   await person.pick(openButton(page), ['simple-text.pdf', 'rotated-pages.pdf']);

@@ -202,3 +202,69 @@ describe('code wrapping and block gaps', () => {
     expect(bar.bottom - (lines[0] as number)).toBeCloseTo(8, 1);
   });
 });
+
+describe('tables (PRD-30)', () => {
+  const glyphX = (page: readonly TextRun[], text: string) => {
+    const run = (page ?? []).find((r) => r.text.includes(text));
+    const g = run?.glyphs[run.text.indexOf(text)];
+    return g ? { x: g.rect.x, right: g.rect.x + g.rect.width, size: g.fontSize } : undefined;
+  };
+
+  test('the cells are real text, the pipes are gone and the header is bold-sized body text', async () => {
+    const [page] = await runsOf('| Ad | Adet |\n|---|---|\n| elma | 3 |\n| armut | 12 |');
+    const text = (page ?? []).map((r) => r.text).join(' ');
+    for (const word of ['Ad', 'Adet', 'elma', 'armut', '12']) expect(text).toContain(word);
+    expect(text).not.toContain('|');
+    expect(text).not.toContain('---');
+  });
+
+  test('alignment: a right-aligned column ends at one edge, a centred one is between', async () => {
+    const [page] = await runsOf(
+      '| L | R | C |\n|:--|--:|:-:|\n| aaaaaaaaaaaaaaaa | aaaaaaaaaaaaaaaa | aaaaaaaaaaaaaaaa |\n| b | b | b |',
+    );
+    const glyphs = (page ?? []).flatMap((r) => r.glyphs).sort((p, q) => p.rect.x - q.rect.x);
+    const bs = glyphs.filter((g) => g.text === 'b').map((g) => g.rect);
+    expect(bs).toHaveLength(3);
+    // The three runs of "a": the glyphs of each column, split where the x gap is large.
+    const columns: { left: number; right: number }[] = [];
+    for (const g of glyphs.filter((x) => x.text === 'a')) {
+      const last = columns[columns.length - 1];
+      if (last && g.rect.x - last.right < 10) last.right = g.rect.x + g.rect.width;
+      else columns.push({ left: g.rect.x, right: g.rect.x + g.rect.width });
+    }
+    expect(columns).toHaveLength(3);
+    const [l, r, c] = bs as [(typeof bs)[0], (typeof bs)[0], (typeof bs)[0]];
+    const [cl, cr, cc] = columns as [(typeof columns)[0], (typeof columns)[0], (typeof columns)[0]];
+    expect(l.x).toBeCloseTo(cl.left, 0);
+    expect(r.x + r.width).toBeCloseTo(cr.right, 0);
+    expect(c.x + c.width / 2).toBeCloseTo((cc.left + cc.right) / 2, 0);
+  });
+
+  test('a wide table wraps its cells inside the margins and loses no word', async () => {
+    const long = Array.from({ length: 30 }, (_, i) => `sözcük${i}`).join(' ');
+    const [page] = await runsOf(
+      `| A | B | C | D |\n|---|---|---|---|\n| ${long} | ${long} | k | ${long} |`,
+    );
+    const glyphs = (page ?? []).flatMap((r) => r.glyphs);
+    const text = (page ?? []).map((r) => r.text).join(' ');
+    for (let i = 0; i < 30; i++) expect(text.split(`sözcük${i} `).length - 1).toBeGreaterThan(0);
+    for (const g of glyphs) {
+      expect(g.rect.x).toBeGreaterThanOrEqual(TEXT_MARGIN - 0.5);
+      expect(g.rect.x + g.rect.width).toBeLessThanOrEqual(TEXT_PAGE_SIZE.width - TEXT_MARGIN + 0.5);
+    }
+    expect(glyphs.filter((g) => g.text === 'ö')).toHaveLength(90);
+  });
+
+  test('a long table paginates and repeats its header row', async () => {
+    const rows = Array.from({ length: 80 }, (_, i) => `| r${i}x | ${i} |`).join('\n');
+    const pages = await runsOf(`| Anahtar | Değer |\n|---|---|\n${rows}`);
+    expect(pages.length).toBeGreaterThan(1);
+    for (const page of pages) expect(page.some((r) => r.text.includes('Anahtar'))).toBe(true);
+    const all = pages
+      .flat()
+      .map((r) => r.text)
+      .join(' ');
+    for (let i = 0; i < 80; i++) expect(all).toContain(`r${i}x`);
+    expect(glyphX(pages[0] ?? [], 'Anahtar')?.size).toBeCloseTo(10, 0);
+  });
+});

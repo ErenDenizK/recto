@@ -150,3 +150,35 @@ describe('code and quotes', () => {
     expect(texts(runsOf(lazy.blocks[0] as MdBlock))).toBe('one two');
   });
 });
+
+describe('tables (PRD-30)', () => {
+  const table = (md: string) => only(md) as Extract<MdBlock, { kind: 'table' }>;
+  test('a header row, alignment from the delimiter row and padded body rows', () => {
+    const t = table(
+      '| Name | Qty | Note |\n|:-----|:---:|-----:|\n| a | 1 |\n| b | 2 | x | extra |',
+    );
+    expect(t.kind).toBe('table');
+    expect(t.align).toEqual(['left', 'center', 'right']);
+    expect(t.head.map(texts)).toEqual(['Name', 'Qty', 'Note']);
+    expect(t.rows.map((r) => r.map(texts))).toEqual([
+      ['a', '1', ''],
+      ['b', '2', 'x'],
+    ]);
+  });
+  test('outer pipes are optional, an escaped pipe stays in the cell, inline styles work', () => {
+    const t = table('a | **b**\n--|--\nx \\| y | `z`');
+    expect(t.head.map(texts)).toEqual(['a', 'b']);
+    expect(t.head[1]?.[0]?.bold).toBe(true);
+    expect(t.rows[0]?.map(texts)).toEqual(['x | y', 'z']);
+  });
+  test('a table ends at a blank line; text after it is a paragraph', () => {
+    expect(parseMarkdown('| a |\n|---|\n| 1 |\n\nafter').map((b) => b.kind)).toEqual([
+      'table',
+      'paragraph',
+    ]);
+  });
+  test('a pipe line without a matching delimiter row stays a paragraph', () => {
+    expect(only('| a | b |\n|---|').kind).toBe('paragraph');
+    expect(only('a | b').kind).toBe('paragraph');
+  });
+});

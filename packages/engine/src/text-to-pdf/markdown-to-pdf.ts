@@ -27,7 +27,13 @@ import {
 } from '../fonts';
 import { layoutParagraph } from '../text-edit/linebreak';
 import { decodeTextBytes, normalizeText } from './decode';
-import { type InlineRun, type ListBlock, type MdBlock, parseMarkdown } from './markdown-parse';
+import {
+  type InlineRun,
+  type ListBlock,
+  type MdBlock,
+  parseMarkdown,
+  type TableBlock,
+} from './markdown-parse';
 import {
   isDropped,
   TEXT_FONT_SIZE,
@@ -48,6 +54,11 @@ const MARKER_GAP = 4;
 const QUOTE_INDENT = 14;
 const CODE_PADDING = 6;
 const LINK_COLOR = rgb(0.07, 0.36, 0.78);
+const TABLE_SIZE = 10;
+const TABLE_LINE = 1.35;
+const CELL_PAD_X = 6;
+const CELL_PAD_Y = 4;
+const TABLE_BORDER = grayscale(0.8);
 const SAFE_LINK = /^(https?:|mailto:)/i;
 
 interface Face {
@@ -77,6 +88,9 @@ function hasCode(blocks: readonly MdBlock[]): boolean {
     if (b.kind === 'code') return true;
     if (b.kind === 'quote') return hasCode(b.blocks);
     if (b.kind === 'list') return inList(b);
+    if (b.kind === 'table') {
+      return [b.head, ...b.rows].some((row) => row.some((cell) => cell.some((r) => r.code)));
+    }
     if (b.kind === 'heading' || b.kind === 'paragraph') return b.runs.some((r) => r.code);
     return false;
   });
@@ -234,20 +248,19 @@ export async function markdownToPdf(
   };
 
   /**
-   * Sets styled runs as wrapped lines with the content between `left` and the right margin.
-   * `onFirstLine` gets the first baseline (list markers). `base` is the flow's size, `factor`
-   * its line height.
+   * Breaks styled runs into lines between `left` and `right` (from the left margin). `size` is
+   * the flow's size, `factor` its line height. Nothing is drawn; `drawLine` does that.
    */
-  const flow = (
+  const typeset = (
     runs: readonly InlineRun[],
     opts: {
       readonly left: number;
+      readonly right: number;
       readonly size: number;
       readonly factor: number;
       readonly bold: boolean;
       readonly grey: number | undefined;
-      readonly keepWith?: number;
-      readonly onFirstLine?: (baseline: number) => void;
+      readonly align?: 'left' | 'center' | 'right';
     },
   ) => {
     const lineHeight = opts.size * opts.factor;
@@ -293,8 +306,7 @@ export async function markdownToPdf(
       spans.push({ start: combined.length, end: combined.length + value.length, style: id });
       combined += value;
     }
-    if (combined.trim() === '' || spans.length === 0) return;
-    if (prev === 'box' && pending <= BLOCK_GAP) pending = Math.max(0, pending - tuck);
+    if (combined.trim() === '' || spans.length === 0) return undefined;
     const first = spans[0] as { style: string };
     const layout = layoutParagraph(
       {
@@ -302,21 +314,55 @@ export async function markdownToPdf(
         spans: [],
         lines: [{ start: 0, y: 0 }],
         styles: layoutStyles,
-        measure: { left: opts.left, right: measureWidth },
-        align: 'left',
+        measure: { left: opts.left, right: opts.right },
+        align: opts.align ?? 'left',
         leading: lineHeight,
       },
       { start: 0, end: 0, text: combined, style: first.style, spans },
     );
-    layout.lines.forEach((line, index) => {
-      reserve(lineHeight + (index === 0 ? (opts.keepWith ?? 0) : 0));
-      const baseline = y - (lineHeight + 0.7 * opts.size) / 2;
+    return { lines: layout.lines, styles, lineHeight };
+  };
+
+  /** Draws the runs of one typeset line, its box top at `top`, `x0` from the page edge. */
+  const drawLine = (
+    set: NonNullable<ReturnType<typeof typeset>>,
+    index: number,
+    lineTop: number,
+    size: number,
+  ) => {
+    const baseline = lineTop - (set.lineHeight + 0.7 * size) / 2;
+    for (const run of set.lines[index]?.runs ?? []) {
+      const style = set.styles.get(run.style);
+      if (style && run.text !== '') drawRun(run.text, TEXT_MARGIN + run.x, baseline, style);
+    }
+    return baseline;
+  };
+
+  /**
+   * Sets styled runs as wrapped lines with the content between `left` and the right margin.
+   * `onFirstLine` gets the first baseline (list markers). `base` is the flow's size, `factor`
+   * its line height.
+   */
+  const flow = (
+    runs: readonly InlineRun[],
+    opts: {
+      readonly left: number;
+      readonly size: number;
+      readonly factor: number;
+      readonly bold: boolean;
+      readonly grey: number | undefined;
+      readonly keepWith?: number;
+      readonly onFirstLine?: (baseline: number) => void;
+    },
+  ) => {
+    const set = typeset(runs, { ...opts, right: measureWidth });
+    if (!set) return;
+    if (prev === 'box' && pending <= BLOCK_GAP) pending = Math.max(0, pending - tuck);
+    set.lines.forEach((_, index) => {
+      reserve(set.lineHeight + (index === 0 ? (opts.keepWith ?? 0) : 0));
+      const baseline = drawLine(set, index, y, opts.size);
       if (index === 0) opts.onFirstLine?.(baseline);
-      for (const run of line.runs) {
-        const style = styles.get(run.style);
-        if (style && run.text !== '') drawRun(run.text, TEXT_MARGIN + run.x, baseline, style);
-      }
-      y -= lineHeight;
+      y -= set.lineHeight;
     });
     prev = 'text';
   };
@@ -419,6 +465,105 @@ export async function markdownToPdf(
     prev = 'box';
   };
 
+  /** The widest line and the longest unbreakable word of a cell (points, at the table size). */
+  const cellExtent = (runs: readonly InlineRun[]) => {
+    let widest = 0;
+    let line = 0;
+    let longest = 0;
+    let word = 0;
+    for (const run of runs) {
+      const face = run.code && mono ? mono : sans;
+      const advance = advanceOf(
+        face.font,
+        run.code ? Math.round(TABLE_SIZE * 0.9 * 2) / 2 : TABLE_SIZE,
+      );
+      for (const char of safeText(face, run.text)) {
+        if (char === '\n') {
+          widest = Math.max(widest, line);
+          longest = Math.max(longest, word);
+          line = 0;
+          word = 0;
+          continue;
+        }
+        const w = advance(char);
+        line += w;
+        if (/\s/.test(char)) {
+          longest = Math.max(longest, word);
+          word = 0;
+        } else word += w;
+      }
+    }
+    return { widest: Math.max(widest, line), longest: Math.max(longest, word) };
+  };
+
+  /**
+   * A GFM table (PRD-30): columns take their natural width when the table fits, else the
+   * longest word of each plus a share of the rest by how much more it wants; cells wrap inside
+   * their column. The header row is shaded and repeated on every page the table runs onto. A row
+   * taller than a page is not split.
+   */
+  const renderTable = (table: TableBlock, ctx: Context) => {
+    const avail = measureWidth - ctx.indent;
+    const all = [table.head, ...table.rows];
+    const wants = table.head.map((_, c) => {
+      const extents = all.map((row) => cellExtent(row[c] ?? []));
+      const widest = Math.max(...extents.map((e) => e.widest)) + 2 * CELL_PAD_X;
+      const longest = Math.max(...extents.map((e) => e.longest)) + 2 * CELL_PAD_X;
+      return { widest, longest: Math.min(longest, widest) };
+    });
+    const sumWidest = wants.reduce((n, w) => n + w.widest, 0);
+    const sumLongest = wants.reduce((n, w) => n + w.longest, 0);
+    const widths = wants.map((w) => {
+      if (sumWidest <= avail) return w.widest;
+      if (sumLongest >= avail) return (w.longest * avail) / sumLongest;
+      const spare = sumWidest - sumLongest;
+      return w.longest + ((avail - sumLongest) * (w.widest - w.longest)) / spare;
+    });
+    const lefts = widths.map((_, c) => ctx.indent + widths.slice(0, c).reduce((n, w) => n + w, 0));
+    const lineHeight = TABLE_SIZE * TABLE_LINE;
+
+    const row = (cells: readonly (readonly InlineRun[])[], head: boolean) => {
+      const sets = widths.map((w, c) =>
+        typeset(cells[c] ?? [], {
+          left: (lefts[c] as number) + CELL_PAD_X,
+          right: (lefts[c] as number) + w - CELL_PAD_X,
+          size: TABLE_SIZE,
+          factor: TABLE_LINE,
+          bold: head,
+          grey: ctx.color === 0 ? undefined : ctx.color,
+          align: table.align[c] ?? 'left',
+        }),
+      );
+      const count = Math.max(1, ...sets.map((set) => set?.lines.length ?? 0));
+      const height = count * lineHeight + 2 * CELL_PAD_Y;
+      const before = page;
+      reserve(height);
+      if (!head && page !== before) {
+        row(table.head, true);
+        reserve(height);
+      }
+      widths.forEach((w, c) => {
+        page.drawRectangle({
+          x: TEXT_MARGIN + (lefts[c] as number),
+          y: y - height,
+          width: w,
+          height,
+          color: grayscale(head ? 0.93 : 1),
+          borderColor: TABLE_BORDER,
+          borderWidth: 0.5,
+        });
+        const set = sets[c];
+        set?.lines.forEach((_, k) => drawLine(set, k, y - CELL_PAD_Y - k * lineHeight, TABLE_SIZE));
+      });
+      y -= height;
+    };
+
+    row(table.head, true);
+    for (const cells of table.rows) row(cells, false);
+    pending = BLOCK_GAP;
+    prev = 'box';
+  };
+
   const renderBlocks = (list: readonly MdBlock[], ctx: Context) => {
     for (const block of list) {
       switch (block.kind) {
@@ -445,6 +590,9 @@ export async function markdownToPdf(
           break;
         case 'code':
           renderCode(block.lines, ctx);
+          break;
+        case 'table':
+          renderTable(block, ctx);
           break;
         case 'quote': {
           if (prev === 'text') pending = Math.max(0, pending - tuck);

@@ -35,7 +35,7 @@ const SUPPRESSED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   },
   'home/Launcher.module.css': {
     '.welcome [data-quiet-focus]:focus-visible':
-      'Open PDFs… focused by the page on arrival (J1); the first key press restores the ring',
+      'Open files… focused by the page on arrival (J1); the first key press restores the ring',
   },
   'forms/FormLayer.module.css': {
     '.editor:focus-visible': 'in-place field editor: its border and the caret',

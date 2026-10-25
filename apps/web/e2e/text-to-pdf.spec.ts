@@ -6,7 +6,7 @@
  */
 import { expect, test } from '@playwright/test';
 
-import { openFindPanel, useFileInputPicker } from './helpers';
+import { fixturePath, openFindPanel, quiet, trackEngine, useFileInputPicker } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -153,4 +153,56 @@ test('"Markdown to PDF" in the palette asks for a .md file', async ({ page }) =>
     buffer: Buffer.from('# Notlar\n\nTek satır', 'utf8'),
   });
   await expect(page.getByRole('tab', { name: 'notes' })).toBeVisible({ timeout: 30_000 });
+});
+
+test('a .md with a table opens as a document at the default fit, and the table renders (PRD-30)', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await trackEngine(page);
+  await useFileInputPicker(page);
+  await page.goto('./?lang=en');
+  await expect(page.getByTestId('app-shell')).toBeVisible();
+
+  // From Home: the launcher's Open files… takes the Markdown and lands on the document.
+  const chooser = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Open files…' }).click();
+  await (await chooser).setFiles(fixturePath('table-notes.md'));
+  await expect(page.getByRole('tab', { name: 'table-notes' })).toBeVisible({ timeout: 30_000 });
+  const first = page.locator('[data-page-index="0"]').first();
+  await expect(first).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId('home')).toHaveCount(0);
+  await quiet(page);
+
+  // The converted document gets the default every PDF gets (fit width, DSN-60), not a zoom
+  // of its own: a normal PDF opened beside it fits the same width.
+  const fitted = async () => (await first.boundingBox())?.width ?? 0;
+  const markdownWidth = await fitted();
+  expect(markdownWidth).toBeGreaterThan(300);
+  const second = page.waitForEvent('filechooser');
+  await page
+    .getByRole('button', { name: /^Open files$/ })
+    .first()
+    .click();
+  await (await second).setFiles(fixturePath('simple-text.pdf'));
+  await expect(page.getByRole('tab', { name: 'simple-text' })).toBeVisible({ timeout: 30_000 });
+  await quiet(page);
+  const pdfWidth = (await page.locator('[data-page-index="0"]').first().boundingBox())?.width ?? 0;
+  expect(Math.abs(pdfWidth - markdownWidth)).toBeLessThan(2);
+  await page.getByRole('tab', { name: 'table-notes' }).click();
+  await quiet(page);
+
+  // The table is real text in cells: no pipes or delimiter dashes, every cell findable.
+  const field = await openFindPanel(page);
+  await field.fill('İç Anadolu');
+  await expect(page.getByTestId('search-hit')).toHaveCount(1, { timeout: 20_000 });
+  await field.fill('Karadeniz');
+  await expect(page.getByTestId('search-hit')).toHaveCount(1, { timeout: 20_000 });
+  await field.fill('|');
+  await expect(page.getByTestId('search-hit')).toHaveCount(0, { timeout: 20_000 });
+  await field.fill('-----');
+  await expect(page.getByTestId('search-hit')).toHaveCount(0, { timeout: 20_000 });
+
+  const shot = process.env.R29_MD_SHOT;
+  if (shot !== undefined) await page.screenshot({ path: shot });
 });

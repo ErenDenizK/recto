@@ -59,7 +59,7 @@ test('the frame stays put while the privacy popover opens and closes', async ({ 
 test('the launcher says what Recto does and offers its first steps, in both languages', async ({
   page,
 }) => {
-  // 02-library L2, L10: the headline, the privacy line, Open PDFs…, Combine files…, then Try the
+  // 02-library L2, L10: the headline, the privacy line, Open files…, Combine files…, then Try the
   // sample's card under the launcher (DSN-50).
   await page.goto('./?lang=en');
   const launcher = page.getByTestId('library-launcher');
@@ -68,7 +68,7 @@ test('the launcher says what Recto does and offers its first steps, in both lang
     launcher.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
   ).toBeVisible();
   await expect(launcher.getByText('Nothing leaves this device.')).toBeVisible();
-  for (const name of ['Open PDFs…', 'Combine files…']) {
+  for (const name of ['Open files…', 'Combine files…']) {
     await expect(launcher.getByRole('button', { name })).toBeVisible();
   }
   await expect(sample).toHaveAccessibleName('Try the sample');
@@ -80,7 +80,7 @@ test('the launcher says what Recto does and offers its first steps, in both lang
     }),
   ).toBeVisible();
   await expect(launcher.getByText('Hiçbir şey bu cihazdan çıkmaz.')).toBeVisible();
-  for (const name of ['PDF aç…', 'Dosyaları birleştir…']) {
+  for (const name of ['Dosya aç…', 'Dosyaları birleştir…']) {
     await expect(launcher.getByRole('button', { name })).toBeVisible();
   }
   await expect(sample).toHaveAccessibleName('Örnek belgeyi dene');

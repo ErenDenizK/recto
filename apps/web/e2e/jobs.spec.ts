@@ -242,7 +242,7 @@ test.describe('core jobs', () => {
     if (!isMobile) await page.setViewportSize({ width: 1440, height: 900 });
   });
 
-  test('V1-F1 Open: Open PDFs…, Recents, the sample, a drop, ?sample', async ({
+  test('V1-F1 Open: Open files…, Recents, the sample, a drop, ?sample', async ({
     page,
     isMobile,
   }, info) => {
@@ -250,9 +250,9 @@ test.describe('core jobs', () => {
     await startJob(page);
     const job = new Job('V1-F1', 'Open', page, info);
     const home = page.getByTestId('home');
-    const openButton = home.getByRole('button', { name: 'Open PDFs…' });
+    const openButton = home.getByRole('button', { name: 'Open files…' });
 
-    await job.act('first visit: Open PDFs… and pick', 2, async (p) => {
+    await job.act('first visit: Open files… and pick', 2, async (p) => {
       const chooser = page.waitForEvent('filechooser');
       await p.press(openButton);
       await p.gesture(async () => (await chooser).setFiles(fixturePath('simple-text.pdf')));
@@ -767,7 +767,7 @@ test.describe('core jobs', () => {
       async () => {
         const chooser = page.waitForEvent('filechooser');
         await page
-          .getByRole('button', { name: /^(Open files|Open PDFs…)$/ })
+          .getByRole('button', { name: /^(Open files|Open files…)$/ })
           .first()
           .click();
         await (await chooser).setFiles(fixturePath('demo/demo-agreement.pdf'));
@@ -1011,7 +1011,7 @@ test.describe('core jobs', () => {
       async () => {
         const chooser = page.waitForEvent('filechooser');
         await page
-          .getByRole('button', { name: /^(Open files|Open PDFs…)$/ })
+          .getByRole('button', { name: /^(Open files|Open files…)$/ })
           .first()
           .click();
         await (await chooser).setFiles(['compare-a.pdf', 'compare-b.pdf'].map(fixturePath));

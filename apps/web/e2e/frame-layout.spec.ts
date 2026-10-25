@@ -127,7 +127,7 @@ async function openAny(page: Page, names: readonly string[]): Promise<void> {
   await sessionSettled(page);
   const chooser = page.waitForEvent('filechooser');
   await page
-    .getByRole('button', { name: /^(Open files|Open PDFs…|Dosya aç|PDF aç…)$/ })
+    .getByRole('button', { name: /^(Open files|Open files…|Dosya aç|Dosya aç…)$/ })
     .first()
     .click();
   await (await chooser).setFiles(names.map(fixturePath));

@@ -119,7 +119,7 @@ export function selectOnHome(ids: readonly DocumentId[], anchor?: DocumentId | n
 }
 
 /**
- * After files were opened, dropped or picked alike (Open PDFs…, the palette, a drop; L2, L9):
+ * After files were opened, dropped or picked alike (Open files…, the palette, a drop; L2, L9):
  * the Library with the new cards checked (Select mode, the bar up) when two or more arrive on
  * an empty workspace or any arrive while the Library shows, with focus on the first new card;
  * one file opened on an empty workspace goes to its page. Two or more opened over a document
@@ -310,7 +310,7 @@ export async function combineFiles(): Promise<DocumentId | undefined> {
   return created;
 }
 
-/** Open PDFs… (L2; the `file.open` command, Mod+O): the picker, then `showOpened`. */
+/** Open files… (L2; the `file.open` command, Mod+O): the picker, then `showOpened`. */
 export function openPdfs(): Promise<void> {
   return openFilesFromPicker();
 }
@@ -355,7 +355,7 @@ export function pagesSelected(selection: readonly DocumentId[]): void {
 /**
  * The selection bar's Close and Delete in Select mode (L6): the checked documents close as one
  * step, their snapshots go to Recents, and the Undo toast brings them back. Focus goes to the
- * card now at the first closed card's place, else the one before, else Open PDFs….
+ * card now at the first closed card's place, else the one before, else Open files….
  */
 export function closeSelected(selection: readonly DocumentId[]): void {
   const before = order();
