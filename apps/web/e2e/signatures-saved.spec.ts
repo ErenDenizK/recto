@@ -144,6 +144,15 @@ test('J8A: five presses the first time, three with a saved signature after a rel
   await first.click(sheet.getByRole('button', { name: 'Use signature' }));
   await expect(sheet).toBeHidden();
   await expect(layer(page)).toHaveAttribute('data-tool', 'signature');
+  // DSN-77: a short hint says where the next click goes.
+  await expect(
+    page.getByText('Click or drag on a page to place the signature').first(),
+  ).toBeVisible();
+  if (process.env.CAPTURE_SCREENSHOTS) {
+    await page.screenshot({
+      path: `${process.env.CAPTURE_SCREENSHOTS}/signature-hint-1440x900.png`,
+    });
+  }
   await first.run(() => placeOnPage(page, 0.3, 0.38));
   await expect(stamps).toHaveCount(1, { timeout: 10_000 });
   expect(first.count).toBe(5);

@@ -17,6 +17,8 @@ import { page, userEvent } from 'vitest/browser';
 
 import { useAnnotationStore } from '../annotations/annotation-store';
 import { closeSheet, useSheetStore } from '../ui/sheet';
+import { hasToast } from '../ui/Toast';
+import { resetToasts } from '../ui/Toast/toast-store';
 import { TooltipProvider } from '../ui/Tooltip';
 import { openNewSignature } from './new-signature';
 import NewSignatureSheet from './NewSignatureSheet';
@@ -30,9 +32,16 @@ import {
   useSavedSignatures,
 } from './saved-signatures';
 
+// No document is open here, so the guard would refuse to arm; the hint test needs it armed.
+vi.mock('../viewer/input-state', async (original: () => Promise<Record<string, unknown>>) => ({
+  ...(await original()),
+  canChangeActive: () => true,
+}));
+
 beforeEach(async () => {
   useSheetStore.setState({ open: null, front: null, confirm: null, drafts: {} });
   useAnnotationStore.getState().setAuthor('');
+  resetToasts();
   setSignatureBackend(memorySignatureBackend());
   await page.viewport(1440, 900);
 });
@@ -170,6 +179,16 @@ describe('New signature', () => {
     await userEvent.click(page.getByRole('button', { name: 'Use signature' }));
     await waitFor(() => expect(useSheetStore.getState().open).toBeNull());
     expect(useSavedSignatures.getState().signatures).toHaveLength(0);
+  });
+
+  it('DSN-77: Use arms the signature and a short hint says the next click places it', async () => {
+    await openSheet();
+    await userEvent.click(page.getByRole('tab', { name: 'Type' }));
+    await userEvent.type(page.getByRole('textbox', { name: 'Your name' }), 'Ada');
+    await userEvent.click(page.getByRole('button', { name: 'Use signature' }));
+    await waitFor(() => expect(useSheetStore.getState().open).toBeNull(), { timeout: 5000 });
+    await waitFor(() => expect(useAnnotationStore.getState().pendingStamp).not.toBeNull());
+    expect(hasToast('signature-place')).toBe(true);
   });
 
   it('at five kept, says the oldest goes, and it does', async () => {

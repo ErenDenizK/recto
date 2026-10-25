@@ -389,6 +389,25 @@ describe('saveDocument', () => {
     );
   });
 
+  it('DSN-77: a good save clears the earlier "could not save" toast', async () => {
+    const handle = stubHandle();
+    handle.permission = 'granted';
+    handle.corrupt = true;
+    rememberDocumentHandle(id, handle);
+    rotateFirstPage(id);
+    const failed = saveDocument(id);
+    expect(await question()).toBe('replace');
+    answerSaveQuestion('replace');
+    await failed;
+    expect(useToastStore.getState().shown.some((t) => t.kind === 'failure')).toBe(true);
+
+    handle.corrupt = false;
+    await saveDocument(id);
+    const { shown } = useToastStore.getState();
+    expect(shown.some((t) => t.kind === 'failure')).toBe(false);
+    expect(shown.map((t) => t.text)).toContain('Saved · verified');
+  });
+
   it('asks about unapplied marks first; "Save without applying" leaves them and saves', async () => {
     const handle = stubHandle();
     handle.permission = 'granted';

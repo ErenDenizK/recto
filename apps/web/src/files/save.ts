@@ -752,6 +752,8 @@ async function runSave(id: DocumentId, doc: VirtualDocument): Promise<void> {
     toast.success(text, {
       documentId: id,
       testId: 'save-toast',
+      // Same key as the failure: a good save clears an earlier "could not save" (DSN-77).
+      key: `save:${id}`,
       origin: SAVE_ORIGIN,
       detail,
       spoken: [m.save_announce_verified({ name }), detail].filter(Boolean).join('. '),
@@ -769,6 +771,8 @@ async function runSave(id: DocumentId, doc: VirtualDocument): Promise<void> {
         documentId: id,
         detail: [receipt, m.save_copy_detail()].filter(Boolean).join(' · '),
         testId: 'save-toast',
+        // Same key as the failure: a good save clears an earlier "could not save" (DSN-77).
+        key: `save:${id}`,
         origin: SAVE_ORIGIN,
       });
       return;
@@ -787,6 +791,8 @@ async function runSave(id: DocumentId, doc: VirtualDocument): Promise<void> {
     documentId: id,
     detail: [receipt, m.save_copy_detail()].filter(Boolean).join(' · '),
     testId: 'save-toast',
+    // Same key as the failure: a good save clears an earlier "could not save" (DSN-77).
+    key: `save:${id}`,
     origin: SAVE_ORIGIN,
   });
 }

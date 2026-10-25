@@ -37,7 +37,7 @@ import { NEW_SIGNATURE_SHEET_ID } from './new-signature';
 import { useNewSignatureForm } from './new-signature-form';
 
 export default function NewSignatureSheet() {
-  const form = useNewSignatureForm();
+  const form = useNewSignatureForm({ hint: true });
   return (
     <Sheet
       id={NEW_SIGNATURE_SHEET_ID}

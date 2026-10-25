@@ -86,8 +86,16 @@ export interface NewSignatureForm {
   readonly body: ReactNode;
 }
 
-/** New signature's state and body, for its frame to present. */
-export function useNewSignatureForm(): NewSignatureForm {
+/**
+ * New signature's state and body, for its frame to present. `hint` (the desktop sheet) adds a
+ * short toast after Use that says the next click places the signature (DSN-77); the phone's own
+ * sheet leaves it out.
+ */
+export function useNewSignatureForm({
+  hint = false,
+}: {
+  readonly hint?: boolean;
+} = {}): NewSignatureForm {
   const open = useSheetOpen(NEW_SIGNATURE_SHEET_ID);
   // Held while the sheet animates out, so the footer keeps its label.
   const [intent, setIntent] = useState(() => intentOf(open?.preset ?? null));
@@ -160,6 +168,8 @@ export function useNewSignatureForm(): NewSignatureForm {
       // Arming places at a click: only in Markup, and never while locked (`place`).
       if (intent === 'use' && stamp && canChangeActive('place')) {
         armSignatureStamp(stamp);
+        // `armSignatureStamp` has said it aloud already, so the toast is silent.
+        if (hint) toast.info(m.annot_place_signature(), { key: 'signature-place', spoken: false });
         if (from && stamp.blob) intoChip(stamp.blob, from, saved?.id);
       }
     } finally {
