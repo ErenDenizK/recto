@@ -196,17 +196,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the workflow and repository layout.
 
 ## Documents
 
-| Document | Purpose |
-|---|---|
-| [`docs/VISION.md`](docs/VISION.md) | Thesis, principles, non-goals, v1.0 success criteria |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Engine layering, virtual document model, export pipeline, deployment, testing |
-| [`docs/ROADMAP.md`](docs/ROADMAP.md) | Milestones M0–M8 and the M9 plan (the live plan is `docs/plan/v1/PLAN.md`) |
-| [`docs/DESIGN.md`](docs/archive/DESIGN.md) | Design intent, layout, tokens, interaction and accessibility rules |
-| [`docs/process/decisions.md`](docs/process/decisions.md) | Every owner and lead decision, with its source; it wins over older docs |
-| [`docs/archive/`](docs/archive/README.md) | Superseded documents kept as the record (the closed open-decisions list among them) |
-| [`docs/adr/`](docs/adr/) | Architecture Decision Records |
-| [`docs/research/`](docs/research/) | Research snapshots (engines, market and UX, platform constraints, feature feasibility) |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Workflow, conventions, standards |
+The newcomer set (vision, architecture, the decisions index, the live plan, the design language) is listed in [`docs/README.md`](docs/README.md). Finished and superseded documents are kept in [`docs/archive/`](docs/archive/README.md).
 
 ## Built on
 
