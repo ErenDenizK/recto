@@ -5178,5 +5178,9 @@
   "scan_corner_bl": "Bottom left corner",
   "scan_announce_captured": "Page {count} captured",
   "scan_announce_deleted": "Page deleted",
-  "scan_finish_failed": "The pages could not be made into a PDF."
+  "scan_finish_failed": "The pages could not be made into a PDF.",
+  "scan_discard_title_one": "Discard 1 scanned page?",
+  "scan_discard_title": "Discard {count} scanned pages?",
+  "scan_discard_body": "Nothing is kept until you press Done.",
+  "scan_discard": "Discard"
 }

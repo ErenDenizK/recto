@@ -1,5 +1,5 @@
 /**
- * The scan sheet (big move 1, plan bm-scan-plan §3 "Capture screen", DSN-46 entry homes, PRD-32):
+ * The scan sheet (big move 1, plan bm-scan-plan §3 "Capture screen", DSN-46 entry homes, PRD-34):
  * one overlay sheet on the Sheet primitive holds the camera, the review and the corner editor, so
  * the stream lives in one mounted place and WebKit does not ask for the camera again (plan §2
  * "Permission"). The video stays mounted under the review (hidden, detection paused) and stops
@@ -23,16 +23,18 @@ import { announce } from '../shell/announcer';
 import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
 import { Segmented } from '../ui/Segmented';
-import { Sheet } from '../ui/sheet';
+import { confirm, Sheet } from '../ui/sheet';
 import { toast } from '../ui/Toast';
 import { openCamera, detectionFrame, Detector, jpegOf, stopCamera } from './camera';
 import { CornerEditor } from './CornerEditor';
 import { Scanner } from './encode';
 import { finishScan } from './finish';
+import { useScanOpen } from './scan-flag';
 import { ReviewStrip } from './ReviewStrip';
 import styles from './ScanSheet.module.css';
 import {
   addPage,
+  beginScan,
   closeScanSheet,
   defaultQuad,
   setAuto,
@@ -390,13 +392,35 @@ function usePreviews(): void {
 }
 
 export function ScanSheet() {
-  const open = useScanStore((s) => s.open);
+  const open = useScanOpen();
   const view = useScanStore((s) => s.view);
   const pages = useScanStore((s) => s.pages);
   const selectedId = useScanStore((s) => s.selected);
   const [busy, setBusy] = useState(false);
   usePreviews();
+  useEffect(() => {
+    if (open) beginScan();
+  }, [open]);
   const selected = pages.find((p) => p.id === selectedId) ?? pages[pages.length - 1];
+
+  // Esc, Cancel, the close button and the scrim ask first when pages would be lost.
+  const asking = useRef(false);
+  const close = async () => {
+    const count = useScanStore.getState().pages.length;
+    if (busy || asking.current) return;
+    if (count > 0) {
+      asking.current = true;
+      const discard = await confirm({
+        title: count === 1 ? m.scan_discard_title_one() : m.scan_discard_title({ count }),
+        body: m.scan_discard_body(),
+        action: m.scan_discard(),
+        danger: true,
+      });
+      asking.current = false;
+      if (!discard) return;
+    }
+    closeScanSheet();
+  };
 
   const done = async () => {
     setBusy(true);
@@ -418,11 +442,7 @@ export function ScanSheet() {
       testId="scan-sheet"
       title={m.scan_title()}
       busy={busy}
-      onClose={(reason) => {
-        // A press beside the sheet must not throw away the pages (nothing typed is lost).
-        if (busy || (reason === 'scrim' && useScanStore.getState().pages.length > 0)) return;
-        closeScanSheet();
-      }}
+      onClose={() => void close()}
       primary={{
         label: m.scan_done(),
         onPress: () => void done(),

@@ -12,10 +12,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
 import { settled } from '../../test/settled';
-import { useSheetStore } from '../ui/sheet';
+import { ConfirmHost, useSheetStore } from '../ui/sheet';
 import type { CameraResult } from './camera';
 import { defaultQuad, moveItem, rotateQuad } from './scan-store';
-import { addPage, closeScanSheet, openScanSheet, setView, useScanStore } from './scan-store';
+import { addPage, closeScanSheet, setView, useScanStore } from './scan-store';
+import { scanOpenNow, setScanOpen } from './scan-flag';
 import { ScanSheet } from './ScanSheet';
 
 const camera = vi.hoisted((): { result: CameraResult } => ({
@@ -56,8 +57,13 @@ const seed = (count: number) => {
 const ids = () => useScanStore.getState().pages.map((p) => p.id);
 
 async function openSheet() {
-  render(<ScanSheet />);
-  openScanSheet();
+  render(
+    <>
+      <ScanSheet />
+      <ConfirmHost />
+    </>,
+  );
+  setScanOpen(true);
   return settled(await screen.findByTestId('scan-sheet'));
 }
 
@@ -148,19 +154,33 @@ describe('review', () => {
     expect(useScanStore.getState().retaking).toBeNull();
   });
 
-  it('keeps the pages when the scrim is pressed', async () => {
-    await openSheet();
+  it('asks before Cancel throws pages away, and keeps them on Cancel', async () => {
+    const sheet = await openSheet();
+    seed(3);
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Cancel' }));
+    const ask = await settled(await screen.findByTestId('confirm-sheet'));
+    expect(ask.textContent).toMatch(/Discard 3 scanned pages\?/);
+    await userEvent.click(within(ask).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByTestId('confirm-sheet')).toBeNull());
+    expect(scanOpenNow()).toBe(true);
+    expect(ids()).toHaveLength(3);
+  });
+
+  it('discards the pages and closes when the question is answered Discard', async () => {
+    const sheet = await openSheet();
     seed(2);
-    const scrim = document.querySelector<HTMLElement>('[data-scrim]');
-    expect(scrim).not.toBeNull();
-    for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) {
-      scrim?.dispatchEvent(
-        new MouseEvent(type, { bubbles: true, cancelable: true, clientX: 4, clientY: 4 }),
-      );
-    }
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    expect(useScanStore.getState().open).toBe(true);
-    expect(ids()).toHaveLength(2);
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Cancel' }));
+    const ask = await settled(await screen.findByTestId('confirm-sheet'));
+    await userEvent.click(within(ask).getByRole('button', { name: 'Discard' }));
+    await waitFor(() => expect(scanOpenNow()).toBe(false));
+    expect(ids()).toHaveLength(0);
+  });
+
+  it('closes without a question when nothing was scanned', async () => {
+    const sheet = await openSheet();
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(scanOpenNow()).toBe(false));
+    expect(screen.queryByTestId('confirm-sheet')).toBeNull();
   });
 });
 

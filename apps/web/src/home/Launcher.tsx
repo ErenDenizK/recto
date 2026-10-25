@@ -132,7 +132,7 @@ export function Launcher({ variant, dragging, dragCount, selecting = false }: La
           size="lg"
           icon={<Icon name="scan" />}
           data-testid="library-scan"
-          onClick={() => void openScan()}
+          onClick={openScan}
         >
           {m.scan_button()}
         </Button>

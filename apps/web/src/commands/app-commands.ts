@@ -407,7 +407,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       allowInInputs: true,
       run: openFilesFromPicker,
     }),
-    // Camera scan, a prototype behind `?scan=1` (PRD-32, PRC-25); its one menu home is the
+    // Camera scan, a prototype behind `?scan=1` (PRD-34, PRC-25); its one menu home is the
     // Library's Scan button (DSN-78), this is ⌘K's.
     ...(scanEnabled()
       ? [

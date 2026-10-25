@@ -10,6 +10,7 @@
 import { create } from 'zustand';
 
 import type { Quad, ScanFilter } from './encode';
+import { setScanOpen } from './scan-flag';
 
 export type ScanView = 'camera' | 'review' | 'adjust';
 
@@ -81,7 +82,6 @@ export function moveItem<T>(items: readonly T[], from: number, to: number): T[] 
 }
 
 interface ScanState {
-  readonly open: boolean;
   readonly view: ScanView;
   readonly pages: readonly ScanPage[];
   readonly selected: string | null;
@@ -93,7 +93,6 @@ interface ScanState {
 }
 
 const CLOSED: ScanState = {
-  open: false,
   view: 'camera',
   pages: [],
   selected: null,
@@ -117,13 +116,16 @@ const revoke = (page: ScanPage) => {
 
 let counter = 0;
 
-export function openScanSheet(): void {
-  set({ ...CLOSED, open: true, filter: storedFilter() });
+/** A fresh scan: no pages, the camera view, the filter last chosen on this device. */
+export function beginScan(): void {
+  get().pages.forEach(revoke);
+  set({ ...CLOSED, filter: storedFilter() });
 }
 
 export function closeScanSheet(): void {
   get().pages.forEach(revoke);
   set({ ...CLOSED, filter: get().filter });
+  setScanOpen(false);
 }
 
 export function setAuto(auto: boolean): void {

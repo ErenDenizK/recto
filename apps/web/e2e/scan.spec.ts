@@ -1,5 +1,5 @@
 /**
- * Camera scan end to end (big move 1, plan bm-scan-plan §3, PRD-32; behind `?scan=1`): Chromium
+ * Camera scan end to end (big move 1, plan bm-scan-plan §3, PRD-34; behind `?scan=1`): Chromium
  * with a fake camera that films a tilted white page on a dark desk (`tools/fixtures/scan-y4m.ts`).
  * The outline is found and goes solid, Auto captures once and waits for the page to leave, and
  * one automatic and two manual captures are reordered and made into one new document with three pages.

@@ -3511,5 +3511,9 @@
   "scan_corner_bl": "Sol alt köşe",
   "scan_announce_captured": "{count}. sayfa çekildi",
   "scan_announce_deleted": "Sayfa silindi",
-  "scan_finish_failed": "Sayfalar PDF’e dönüştürülemedi."
+  "scan_finish_failed": "Sayfalar PDF’e dönüştürülemedi.",
+  "scan_discard_title_one": "1 taranan sayfa silinsin mi?",
+  "scan_discard_title": "{count} taranan sayfa silinsin mi?",
+  "scan_discard_body": "Bitti’ye basana kadar hiçbir şey saklanmaz.",
+  "scan_discard": "Sil"
 }
