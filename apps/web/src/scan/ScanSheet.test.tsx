@@ -261,7 +261,8 @@ describe('the stream', () => {
     await within(sheet).findByTestId('scan-denied');
     setHidden(true);
     setHidden(false);
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // The restart, if any, is synchronous in the tab-show handler: nothing to wait for.
+    expect(within(sheet).getByTestId('scan-denied')).toBeInTheDocument();
     expect(camera.openCamera).toHaveBeenCalledTimes(1);
   });
 });

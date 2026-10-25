@@ -137,6 +137,8 @@ function CameraView({ active }: { readonly active: boolean }) {
   const [flash, setFlash] = useState(0);
   const [generation, setGeneration] = useState(0);
   const [captured, setCaptured] = useState(false);
+  // An Auto capture is spent until the page leaves the frame: no capture follows, so no "Hold still".
+  const [spent, setSpent] = useState(false);
   const latest = useRef<readonly { x: number; y: number }[] | null>(null);
   const armed = useRef(true);
   const capturing = useRef(false);
@@ -191,7 +193,7 @@ function CameraView({ active }: { readonly active: boolean }) {
     const el = video.current;
     if (!el || el.videoWidth === 0 || capturing.current) return;
     capturing.current = true;
-    // The flash and the pulse answer the press, not the encoding.
+    // The flash and the pulse answer the press, not the encoding; a failure takes them back.
     setFlash((n) => n + 1);
     setCaptured(true);
     try {
@@ -205,10 +207,13 @@ function CameraView({ active }: { readonly active: boolean }) {
       announce(m.scan_announce_captured({ count: useScanStore.getState().pages.length }));
       if (retaking) setView('review');
     } catch {
+      setCaptured(false);
+      setFlash(0);
       toast.failure(m.scan_capture_failed(), { key: 'scan-capture-failed' });
     } finally {
       capturing.current = false;
       armed.current = false;
+      setSpent(true);
     }
   };
   const captureRef = useRef(capture);
@@ -242,7 +247,10 @@ function CameraView({ active }: { readonly active: boolean }) {
                 }
               : null,
           );
-          if (!result.quad) armed.current = true;
+          if (!result.quad) {
+            armed.current = true;
+            setSpent(false);
+          }
           if (autoRef.current && armed.current && result.stable && !capturing.current) {
             armed.current = false;
             await captureRef.current(result.quad);
@@ -336,7 +344,7 @@ function CameraView({ active }: { readonly active: boolean }) {
             <p className={styles.hint} data-testid="scan-hint">
               {status === 'starting'
                 ? m.scan_camera_starting()
-                : captured
+                : captured || (auto && spent && outline)
                   ? m.scan_hint_captured()
                   : outline
                     ? auto

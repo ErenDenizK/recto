@@ -69,6 +69,7 @@ export class Detector {
     { resolve: (result: DetectResult) => void; reject: (error: Error) => void }
   >();
   private next = 0;
+  private failed = false;
 
   constructor() {
     this.worker.onmessage = (event: MessageEvent<DetectResult>) => {
@@ -76,11 +77,15 @@ export class Detector {
       this.waiting.delete(event.data.id);
       done?.resolve(event.data);
     };
-    this.worker.onerror = () => this.rejectAll('The detection worker failed.');
+    this.worker.onerror = () => {
+      this.failed = true;
+      this.rejectAll('The detection worker failed.');
+    };
   }
 
   /** Takes the bitmap (it is transferred). */
   detect(frame: ImageBitmap): Promise<DetectResult> {
+    if (this.failed) return Promise.reject(new Error('The detection worker failed.'));
     const id = ++this.next;
     return new Promise((resolve, reject) => {
       this.waiting.set(id, { resolve, reject });

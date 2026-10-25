@@ -66,9 +66,10 @@ test('Auto captures a steady page once, then waits for the page to leave', async
   await expect(sheet.getByTestId('scan-stack')).toContainText('1', { timeout: 20_000 });
   const hint = sheet.getByTestId('scan-hint');
   await expect(hint).toHaveText(/Captured/);
-  // "Captured" ends after about 1.2 s, longer than the 0.7 s hold an Auto capture needs, and the
-  // page is still in view: back to "Hold still", with no second capture.
-  await expect(hint).toHaveText(/Hold still/);
+  // The page is still in view, so no capture follows: the outline is solid and the hint stays
+  // "Captured" (not "Hold still") until the page leaves, with the count at one.
+  await expect(sheet.getByTestId('scan-outline')).toHaveAttribute('data-locked', 'true');
+  await expect(hint).toHaveText(/Captured/);
   await expect(sheet.getByTestId('scan-stack')).toContainText('1');
 });
 
