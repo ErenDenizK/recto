@@ -101,6 +101,17 @@ export class Stage {
         light: 'auto',
       };
     });
+    // The Library's aura holds still, as it does under reduced motion (Aura.module.css). Its
+    // drift (37–59 s loops) cannot be seen in a clip of a few seconds, yet it moves every
+    // pixel of every frame: the GIF then rewrites the whole frame 15 times a second and its
+    // size swings around the budget with the capture's timing (spec §2.4).
+    await page.addInitScript(() => {
+      document.addEventListener('DOMContentLoaded', () => {
+        const style = document.createElement('style');
+        style.textContent = '[data-lobe] { animation-play-state: paused !important; }';
+        document.head.append(style);
+      });
+    });
     // Stills show the result, not a pointer.
     const cursor = await Cursor.install(page, kind === 'clip');
     const ghost = await DragGhost.install(page);
@@ -117,6 +128,12 @@ export class Stage {
       'clear',
     );
     await expect(root, 'no cost-ladder step').not.toHaveAttribute('data-degrade', /.*/);
+    // The aura's hold above must reach its lobes, or the clips' GIFs grow again.
+    const lobes = page.locator('[data-lobe]');
+    await expect(lobes.first(), 'the aura is laid').toBeAttached();
+    for (const lobe of await lobes.all()) {
+      await expect(lobe, 'the aura holds still').toHaveCSS('animation-play-state', 'paused');
+    }
     await page.evaluate(async () => {
       await document.fonts.ready;
       // Inter is loaded on first use; make sure every face the UI uses is in before frames.
