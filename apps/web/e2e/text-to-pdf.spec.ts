@@ -202,7 +202,4 @@ test('a .md with a table opens as a document at the default fit, and the table r
   await expect(page.getByTestId('search-hit')).toHaveCount(0, { timeout: 20_000 });
   await field.fill('-----');
   await expect(page.getByTestId('search-hit')).toHaveCount(0, { timeout: 20_000 });
-
-  const shot = process.env.R29_MD_SHOT;
-  if (shot !== undefined) await page.screenshot({ path: shot });
 });

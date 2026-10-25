@@ -465,12 +465,24 @@ export async function markdownToPdf(
     prev = 'box';
   };
 
-  /** The widest line and the longest unbreakable word of a cell (points, at the table size). */
-  const cellExtent = (runs: readonly InlineRun[]) => {
+  /**
+   * The widest line and the longest unbreakable word of a cell (points, at the table size). A
+   * word wider than `cap` counts only as its longest piece between `/ - _ .`, so a URL or a path
+   * does not make its column (and every other) shrink below the short words (PRD-30).
+   */
+  const cellExtent = (runs: readonly InlineRun[], cap: number) => {
     let widest = 0;
     let line = 0;
     let longest = 0;
     let word = 0;
+    let piece = 0;
+    let longestPiece = 0;
+    const endWord = () => {
+      longest = Math.max(longest, word <= cap ? word : Math.max(longestPiece, piece));
+      word = 0;
+      piece = 0;
+      longestPiece = 0;
+    };
     for (const run of runs) {
       const face = run.code && mono ? mono : sans;
       const advance = advanceOf(
@@ -480,49 +492,83 @@ export async function markdownToPdf(
       for (const char of safeText(face, run.text)) {
         if (char === '\n') {
           widest = Math.max(widest, line);
-          longest = Math.max(longest, word);
           line = 0;
-          word = 0;
+          endWord();
           continue;
         }
         const w = advance(char);
         line += w;
-        if (/\s/.test(char)) {
-          longest = Math.max(longest, word);
-          word = 0;
-        } else word += w;
+        if (/\s/.test(char)) endWord();
+        else {
+          word += w;
+          piece += w;
+          if ('/-_.'.includes(char)) {
+            longestPiece = Math.max(longestPiece, piece);
+            piece = 0;
+          }
+        }
       }
     }
-    return { widest: Math.max(widest, line), longest: Math.max(longest, word) };
+    endWord();
+    return { widest: Math.max(widest, line), longest };
   };
 
   /**
-   * A GFM table (PRD-30): columns take their natural width when the table fits, else the
-   * longest word of each plus a share of the rest by how much more it wants; cells wrap inside
-   * their column. The header row is shaded and repeated on every page the table runs onto. A row
-   * taller than a page is not split.
+   * A GFM table (PRD-30): columns take their natural width when the table fits (stretched to the
+   * full measure from 70 % of it), else each keeps its longest word (a very long one counts as
+   * its longest piece, capped at a third of the measure) and shares the rest by how much more it
+   * wants; only a column whose word cannot fit breaks it. Cells wrap inside their column. The
+   * header row is shaded and repeated on every page, and kept with the first body row. A row
+   * taller than a page minus the header is cut with "…" on its last line.
    */
   const renderTable = (table: TableBlock, ctx: Context) => {
     const avail = measureWidth - ctx.indent;
+    const cap = avail / 3;
     const all = [table.head, ...table.rows];
     const wants = table.head.map((_, c) => {
-      const extents = all.map((row) => cellExtent(row[c] ?? []));
-      const widest = Math.max(...extents.map((e) => e.widest)) + 2 * CELL_PAD_X;
-      const longest = Math.max(...extents.map((e) => e.longest)) + 2 * CELL_PAD_X;
+      let widest = 0;
+      let longest = 0;
+      for (const cells of all) {
+        const e = cellExtent(cells[c] ?? [], cap);
+        widest = Math.max(widest, e.widest);
+        longest = Math.max(longest, e.longest);
+      }
+      widest += 2 * CELL_PAD_X;
+      longest += 2 * CELL_PAD_X;
       return { widest, longest: Math.min(longest, widest) };
     });
     const sumWidest = wants.reduce((n, w) => n + w.widest, 0);
     const sumLongest = wants.reduce((n, w) => n + w.longest, 0);
-    const widths = wants.map((w) => {
-      if (sumWidest <= avail) return w.widest;
-      if (sumLongest >= avail) return (w.longest * avail) / sumLongest;
+    let widths: number[];
+    if (sumWidest <= avail) {
+      const stretch = sumWidest >= 0.7 * avail ? avail / sumWidest : 1;
+      widths = wants.map((w) => w.widest * stretch);
+    } else if (sumLongest >= avail) {
+      // Water-fill: columns whose longest word is under the level keep it, the rest share.
+      let level = avail / wants.length;
+      for (const _ of wants) {
+        let kept = 0;
+        let rest = 0;
+        for (const w of wants) {
+          if (w.longest <= level) kept += w.longest;
+          else rest++;
+        }
+        const next = rest === 0 ? level : (avail - kept) / rest;
+        if (Math.abs(next - level) < 1e-6) break;
+        level = next;
+      }
+      widths = wants.map((w) => Math.min(w.longest, level));
+    } else {
       const spare = sumWidest - sumLongest;
-      return w.longest + ((avail - sumLongest) * (w.widest - w.longest)) / spare;
-    });
+      widths = wants.map(
+        (w) => w.longest + ((avail - sumLongest) * (w.widest - w.longest)) / spare,
+      );
+    }
     const lefts = widths.map((_, c) => ctx.indent + widths.slice(0, c).reduce((n, w) => n + w, 0));
     const lineHeight = TABLE_SIZE * TABLE_LINE;
+    const ellipsis = sans.supported.has(0x2026) ? '\u2026' : '...';
 
-    const row = (cells: readonly (readonly InlineRun[])[], head: boolean) => {
+    const measure = (cells: readonly (readonly InlineRun[])[], head: boolean) => {
       const sets = widths.map((w, c) =>
         typeset(cells[c] ?? [], {
           left: (lefts[c] as number) + CELL_PAD_X,
@@ -535,31 +581,64 @@ export async function markdownToPdf(
         }),
       );
       const count = Math.max(1, ...sets.map((set) => set?.lines.length ?? 0));
+      return { sets, count, head };
+    };
+    const headRow = measure(table.head, true);
+    const headHeight = headRow.count * lineHeight + 2 * CELL_PAD_Y;
+    const maxLines = Math.max(
+      1,
+      Math.floor((top - TEXT_MARGIN - headHeight - 2 * CELL_PAD_Y) / lineHeight),
+    );
+
+    const draw = (row: ReturnType<typeof measure>) => {
+      const cut = row.count > maxLines && !row.head;
+      const count = cut ? maxLines : row.count;
       const height = count * lineHeight + 2 * CELL_PAD_Y;
-      const before = page;
       reserve(height);
-      if (!head && page !== before) {
-        row(table.head, true);
-        reserve(height);
-      }
       widths.forEach((w, c) => {
         page.drawRectangle({
           x: TEXT_MARGIN + (lefts[c] as number),
           y: y - height,
           width: w,
           height,
-          color: grayscale(head ? 0.93 : 1),
+          color: grayscale(row.head ? 0.9 : 1),
           borderColor: TABLE_BORDER,
           borderWidth: 0.5,
         });
-        const set = sets[c];
-        set?.lines.forEach((_, k) => drawLine(set, k, y - CELL_PAD_Y - k * lineHeight, TABLE_SIZE));
+        const set = row.sets[c];
+        if (!set) return;
+        const shown = cut && set.lines.length > count ? count - 1 : count;
+        for (let k = 0; k < Math.min(shown, set.lines.length); k++)
+          drawLine(set, k, y - CELL_PAD_Y - k * lineHeight, TABLE_SIZE);
+        if (cut && set.lines.length > count)
+          drawRun(
+            ellipsis,
+            TEXT_MARGIN + (lefts[c] as number) + CELL_PAD_X,
+            y - CELL_PAD_Y - shown * lineHeight - (lineHeight + 0.7 * TABLE_SIZE) / 2,
+            {
+              face: sans,
+              size: TABLE_SIZE,
+              bold: false,
+              italic: false,
+              color: grayscale(ctx.color),
+            },
+          );
       });
       y -= height;
     };
 
-    row(table.head, true);
-    for (const cells of table.rows) row(cells, false);
+    const first = table.rows[0] ? measure(table.rows[0], false) : undefined;
+    const firstHeight = first ? Math.min(first.count, maxLines) * lineHeight + 2 * CELL_PAD_Y : 0;
+    reserve(headHeight + firstHeight);
+    draw(headRow);
+    if (first) draw(first);
+    for (let i = 1; i < table.rows.length; i++) {
+      const row = measure(table.rows[i] as readonly (readonly InlineRun[])[], false);
+      const before = page;
+      reserve(Math.min(row.count, maxLines) * lineHeight + 2 * CELL_PAD_Y);
+      if (page !== before) draw(headRow);
+      draw(row);
+    }
     pending = BLOCK_GAP;
     prev = 'box';
   };

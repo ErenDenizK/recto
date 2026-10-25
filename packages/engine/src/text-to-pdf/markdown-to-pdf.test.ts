@@ -267,4 +267,57 @@ describe('tables (PRD-30)', () => {
     for (let i = 0; i < 80; i++) expect(all).toContain(`r${i}x`);
     expect(glyphX(pages[0] ?? [], 'Anahtar')?.size).toBeCloseTo(10, 0);
   });
+
+  const bandsOf = (page: readonly TextRun[], word: string) =>
+    page.filter((r) => r.text.includes(word)).length;
+
+  test('a 12-column table with a URL column keeps its short words whole', async () => {
+    const head = Array.from({ length: 12 }, (_, i) => `Col${i}`);
+    const url = `https://example.com/${'segment-'.repeat(12)}end`;
+    const cells = head.map((_, i) => (i === 5 ? url : `val${i}`));
+    const [page] = await runsOf(
+      `| ${head.join(' | ')} |\n|${head.map(() => '---').join('|')}|\n| ${cells.join(' | ')} |`,
+    );
+    const words = (page ?? []).map((r) => r.text).join(' ');
+    for (let i = 0; i < 12; i++) {
+      expect(words).toContain(`Col${i}`);
+      if (i !== 5) expect(words).toContain(`val${i}`);
+    }
+    expect(words).not.toMatch(/Co\s+l\d|va\s+l\d/);
+  });
+
+  test('the header stays with the first body row at a page bottom', async () => {
+    let found = false;
+    for (let n = 40; n < 52 && !found; n++) {
+      const text = Array.from({ length: n }, (_, i) => `line ${i}`).join('\n\n');
+      const pages = await runsOf(`${text}\n\n| Hd | V |\n|---|---|\n| first | 1 |\n| second | 2 |`);
+      for (const pg of pages) {
+        const hasHead = bandsOf(pg, 'Hd') > 0;
+        if (hasHead) expect(bandsOf(pg, 'first') + bandsOf(pg, 'second')).toBeGreaterThan(0);
+      }
+      if (pages.length > 1 && bandsOf(pages[1] ?? [], 'Hd') > 0) found = true;
+    }
+    expect(found).toBe(true);
+  });
+
+  test('a row taller than the page is cut with an ellipsis; no page holds the header alone', async () => {
+    const tall = Array.from({ length: 3000 }, (_, i) => `w${i}`).join(' ');
+    const pages = await runsOf(`| Hd | V |\n|---|---|\n| ${tall} | b |\n| after | c |`);
+    const all = pages
+      .flat()
+      .map((r) => r.text)
+      .join(' ');
+    expect(all).toContain('\u2026');
+    expect(all).toContain('after');
+    for (const pg of pages) {
+      if (bandsOf(pg, 'Hd') > 0) expect(pg.length).toBeGreaterThan(2);
+      for (const r of pg) for (const g of r.glyphs) expect(g.rect.y).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  test('a table of 70 000 rows builds without a spread overflow', async () => {
+    const rows = Array.from({ length: 70_000 }, () => '| a | 1 |').join('\n');
+    const pdf = await markdownToPdf(encode(`| H | V |\n|---|---|\n${rows}`));
+    expect(pdf.length).toBeGreaterThan(1000);
+  }, 120_000);
 });

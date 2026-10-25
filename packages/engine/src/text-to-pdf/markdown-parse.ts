@@ -336,6 +336,9 @@ function splitRow(line: string): string[] {
     if (ch === '\\' && line[i + 1] === '|') {
       cell += '|';
       i++;
+    } else if (ch === '\\' && line[i + 1] === '\\') {
+      cell += '\\\\';
+      i++;
     } else if (ch === '|') {
       cells.push(cell);
       cell = '';
@@ -344,7 +347,7 @@ function splitRow(line: string): string[] {
   cells.push(cell);
   const trimmed = cells.map((c) => c.trim());
   if (line.trim().startsWith('|')) trimmed.shift();
-  if (line.trim().endsWith('|') && !line.trim().endsWith('\\|')) trimmed.pop();
+  if (line.trim().endsWith('|') && !/(?<!\\)(?:\\\\)*\\\|$/.test(line.trim())) trimmed.pop();
   return trimmed;
 }
 
@@ -481,7 +484,7 @@ function parseBlocks(lines: readonly string[]): MdBlock[] {
       i += 2;
       while (i < lines.length) {
         const current = lines[i] as string;
-        if (isBlank(current) || (startsBlock(current) && !current.includes('|'))) break;
+        if (isBlank(current) || startsBlock(current)) break;
         const cells = splitRow(current);
         rows.push(head.map((_, c) => parseInline(cells[c] ?? '')));
         i++;

@@ -177,6 +177,18 @@ describe('tables (PRD-30)', () => {
       'paragraph',
     ]);
   });
+  test('a following block line ends the table, even with a pipe in it', () => {
+    for (const after of ['- a | b', '> x|y', '# T | u'])
+      expect(parseMarkdown(`| a |\n|---|\n| 1 |\n${after}`).map((b) => b.kind)).toEqual([
+        'table',
+        after.startsWith('-') ? 'list' : after.startsWith('>') ? 'quote' : 'heading',
+      ]);
+  });
+  test('only a single backslash escapes a pipe; an escaped backslash does not', () => {
+    const t = table('| a | b |\n|---|---|\n| x \\\\| y | p \\| q |');
+    expect(t.rows[0]?.map(texts)).toEqual(['x \\', 'y']);
+    expect(table('| a |\n|---|\n| p \\| q |').rows[0]?.map(texts)).toEqual(['p | q']);
+  });
   test('a pipe line without a matching delimiter row stays a paragraph', () => {
     expect(only('| a | b |\n|---|').kind).toBe('paragraph');
     expect(only('a | b').kind).toBe('paragraph');
