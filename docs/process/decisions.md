@@ -76,6 +76,8 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PRD-27](decisions/product.md) | The Office converter warms LibreOffice up with a one-word conversion (30 s, fresh worker on a stall, three tries) so a start-up stall never eats a file's 2 minutes; a crash fails the file at once | In force | 2026-10-23 |
 | [PRD-28](decisions/product.md) | Markdown (.md) to PDF: small built-in parser on the PRD-19 layout (headings, emphasis, code, lists, quotes, rules, links with annotations), new unsaved document | In force | 2026-10-23 |
 | [PRD-29](decisions/product.md) | Palette empty state and scope chip: selection section, suggestions for the document (fields, scans), open documents; Backspace removes the chip | In force; deploys after the owner's yes (PRC-25) | 2026-10-24 |
+| [PRD-30](decisions/product.md) | Markdown polish: GFM tables (header, alignment, wrapping, header repeats, kept with the first row), Markdown/text opened from Home now lands on its document, the Library button reads "Open files…"; opening zoom is the normal fit width (DSN-60) | In force | 2026-10-25 |
+| [PRD-31](decisions/product.md) | "Open with" from the OS: manifest `file_handlers` plus a feature-detected `launchQueue` consumer into the drop path; installed Chromium only, not core | In force | 2026-10-25 |
 | [PRD-30](decisions/product.md) | Markdown polish: GFM tables (header, alignment, wrapping, header repeats, kept with the first row), Markdown/text opened from Home now lands on its document, the Library button reads "Open files…"; opening zoom is the normal fit width (DSN-60) | 2026-10-25 | Lead brief R29 `r29/md-polish`; PRD-28, PRD-19, DSN-60 | In force |
 | [PRD-32](decisions/product.md) | Browser autofill hints: text-field editors set `autocomplete` from the tooltip/name (EN and TR, small tested matcher); unmatched, other-person and password fields stay `off`; Recto stores nothing | In force | 2026-10-25 |
 | [PRD-14](decisions/product.md) | W0-q findings are assigned to waves: signed fixture opens locked and saves byte-identical (W1-a/W1-b), truncated.pdf… | In force; W1-b and W1-g merged | 2026-10-09 |
@@ -371,14 +373,17 @@ Full rows: [`decisions/process.md`](decisions/process.md).
 | [PRC-21](decisions/process.md) | An e2e wait names the condition it stands for, never a fixed pause | In force | 2026-10-17 |
 | [PRC-22](decisions/process.md) | One copy of the tiny helpers; dead exports go; observers and listeners audited (R22 X1–X3) | In force | 2026-10-17 |
 | [PRC-23](decisions/process.md) | Model routing for agent lanes (owner) | In force | 2026-10-17 |
-| [PRC-24](decisions/process.md) | Recto runs itself; the owner is the board | In force | 2026-10-18 |
-| [PRC-25](decisions/process.md) | Minor quality changes ship without asking; major ones wait for the owner | In force | 2026-10-20 |
+| [PRC-24](decisions/process.md) | Recto runs itself; the owner is the board | In force; the "unattended cycles never dispatch a deploy" part superseded by PRC-31 | 2026-10-18 |
+| [PRC-25](decisions/process.md) | Minor quality changes ship without asking; major ones wait for the owner | In force; "owner deploys" part superseded by PRC-31 (visible features and redesigns still wait) | 2026-10-20 |
 | [PRC-26](decisions/process.md) | The Office package in CI and the deploy: cached fetch, a required-package build, a 100 MB file gate, its own e2e job | In force | 2026-10-21 |
 | [PRC-27](decisions/process.md) | Company reports in English; one small HQ improvement a day | In force | 2026-10-21 |
 | [PRC-28](decisions/process.md) | Major work runs as epics; deep cycles, heartbeats and lane-sized check-ins; a daily fresh-eyes check | In force | 2026-10-21 |
 | [PRC-29](decisions/process.md) | Agent skills adopted as our own texts (lean-change, verify-before-done, root-cause); Graphify skipped | In force | 2026-10-21 |
 | [PF-20](decisions/process.md) | The service worker registers after the first page has rendered, or 5 s after the Library shows | In force | 2026-10-22 |
 | [PRC-30](decisions/process.md) | The media clips record the Library's aura holding still, so a GIF's size no longer follows the capture's timing | In force | 2026-10-25 |
+| [PRC-31](decisions/process.md) | Deploys are the CEO's: dispatched whenever develop is green and ahead of live, result checked within the hour | In force | 2026-10-25 |
+| [PRC-32](decisions/process.md) | Pace x2 this week: up to 10 agents at once, a deep cycle hires 4 build and 2 research lanes | In force | 2026-10-25 |
+| [PRC-33](decisions/process.md) | Deep cycles research big companies' moves; the console keeps two ranked lists (improvements, big moves); briefs carry visuals and live in an expandable HQ | In force | 2026-10-25 |
 
 ## Foundations (ADR titles)
 

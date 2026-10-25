@@ -1396,6 +1396,37 @@ test.describe('D0 sheets and toasts', () => {
     expect(await invisibleFocus(page)).toEqual([]);
   });
 
+  test('A-13: a title-menu row that opens a sheet takes focus off the menu before it vanishes', async ({
+    page,
+  }) => {
+    // The menu → sheet hand-off drops the menu's exit fade (Q-7), so the row is gone at once;
+    // focus must not wait on it for the frames before the popup unmounts.
+    await openSimple(page);
+    await page.getByTestId('document-menu').click();
+    const row = page.getByRole('menuitem', { name: 'Save a copy…' });
+    await expect(row).toBeFocused();
+    await atRest(page.getByTestId('title-menu'));
+    const hidden = await row.evaluate(async (el) => {
+      const found: string[] = [];
+      (el as HTMLElement).click();
+      for (let i = 0; i < 12; i++) {
+        const active = document.activeElement;
+        if (
+          active &&
+          active !== document.body &&
+          !active.checkVisibility({ opacityProperty: true, visibilityProperty: true })
+        )
+          found.push(
+            `${i}: ${active.tagName.toLowerCase()} "${active.textContent?.trim().slice(0, 30)}"`,
+          );
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+      return found;
+    });
+    expect(hidden).toEqual([]);
+    await expect(page.getByTestId('save-copy-sheet')).toBeVisible();
+  });
+
   test('A-14: one announcer; the toast region and the sheets are silent; a toast is said once', async ({
     page,
   }) => {
