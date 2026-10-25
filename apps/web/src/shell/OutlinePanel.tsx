@@ -67,6 +67,7 @@ import {
   dropBookmark,
   moveBookmark,
   removeDeadLinks,
+  useHeadingsRunStore,
 } from '../outline/outline-actions';
 import {
   canDropOn,
@@ -108,6 +109,8 @@ function rowHeight(element: Element): number {
 
 export function OutlinePanel() {
   const doc = useActiveDocument();
+  const running = useHeadingsRunStore((s) => doc !== undefined && s.running[doc.id] === true);
+  const noHeadings = useHeadingsRunStore((s) => doc !== undefined && s.none[doc.id] === true);
   if (!doc) {
     return (
       <div className={styles.empty}>
@@ -115,6 +118,15 @@ export function OutlinePanel() {
       </div>
     );
   }
+  const fromHeadings =
+    doc.pages.length > 0 && !noHeadings
+      ? {
+          label: m.cmd_outline_from_headings(),
+          busy: running,
+          busyLabel: m.outline_from_headings_pending(),
+          onClick: () => void addBookmarksFromHeadings(doc.id),
+        }
+      : undefined;
   return (
     <div className={styles.root}>
       <DeadLinks doc={doc} />
@@ -123,14 +135,7 @@ export function OutlinePanel() {
           <EmptyNote
             title={m.outline_empty_title()}
             body={m.outline_empty_body()}
-            action={
-              doc.pages.length > 0
-                ? {
-                    label: m.cmd_outline_from_headings(),
-                    onClick: () => void addBookmarksFromHeadings(doc.id),
-                  }
-                : undefined
-            }
+            action={fromHeadings}
           />
         </div>
       ) : (

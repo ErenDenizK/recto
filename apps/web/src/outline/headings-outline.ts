@@ -7,6 +7,9 @@
 import { type OutlineNode, outlineItem, type PageId } from '@pdf-editor/document-model';
 import type { ConvertHeading } from '@pdf-editor/engine';
 
+/** Control characters and non-characters, which a PDF title should not carry. */
+const CONTROL = /[\p{Cc}\uFFFE\uFFFF]/gu;
+
 type Building = Omit<OutlineNode, 'children'> & { children: Building[] };
 
 /** The tree for `headings`; `pageIds[i]` is the id of page `i`. Headings off the document are dropped. */
@@ -18,7 +21,7 @@ export function outlineFromHeadings(
   const stack: { level: number; node: Building }[] = [];
   for (const heading of headings) {
     const page = pageIds[heading.page];
-    const title = heading.text.replace(/\s+/g, ' ').trim();
+    const title = heading.text.replace(CONTROL, '').replace(/\s+/g, ' ').trim();
     if (page === undefined || title === '') continue;
     while (stack.length > 0 && (stack[stack.length - 1]?.level ?? 0) >= heading.level) stack.pop();
     const node: Building = { ...outlineItem(title, { kind: 'page', page }), children: [] };
@@ -26,4 +29,10 @@ export function outlineFromHeadings(
     stack.push({ level: heading.level, node });
   }
   return roots;
+}
+
+/** Whether every page of the run's start is still in the document (their order may change). */
+export function pagesStillPresent(startIds: readonly PageId[], nowIds: readonly PageId[]): boolean {
+  const now = new Set(nowIds);
+  return startIds.every((id) => now.has(id));
 }

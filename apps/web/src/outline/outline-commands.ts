@@ -13,6 +13,7 @@ import {
   addBookmarksFromHeadings,
   removeDeadLinks,
   showOutlinePanel,
+  useHeadingsRunStore,
 } from './outline-actions';
 
 const activeDocument = () => getActiveDocument(useWorkspaceStore.getState().workspace);
@@ -50,7 +51,9 @@ export function registerOutlineCommands(registry: CommandRegistry): () => void {
       ],
       when: () => {
         const doc = activeDocument();
-        return doc !== undefined && doc.pages.length > 0 && doc.outline.length === 0;
+        if (doc === undefined || doc.pages.length === 0 || doc.outline.length > 0) return false;
+        const run = useHeadingsRunStore.getState();
+        return !run.running[doc.id] && !run.none[doc.id];
       },
       run: () => {
         const doc = activeDocument();

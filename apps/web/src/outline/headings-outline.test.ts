@@ -1,7 +1,7 @@
 import type { OutlineNode, PageId } from '@pdf-editor/document-model';
 import { describe, expect, it } from 'vitest';
 
-import { outlineFromHeadings } from './headings-outline';
+import { outlineFromHeadings, pagesStillPresent } from './headings-outline';
 
 const pages = ['p0', 'p1', 'p2'] as PageId[];
 const h = (page: number, level: number, text: string) => ({ page, level, text });
@@ -32,5 +32,20 @@ describe('outlineFromHeadings (PRD-33)', () => {
       pages,
     );
     expect(titles(tree)).toEqual(['Lone heading']);
+  });
+
+  it('strips control characters from titles', () => {
+    const tree = outlineFromHeadings([h(0, 1, 'Intro\u0000\u0007 text\u009f')], pages);
+    expect(tree[0]?.title).toBe('Intro text');
+  });
+
+  it('indices follow the start page list: a page that left makes the run void', () => {
+    // Reordered pages still resolve through the start list; a removed one does not.
+    expect(outlineFromHeadings([h(0, 1, 'A')], ['p2', 'p0'] as PageId[])[0]?.destination).toEqual({
+      kind: 'page',
+      page: 'p2',
+    });
+    expect(pagesStillPresent(pages, ['p2', 'p0', 'p1'] as PageId[])).toBe(true);
+    expect(pagesStillPresent(pages, ['p0', 'p1'] as PageId[])).toBe(false);
   });
 });
