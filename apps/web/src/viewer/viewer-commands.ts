@@ -15,6 +15,7 @@ import { READ_LAYOUTS, type ReadLayout, useViewStore } from '../state/view-store
 import { useWorkspaceStore } from '../state/workspace-store';
 import { openPillMenu } from '../shell/frame/frame-store';
 import { goToPageIndex, nextPage, previousPage } from './navigation';
+import { readAloudAvailable } from './read-aloud/flag';
 import { readController } from './read-controller';
 import { openFind, searchStep, useSearchStore } from './search';
 
@@ -168,6 +169,35 @@ export function registerViewerCommands(registry: CommandRegistry): () => void {
         run: () => setReadLayout(layout),
       }),
     ),
+    // Read aloud (R29 BM-2; PRD-34): a prototype behind `?read=1`, only where the browser speaks.
+    ...(readAloudAvailable()
+      ? [
+          registry.register({
+            id: 'view.readAloud',
+            title: m.cmd_read_aloud(),
+            group: m.group_view(),
+            act: null,
+            shortcut: 'Shift+Alt+L',
+            keywords: [
+              'read aloud',
+              'speak',
+              'listen',
+              'text to speech',
+              'sesli oku',
+              'dinle',
+              'oku',
+            ],
+            when: reading,
+            run: async () => {
+              const { closeReadAloud, startReadAloud, useReadAloudStore } = await import(
+                './read-aloud/controller'
+              );
+              if (useReadAloudStore.getState().open) closeReadAloud();
+              else await startReadAloud();
+            },
+          }),
+        ]
+      : []),
   ];
   return () => {
     for (const dispose of disposers) dispose();

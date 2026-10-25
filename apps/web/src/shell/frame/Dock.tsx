@@ -63,6 +63,7 @@ import { StripPiece } from '../../markup/StripPiece';
 import { useRovingTabindex } from '../../markup/roving';
 import { useStrokeFade } from '../../markup/stroke-fade';
 import { PagesBar, usePagesBarKey } from '../../stage/grid/PagesBar';
+import { readAloudAvailable } from '../../viewer/read-aloud/flag';
 import styles from './Dock.module.css';
 import { type DockLabelForm, dockLabelForm, dockRoom } from './dock-labels';
 import { openTitleMenu } from './frame-store';
@@ -377,8 +378,15 @@ const MORE_ITEMS: readonly MoreEntry[] = [
   { id: 'file.export', label: m.save_a_copy, icon: 'export' },
 ];
 /** DSN-76 (DSN-47): with the Tools entry shown, Redact lives there only, not in More too. */
-const moreItems = (): readonly MoreEntry[] =>
-  toolsEntryEnabled() ? MORE_ITEMS.filter((item) => item.id !== 'tool.redact') : MORE_ITEMS;
+const moreItems = (): readonly MoreEntry[] => {
+  const items = toolsEntryEnabled()
+    ? MORE_ITEMS.filter((item) => item.id !== 'tool.redact')
+    : MORE_ITEMS;
+  // Read aloud (PRD-34, `?read=1`): its one place beside the page tools (DSN-46).
+  return readAloudAvailable()
+    ? [...items, { id: 'view.readAloud', label: m.cmd_read_aloud, icon: 'speaker-high' }]
+    : items;
+};
 const MORE_APP_ITEMS: readonly MoreEntry[] = [
   { id: 'view.palette', label: m.dock_more_commands, icon: 'list-magnifying-glass' },
   { id: 'help.shortcuts', label: m.frame_keyboard_shortcuts, icon: 'keyboard', fineOnly: true },

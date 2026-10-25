@@ -1,0 +1,58 @@
+/*
+ * The read-aloud player (PRD-34): the ink strip's piece (`StripPiece.module.css`): the capsule's
+ * material, one --piece-h tall with the pill radius, M controls inside --piece-inset's padding.
+ * It sits just above the capsule, centred on the free area, and never runs wider than it, so it
+ * leaves the top of the pages (and the word being read) clear. It rises and fades
+ * in on --duration-fast; reduced motion shows it at once.
+ */
+.player {
+  composes: mat mat-bar s8 c9 h8 from global;
+
+  position: fixed;
+  bottom: calc(var(--free-bottom, 0px) + var(--piece-inset) + var(--piece-h) + var(--space-2));
+  left: calc(var(--free-left, 0px) + (100vw - var(--free-left, 0px) - var(--free-right, 0px)) / 2);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  box-sizing: border-box;
+  max-width: calc(100vw - var(--free-left, 0px) - var(--free-right, 0px) - 2 * var(--space-2));
+  min-height: var(--piece-h);
+  padding: var(--palette-inset, var(--space-1));
+  border-radius: calc(var(--piece-h) / 2);
+  translate: -50% 0;
+  color: var(--text-primary);
+  animation: rise var(--duration-fast) var(--ease-out);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    translate: -50% var(--space-2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player {
+    animation: none;
+  }
+}
+
+:global(:root[data-motion='reduced']) .player {
+  animation: none;
+}
+
+.speed {
+  min-width: 68px;
+}
+
+.voice {
+  width: 168px;
+}
+
+.note {
+  margin: 0;
+  padding: 0 var(--space-3);
+  font-size: var(--type-body);
+  line-height: var(--type-body-lh);
+}

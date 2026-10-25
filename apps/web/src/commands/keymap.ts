@@ -13,6 +13,7 @@
  *   their `when`s never hold together (`keymap.test.tsx` fails on any other).
  */
 import { m } from '../i18n';
+import { readAloudAvailable } from '../viewer/read-aloud/flag';
 import type { Command } from './registry';
 import { type ParsedShortcut, parseShortcut } from './shortcuts';
 
@@ -135,6 +136,8 @@ export const KEYMAP_ENTRIES: Readonly<Record<string, KeymapEntry>> = {
   'search.open': { group: 'view' },
   'search.next': { group: 'view' },
   'search.previous': { group: 'view' },
+  // Only where the flag and the browser's voices make the command exist (PRD-34).
+  ...(readAloudAvailable() ? { 'view.readAloud': { group: 'view' } } : {}),
   'nav.goToPage': { group: 'view' },
   'nav.previousPage': { group: 'view' },
   'nav.nextPage': { group: 'view' },

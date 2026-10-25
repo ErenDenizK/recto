@@ -1,4 +1,4 @@
-import { useLayoutEffect } from 'react';
+import { lazy, Suspense, useLayoutEffect } from 'react';
 
 import { registerAppCommands } from './commands/app-commands';
 import { commandRegistry } from './commands/registry';
@@ -22,6 +22,12 @@ import { startSignatureValidation } from './signatures/signature-store';
 import { CertificateSheet } from './signatures/CertificateSheet';
 import { requestPassword } from './state/password-store';
 import { installScrollThumbs } from './ui/scroll-thumbs';
+import { readAloudAvailable } from './viewer/read-aloud/flag';
+
+// Read aloud (PRD-34, `?read=1`): its player and page layer load only when asked for.
+const ReadAloudHost = readAloudAvailable()
+  ? lazy(() => import('./viewer/read-aloud/ReadAloudHost'))
+  : null;
 
 /**
  * Application root. Registers the shell's commands before first paint (so keycap hints
@@ -61,6 +67,11 @@ export function App() {
       <DocumentSheetsHost />
       <CertificateSheet />
       <OperationDialogsHost />
+      {ReadAloudHost ? (
+        <Suspense fallback={null}>
+          <ReadAloudHost />
+        </Suspense>
+      ) : null}
     </LocaleBoundary>
   );
 }

@@ -24,7 +24,7 @@ const PROBE_WIDTH = 512;
  * ground or lifts a dark one, so it has to know which; a dark callout on a white page counts).
  * `undefined` while the bitmap is not rendered (a zoom's preview).
  */
-function darkUnder(layer: HTMLElement): boolean[] | undefined {
+export function darkUnder(layer: HTMLElement): boolean[] | undefined {
   const canvas = layer.closest('[data-page-index]')?.querySelector('canvas');
   if (canvas?.dataset.state !== 'rendered' || canvas.width === 0 || !layer.clientWidth)
     return undefined;
