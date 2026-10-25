@@ -31,9 +31,11 @@ import { Menu } from '@base-ui/react/menu';
 import { Popover } from '@base-ui/react/popover';
 import type { VirtualDocument, VirtualPage, Workspace } from '@pdf-editor/document-model';
 import {
+  createContext,
   type KeyboardEvent,
   type ReactElement,
   type RefObject,
+  useContext,
   useEffect,
   useId,
   useRef,
@@ -73,6 +75,19 @@ import {
   type ShownRow,
   shownTitleMenu,
 } from './TitleMenuItems';
+
+/** The menu's anchor, for the rows that hand off to a sheet (`handOff`). */
+const AnchorContext = createContext<() => HTMLElement | null>(() => null);
+
+/**
+ * The menu → sheet hand-off from a row (Q-7, `ui/menu-handoff.ts`): the menu goes at once, so
+ * focus moves to the anchor first, where the popover's `finalFocus` would send it a few frames
+ * later; until then it would sit on a row with no opacity (spec redesign §8 A-13).
+ */
+function handOff(anchor: () => HTMLElement | null): void {
+  anchor()?.focus({ preventScroll: true });
+  closeMenusAtOnce();
+}
 
 const subscribe = (listener: () => void) => commandRegistry.subscribe(listener);
 const snapshot = () => commandRegistry.list();
@@ -156,8 +171,10 @@ function TitleMenuPopup({
       data-testid="title-menu"
       data-peeking={peeking || undefined}
     >
-      <Header doc={doc} nameRef={nameRef} />
-      <Rows listRef={listRef} withRedo={withRedo} narrow={narrow} />
+      <AnchorContext value={anchor}>
+        <Header doc={doc} nameRef={nameRef} />
+        <Rows listRef={listRef} withRedo={withRedo} narrow={narrow} />
+      </AnchorContext>
     </PopoverPopup>
   );
 }
@@ -219,6 +236,7 @@ function Header({
  */
 function SignatureFactRow({ doc }: { readonly doc: VirtualDocument }) {
   const fact = useSignatureFact(doc.id);
+  const anchor = useContext(AnchorContext);
   if (fact === null) return null;
   return (
     <Popover.Close
@@ -226,7 +244,7 @@ function SignatureFactRow({ doc }: { readonly doc: VirtualDocument }) {
       aria-label={fact.label}
       data-testid="title-menu-signatures"
       onClick={() => {
-        closeMenusAtOnce();
+        handOff(anchor);
         openSignaturesSheet(doc.id);
       }}
     >
@@ -462,6 +480,7 @@ function runRow(row: ShownRow): void {
 }
 
 function Row({ row, tabIndex }: { readonly row: ShownRow; readonly tabIndex: number }) {
+  const anchor = useContext(AnchorContext);
   return (
     <MenuRow
       label={row.label}
@@ -472,7 +491,7 @@ function Row({ row, tabIndex }: { readonly row: ShownRow; readonly tabIndex: num
       tabIndex={tabIndex}
       data-command={row.command?.id ?? row.key}
       onActivate={() => {
-        closeMenusAtOnce();
+        handOff(anchor);
         closeTitleMenu();
         runRow(row);
       }}

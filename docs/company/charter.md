@@ -76,8 +76,10 @@ work earns it. The caps below are working defaults the CEO may move, and must re
 
 - **Cadence:** three wake-ups a day (10:53 and 22:53 deep cycles, 18:53 heartbeat, Istanbul), a
   scheduled task that wakes the lead session. The 18:53 cycle ends with the daily report; Sunday's also writes the weekly review.
-- **Per cycle:** at most three build lanes and one research lane at a time, at most about 1.2 M
-  agent tokens (the harness totals), and about five hours of wall time. A cycle that hits a cap
+- **Per cycle:** since 2026-10-25 (PRC-32, pace x2 while Recto is the only active project): at most
+  10 agents at once; a deep cycle hires up to four build lanes and two research lanes, at most
+  about 2.2 M agent tokens (the harness totals), and about five hours of wall time; a heartbeat may
+  start a queued lane when a slot is free. A cycle that hits a cap
   stops opening lanes and finishes what is open.
 - **Spend by tier:** builders on Sonnet are the default; Opus agents are for the jobs above; a
   log or a search never goes to Opus. Effort `medium` everywhere.
@@ -132,7 +134,8 @@ in a sprint most build lanes belong to one.
 3. **Finish before starting.** A red or conflicted company PR is fixed first (the drive-to-green
    rules of the session). A green one merges with a merge commit.
 4. **Choose.** Take the next items from the HQ "Next" list and `roadmap.md`, by value to the user
-   per token. Each needs a done condition and a check before it becomes a lane.
+   per token; the console keeps two ranked lists, improvements and big moves (PRC-33), and a deep
+   cycle first researches what large companies ship for products like Recto. Each needs a done condition and a check before it becomes a lane.
 5. **Hire.** Brief each lane to the right role (table above); builders in their own worktree and
    branch; independent lanes in parallel, sharing no files.
 6. **Gate.** Before a PR opens: the scope check (`git diff --stat` against the brief), the
@@ -140,18 +143,20 @@ in a sprint most build lanes belong to one.
    seen. A PR carries PRC-18's body; merge once all checks are green. PRs are not rationed: one
    concern per PR, as many a day as the work produces, docs included (the owner wants the history
    to show steady, coordinated work), but never an empty or padding PR.
-7. **Ship.** Minor quality changes (bug fixes, polish, copy, performance and test work that
-   change no feature, flow or look in a way the owner would notice as new) are deployed by the
-   CEO without asking, once `develop` CI is green (owner, 2026-10-20). Major changes (a new
-   feature, a new flow, a visible redesign, anything a board row covers) are listed as `deploy
-   ready: <commit>` and wait for the owner's yes. If the session's guard refuses an unattended
+7. **Ship.** The CEO dispatches the Deploy workflow on `develop` whenever its head is green on
+   all checks and ahead of live (owner, 2026-10-25, PRC-31); the owner no longer taps it. Check the
+   run's result within the hour, root-cause a failed run at once, never deploy a red `develop`.
+   Visible new features and redesigns still ship behind a flag or after the board's yes (PRC-25):
+   list them as `deploy ready: <commit>` until then. If the session's guard refuses an unattended
    dispatch, the report says `deploy ready` and the next attended moment ships it.
 8. **Record.** A row in `agent-metrics.md` per lane (it rides the next PR), decision rows for
    decisions, the HQ body rewritten (lock cleared, lanes, next ten, parked, board questions).
 9. **Report.** One HQ comment, in English (PRC-27): what shipped (PR links), what is open, spend
    (agent tokens by tier), decisions taken, and anything the board must answer. Two to ten lines.
    The morning and evening briefs are in English too and are also posted as HQ comments, so the
-   owner can follow and answer in the GitHub app. The chat with the owner stays in Turkish.
+   owner can follow and answer in the GitHub app. Briefs carry visuals (screenshots, before and
+   after) and live in the console, whose lists of improvements and big moves show each entry's
+   precedent, size, risk and status (PRC-33). The chat with the owner stays in Turkish.
 10. **Improve HQ.** Once a day, the 18:53 cycle makes one small improvement to how the owner
    follows the company (the console, the brief, the HQ issue), within the cycle's budget (PRC-27).
 
