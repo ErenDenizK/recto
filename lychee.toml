@@ -27,4 +27,10 @@ exclude = [
 
   # Media are recorded by the deploy workflow's `media` job only; the CI build has none.
   '/apps/web/dist/media/',
+
+  # Permalinks to our own repo at a fixed commit are immutable, so they cannot rot. Their
+  # targets (audit screenshots) are no longer on develop, so they cannot be relative paths
+  # either, and GitHub answers bots on blob pages with 503. Only this shape is excluded;
+  # branch links and every other github.com URL are still checked.
+  '^https://github\.com/ErenDenizK/recto/blob/[0-9a-f]{7,40}/',
 ]
