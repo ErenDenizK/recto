@@ -1046,6 +1046,7 @@
   "annot_page": "Sayfa",
   "annot_place_stamp": "Damgayı yerleştirmek için sayfaya tıklayın veya sürükleyin",
   "annot_place_signature": "İmzayı yerleştirmek için sayfaya tıklayın veya sürükleyin",
+  "annot_place_signature_touch": "İmzayı yerleştirmek için sayfaya dokunun veya sürükleyin",
   "annot_image_failed": "{name} görsel olarak okunamadı",
   "color_yellow": "Sarı",
   "color_orange": "Turuncu",

@@ -1387,6 +1387,7 @@
   "annot_page": "Page",
   "annot_place_stamp": "Click or drag on a page to place the stamp",
   "annot_place_signature": "Click or drag on a page to place the signature",
+  "annot_place_signature_touch": "Tap or drag on a page to place the signature",
   "annot_image_failed": "Could not read {name} as an image",
   "color_yellow": "Yellow",
   "color_orange": "Orange",

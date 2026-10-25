@@ -22,6 +22,7 @@ import { PDFDocument } from '@cantoo/pdf-lib';
 import { type CDPSession, expect, type Page, test } from '@playwright/test';
 
 import { fixturePath, useFileInputPicker, motionDone } from './helpers';
+import { sampleEntry } from './sample-manifest';
 
 const SHOTS = process.env.CAPTURE_SCREENSHOTS;
 
@@ -223,6 +224,87 @@ test.describe('phone signing (M10 WP6)', () => {
     await tap(cdp, above);
     await expect(drawer(page)).toHaveCount(0);
     await expect(stamps(page)).toHaveCount(1);
+  });
+});
+
+test.describe('phone signing beside form fields (DSN-77)', () => {
+  test("the Delete pill keeps off the agreement page's fields", async ({ page }) => {
+    await page.goto('./?sample&lang=en');
+    await expect(page.getByTestId('compact-reader')).toBeVisible();
+    const formIndex = sampleEntry('en', 'phone').formPage - 1;
+    await page.evaluate(async (index) => {
+      const scroller = document.querySelector<HTMLElement>('[data-read-viewport]');
+      const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+      for (
+        let i = 0;
+        i < 60 && scroller && !document.querySelector(`[data-page-index="${index}"]`);
+        i++
+      ) {
+        scroller.scrollTop += scroller.clientHeight / 2;
+        await frame();
+        await frame();
+      }
+    }, formIndex);
+    const targets = page.locator('[data-fill-target]');
+    await expect(targets.first()).toBeAttached();
+    // The first field a third of the way down: past it, then back up, since a scroll up shows
+    // the chrome again.
+    await page.evaluate(async () => {
+      const scroller = document.querySelector<HTMLElement>('[data-read-viewport]');
+      const target = document.querySelector('[data-fill-target]');
+      if (!scroller || !target) return;
+      const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+      const top =
+        scroller.scrollTop +
+        target.getBoundingClientRect().top -
+        scroller.getBoundingClientRect().top -
+        scroller.clientHeight / 3;
+      scroller.scrollTop = top + 80;
+      await frame();
+      await frame();
+      scroller.scrollTop = top;
+      await frame();
+      await frame();
+    });
+    await page.getByTestId('compact-edit').click();
+    await page.getByTestId('compact-tool-more').click();
+    await drawer(page).getByRole('button', { name: 'Sign' }).click();
+    await page.getByTestId('compact-sign-new').click();
+    await expect(sheet(page)).toBeVisible();
+    await motionDone(page);
+    const pad = sheet(page).locator('canvas[data-strokes]');
+    await pad.scrollIntoViewIfNeeded();
+    const padBox = await pad.boundingBox();
+    if (!padBox) throw new Error('no pad');
+    const cdp = await page.context().newCDPSession(page);
+    await sign(cdp, padBox);
+    await sheet(page).getByRole('button', { name: 'Use signature' }).click();
+    await expect(sheet(page)).toBeHidden();
+
+    // Place it just under a field, the spot where the pill used to land on the field above.
+    const first = await targets.first().boundingBox();
+    const view = page.viewportSize() ?? { width: 390, height: 844 };
+    if (!first) throw new Error('no field');
+    await tap(cdp, {
+      x: view.width / 2,
+      y: Math.min(first.y + first.height + 40, view.height - 200),
+    });
+    const bar = page.getByTestId('compact-touch-bar');
+    await expect(bar).toBeVisible();
+    await motionDone(page);
+    const pill = await bar.boundingBox();
+    if (!pill) throw new Error('no pill');
+    for (const target of await targets.all()) {
+      const box = await target.boundingBox();
+      if (!box) continue;
+      const apart =
+        pill.x + pill.width <= box.x ||
+        box.x + box.width <= pill.x ||
+        pill.y + pill.height <= box.y ||
+        box.y + box.height <= pill.y;
+      expect(apart, `the pill covers ${await target.getAttribute('data-field-name')}`).toBe(true);
+    }
+    if (SHOTS) await shot(page, 'pill-beside-fields');
   });
 });
 

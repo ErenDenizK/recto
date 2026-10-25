@@ -397,6 +397,8 @@ export function showCopyDone(
       documentId,
       keepOnClose: true,
       testId: 'save-copy-toast',
+      // Same key as the failure: a good copy clears an earlier "copy not saved" (DSN-77).
+      key: `save-copy:${documentId}`,
       // "Saved on this device" would say it twice.
       ...(receipt && !(written && receipt === m.receipt_device()) ? { detail: receipt } : {}),
       ...(summary.items.length > 0

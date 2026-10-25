@@ -26,7 +26,10 @@ import { Segmented, SegmentedPanel } from '../ui/Segmented';
 import type { SheetCloseReason, SheetPrimary } from '../ui/sheet/Sheet';
 import { closeSheet, useSheetDraft, useSheetOpen, useSheetStore } from '../ui/sheet/sheet-store';
 import { TextField } from '../ui/TextField';
+import { useCoarsePointer } from '../ui/Slider';
 import { toast } from '../ui/Toast';
+import { useToolStore } from '../viewer/tool-store';
+import { useWorkspaceStore } from '../state/workspace-store';
 import { flyIntoChip, flightTarget } from './flight';
 import { imageInk } from './image-ink';
 import { intentOf, NEW_SIGNATURE_SHEET_ID } from './new-signature';
@@ -86,9 +89,35 @@ export interface NewSignatureForm {
   readonly body: ReactNode;
 }
 
-/** New signature's state and body, for its frame to present. */
-export function useNewSignatureForm(): NewSignatureForm {
+/**
+ * Shows the place-the-signature hint for the active document and takes it down when the armed
+ * signature is placed or the arm is cancelled (the tool leaves Signature), or with the document.
+ */
+function hintUntilPlaced(text: string): void {
+  const id = toast.info(text, {
+    key: 'signature-place',
+    spoken: false,
+    documentId: useWorkspaceStore.getState().workspace.activeDocument ?? undefined,
+  });
+  const stop = useToolStore.subscribe((state) => {
+    if (state.mode === 'signature') return;
+    stop();
+    toast.dismiss(id);
+  });
+}
+
+/**
+ * New signature's state and body, for its frame to present. `hint` (the desktop sheet) adds a
+ * short toast after Use that says the next click places the signature (DSN-77); the phone's own
+ * sheet leaves it out.
+ */
+export function useNewSignatureForm({
+  hint = false,
+}: {
+  readonly hint?: boolean;
+} = {}): NewSignatureForm {
   const open = useSheetOpen(NEW_SIGNATURE_SHEET_ID);
+  const coarse = useCoarsePointer();
   // Held while the sheet animates out, so the footer keeps its label.
   const [intent, setIntent] = useState(() => intentOf(open?.preset ?? null));
   const asked = open ? intentOf(open.preset) : intent;
@@ -160,6 +189,9 @@ export function useNewSignatureForm(): NewSignatureForm {
       // Arming places at a click: only in Markup, and never while locked (`place`).
       if (intent === 'use' && stamp && canChangeActive('place')) {
         armSignatureStamp(stamp);
+        // `armSignatureStamp` has said it aloud already, so the toast is silent.
+        if (hint)
+          hintUntilPlaced(coarse ? m.annot_place_signature_touch() : m.annot_place_signature());
         if (from && stamp.blob) intoChip(stamp.blob, from, saved?.id);
       }
     } finally {
