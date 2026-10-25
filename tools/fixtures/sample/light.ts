@@ -294,13 +294,6 @@ export function sample(stops: readonly Stop[], t: number): Rgb {
 export const lightAt = (id: string) => sample(LIGHT_RAMP, nightOf(id));
 export const groundAt = (id: string) => sample(GROUND_RAMP, nightOf(id));
 
-/**
- * The lamp tab's size, kept for the flat plan's miniatures (`pages/flatplan.ts`). The tab itself
- * was removed from every page (MOB-14/MOB-15 amendment, owner, 25 Oct): it read as a scroll thumb.
- */
-export const TAB_W = 9;
-export const TAB_INSET = 3;
-
 // ---------------------------------------------------------------------------
 // The beam as a Gouraud lattice (ShadingType 5)
 // ---------------------------------------------------------------------------
