@@ -1,3 +1,5 @@
+> **Superseded by [`docs/company/roadmap.md`](../../company/roadmap.md)** and the rows of [`docs/process/decisions.md`](../../process/decisions.md). Kept in place because the decisions index cites it as a source.
+
 # Recto: extra features, V1 or after (decision sheet)
 
 Date: 2026-10-09 · Tree: `develop` `7697f56` · Status: **input for the owner**, who decides each row. Nothing here changes the plan until the owner marks it.
