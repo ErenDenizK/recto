@@ -9,7 +9,8 @@
  *
  * `SignTray` is the single capsule's tray for Sign (EDN-24): the same plates in a sideways
  * scroller (`data-scrolls`), a hairline, and New pinned at the end as a 44 px "+", so the tray
- * keeps its 324 px width however many signatures are kept.
+ * keeps its 324 px width however many signatures are kept. With none kept it is one text button,
+ * "+ New signature", and no hairline.
  *
  * Its own chunk (README §7 "signatures are split again"), loaded as Sign arms (`sign.tsx`).
  */
@@ -92,6 +93,24 @@ export default function SignOptions() {
 
 export function SignTray() {
   const { signatures, status, armed, arm } = useSignPlates();
+  const openNew = () => void openNewSignatureSheet();
+  // Nothing kept: one clear "+ New signature", no scroller and no hairline for it to sit against.
+  if (signatures.length === 0) {
+    return (
+      <div className={`${styles.tray} ${styles.trayEmpty}`} data-testid="compact-sign-tray">
+        {status === 'refused' ? <p className={styles.note}>{m.signature_not_kept()}</p> : null}
+        <Button
+          variant="quiet"
+          className={`${styles.tile} ${styles.trayNewText}`}
+          data-testid="compact-sign-new"
+          onClick={openNew}
+        >
+          <Icon name="plus" />
+          {m.compact_sign_new_label()}
+        </Button>
+      </div>
+    );
+  }
   return (
     <div className={styles.tray} data-testid="compact-sign-tray">
       <div
@@ -100,9 +119,6 @@ export function SignTray() {
         aria-label={m.compact_sign_saved()}
         data-scrolls=""
       >
-        {status === 'refused' && signatures.length === 0 ? (
-          <p className={styles.note}>{m.signature_not_kept()}</p>
-        ) : null}
         {signatures.map((signature) => (
           <Button
             key={signature.id}
@@ -123,7 +139,7 @@ export function SignTray() {
         className={`${styles.tile} ${styles.trayNew}`}
         aria-label={m.compact_sign_new_label()}
         data-testid="compact-sign-new"
-        onClick={() => void openNewSignatureSheet()}
+        onClick={openNew}
       >
         <Icon name="plus" />
       </Button>

@@ -93,6 +93,9 @@
   display: flex;
   flex: 1 1 0;
   align-items: center;
+  /* The tray's own row sets `flex: none` on its test-id children, so the width is named here:
+     the plates then scroll in what the pinned "+" leaves instead of widening the row. */
+  width: 100%;
   min-width: 0;
 }
 
@@ -133,11 +136,30 @@
 .tile.trayNew {
   min-width: 44px;
   width: 44px;
+  height: 44px;
   padding: 0;
   border-radius: 50%;
   background: transparent;
 }
 
+/* No signature kept: the one text button, centred in the tray. */
+.trayEmpty {
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.tile.trayNewText {
+  gap: var(--space-1);
+  min-width: 44px;
+  height: 44px;
+  padding: 0 var(--space-3);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: var(--type-body);
+  white-space: nowrap;
+}
+
+.trayNewText svg,
 .trayNew svg {
   flex: none;
   width: var(--icon-md);

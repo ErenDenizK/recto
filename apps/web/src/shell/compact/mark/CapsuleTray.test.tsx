@@ -143,6 +143,13 @@ describe('what each tray holds', () => {
     await waitFor(() => expect(bar.hasAttribute('data-glass-settle')).toBe(false));
     expect(bar.getAttribute('style') ?? '').toBe('');
     expect(bar.hasAttribute('data-glass-moving')).toBe(false);
+    // The content's entrance is a fade with no wait: the whole of it ends within 150 ms.
+    const ends =
+      bar
+        .querySelectorAll('div')[0]
+        ?.getAnimations()
+        .map((a) => Number(a.effect?.getComputedTiming().endTime ?? 0)) ?? [];
+    expect(Math.max(0, ...ends)).toBeLessThanOrEqual(150);
   });
 });
 
@@ -234,20 +241,37 @@ describe('Sign’s tray', () => {
     setSignatureBackend(
       memorySignatureBackend(['a', 'b', 'c', 'd', 'e'].map((id, i) => plate(id, i + 1))),
     );
+    // In the tray's own row: `CapsuleTray.module.css` sets `flex: none` on its test-id children.
     render(
       <div style={{ width: 324, display: 'flex' }}>
-        <SignTray />
+        <div className="row" style={{ display: 'flex', flex: '1 1 0', minWidth: 0 }}>
+          <style>{'.row > [data-testid] { flex: none; }'}</style>
+          <SignTray />
+        </div>
       </div>,
     );
     const group = await screen.findByRole('group', { name: 'Saved signatures' });
     await waitFor(() => expect(group.querySelectorAll('[data-saved-signature]')).toHaveLength(5));
     expect(group.hasAttribute('data-scrolls')).toBe(true);
     expect(group.scrollWidth).toBeGreaterThan(group.clientWidth);
+    expect(
+      screen.getByTestId('compact-sign-tray').getBoundingClientRect().width,
+    ).toBeLessThanOrEqual(324);
     const add = screen.getByRole('button', { name: 'New signature' });
     expect(group.contains(add)).toBe(false);
     expect(add.getBoundingClientRect().left).toBeGreaterThan(
       group.getBoundingClientRect().right - 1,
     );
+    setSignatureBackend(undefined);
+  });
+
+  it('with none kept shows one "New signature" text button and no hairline', async () => {
+    setSignatureBackend(memorySignatureBackend([]));
+    const { container } = render(<SignTray />);
+    const add = await screen.findByRole('button', { name: 'New signature' });
+    expect(add.textContent).toBe('New signature');
+    expect(screen.queryByRole('group', { name: 'Saved signatures' })).toBeNull();
+    expect(container.querySelector('[aria-hidden="true"]:not(svg)')).toBeNull();
     setSignatureBackend(undefined);
   });
 });

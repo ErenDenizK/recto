@@ -23,6 +23,8 @@ import { type PointerEvent, useEffect, useLayoutEffect, useRef, useState } from 
 
 import { m } from '../../../i18n';
 import { receivePulse } from '../../../motion/receive';
+import { reducedMotion } from '../../../motion/reduced-motion';
+import { REDUCED_DURATION_MS } from '../../../motion/tokens';
 import { velocityTracker, type VelocityTracker } from '../../../motion/velocity';
 import { Button } from '../../../ui/Button';
 import { Icon } from '../../../ui/Icon';
@@ -102,8 +104,9 @@ function Panel({
         const content = contentRef.current;
         if (content)
           content.animate([{ opacity: 0 }, { opacity: 1 }], {
-            duration: 160,
-            delay: 60,
+            // Reduced motion: a plain fade with no wait (EDN-24: at most 150 ms in all).
+            duration: reducedMotion() ? REDUCED_DURATION_MS.fast : 160,
+            delay: reducedMotion() ? 0 : 60,
             fill: 'backwards',
             easing: 'ease-out',
           });
