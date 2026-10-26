@@ -87,6 +87,63 @@
   line-height: var(--type-footnote-lh);
 }
 
+/* Sign's tray in the single capsule (SignTray, EDN-24): the saved plates scroll sideways in the
+   room the pinned "+" leaves, so the tray keeps its width; every target is 44 px high. */
+.tray {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  min-width: 0;
+}
+
+.trayPlates {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  touch-action: pan-x;
+  --scroll-bar: none;
+}
+
+.trayPlates::-webkit-scrollbar {
+  display: none;
+}
+
+.tile.trayTile {
+  min-width: 64px;
+  height: 44px;
+  padding: 0 var(--space-1);
+}
+
+.trayPlate {
+  width: 56px;
+  height: 28px;
+}
+
+.trayRule {
+  flex: none;
+  width: 1px;
+  height: 24px;
+  background: var(--border-hairline);
+}
+
+.tile.trayNew {
+  min-width: 44px;
+  width: 44px;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.trayNew svg {
+  flex: none;
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
 /* New signature in the phone sheet (new-signature.tsx): the form on the body's inset, then the
    reason line over a full-width primary, the line keeping its room while Use is enabled. */
 .form {
