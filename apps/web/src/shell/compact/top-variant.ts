@@ -10,6 +10,7 @@
  *   site data) only drops the keeping.
  * - Read once, when the reader's top first asks.
  */
+import { labsStored } from '../../labs/stored';
 
 export type TopVariant = 'capsule' | 'split';
 
@@ -41,7 +42,7 @@ export function topVariant(): TopVariant {
     stored = null;
   }
   const search = window.location.search;
-  chosen = decideTopVariant(search, stored);
+  chosen = decideTopVariant(search, labsStored('top', stored));
   if (isVariant(new URLSearchParams(search).get(TOP_QUERY_PARAM))) {
     try {
       storage?.setItem(TOP_SESSION_KEY, chosen);
