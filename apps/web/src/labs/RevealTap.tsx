@@ -2,9 +2,9 @@
  * The version number as the Labs reveal's tap target (DSN-82): five quick taps show the panel
  * (`store.ts`). Plain text to everyone else: no role, no focus ring, nothing announced.
  */
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useState } from 'react';
 
-import { createRevealTap } from "./store";
+import { createRevealTap } from './store';
 
 export function RevealTap({ children }: { readonly children: ReactNode }) {
   const [tap] = useState(() => createRevealTap());
