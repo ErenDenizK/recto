@@ -12,9 +12,7 @@ export const PHONE_CAPSULE_PARAM = 'phonebar';
 /** Whether the single capsule shows for a query string and the Labs value: the address wins. */
 export function decidePhoneCapsule(search: string, stored: string | null): boolean {
   const asked = new URLSearchParams(search).get(PHONE_CAPSULE_PARAM);
-  if (asked === '1') return true;
-  if (asked === '0') return false;
-  return stored === '1';
+  return (asked === '1' || asked === '0' ? asked : stored) === '1';
 }
 
 let chosen: boolean | undefined;

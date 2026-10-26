@@ -97,11 +97,14 @@ function bottomOf(selector: string): number {
  * single capsule's tray and Redo chip, `[data-compact-above-capsule]`, EDN-24).
  */
 function chromeTop(): number | undefined {
-  const tops = ['[data-testid="compact-capsule"]', '[data-compact-above-capsule]']
-    .flatMap((selector) => [...document.querySelectorAll(selector)])
-    .filter((el) => !el.hasAttribute('data-hidden'))
-    .map((el) => el.getBoundingClientRect().top);
-  return tops.length === 0 ? undefined : Math.min(...tops);
+  let top: number | undefined;
+  for (const el of document.querySelectorAll(
+    '[data-testid="compact-capsule"],[data-compact-above-capsule]',
+  )) {
+    if (!el.hasAttribute('data-hidden'))
+      top = Math.min(top ?? Infinity, el.getBoundingClientRect().top);
+  }
+  return top;
 }
 
 /** Reads the viewport and the chrome; writes the variables. */
