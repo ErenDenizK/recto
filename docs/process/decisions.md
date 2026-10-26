@@ -81,6 +81,7 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PRD-32](decisions/product.md) | Browser autofill hints: text-field editors set `autocomplete` from the tooltip/name (EN and TR, small tested matcher); unmatched, other-person and password fields stay `off`; Recto stores nothing | In force | 2026-10-25 |
 | [PRD-33](decisions/product.md) | Add bookmarks from headings: the Markdown export's heading detection builds a nested outline for a document without one; one undo step; home is the empty Contents panel and ⌘K (DSN-46) | In force | 2026-10-25 |
 | [PRD-35](decisions/product.md) | Text view (big move 2), engine block model (`ConvertOptions.textBlocks`, `AnalysisProxy.textBlocks(pages)`, `textStyle`); UI behind a flag later; owner's order: scan first, then Text view | In force | 2026-10-25 |
+| [PRD-36](decisions/product.md) | The phone Text view behind Labs `text-view`: title menu row, a place over the reader, Aa settings, read-only, no tables | In force behind Labs | 2026-10-26 |
 | [PRD-14](decisions/product.md) | W0-q findings are assigned to waves: signed fixture opens locked and saves byte-identical (W1-a/W1-b), truncated.pdf… | In force; W1-b and W1-g merged | 2026-10-09 |
 | [PF-18](decisions/product.md) | A closed document's source is parked; the engine worker ends when none is open | In force | 2026-10-22 |
 | [PF-19](decisions/product.md) | Read mode's whole-page bitmap is capped at 4 MP on every edition; tiles keep the visible page 1:1 | In force | 2026-10-22 |
@@ -174,6 +175,7 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-77](decisions/design.md) | A success toast clears that action's earlier errors (same key); Use signature shows a placement hint; the phone's Delete pill keeps off form fields | In force | 2026-10-25 |
 | [DSN-75](decisions/design.md) | Fill & sign gets its own short bar (field stepping, Signature, Date, Done) behind `?fillbar=1`, replacing the shared palette on that door when on | Prototype; owner taste open | 2026-10-24 |
 | [DSN-82](decisions/design.md) | A Labs panel in Settings (revealed by five taps on the version) toggles every feature flag; address, then Labs toggle, then the flag's own value, then default | In force | 2026-10-26 |
+| [DSN-84](decisions/design.md) | The Text view's reading surface: scale, measure, spacing, `--reader-*` themes at 7:1; amends "page never themed" for it | In force behind Labs | 2026-10-26 |
 
 ## Motion
 
@@ -284,6 +286,8 @@ Full rows: [`decisions/editions.md`](decisions/editions.md).
 | [EDN-21](decisions/editions.md) | Phone editing code loads on intent (✎, first selection, form fields), never on idle; amends EDN-10 | In force | 2026-10-24 |
 | [EDN-25](decisions/editions.md) | The phone's on-demand sheets load on intent (page number, gear, ⋯), never on idle; amends EDN-10 | In force | 2026-10-26 |
 | [EDN-24](decisions/editions.md) | The phone's single capsule (reading icons, editing tools, a tray), behind Labs `phone-capsule` | In force behind Labs | 2026-10-26 |
+| [EDN-26](decisions/editions.md) | The Text view loads on intent; lease held only while open; `compactSession` grows under 1 KB with the flag off | In force behind Labs | 2026-10-26 |
+| [EDN-27](decisions/editions.md) | OCR on the phone starts only from the Text view's scanned-page card; opt-in pack download with its size, one undo step | In force behind Labs | 2026-10-26 |
 
 ## Phone work
 
