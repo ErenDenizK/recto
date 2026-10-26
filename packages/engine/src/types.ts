@@ -2577,11 +2577,22 @@ export interface ConvertOptions {
 
 export type ConvertBlockKind = 'heading' | 'paragraph' | 'list-item' | 'image';
 
+export interface ConvertHeading {
+  readonly page: number;
+  readonly level: number;
+  readonly text: string;
+}
+
 export interface ConvertReport {
   readonly pages: number;
   /** Pages (0-based) without extractable text: candidates for OCR. */
   readonly pagesWithoutText: readonly number[];
   readonly headings: number;
+  /**
+   * The headings in reading order (page 0-based, level 1 to 4 as the Markdown `#` count), the
+   * input of "Add bookmarks from headings" (PRD-33).
+   */
+  readonly headingList: readonly ConvertHeading[];
   readonly paragraphs: number;
   readonly listItems: number;
   readonly images: number;

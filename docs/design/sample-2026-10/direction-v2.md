@@ -501,7 +501,7 @@ Per construct, EN full (content streams are compressed, measured per page):
 - `Strokes`: path bucketing by (colour, width), one `S` a bucket, one decimal a coordinate. This
   cut the cover's content from 7.1 to 3.0 KB.
 - `circle1` / `arc1`: path strings at one decimal.
-- `FRAME_TIME`, `nightOf(id)`, `lightAt(id)`, `groundAt(id)`, `lampTab(w, id)`.
+- `FRAME_TIME`, `nightOf(id)`, `lightAt(id)`, `groundAt(id)`. (The lamp tab, `lampTab(w, id)`, was removed from every page and the flatplan: it read as a scroll thumb; owner, 25 Oct 2026, MOB-14/MOB-15 amendment.)
 - `shareCover(doc, …)` / `coverOf(doc)`: the cover's scene as one Form XObject (sky, dusk, sea,
   headland, tower, beam, glows; the grain stays on the page), its masthead fill and masthead
   text, for the flatplan's cover tile and the contact sheet's frame 9, painted by `cm` with no

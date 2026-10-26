@@ -24,8 +24,9 @@ export const MARK_BOX = { x: 117.4, y: 112.7, size: 809 } as const;
 export const MARK_VIEWBOX = `${String(MARK_BOX.x)} ${String(MARK_BOX.y)} ${String(MARK_BOX.size)} ${String(MARK_BOX.size)}`;
 
 /**
- * The gradient, sampled from the source (RMS error 0.3 of 255): linear at 46.75° from bottom
- * left to top right in user space, mint through lime to a yellow lime, with the knee at 59 %.
+ * The gradient (DSN-11 amendment, logo a2): the source's geometry, angle and knee kept, retoned
+ * to the lighthouse beam, teal through mint to the accent lime. Linear at 46.75° from bottom
+ * left to top right in user space, with the knee at 59 %.
  */
 export const MARK_GRADIENT = {
   x1: 135.6,
@@ -33,25 +34,25 @@ export const MARK_GRADIENT = {
   x2: 835.8,
   y2: 167.8,
   stops: [
-    { offset: 0, color: '#69EAA3' },
-    { offset: 0.5944, color: '#CBFF5F' },
-    { offset: 1, color: '#EDFA6D' },
+    { offset: 0, color: '#2FB3A8' },
+    { offset: 0.5944, color: '#6EEDBB' },
+    { offset: 1, color: '#C8FB3D' },
   ],
 } as const;
 
 /**
  * The gradient on a light ground (system-audit-2026-10 §3.9: the mark keeps its gradient in
- * both themes): the same mint → lime → yellow-lime ramp at the same angle and knee, taken down
+ * both themes): the same teal → mint → lime ramp at the same angle and knee, taken down
  * in lightness until every stop holds 3.3:1 against the light theme's glass (`#eceef1`) and
- * 3.9:1 against white (WCAG 1.4.11's 3:1 for a graphic). The source's stops fall under 1.3:1
+ * 3.9:1 against white (WCAG 1.4.11's 3:1 for a graphic). The dark ground's stops fall under 1.3:1
  * there, which is why the light theme drew the mark in ink until now.
  */
 export const MARK_GRADIENT_LIGHT = {
   ...MARK_GRADIENT,
   stops: [
-    { offset: 0, color: '#178A6E' },
-    { offset: 0.5944, color: '#4F8F12' },
-    { offset: 1, color: '#738A0C' },
+    { offset: 0, color: '#0D5E57' },
+    { offset: 0.5944, color: '#136D5B' },
+    { offset: 1, color: '#3F8A2A' },
   ],
 } as const;
 

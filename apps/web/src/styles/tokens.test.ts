@@ -2279,7 +2279,6 @@ describe('tokens.css', () => {
       'forms/FormLayer.module.css': ['#111111'],
       'annotations/AnnotationLayer.module.css': ['rgb(255 255 255 / 0.85)'],
       'annotations/lasso/Lasso.module.css': ['#fff', '#000'],
-      'signatures/NewSignatureSheet.module.css': ['rgb(26 35 126 / 0.45)'],
       'ui/colour/ColourSpectrum.module.css': [
         '#ffffff',
         '#000000',

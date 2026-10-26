@@ -135,16 +135,6 @@ export function resizeTransform(
   };
 }
 
-/** Whether the transform leaves every point where it was (same size, no scaling). */
-export function isIdentityTransform(t: ResizeTransform, epsilon = 1e-6): boolean {
-  return (
-    Math.abs(t.scaleX - 1) < epsilon &&
-    Math.abs(t.scaleY - 1) < epsilon &&
-    Math.abs(t.offsetX) < epsilon &&
-    Math.abs(t.offsetY) < epsilon
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Displayed ↔ unrotated
 // ---------------------------------------------------------------------------
