@@ -13,6 +13,7 @@ import rotatedUrl from '../../../test/fixtures/rotated-pages.pdf?url';
 import annotationsUrl from '../../../test/fixtures/annotations.pdf?url';
 import { checkAnnotationConformance } from '../src/annotations/conformance';
 import { PdfLibAssembler } from '../src/pdflib/pdflib-assembler';
+import { createHostedEngine } from '../src/pdfium/host';
 import { PdfiumAdapter } from '../src/pdfium/pdfium-adapter';
 import {
   type Annotation,
@@ -28,6 +29,7 @@ import { makePdf, sid, wasmUrl } from './helpers';
 
 let adapter: PdfiumAdapter;
 let counter = 0;
+const ZERO_RECT = { x: 0, y: 0, width: 0, height: 0 };
 
 async function fixture(url: string): Promise<ArrayBuffer> {
   return (await fetch(url)).arrayBuffer();
@@ -81,21 +83,56 @@ function expectSameGeometry(actual: Annotation | undefined, expected: NewAnnotat
   }
 }
 
-beforeAll(() => {
+/** An adapter with raw access, as the worker builds it (stamps are then updated in place). */
+let rawAdapter: PdfiumAdapter;
+
+beforeAll(async () => {
   adapter = new PdfiumAdapter({ wasmUrl, inspector: new PdfLibAssembler() });
+  const host = await createHostedEngine({ wasm: wasmUrl });
+  rawAdapter = new PdfiumAdapter({
+    wasmUrl,
+    inspector: new PdfLibAssembler(),
+    engineFactory: () => host.engine,
+    rawTask: (sourceId, fn, options) => host.withRawTask(sourceId, fn, options),
+  });
 });
 
 afterAll(async () => {
   await adapter.destroy();
+  await rawAdapter.destroy();
 });
 
-async function openBlank(pages = 1): Promise<ReturnType<typeof sid>> {
+async function openBlank(pages = 1, engine = adapter): Promise<ReturnType<typeof sid>> {
   const id = sid(`doc-${++counter}`);
-  await adapter.open(
+  await engine.open(
     id,
     await makePdf(Array.from({ length: pages }, () => ({ size: [612, 792], text: 'Annotations' }))),
   );
   return id;
+}
+
+/** Reddish pixels (red over green and blue by 60; `pngBlob` is half-transparent red) of an unrotated page render inside a user-space rect. */
+async function redPixels(
+  engine: PdfiumAdapter,
+  id: ReturnType<typeof sid>,
+  rect: Rect,
+): Promise<number> {
+  const r = await engine.renderPage(id, 0, { scale: 1 });
+  const canvas = new OffscreenCanvas(r.width, r.height);
+  const ctx = canvas.getContext('2d') as OffscreenCanvasRenderingContext2D;
+  ctx.drawImage(r.bitmap, 0, 0);
+  const data = ctx.getImageData(
+    Math.round(rect.x),
+    Math.round(r.height - rect.y - rect.height),
+    Math.round(rect.width),
+    Math.round(rect.height),
+  ).data;
+  let red = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    const [r0, g0, b0] = [data[i] ?? 0, data[i + 1] ?? 0, data[i + 2] ?? 0];
+    if (r0 - g0 > 60 && r0 - b0 > 60) red += 1;
+  }
+  return red;
 }
 
 describe('every kind', () => {
@@ -377,6 +414,179 @@ describe('stamps', () => {
         imageBlob: new Blob(['GIF89a'], { type: 'image/gif' }),
       }),
     ).rejects.toMatchObject({ code: 'unsupported' });
+    await adapter.close(id);
+  });
+
+  test.each([
+    ['with raw access', () => rawAdapter],
+    ['without raw access', () => adapter],
+  ])(
+    'a moved image stamp still draws, after save → re-open and after the undo update (%s)',
+    async (_, engineOf) => {
+      const engine = engineOf();
+      const id = await openBlank(1, engine);
+      const at = { x: 100, y: 100, width: 60, height: 60 };
+      const to = { x: 300, y: 400, width: 60, height: 60 };
+      const stamp = await engine.createAnnotation(id, {
+        kind: 'stamp',
+        pageIndex: 0,
+        rect: at,
+        imageBlob: pngBlob(),
+      });
+      expect(await redPixels(engine, id, at)).toBeGreaterThan(1000);
+      // A drag commits the stamp with only its rect changed (no imageBlob), like the UI does.
+      await engine.updateAnnotation(id, { ...stamp, rect: to });
+      expect(await redPixels(engine, id, to)).toBeGreaterThan(1000);
+      expect(await redPixels(engine, id, at)).toBe(0);
+
+      const saved = await engine.save(id);
+      const reopened = sid(`doc-${++counter}`);
+      await engine.open(reopened, saved);
+      expect(await redPixels(engine, reopened, to)).toBeGreaterThan(1000);
+      await engine.close(reopened);
+
+      // Undo replays the previous state as another rect-only update.
+      await engine.updateAnnotation(id, { ...stamp, rect: at });
+      expect(await redPixels(engine, id, at)).toBeGreaterThan(1000);
+      // A style change (the selection bar's opacity) is an update too.
+      await engine.updateAnnotation(id, { ...stamp, rect: at, opacity: 0.8 });
+      expect(await redPixels(engine, id, at)).toBeGreaterThan(1000);
+      await engine.close(id);
+    },
+  );
+
+  test('a stamp moved back and forth 25 times, with Undo and Redo, still draws and stays small', async () => {
+    const id = await openBlank(1, rawAdapter);
+    const at = { x: 100, y: 100, width: 60, height: 60 };
+    const to = { x: 300, y: 400, width: 60, height: 60 };
+    const stamp = await rawAdapter.createAnnotation(id, {
+      kind: 'stamp',
+      pageIndex: 0,
+      rect: at,
+      imageBlob: pngBlob(),
+    });
+    await rawAdapter.updateAnnotation(id, { ...stamp, rect: to });
+    const firstMove = (await rawAdapter.save(id)).byteLength;
+    for (let i = 1; i < 25; i++) {
+      await rawAdapter.updateAnnotation(id, { ...stamp, rect: i % 2 === 0 ? to : at });
+    }
+    // Undo and Redo replay the neighbouring states as further updates (edits/apply.ts).
+    for (let i = 0; i < 4; i++) {
+      await rawAdapter.updateAnnotation(id, { ...stamp, rect: i % 2 === 0 ? to : at });
+    }
+    expect(await redPixels(rawAdapter, id, at)).toBeGreaterThan(1000);
+    expect(await redPixels(rawAdapter, id, to)).toBe(0);
+    // A resize scales the same appearance into the new rect.
+    const big = { x: 300, y: 400, width: 120, height: 120 };
+    await rawAdapter.updateAnnotation(id, { ...stamp, rect: big });
+    expect(await redPixels(rawAdapter, id, big)).toBeGreaterThan(4 * 1000);
+    await rawAdapter.updateAnnotation(id, { ...stamp, rect: at });
+    const saved = await rawAdapter.save(id);
+    expect(saved.byteLength).toBeLessThan(firstMove * 1.2);
+    const reopened = sid(`doc-${++counter}`);
+    await rawAdapter.open(reopened, saved);
+    expect(await redPixels(rawAdapter, reopened, at)).toBeGreaterThan(1000);
+    await rawAdapter.close(reopened);
+    await rawAdapter.close(id);
+  });
+
+  test('a moved or restyled stamp keeps its place in the z-order and its comment', async () => {
+    const id = await openBlank(1, rawAdapter);
+    const stamp = await rawAdapter.createAnnotation(id, {
+      kind: 'stamp',
+      pageIndex: 0,
+      rect: { x: 100, y: 100, width: 60, height: 60 },
+      imageBlob: pngBlob(),
+    });
+    await rawAdapter.createAnnotation(id, {
+      kind: 'ink',
+      pageIndex: 0,
+      rect: ZERO_RECT,
+      paths: [
+        [
+          { x: 90, y: 90 },
+          { x: 170, y: 170 },
+        ],
+      ],
+      strokeWidth: 4,
+      color: '#000000',
+    });
+    const kinds = async (doc: ReturnType<typeof sid>) =>
+      (await rawAdapter.listAnnotations(doc, 0)).map((a) => a.kind);
+    expect(await kinds(id)).toEqual(['stamp', 'ink']);
+    const restyled = await rawAdapter.updateAnnotation(id, {
+      ...stamp,
+      opacity: 0.6,
+      contents: 'Signed here',
+    });
+    expect(restyled).toMatchObject({ id: stamp.id, opacity: 0.6, contents: 'Signed here' });
+    expect(await kinds(id)).toEqual(['stamp', 'ink']);
+    await rawAdapter.updateAnnotation(id, {
+      ...restyled,
+      rect: { x: 200, y: 200, width: 60, height: 60 },
+    });
+    expect(await kinds(id)).toEqual(['stamp', 'ink']);
+    const reopened = sid(`doc-${++counter}`);
+    const saved = await rawAdapter.save(id);
+    // Listing reads a stamp's opacity from what the adapter keeps, so check the saved /CA.
+    const annots = (await PDFDocument.load(saved))
+      .getPage(0)
+      .node.lookup(PDFName.of('Annots')) as PDFArray;
+    expect((annots.lookup(0) as PDFDict).lookup(PDFName.of('CA'))?.toString()).toBe('0.6');
+    await rawAdapter.open(reopened, saved);
+    const listed = await rawAdapter.listAnnotations(reopened, 0);
+    expect(listed.map((a) => a.kind)).toEqual(['stamp', 'ink']);
+    expect(listed[0]).toMatchObject({ contents: 'Signed here' });
+    expectRect(listed[0]?.rect, { x: 200, y: 200, width: 60, height: 60 });
+    await rawAdapter.close(reopened);
+    await rawAdapter.close(id);
+  });
+
+  test('moved ink and text boxes still draw (the move path a stamp shares)', async () => {
+    const id = await openBlank();
+    const ink = await adapter.createAnnotation(id, {
+      kind: 'ink',
+      pageIndex: 0,
+      rect: { x: 0, y: 0, width: 0, height: 0 },
+      paths: [
+        [
+          { x: 100, y: 100 },
+          { x: 150, y: 150 },
+        ],
+      ],
+      strokeWidth: 6,
+      color: '#FF0000',
+    });
+    const box = await adapter.createAnnotation(id, {
+      kind: 'free-text',
+      pageIndex: 0,
+      rect: { x: 100, y: 300, width: 160, height: 40 },
+      text: 'WWWW',
+      fontSize: 28,
+      textColor: '#FF0000',
+    });
+    const dx = 250;
+    const dy = 200;
+    if (ink.kind !== 'ink' || box.kind !== 'free-text') throw new Error('unexpected kinds');
+    // What a drag commits (geometry.ts translateAnnotation): the rect and the paths moved.
+    await adapter.updateAnnotation(id, {
+      ...ink,
+      rect: { ...ink.rect, x: ink.rect.x + dx, y: ink.rect.y + dy },
+      paths: ink.paths.map((path) => path.map((p) => ({ x: p.x + dx, y: p.y + dy }))),
+    });
+    await adapter.updateAnnotation(id, {
+      ...box,
+      rect: { ...box.rect, x: box.rect.x + dx, y: box.rect.y + dy },
+    });
+    const inkTo = { x: 100 + dx, y: 100 + dy, width: 50, height: 50 };
+    const boxTo = { ...box.rect, x: box.rect.x + dx, y: box.rect.y + dy };
+    expect(await redPixels(adapter, id, inkTo)).toBeGreaterThan(100);
+    expect(await redPixels(adapter, id, boxTo)).toBeGreaterThan(100);
+    const reopened = sid(`doc-${++counter}`);
+    await adapter.open(reopened, await adapter.save(id));
+    expect(await redPixels(adapter, reopened, inkTo)).toBeGreaterThan(100);
+    expect(await redPixels(adapter, reopened, boxTo)).toBeGreaterThan(100);
+    await adapter.close(reopened);
     await adapter.close(id);
   });
 

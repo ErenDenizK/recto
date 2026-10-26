@@ -408,6 +408,21 @@ export default defineConfig({
         // before the first paint by public/theme.js) take over in browsers that honour them.
         theme_color: '#08090c',
         background_color: '#08090c',
+        // "Open with" for installed Chromium (PRD-31, File Handling API; `src/files/launch-queue.ts`).
+        // Other browsers ignore the member.
+        file_handlers: [
+          {
+            action: base,
+            accept: {
+              'application/pdf': ['.pdf'],
+              'text/markdown': ['.md', '.markdown'],
+              'text/plain': ['.txt'],
+              'image/png': ['.png'],
+              'image/jpeg': ['.jpg', '.jpeg'],
+              'image/webp': ['.webp'],
+            },
+          },
+        ],
         // The Recto mark on its dark tile (docs/brand/README.md, brand plan §5.1; written by
         // tools/media `app-icons`): the rounded tile as `any`, the full-bleed tile as `maskable`.
         icons: [

@@ -444,9 +444,14 @@ test.describe('jobs through the frame', () => {
   test('J16: page numbers from the title menu (title ▾ · Page numbers…)', async ({ page }) => {
     await page.goto('./?lang=en');
     await openFixtures(page, ['simple-text.pdf']);
+    // The command needs pages (furniture-commands.ts): wait for the pill to count them, or the
+    // menu item does nothing on a slow engine.
+    await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ \d+ · /);
     await page.getByTestId('document-menu').click();
     await page.getByRole('menuitem', { name: 'Page numbers…' }).click();
-    await expect(page.getByTestId('furniture-dialog-page-numbers')).toBeVisible();
+    const sheet = page.getByTestId('furniture-dialog-page-numbers');
+    await expect(sheet).toBeVisible();
+    await atRest(sheet);
   });
 
   test('the Lock switch locks with "You locked it" and the tab shows the padlock', async ({

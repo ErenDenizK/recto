@@ -60,11 +60,12 @@ geometry lives once, in `apps/web/src/brand/mark.ts`; everything else is made fr
 
 `pnpm --filter @pdf-editor/media-tool app-icons` (`tools/media/lib/app-icons.ts`) writes all of
 them. The in-app mark is `BrandMark` (`apps/web/src/brand/BrandMark.tsx`): the gradient in both themes
-(`tone="auto"`; system-audit-2026-10 §3.9), the source's on dark and its light-ground twin on
+(`tone="auto"`; system-audit-2026-10 §3.9), the beam on dark and its light-ground twin on
 light, or always the dark gradient or one ink (`currentColor`).
 
-**Gradient.** Linear, from the bottom left to the top right at 46.75°: mint `#69EAA3` → lime
-`#CBFF5F` at 59 % → yellow lime `#EDFA6D`. In the 1024 frame it runs from (135.6, 912.1) to
+**Gradient (logo a2, DSN-11 amendment).** Linear, from the bottom left to the top right at
+46.75°: teal `#2FB3A8` → mint `#6EEDBB` at 59 % → lime `#C8FB3D`, the lighthouse beam. The shape
+is unchanged; the UI accent stays lime. In the 1024 frame it runs from (135.6, 912.1) to
 (835.8, 167.8) in user space, so the colours land where the source has them at any size.
 
 **Usage.**
@@ -72,8 +73,8 @@ light, or always the dark gradient or one ink (`currentColor`).
 - The gradient needs a dark ground (n1 to n4, or a photo darker than about 20 % luminance); it
   falls under 1.3:1 against white. On a light ground use the **light-ground gradient**
   (`MARK_GRADIENT_LIGHT` in `mark.ts`): the same ramp, angle and knee taken down in lightness,
-  mint `#178A6E` → lime `#4F8F12` at 59 % → yellow lime `#738A0C`, every stop at least 3.3:1 on
-  the light glass and 3.9:1 on white. The app draws it in the light theme; print and
+  teal `#0D5E57` → green `#136D5B` at 59 % → leaf `#3F8A2A`, every stop at least 3.7:1 on
+  the light glass and 4.3:1 on white. The app draws it in the light theme; print and
   one-colour reproduction still use the black mark.
 - Clear space: the source frame's margin, about 14 % of the mark's height on every side. Never
   smaller than 16 px; at 16 to 48 px use the tile (`favicon.ico`) or the glyph, never the mark on
