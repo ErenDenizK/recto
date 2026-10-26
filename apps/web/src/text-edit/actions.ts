@@ -16,6 +16,7 @@ import type {
   ParagraphEdit,
   ParagraphEditResult,
   ParagraphEditSpan,
+  ParagraphFrameChange,
   ParagraphLayout,
   TextEditFailure,
   TextEditRequest,
@@ -27,6 +28,7 @@ import { executeEdit, runAction } from '../annotations/edit-runner';
 import { m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { type EditRange, failureMessage, type FitChoice, historyLabel } from './model';
+import { pageRevision } from './runs';
 
 export interface TextEditCommit extends EditRange {
   readonly target: PageTarget;
@@ -110,6 +112,8 @@ export interface ParagraphCommit {
   readonly layout?: ParagraphLayout;
   /** What the editor told the user about it (the last dry run, else the layout): the label. */
   readonly honesty?: Pick<ParagraphEditResult, 'honesty' | 'substitutions'>;
+  /** Moves the paragraph and/or gives it another width (TXT-24). */
+  readonly frame?: ParagraphFrameChange;
 }
 
 export type ParagraphOutcome =
@@ -139,7 +143,34 @@ export function paragraphEditFor(commit: ParagraphCommit): ParagraphEdit {
     ...(commit.style === undefined ? {} : { style: commit.style }),
     ...(commit.spans === undefined ? {} : { spans: commit.spans }),
     ...(commit.layout === undefined ? {} : { layout: commit.layout }),
+    ...(commit.frame === undefined ? {} : { frame: commit.frame }),
   };
+}
+
+/** Why a paragraph cannot be moved or resized, for the user (TXT-24); undefined: not a frame refusal. */
+export function paragraphFrameRefusalLabel(reason: string | undefined): string | undefined {
+  switch (reason) {
+    case 'move-shared-object':
+      return m.paragraph_reason_move_shared_object();
+    case 'move-form-field':
+      return m.paragraph_reason_move_form_field();
+    case 'move-clipped':
+      return m.paragraph_reason_move_clipped();
+    case 'resize-direction':
+      return m.paragraph_reason_resize_direction();
+    default:
+      return undefined;
+  }
+}
+
+/** The history entry's label: a move or a resize without a text change, else the honesty. */
+function commitLabel(commit: ParagraphCommit): string {
+  const unchanged =
+    commit.text === commit.block.text && commit.caretSpan.start === commit.caretSpan.end;
+  if (commit.frame && unchanged) {
+    return commit.frame.measure ? m.paragraph_resize() : m.paragraph_move();
+  }
+  return paragraphHistoryLabel(commit.honesty);
 }
 
 /** Applies one paragraph edit as a history entry. Never rejects. */
@@ -164,7 +195,7 @@ export async function commitParagraphEdit(commit: ParagraphCommit): Promise<Para
         failure = error;
         return undefined;
       }
-      const written = paragraphHistoryLabel(commit.honesty);
+      const written = commitLabel(commit);
       return { edits: [done.recorded], label: written, value: written };
     });
   } catch (error) {
@@ -182,6 +213,30 @@ export async function commitParagraphEdit(commit: ParagraphCommit): Promise<Para
     message:
       engine.paragraphRefusalReason(failure) === 'off-page'
         ? m.paragraph_off_page()
-        : failureMessage(reason),
+        : (paragraphFrameRefusalLabel(engine.paragraphRefusalReason(failure)) ??
+          failureMessage(reason)),
   };
+}
+
+/**
+ * Moves a paragraph by `d` points of unrotated user space (the keyboard nudge, TXT-24) as one
+ * history entry, "Move paragraph". `revision` is the page revision the block was read at: a
+ * page that changed since refuses it (the block is stale). Never rejects.
+ */
+export async function commitParagraphMove(
+  target: PageTarget,
+  block: ParagraphBlock,
+  revision: number,
+  d: { readonly dx: number; readonly dy: number },
+): Promise<ParagraphOutcome> {
+  if (pageRevision(target.source, target.pageIndex) !== revision) {
+    return { ok: false, reason: 'stale-run', message: failureMessage('stale-run') };
+  }
+  return commitParagraphEdit({
+    target,
+    block,
+    text: block.text,
+    caretSpan: { start: 0, end: 0 },
+    frame: { dx: d.dx, dy: d.dy },
+  });
 }

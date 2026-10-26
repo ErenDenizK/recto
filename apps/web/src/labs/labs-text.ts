@@ -25,6 +25,11 @@ export const LABS_TEXT: Readonly<
   'phone-capsule': { title: m.labs_phone_capsule, hint: m.labs_phone_capsule_hint },
   textpre: { title: m.labs_textpre, hint: m.labs_textpre_hint },
   scan: { title: m.labs_scan, hint: m.labs_scan_hint },
+  'paragraph-frame': { title: m.labs_paragraph_frame, hint: m.labs_paragraph_frame_hint },
+  'paragraph-outlines': {
+    title: m.labs_paragraph_outlines,
+    hint: m.labs_paragraph_outlines_hint,
+  },
 };
 
 /** The names of a choice flag's values. */

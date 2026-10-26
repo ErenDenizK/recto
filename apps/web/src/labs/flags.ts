@@ -31,7 +31,9 @@ export type LabsKey =
   | 'drawer'
   | 'phone-capsule'
   | 'textpre'
-  | 'scan';
+  | 'scan'
+  | 'paragraph-frame'
+  | 'paragraph-outlines';
 
 export type LabsEdition = 'full' | 'compact' | 'all';
 
@@ -112,6 +114,8 @@ export const LABS_FLAGS: readonly LabsFlag[] = [
   sw('phone-capsule', 'phonebar', 'compact', 'prototype'),
   sw('textpre', 'textpre', 'all', 'prototype'),
   sw('scan', 'scan', 'all', 'prototype'),
+  sw('paragraph-frame', 'paraframe', 'full', 'prototype'),
+  sw('paragraph-outlines', 'paraoutlines', 'full', 'prototype'),
 ];
 
 /** Where a flag's value came from. */
