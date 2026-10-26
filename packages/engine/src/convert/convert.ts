@@ -182,7 +182,7 @@ export class ConvertSession {
       pageBlocks.push({ page: page.index, blocks, links: page.links ?? [], imagePaths });
       await slicer.tick('convert: layout');
     }
-    const style = styleModel(pageBlocks);
+    const style = options.textBlocks && options.style ? options.style : styleModel(pageBlocks);
     const renderOptions = {
       format,
       joinHyphens: options.joinHyphens ?? true,
@@ -280,7 +280,7 @@ export class ConvertSession {
       files,
       ...(zip ? { zip } : {}),
       report,
-      ...(options.textBlocks ? { textView } : {}),
+      ...(options.textBlocks ? { textView, style } : {}),
     };
   }
 }

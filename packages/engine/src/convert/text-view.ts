@@ -45,7 +45,13 @@ export function textViewPage(
     };
     if (c.kind === 'list-item' && block.marker && first) {
       const ordered = block.marker.ordered;
-      if (list && list.ordered !== ordered) list = undefined;
+      // A list of the other kind indented past the open list's first level is nested, not new.
+      if (
+        list &&
+        list.ordered !== ordered &&
+        first.box.x0 <= (list.lefts[0] ?? 0) + 0.5 * first.size
+      )
+        list = undefined;
       if (!list) {
         const items: TextViewListItem[] = [];
         list = { items, lefts: [], ordered };

@@ -2575,6 +2575,19 @@ export interface ConvertOptions {
   readonly baseName?: string;
   /** Also return the structured block model of every page (`ConvertResult.textView`, PRD-35). */
   readonly textBlocks?: boolean;
+  /**
+   * With `textBlocks`: the document's body and heading sizes (`AnalysisProxy.textStyle`), so a
+   * page-range chunk classifies headings as the whole document does (PRD-35). Without it the
+   * style is derived from the converted pages alone.
+   */
+  readonly style?: ConvertStyle;
+}
+
+/** Body size and heading size clusters of a document (see `styleModel`). */
+export interface ConvertStyle {
+  readonly bodySize: number | undefined;
+  /** Heading sizes, largest first (level = position + 1, capped at 4). */
+  readonly headingSizes: readonly number[];
 }
 
 export type ConvertBlockKind = 'heading' | 'paragraph' | 'list-item' | 'image';
@@ -2629,6 +2642,8 @@ export interface ConvertResult {
   /** A ZIP of `files` when there is more than one file; absent otherwise. */
   readonly zip?: Uint8Array;
   readonly report: ConvertReport;
+  /** The style the pages were classified with; only with `textBlocks`. */
+  readonly style?: ConvertStyle;
   /** The structured blocks per converted page, in page order; only with `textBlocks`. */
   readonly textView?: readonly TextViewPage[];
 }

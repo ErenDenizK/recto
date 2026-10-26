@@ -478,6 +478,51 @@ describe('text view blocks', () => {
     expect(numbers?.kind === 'list' && numbers.ordered).toBe(true);
   });
 
+  test('a chunk of only H2-sized headings is level 2 with the document style, level 1 without', async () => {
+    const body = page([
+      run('Body text that is long enough to be the body size, and then some more.', 72, 740),
+      run('More body text that keeps the body size the most common one here.', 72, 720),
+      run('The title', 72, 680, 24, 'Helvetica-Bold'),
+      run('Section', 72, 640, 16, 'Helvetica-Bold'),
+    ]);
+    const docStyle = (await convertPages([body], { textBlocks: true })).style!;
+    expect(docStyle.headingSizes).toEqual([24, 16]);
+    const chunk = [
+      page([
+        run('Another section', 72, 700, 16, 'Helvetica-Bold'),
+        run('Body text again, long enough to count as the body.', 72, 660),
+      ]),
+    ];
+    const level = async (style?: typeof docStyle) => {
+      const { textView } = await convertPages(chunk, {
+        textBlocks: true,
+        ...(style ? { style } : {}),
+      });
+      const h = textView![0]!.blocks.find((b) => b.kind === 'heading');
+      return h?.kind === 'heading' ? h.level : undefined;
+    };
+    expect(await level(docStyle)).toBe(2);
+    expect(await level()).toBe(1);
+  });
+
+  test('an ordered list nested in a bullet list keeps its depth', async () => {
+    const { textView } = await convertPages(
+      [
+        page([
+          run('Body text that is long enough to be the body size.', 72, 740),
+          run('• First item', 72, 700),
+          run('1. Nested one', 90, 686),
+          run('2. Nested two', 90, 672),
+        ]),
+      ],
+      { textBlocks: true },
+    );
+    const blocks = textView![0]!.blocks;
+    expect(blocks.map((b) => b.kind)).toEqual(['paragraph', 'list']);
+    const list = blocks[1];
+    expect(list?.kind === 'list' && list.items.map((i) => i.depth)).toEqual([0, 1, 1]);
+  });
+
   test('a page without text is flagged for OCR and has no text blocks', async () => {
     const { textView } = await convertPages(
       [page([run('Some text on page one, long enough.', 72, 700)]), page([])],
@@ -492,7 +537,7 @@ describe('text view blocks', () => {
     expect(textView![0]!.needsOcr).toBe(false);
   });
 
-  test('AnalysisProxy.textBlocks goes through convertDocument with the page range', async () => {
+  test('convertDocument with textBlocks on the local backend honours the page range', async () => {
     const id = sid(`tv-${++fixtureCounter}`);
     const opened = await h.adapter.open(id, await (await fetch(markdownUrl)).arrayBuffer());
     const engine = {
