@@ -16,8 +16,10 @@
 import type { OutlineNode, VirtualDocument } from '@pdf-editor/document-model';
 import type { NoteAnnotation } from '@pdf-editor/engine';
 import {
+  lazy,
   type ReactNode,
   type RefObject,
+  Suspense,
   type SyntheticEvent,
   useId,
   useRef,
@@ -36,7 +38,6 @@ import {
   m,
   subscribeLocale,
 } from '../../i18n';
-import { LabsSection } from '../../labs/LabsSection';
 import { RevealTap } from '../../labs/RevealTap';
 import { useLabsVisible } from '../../labs/store';
 import { DimPagesRow } from '../../settings/DimPagesRow';
@@ -60,6 +61,11 @@ import controls from './controls.module.css';
 import styles from './CompactSheets.module.css';
 import { jumpTo } from './jump';
 import { noteDate } from './NoteLayer';
+
+/** The Labs panel loads only once revealed, outside the read session (PF-23). */
+const LabsSection = lazy(() =>
+  import('../../labs/LabsSection').then((mod) => ({ default: mod.LabsSection })),
+);
 
 export default function CompactMoreSheets({
   doc,
@@ -159,7 +165,11 @@ function SettingsSheet({ open }: { readonly open: boolean }) {
           <Section title={m.settings_section_language()}>
             <LanguageRow />
           </Section>
-          {labsVisible ? <LabsSection /> : null}
+          {labsVisible ? (
+            <Suspense fallback={null}>
+              <LabsSection />
+            </Suspense>
+          ) : null}
           <Section title={null} label={aboutTitle}>
             <NavRow
               id="about"
