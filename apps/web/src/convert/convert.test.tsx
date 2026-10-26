@@ -65,6 +65,7 @@ describe('choices', () => {
       pages: 1,
       pagesWithoutText: [],
       headings: 0,
+      headingList: [],
       paragraphs: 1,
       listItems: 0,
       images: 0,

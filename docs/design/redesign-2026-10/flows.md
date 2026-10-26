@@ -7,9 +7,9 @@ status: proposed
 > Wave 2 of the M9 redesign. This file turns the lead's fourteen binding decisions of
 > 2026-10-04 into the one interaction model M9 builds: Proposal A's model, the owner judge's
 > surface graft from Proposal C, and named parts of B and C. Inputs: the three proposals in
-> [`proposals/`](proposals/), the judges' verdicts (build: A 53, C 40, B 31; owner: C 53, A 51,
-> B 46; power: A 55, C 51, B 45), [`language.md`](language.md), [`current-flows.md`](current-flows.md)
-> (J1–J16, F-1…F-15, FL-R1…FL-R10), [`inventory.md`](inventory.md) (INV-*), the baseline frames and
+> [`proposals/`](../../archive/design/redesign-2026-10/proposals/), the judges' verdicts (build: A 53, C 40, B 31; owner: C 53, A 51,
+> B 46; power: A 55, C 51, B 45), [`language.md`](language.md), [`current-flows.md`](../../archive/design/redesign-2026-10/current-flows.md)
+> (J1–J16, F-1…F-15, FL-R1…FL-R10), [`inventory.md`](../../archive/design/redesign-2026-10/inventory.md) (INV-*), the baseline frames and
 > research 15–22. Code facts are from `develop` at `0ac4506`. No web search was used.
 > **(judgement)** marks claims that rest on the author's judgement. Step counts follow
 > `current-flows.md` §1 and apply every correction the judges reported (§8.3).

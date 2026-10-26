@@ -57,8 +57,8 @@ A **document workspace**:
    `research/04-feature-feasibility.md`.
 3. **One workspace, not forty tools.** Every capability is an action on the document you
    already have open. No upload/download round trips between operations.
-4. **Non-generic, quiet design.** Dark by default, tonal surfaces with hairline borders,
-   one accent color, restrained translucency only for floating chrome. See `DESIGN.md`.
+4. **Non-generic, quiet design.** A light and a dark theme (System by default), content solid and
+   controls glass, one accent color. See `docs/design/redesign-2026-10/language.md`.
 5. **Honest UI.** When we substitute a font, cannot gain compression, repaired a broken
    file, or stripped an XFA form, the user is told before they commit.
 6. **No monetization friction, ever.** No accounts, quotas, upsell banners, "pro"
@@ -70,7 +70,9 @@ A **document workspace**:
 ## Non-goals (for now)
 
 - Server-side processing of any kind.
-- Office <-> PDF conversion (no client-side layout engine with acceptable fidelity).
+- PDF to Office conversion, and Office to PDF outside desktop and tablet. Office to PDF exists on
+  desktop and tablet only, behind a flag and after a one-time download of LibreOffice compiled to
+  WebAssembly (PRD-18, ADR-0035); it never leaves the device.
 - Certified PDF/A conversion (cannot be validated client-side; we will not claim it).
 - Collaboration via a cloud (annotation export/import as files instead).
 - Native desktop apps (a Tauri wrapper is a v3 consideration, not a goal).

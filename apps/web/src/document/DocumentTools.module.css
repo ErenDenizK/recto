@@ -2,54 +2,9 @@
 
 /* ---- Info section ---- */
 
-.metadata,
-.security,
-.custom,
 .diag {
   display: grid;
   gap: var(--space-2);
-}
-
-.fields {
-  display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  align-items: start;
-  gap: var(--space-2) var(--space-3);
-  font-size: var(--type-footnote);
-}
-
-.fieldLabel {
-  overflow: hidden;
-  color: var(--glass-text-secondary);
-  font-size: var(--type-footnote);
-  /* One line as tall as the well beside it, so the label sits on the field's centre line. */
-  line-height: var(--control-h);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fieldControl {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.fieldRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  min-width: 0;
-}
-
-/* The fields are ui/Field.module.css's wells; a custom key's well grows beside its ✕. */
-.fieldRow > :first-child {
-  flex: 1;
-}
-
-.readonly {
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-  line-height: var(--control-h);
 }
 
 .note {
@@ -80,20 +35,6 @@
   font-size: var(--type-footnote);
   font-weight: var(--weight-semibold);
   line-height: var(--type-footnote-lh);
-}
-
-.custom {
-  padding-top: var(--space-2);
-}
-
-.addKey {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
-  gap: var(--space-2);
-}
-
-.addKey .error {
-  grid-column: 1 / -1;
 }
 
 .buttons {
