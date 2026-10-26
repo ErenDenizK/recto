@@ -31,6 +31,8 @@ import { Menu } from '@base-ui/react/menu';
 import type { VirtualDocument } from '@pdf-editor/document-model';
 import {
   type KeyboardEvent,
+  lazy,
+  Suspense,
   type SyntheticEvent,
   useEffect,
   useLayoutEffect,
@@ -86,9 +88,13 @@ import {
   stripPreview,
 } from '../frame/strip/strip-hold';
 import { CompactTopSplit } from './CompactTopSplit';
-import { PhoneCapsule } from './PhoneCapsule';
 import { phoneCapsule } from './phone-capsule-flag';
 import { topVariant } from './top-variant';
+
+/** The single capsule (EDN-24) loads only when its Labs switch is on, outside the read session (PF-23). */
+const PhoneCapsule = lazy(() =>
+  import('./PhoneCapsule').then((mod) => ({ default: mod.PhoneCapsule })),
+);
 
 /** The container transform's popup class (`ui/container-transform.ts`, not imported here). */
 const CONTAINER_POPUP = 'ct-popup';
@@ -505,7 +511,13 @@ function FindBar({
  * page so the branch never changes under the reader; otherwise the shipped one, unchanged.
  */
 export function CompactCapsule({ doc }: { readonly doc: VirtualDocument }) {
-  return phoneCapsule() ? <PhoneCapsule doc={doc} /> : <ShippedCapsule doc={doc} />;
+  return phoneCapsule() ? (
+    <Suspense fallback={null}>
+      <PhoneCapsule doc={doc} />
+    </Suspense>
+  ) : (
+    <ShippedCapsule doc={doc} />
+  );
 }
 
 function ShippedCapsule({ doc }: { readonly doc: VirtualDocument }) {
