@@ -11,6 +11,7 @@
  *   that ends an opening press is swallowed (`consumeStripClick`).
  * - **Keys:** ArrowUp on the trigger opens it for the keyboard (a listbox, `PageStrip.tsx`).
  */
+import { labsStored } from '../../../labs/stored';
 import { lazyModule } from '../../../motion/lazy';
 
 const QUERY_PARAM = 'strip';
@@ -34,7 +35,7 @@ export function stripEnabled(): boolean {
   } catch {
     // Storage blocked: the address alone decides.
   }
-  enabled = asked === '1' || (asked !== '0' && stored === '1');
+  enabled = asked === '1' || (asked !== '0' && labsStored('strip', stored) === '1');
   return enabled;
 }
 

@@ -10,6 +10,7 @@
  *   site data) only drops the keeping.
  * - Read once, when the editing chunk first asks.
  */
+import { labsStored } from '../../../labs/stored';
 
 export type DrawerVariant = 'tiles' | 'list';
 
@@ -41,7 +42,7 @@ export function drawerVariant(): DrawerVariant {
     stored = null;
   }
   const search = window.location.search;
-  chosen = decideDrawerVariant(search, stored);
+  chosen = decideDrawerVariant(search, labsStored('drawer', stored));
   if (isVariant(new URLSearchParams(search).get(DRAWER_QUERY_PARAM))) {
     try {
       storage?.setItem(DRAWER_SESSION_KEY, chosen);

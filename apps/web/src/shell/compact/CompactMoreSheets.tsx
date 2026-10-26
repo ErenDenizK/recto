@@ -6,7 +6,7 @@
  * code audit 2026-10 §4a; the bundle gate, PRC-11): `CompactSheets` prefetches this module once
  * the browser is idle and fetches it at once when a sheet or a password is asked for.
  *
- * **Settings** (the gear, DSN-53): Theme (ADR-0022 §2.4, spec D3-7), Reduce motion (language.md
+ * **Settings** (the gear, DSN-53; Labs, DSN-82, shows after the version is tapped five times): Theme (ADR-0022 §2.4, spec D3-7), Reduce motion (language.md
  * §7.6, A-9) and Dim pages (DESIGN.md §3, MOB-17), the full edition's own rows
  * (`settings/ThemeRow.tsx`, `settings/ReduceMotionRow.tsx`, `settings/DimPagesRow.tsx`, the same
  * `appearance-store` fields), then Language (DSN-46): English · Türkçe, each name in its own
@@ -36,6 +36,9 @@ import {
   m,
   subscribeLocale,
 } from '../../i18n';
+import { LabsSection } from '../../labs/LabsSection';
+import { RevealTap } from '../../labs/RevealTap';
+import { useLabsVisible } from '../../labs/store';
 import { DimPagesRow } from '../../settings/DimPagesRow';
 import { ReduceMotionRow } from '../../settings/ReduceMotionRow';
 import { ThemeRow } from '../../settings/ThemeRow';
@@ -128,6 +131,7 @@ function Note({ note }: { readonly note: NoteAnnotation }) {
 
 function SettingsSheet({ open }: { readonly open: boolean }) {
   const [about, setAbout] = useState(false);
+  const labsVisible = useLabsVisible();
   const [wasOpen, setWasOpen] = useState(open);
   // Every opening starts on Settings.
   if (open !== wasOpen) {
@@ -155,6 +159,7 @@ function SettingsSheet({ open }: { readonly open: boolean }) {
           <Section title={m.settings_section_language()}>
             <LanguageRow />
           </Section>
+          {labsVisible ? <LabsSection /> : null}
           <Section title={null} label={aboutTitle}>
             <NavRow
               id="about"
@@ -428,7 +433,7 @@ function About() {
       <p className={styles.aboutStatement}>{m.about_files_local()}</p>
       <dl className={styles.facts}>
         <Fact label={m.about_version()} testId="compact-about-version">
-          {BUILD_INFO.version}
+          <RevealTap>{BUILD_INFO.version}</RevealTap>
         </Fact>
         <Fact label={m.about_build_date()} testId="compact-about-date">
           {built}

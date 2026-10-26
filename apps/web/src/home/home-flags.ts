@@ -7,30 +7,38 @@
  * Each flag has its own word; `?open=0` and `?home=0` turn it off again. The choice is kept in
  * `localStorage`; when storage is unavailable it lasts as long as the address carries it.
  */
+import { labsStored } from '../labs/stored';
+
 export interface HomeFlag {
+  /** Its key in the Labs registry (`labs/flags.ts`, DSN-82). */
+  readonly labs: string;
   readonly param: string;
   readonly on: string;
   readonly key: string;
 }
 
 export const OPEN_PAGE_FLAG: HomeFlag = {
+  labs: 'open-page',
   param: 'open',
   on: 'page',
   key: 'pdf-editor:open-page:v1',
 };
 /** R26 concept 2, DSN-64: the open moment (`library-transition.ts` `openInLight`). */
 export const OPEN_LIGHT_FLAG: HomeFlag = {
+  labs: 'open-light',
   param: 'open',
   on: 'light',
   key: 'pdf-editor:open-light:v1',
 };
 export const HOME_SEARCH_FLAG: HomeFlag = {
+  labs: 'home-search',
   param: 'home',
   on: 'search',
   key: 'pdf-editor:home-search:v1',
 };
 
 export const HOME_CONTINUE_FLAG: HomeFlag = {
+  labs: 'home-continue',
   param: 'home',
   on: 'continue',
   key: 'pdf-editor:home-continue:v1',
@@ -55,5 +63,5 @@ export function homeFlagEnabled(flag: HomeFlag): boolean {
   } catch {
     // Storage blocked: the address alone decides.
   }
-  return decideHomeFlag(flag, location.search, stored);
+  return decideHomeFlag(flag, location.search, labsStored(flag.labs, stored));
 }
