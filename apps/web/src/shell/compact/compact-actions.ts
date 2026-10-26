@@ -41,6 +41,7 @@ import { flushSession, isDocumentChanged, reopenFromSnapshot } from '../../sessi
 import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
 import { useViewStore } from '../../state/view-store';
 import { clearSearch } from '../../viewer/search';
+import { toast } from '../../ui/Toast/toast';
 import { announce } from '../announcer';
 import { showReader, useCompactStore } from './compact-store';
 
@@ -412,4 +413,7 @@ export async function shareOrDownload(how: 'share' | 'download' = 'share'): Prom
     }
   }
   downloadFile(file);
+  // The same confirmation the desktop's Download a copy gives (`files/save.ts`), in the phone's
+  // toast stack: a download link says nothing on its own.
+  toast.info(m.save_downloaded({ name: file.name }), { testId: 'save-toast' });
 }
