@@ -10,6 +10,9 @@
  * the island steps away for the keyboard's Done (`keyboard.ts`). The field is laid out at
  * 16 px at least (`setMinFieldFontPx`), so iOS never zooms the page as it takes focus
  * (ux-references §5 row 6); the mark chunk loads only in the compact edition.
+ *
+ * `Tray` is the single capsule's tray (`TextTray.tsx`, EDN-24): the Edit text switch, then the
+ * same `TextOptions`; the drawer keeps `Options`.
  */
 import { setMinFieldFontPx } from '../../../annotations/InlineEditors';
 import { m } from '../../../i18n';
@@ -19,6 +22,7 @@ import { registerCompactTool } from './registry';
 import { TextLayer } from './TextLayer';
 import { FIELD_MIN_PX } from './text-presets';
 import { TextOptions } from './TextOptions';
+import { TextTray } from './TextTray';
 
 setMinFieldFontPx(FIELD_MIN_PX);
 
@@ -29,6 +33,7 @@ registerCompactTool({
   place: 'tile',
   order: 30,
   Options: TextOptions,
+  Tray: TextTray,
   arm: () => useToolStore.getState().setMode('text-box'),
 });
 

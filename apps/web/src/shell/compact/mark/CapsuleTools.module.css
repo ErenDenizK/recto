@@ -1,0 +1,118 @@
+/*
+ * The single capsule's editing content (CapsuleTools.tsx; EDN-24): inside the capsule's M2 glass
+ * on the 56 px row, 44 px targets (Q-9). The capsule's own 2 px gap and 6 px padding place them:
+ * Undo 44, hairline, four tools of 44 with 2 px between, hairline, Done, about 324 px (plan
+ * "Widths"). Done is the one lime; the pressed tool takes only `--surface-active` (a state fill
+ * behind primary glyphs on M2, language.md §2.6).
+ */
+button.undo,
+button.tool {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  color: var(--text-primary);
+}
+
+button.undo[aria-disabled='true'] {
+  color: var(--text-disabled);
+}
+
+.rule {
+  flex: none;
+  width: 1px;
+  height: 20px;
+  background: var(--border-hairline);
+}
+
+.group {
+  position: relative;
+  display: flex;
+  flex: none;
+  gap: 2px;
+}
+
+/* A tool is quiet in the secondary colour; the pressed one is primary over the wash. */
+.group .tool[data-size] {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.group .tool[data-size][aria-pressed='true'] {
+  background: transparent;
+  color: var(--text-primary);
+}
+
+/* The wash: one circle under the pressed tool. Its place is a rule of the group's index, so
+   nothing is inline at rest (Q-2); it slides on the transform alone (MOT-14). */
+.wash {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-capsule);
+  background: var(--surface-active);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--spring-smooth) var(--ease-spring),
+    opacity var(--duration-fast) var(--ease-out);
+}
+
+.group[data-armed] .wash {
+  opacity: 1;
+}
+
+.group[data-index='1'] .wash {
+  transform: translateX(46px);
+}
+
+.group[data-index='2'] .wash {
+  transform: translateX(92px);
+}
+
+.group[data-index='3'] .wash {
+  transform: translateX(138px);
+}
+
+/* Done (ui/Button, prominent): the view's one primary action, lime. */
+.done {
+  flex: none;
+  min-width: 64px;
+  height: 44px;
+  padding: 0 var(--space-4);
+  font-size: var(--type-body);
+  font-weight: 600;
+  line-height: var(--type-body-lh);
+}
+
+.doneIcon {
+  display: none;
+}
+
+/* Under 350 px the capsule gives up Done's word for a check (plan "Widths"); its name stays. */
+@media (max-width: 349px) {
+  .done {
+    min-width: 44px;
+    padding: 0;
+  }
+
+  .doneText {
+    display: none;
+  }
+
+  .doneIcon {
+    display: block;
+  }
+}
+
+/* Reduced motion: the wash fades in place; it does not travel (A-9). */
+@media (prefers-reduced-motion: reduce) {
+  .wash {
+    transition: opacity var(--duration-fast) var(--ease-out);
+  }
+}
+
+:global(:root[data-motion='reduced']) .wash {
+  transition: opacity var(--duration-fast) var(--ease-out);
+}

@@ -1409,8 +1409,9 @@ describe('tokens.css', () => {
       // The drawer's list variant (EDN-16), its own floating panel over the island: one more.
       // The phone reader's split top (DSN-34), its glass circles in their own module: one more.
       // The phone's note popover becomes the phone sheet (DSN-53): one fewer.
-      // The page strip (R26, DSN-63) floats in a module of its own: one more.
-      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(31);
+      // The page strip (R26, DSN-63) floats in a module of its own: one more. The single
+      // capsule's tray and Redo chip (EDN-24, `?phonebar=1`) are modules of their own: two more.
+      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(33);
       // The capsule at the one piece height (G1): σ 8 at 40 px, 9 at 48 coarse.
       expect(entryClasses(COVERAGE_REGISTRY[0] as GlassSurfaceEntry)).toEqual([
         'mat',

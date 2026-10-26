@@ -58,6 +58,13 @@ describe('the tool registry', () => {
     expect(compactTool('sign')).toBe(stub);
   });
 
+  it('keeps a tool’s own tray beside its options (EDN-24)', () => {
+    const Tray = () => null;
+    registerCompactTool(spec({ id: 'text', Tray }));
+    expect(compactTool('text')?.Tray).toBe(Tray);
+    expect(compactTool('text')?.Options).toBeUndefined();
+  });
+
   it('the chip off has no spec', () => {
     registerCompactTool(spec({ id: 'pen' }));
     expect(compactTool(null)).toBeUndefined();

@@ -62,6 +62,14 @@ describe('resolveFlag', () => {
     expect(decideHomeFlag(HOME_SEARCH_FLAG, '?home=0', '1')).toBe(false);
   });
 
+  it('resolves the phone capsule: the address, then Labs, off by default', () => {
+    const capsule = flag('phone-capsule');
+    expect(resolveFlag(capsule, '', {}, null)).toEqual({ value: '0', source: 'default' });
+    expect(resolveFlag(capsule, '?phonebar=1', {}, null)).toEqual({ value: '1', source: 'url' });
+    expect(resolveFlag(capsule, '', { 'phone-capsule': '1' }, null).source).toBe('labs');
+    expect(resolveFlag(capsule, '?phonebar=0', { 'phone-capsule': '1' }, null).value).toBe('0');
+  });
+
   it('lists every parameter once per key', () => {
     expect(new Set(LABS_FLAGS.map((f) => f.key)).size).toBe(LABS_FLAGS.length);
   });
@@ -73,6 +81,8 @@ describe('anyFlagOnByAddress', () => {
     expect(anyFlagOnByAddress('?tools=0&top=split')).toBe(false);
     expect(anyFlagOnByAddress('?tools=1')).toBe(true);
     expect(anyFlagOnByAddress('?top=capsule')).toBe(true);
+    expect(anyFlagOnByAddress('?phonebar=1')).toBe(true);
+    expect(anyFlagOnByAddress('?phonebar=0')).toBe(false);
   });
 });
 

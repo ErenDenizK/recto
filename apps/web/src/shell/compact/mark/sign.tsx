@@ -32,6 +32,7 @@ import styles from './sign.module.css';
 
 const loadOptions = () => import('./sign-options');
 const LazyOptions = lazy(loadOptions);
+const LazyTray = lazy(() => loadOptions().then((module) => ({ default: module.SignTray })));
 const LazyHost = lazy(() => import('./new-signature'));
 
 /** The drawer's second row for Sign; a row's height of room while its chunk arrives. */
@@ -39,6 +40,15 @@ function SignOptions() {
   return (
     <Suspense fallback={<div className={styles.loading} aria-busy="true" />}>
       <LazyOptions />
+    </Suspense>
+  );
+}
+
+/** The single capsule's tray for Sign (EDN-24); a tray's height of room while its chunk arrives. */
+function SignTrayContent() {
+  return (
+    <Suspense fallback={<div className={styles.loading} aria-busy="true" />}>
+      <LazyTray />
     </Suspense>
   );
 }
@@ -99,6 +109,7 @@ registerCompactTool({
   place: 'tile',
   order: 40,
   Options: SignOptions,
+  Tray: SignTrayContent,
   arm: () => {
     useToolStore.getState().setMode('select');
     void loadOptions().then((module) => module.loadSignatures());

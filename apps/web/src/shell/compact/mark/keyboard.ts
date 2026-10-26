@@ -92,10 +92,19 @@ function bottomOf(selector: string): number {
   return Math.max(0, el.getBoundingClientRect().bottom);
 }
 
-function topOf(selector: string): number | undefined {
-  const el = document.querySelector(selector);
-  if (!el || el.hasAttribute('data-hidden')) return undefined;
-  return el.getBoundingClientRect().top;
+/**
+ * The top of the highest piece of the bottom chrome: the capsule, and what stands above it (the
+ * single capsule's tray and Redo chip, `[data-compact-above-capsule]`, EDN-24).
+ */
+function chromeTop(): number | undefined {
+  let top: number | undefined;
+  for (const el of document.querySelectorAll(
+    '[data-testid="compact-capsule"],[data-compact-above-capsule]',
+  )) {
+    if (!el.hasAttribute('data-hidden'))
+      top = Math.min(top ?? Infinity, el.getBoundingClientRect().top);
+  }
+  return top;
 }
 
 /** Reads the viewport and the chrome; writes the variables. */
@@ -109,7 +118,7 @@ function read(): KeyboardState {
   const top = Math.max(viewTop, bottomOf('[data-testid="compact-top-bar"]'));
   // Typing: the band ends above the keyboard's Done; else above the island, if it shows.
   const doneTop = layoutHeight - Math.max(inset, 0) - ACCESSORY_GAP - ACCESSORY_HEIGHT;
-  const islandTop = topOf('[data-testid="compact-capsule"]') ?? layoutHeight;
+  const islandTop = chromeTop() ?? layoutHeight;
   const bottom = typing ? doneTop - ACCESSORY_GAP : Math.min(layoutHeight - inset, islandTop);
   const set = (name: string, value: string) => {
     if (root.style.getPropertyValue(name) !== value) root.style.setProperty(name, value);

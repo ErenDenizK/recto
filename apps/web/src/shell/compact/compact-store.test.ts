@@ -17,6 +17,8 @@ import {
   setCompactTool,
   setDrawerOpen,
   setFindOverTop,
+  setTrayOpen,
+  setTyping,
   showLibrary,
   toggleChrome,
   toolTakesPage,
@@ -85,6 +87,23 @@ describe('editing mode', () => {
     setDrawerOpen(true);
     showLibrary();
     expect(state()).toMatchObject({ editing: false, tool: null, drawerOpen: false });
+  });
+
+  it('the tray (EDN-24) closes on begin, end and the Library, and survives typing', () => {
+    expect(state().trayOpen).toBe(false);
+    beginEditing('pen');
+    setTrayOpen(true);
+    setTyping(true);
+    setTyping(false);
+    expect(state().trayOpen).toBe(true);
+    endEditing();
+    expect(state().trayOpen).toBe(false);
+    setTrayOpen(true);
+    beginEditing(null);
+    expect(state().trayOpen).toBe(false);
+    setTrayOpen(true);
+    showLibrary();
+    expect(state().trayOpen).toBe(false);
   });
 });
 
