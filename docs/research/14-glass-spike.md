@@ -4,6 +4,8 @@ date: 2026-10-03
 status: skeleton (measured values pending the owner's machine)
 ---
 
+> **Snapshot.** Superseded by the glass decisions GLS-20 and GLS-21 in [`docs/process/decisions.md`](../process/decisions.md) and ADR-0024; read it as the record of what was known then.
+
 > Spike S2 of `docs/specs/craft.md` §7, prepared on 2026-10-03 against the G1 implementation
 > (full-bleed Read stage, three glass tiers, the "Glass panels" and "Reduce transparency"
 > settings). The contrast results are final: they are computed by
