@@ -202,6 +202,9 @@ export default defineConfig(
     'docs/family/kit/',
     // The Office conversion package, fetched from npm by packages/engine/office/fetch.ts.
     'packages/engine/office/vendor/',
+    // Colour audit harness: loosely typed measurement scripts run by Node, not shipped
+    // (tools/colour-audit/README.md).
+    'tools/colour-audit/',
   ]),
 
   // Baseline for every file.

@@ -123,6 +123,31 @@
   "announce_outline_destination": "“{title}” now points at page {label}",
   "announce_outline_dead_removed": "Removed dead bookmarks",
   "cmd_outline_add": "Add bookmark at current view",
+  "cmd_outline_from_headings": "Add bookmarks from headings",
+  "history_outline_from_headings": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Add {count} bookmark from headings",
+        "countPlural=*": "Add {count} bookmarks from headings"
+      }
+    }
+  ],
+  "announce_outline_from_headings": [
+    {
+      "declarations": ["input count", "input shortcut", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Added {count} bookmark from headings. Undo with {shortcut}",
+        "countPlural=*": "Added {count} bookmarks from headings. Undo with {shortcut}"
+      }
+    }
+  ],
+  "outline_from_headings_pending": "Reading headings…",
+  "outline_from_headings_changed": "The pages changed while reading. Try again.",
+  "outline_from_headings_none": "No headings found in this document.",
+  "outline_from_headings_failed": "Could not read the headings of this document.",
   "cmd_outline_remove_dead": "Remove dead bookmarks",
   "shortcuts_outline_move": "Move a bookmark up, down, in or out",
   "shortcuts_outline_rename": "Rename a bookmark",

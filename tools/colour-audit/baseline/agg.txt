@@ -1,0 +1,348 @@
+variants 172 samples 6276 counted 5012 errors []
+states per vp desk:17 tablet:17 phone:9
+excluded: behind 600 covered 364 disabled 200 gradient/transparent 140
+unsettled variants 
+
+PASS RATES (text AA/AAA at the median pixel; worst = every pixel; icons 3:1)
+ALL {"text":2876,"AA":99.5,"AAA":87.7,"AAworstPx":99.5,"APCAbronze":95,"APCAlookup":24.8,"Lc90":48.1,"icons":2136,"icon3":99.8,"iconAPCA":98.4}
+desk dark no-preference {"text":340,"AA":99.7,"AAA":87.4,"AAworstPx":99.7,"APCAbronze":92.1,"APCAlookup":5.3,"Lc90":22.1,"icons":241,"icon3":100,"iconAPCA":93.8}
+desk dark more {"text":340,"AA":99.7,"AAA":87.6,"AAworstPx":99.7,"APCAbronze":93.8,"APCAlookup":5.3,"Lc90":35.9,"icons":241,"icon3":100,"iconAPCA":100}
+desk light no-preference {"text":340,"AA":99.4,"AAA":86.2,"AAworstPx":99.4,"APCAbronze":99.4,"APCAlookup":37.9,"Lc90":58.8,"icons":241,"icon3":99.6,"iconAPCA":99.6}
+desk light more {"text":340,"AA":99.4,"AAA":94.1,"AAworstPx":99.4,"APCAbronze":99.4,"APCAlookup":38.8,"Lc90":68.8,"icons":241,"icon3":99.6,"iconAPCA":99.6}
+tablet dark no-preference {"text":299,"AA":99.7,"AAA":86.3,"AAworstPx":99.7,"APCAbronze":90.3,"APCAlookup":8.7,"Lc90":28.1,"icons":235,"icon3":100,"iconAPCA":93.6}
+tablet dark more {"text":299,"AA":99.7,"AAA":87.3,"AAworstPx":99.7,"APCAbronze":93,"APCAlookup":8.7,"Lc90":39.8,"icons":235,"icon3":100,"iconAPCA":100}
+tablet light no-preference {"text":299,"AA":99.3,"AAA":84.6,"AAworstPx":99.3,"APCAbronze":98.3,"APCAlookup":45.2,"Lc90":59.9,"icons":235,"icon3":99.6,"iconAPCA":99.6}
+tablet light more {"text":299,"AA":99.3,"AAA":93.3,"AAworstPx":99.3,"APCAbronze":99.3,"APCAlookup":44.5,"Lc90":70.6,"icons":235,"icon3":99.6,"iconAPCA":99.6}
+phone dark no-preference {"text":80,"AA":100,"AAA":68.8,"AAworstPx":100,"APCAbronze":71.3,"APCAlookup":20,"Lc90":32.5,"icons":58,"icon3":100,"iconAPCA":100}
+phone dark more {"text":80,"AA":100,"AAA":87.5,"AAworstPx":100,"APCAbronze":93.8,"APCAlookup":20,"Lc90":37.5,"icons":58,"icon3":100,"iconAPCA":100}
+phone light no-preference {"text":80,"AA":98.8,"AAA":77.5,"AAworstPx":98.8,"APCAbronze":93.8,"APCAlookup":35,"Lc90":57.5,"icons":58,"icon3":100,"iconAPCA":100}
+phone light more {"text":80,"AA":98.8,"AAA":93.8,"AAworstPx":98.8,"APCAbronze":98.8,"APCAlookup":43.8,"Lc90":72.5,"icons":58,"icon3":100,"iconAPCA":100}
+theme dark {"text":1438,"AA":99.7,"AAA":86.2,"AAworstPx":99.7,"APCAbronze":91.2,"APCAlookup":8.3,"Lc90":31.7,"icons":1068,"icon3":100,"iconAPCA":97.2}
+theme light {"text":1438,"AA":99.3,"AAA":89.2,"AAworstPx":99.3,"APCAbronze":98.8,"APCAlookup":41.2,"Lc90":64.5,"icons":1068,"icon3":99.6,"iconAPCA":99.6}
+contrast no-preference {"text":1438,"AA":99.5,"AAA":84.7,"AAworstPx":99.5,"APCAbronze":93.7,"APCAlookup":24.5,"Lc90":42.4,"icons":1068,"icon3":99.8,"iconAPCA":97}
+contrast more {"text":1438,"AA":99.5,"AAA":90.6,"AAworstPx":99.5,"APCAbronze":96.4,"APCAlookup":25,"Lc90":53.8,"icons":1068,"icon3":99.8,"iconAPCA":99.8}
+vp desk {"text":1360,"AA":99.6,"AAA":88.8,"AAworstPx":99.6,"APCAbronze":96.2,"APCAlookup":21.8,"Lc90":46.4,"icons":964,"icon3":99.8,"iconAPCA":98.2}
+vp tablet {"text":1196,"AA":99.5,"AAA":87.9,"AAworstPx":99.5,"APCAbronze":95.2,"APCAlookup":26.8,"Lc90":49.6,"icons":940,"icon3":99.8,"iconAPCA":98.2}
+vp phone {"text":320,"AA":99.4,"AAA":81.9,"AAworstPx":99.4,"APCAbronze":89.4,"APCAlookup":29.7,"Lc90":50,"icons":232,"icon3":100,"iconAPCA":100}
+by tier mat-bar:{"text":808,"AA":100,"AAA":97.2,"AAworstPx":100,"APCAbronze":98.8,"APCAlookup":35.6,"Lc90":63.6,"icons":1436,"icon3":100,"iconAPCA":100}
+mat-chip:{"text":216,"AA":100,"AAA":100,"AAworstPx":100,"APCAbronze":100,"APCAlookup":50,"Lc90":100,"icons":0,"icon3":null,"iconAPCA":null}
+mat-menu:{"text":376,"AA":100,"AAA":88.6,"AAworstPx":100,"APCAbronze":98.7,"APCAlookup":10.1,"Lc90":44.9,"icons":264,"icon3":100,"iconAPCA":100}
+mat-panel:{"text":552,"AA":100,"AAA":94.2,"AAworstPx":100,"APCAbronze":96.7,"APCAlookup":23.7,"Lc90":39.1,"icons":120,"icon3":96.7,"iconAPCA":96.7}
+mat-sheet:{"text":640,"AA":97.8,"AAA":65.9,"AAworstPx":97.8,"APCAbronze":88.9,"APCAlookup":13,"Lc90":25.3,"icons":100,"icon3":100,"iconAPCA":100}
+mat-lit:{"text":68,"AA":100,"AAA":100,"AAworstPx":100,"APCAbronze":100,"APCAlookup":29.4,"Lc90":58.8,"icons":44,"icon3":100,"iconAPCA":100}
+mat:{"text":0,"AA":null,"AAA":null,"AAworstPx":null,"APCAbronze":null,"APCAlookup":null,"Lc90":null,"icons":0,"icon3":null,"iconAPCA":null}
+null:{"text":216,"AA":100,"AAA":81.9,"AAworstPx":100,"APCAbronze":81.9,"APCAlookup":20.4,"Lc90":31,"icons":172,"icon3":100,"iconAPCA":82.6}
+by use ui:{"text":2808,"AA":99.5,"AAA":87.4,"AAworstPx":99.5,"APCAbronze":95.2,"APCAlookup":25.2,"Lc90":48.8,"icons":0,"icon3":null,"iconAPCA":null}
+body:{"text":12,"AA":100,"AAA":91.7,"AAworstPx":100,"APCAbronze":41.7,"APCAlookup":0,"Lc90":16.7,"icons":0,"icon3":null,"iconAPCA":null}
+display:{"text":4,"AA":100,"AAA":100,"AAworstPx":100,"APCAbronze":100,"APCAlookup":100,"Lc90":100,"icons":0,"icon3":null,"iconAPCA":null}
+placeholder:{"text":52,"AA":100,"AAA":100,"AAworstPx":100,"APCAbronze":100,"APCAlookup":0,"Lc90":17.3,"icons":0,"icon3":null,"iconAPCA":null}
+by state library:{"text":140,"AA":100,"AAA":91.4,"AAworstPx":100,"APCAbronze":91.4,"APCAlookup":25.7,"Lc90":42.9,"icons":84,"icon3":100,"iconAPCA":100}
+reader:{"text":84,"AA":100,"AAA":100,"AAworstPx":100,"APCAbronze":100,"APCAlookup":45.2,"Lc90":73.8,"icons":108,"icon3":100,"iconAPCA":100}
+markup-tool:{"text":124,"AA":100,"AAA":98.4,"AAworstPx":100,"APCAbronze":98.4,"APCAlookup":38.7,"Lc90":78.2,"icons":196,"icon3":100,"iconAPCA":100}
+fill-sign:{"text":116,"AA":100,"AAA":98.3,"AAworstPx":100,"APCAbronze":99.1,"APCAlookup":37.9,"Lc90":76.7,"icons":196,"icon3":100,"iconAPCA":100}
+find-hits:{"text":92,"AA":100,"AAA":98.9,"AAworstPx":100,"APCAbronze":98.9,"APCAlookup":43.5,"Lc90":71.7,"icons":128,"icon3":100,"iconAPCA":100}
+title-menu:{"text":216,"AA":100,"AAA":99.1,"AAworstPx":100,"APCAbronze":99.1,"APCAlookup":23.1,"Lc90":62.5,"icons":172,"icon3":100,"iconAPCA":100}
+more-menu:{"text":52,"AA":100,"AAA":75,"AAworstPx":100,"APCAbronze":100,"APCAlookup":0,"Lc90":26.9,"icons":52,"icon3":100,"iconAPCA":100}
+settings:{"text":328,"AA":98.2,"AAA":58.5,"AAworstPx":98.2,"APCAbronze":85.1,"APCAlookup":14,"Lc90":19.5,"icons":36,"icon3":100,"iconAPCA":100}
+toast:{"text":124,"AA":100,"AAA":88.7,"AAworstPx":100,"APCAbronze":90.3,"APCAlookup":24.2,"Lc90":41.1,"icons":160,"icon3":100,"iconAPCA":91.3}
+grid-selection:{"text":136,"AA":100,"AAA":89,"AAworstPx":100,"APCAbronze":91.2,"APCAlookup":19.1,"Lc90":46.3,"icons":236,"icon3":100,"iconAPCA":93.2}
+sidebar-pages:{"text":128,"AA":100,"AAA":93.8,"AAworstPx":100,"APCAbronze":100,"APCAlookup":34.4,"Lc90":47.7,"icons":124,"icon3":100,"iconAPCA":100}
+sidebar-find:{"text":336,"AA":100,"AAA":96.4,"AAworstPx":100,"APCAbronze":98.8,"APCAlookup":36.3,"Lc90":50.6,"icons":132,"icon3":100,"iconAPCA":100}
+sidebar-review:{"text":304,"AA":100,"AAA":96.1,"AAworstPx":100,"APCAbronze":95.4,"APCAlookup":18.1,"Lc90":47,"icons":144,"icon3":97.2,"iconAPCA":97.2}
+dialog-save-copy:{"text":216,"AA":100,"AAA":75.9,"AAworstPx":100,"APCAbronze":96.3,"APCAlookup":9.7,"Lc90":31.9,"icons":48,"icon3":100,"iconAPCA":100}
+dialog-signature:{"text":96,"AA":91.7,"AAA":68.8,"AAworstPx":91.7,"APCAbronze":85.4,"APCAlookup":16.7,"Lc90":30.2,"icons":16,"icon3":100,"iconAPCA":100}
+flag-tools:{"text":104,"AA":100,"AAA":78.8,"AAworstPx":100,"APCAbronze":100,"APCAlookup":0,"Lc90":26,"icons":56,"icon3":100,"iconAPCA":100}
+flag-fillbar:{"text":116,"AA":100,"AAA":96.6,"AAworstPx":100,"APCAbronze":97.4,"APCAlookup":37.9,"Lc90":69.8,"icons":104,"icon3":100,"iconAPCA":100}
+edit-pen:{"text":12,"AA":100,"AAA":91.7,"AAworstPx":100,"APCAbronze":100,"APCAlookup":66.7,"Lc90":83.3,"icons":16,"icon3":100,"iconAPCA":100}
+tool-drawer:{"text":44,"AA":100,"AAA":81.8,"AAworstPx":100,"APCAbronze":95.5,"APCAlookup":27.3,"Lc90":61.4,"icons":48,"icon3":100,"iconAPCA":100}
+sign-sheet:{"text":48,"AA":100,"AAA":91.7,"AAworstPx":100,"APCAbronze":95.8,"APCAlookup":25,"Lc90":64.6,"icons":52,"icon3":100,"iconAPCA":100}
+file-menu:{"text":20,"AA":100,"AAA":100,"AAworstPx":100,"APCAbronze":100,"APCAlookup":40,"Lc90":80,"icons":20,"icon3":100,"iconAPCA":100}
+pages-overview:{"text":40,"AA":100,"AAA":87.5,"AAworstPx":100,"APCAbronze":87.5,"APCAlookup":30,"Lc90":47.5,"icons":8,"icon3":100,"iconAPCA":100}
+
+FAIL GROUPS 107 AA-failing groups 10
+1. sev 3.43 [light/more] sidebar-review/desk icon "NoteJonah PellOct 1, 2026, 9:00 AMCan th" 16px/0 role=button tier=mat-panel fg #f4e27a bg #f6f7f9 (bright #f6f7f9, dark #f6f7f9) CR 1.22 worst 1.22 Lc 10.5 need 45/45 AA:false n=2 shot=sidebar-review__desk__light-more.jpg#40 path=span._icon_kyckq_21 > svg._icon_17hu5_8[data-icon="note"] in: sidebar-review/desk,sidebar-review/tablet
+2. sev 3.4 [light/std] sidebar-review/desk icon "NoteJonah PellOct 1, 2026, 9:00 AMCan th" 16px/0 role=button tier=mat-panel fg #f4e27a bg #f3f8f8 (bright #f3f8f8, dark #f3f8f7) CR 1.22 worst 1.22 Lc 10.6 need 45/45 AA:false n=2 shot=sidebar-review__desk__light-std.jpg#40 path=span._icon_kyckq_21 > svg._icon_17hu5_8[data-icon="note"] in: sidebar-review/desk,sidebar-review/tablet
+3. sev 2.69 [light/more] settings/desk text "Dim pages" 13px/400 role=label tier=mat-sheet fg #a8abb1 bg #efeff2 (bright #efeff2, dark #efeff2) CR 2.01 worst 2.01 Lc 36 need 60/100 AA:false n=2 shot=settings__desk__light-more.jpg#26 path=span._text_ib1db_19 > span#_r_a4_._label_ib1db_24 in: settings/desk,settings/tablet
+4. sev 2.69 [light/more] settings/phone text "Dim pages" 15px/400 role=label tier=mat-sheet fg #a8abb1 bg #efeff2 (bright #efeff2, dark #efeff2) CR 2.01 worst 2.01 Lc 36 need 60/100 AA:false n=1 shot=settings__phone__light-more.jpg#11 path=span._text_ib1db_19 > span#_r_27_._label_ib1db_24 in: settings/phone
+5. sev 2.03 [dark/std] dialog-signature/desk text "Sign here" 12px/400 role=tabpanel tier=mat-sheet fg #1a237e@0.45 bg #ffffff (bright #ffffff, dark #ffffff) CR 2.66 worst 2.66 Lc 51.7 need 60/100 AA:false n=2 shot=dialog-signature__desk__dark-std.jpg#20 path=div._padFrame_u86hp_60 > span._signHere_u86hp_82 in: dialog-signature/desk,dialog-signature/tablet
+6. sev 2.03 [dark/more] dialog-signature/desk text "Sign here" 12px/400 role=tabpanel tier=mat-sheet fg #1a237e@0.45 bg #ffffff (bright #ffffff, dark #ffffff) CR 2.66 worst 2.66 Lc 51.7 need 60/100 AA:false n=2 shot=dialog-signature__desk__dark-more.jpg#20 path=div._padFrame_u86hp_60 > span._signHere_u86hp_82 in: dialog-signature/desk,dialog-signature/tablet
+7. sev 2.03 [light/std] dialog-signature/desk text "Sign here" 12px/400 role=tabpanel tier=mat-sheet fg #1a237e@0.45 bg #ffffff (bright #ffffff, dark #ffffff) CR 2.66 worst 2.66 Lc 51.7 need 60/100 AA:false n=2 shot=dialog-signature__desk__light-std.jpg#20 path=div._padFrame_u86hp_60 > span._signHere_u86hp_82 in: dialog-signature/desk,dialog-signature/tablet
+8. sev 2.03 [light/more] dialog-signature/desk text "Sign here" 12px/400 role=tabpanel tier=mat-sheet fg #1a237e@0.45 bg #ffffff (bright #ffffff, dark #ffffff) CR 2.66 worst 2.66 Lc 51.7 need 60/100 AA:false n=2 shot=dialog-signature__desk__light-more.jpg#20 path=div._padFrame_u86hp_60 > span._signHere_u86hp_82 in: dialog-signature/desk,dialog-signature/tablet
+9. sev 1.84 [light/std] settings/desk text "Dim pages" 13px/400 role=label tier=mat-sheet fg #7f838a bg #e0e2e3 (bright #e5e6e8, dark #dee0e2) CR 2.93 worst 2.86 Lc 48.3 need 60/100 AA:false n=2 shot=settings__desk__light-std.jpg#26 path=span._text_ib1db_19 > span#_r_a4_._label_ib1db_24 in: settings/desk,settings/tablet
+10. sev 1.75 [light/std] settings/phone text "Dim pages" 15px/400 role=label tier=mat-sheet fg #7f838a bg #e6e7e9 (bright #e8e8ea, dark #e5e5e7) CR 3.08 worst 3 Lc 51.4 need 60/100 AA:false n=1 shot=settings__phone__light-std.jpg#11 path=span._text_ib1db_19 > span#_r_27_._label_ib1db_24 in: settings/phone
+11. sev 1.17 [dark/std] settings/phone text "Türkçe" 15px/500 role=radio tier=mat-sheet fg #bbbec3 bg #4b4c50 (bright #4b4c50, dark #4b4c50) CR 4.6 worst 4.6 Lc -53.4 need 60/100 AA:true n=1 shot=settings__phone__dark-std.jpg#15 path=span#base-ui-_r_2g_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/phone
+12. sev 1.17 [dark/std] find-hits/phone text "1 of 93" 13px/400 role=label tier=mat-bar fg #bbbec3 bg #4b4c4f (bright #4c4d50, dark #494a4c) CR 4.61 worst 4.53 Lc -53.5 need 60/100 AA:true n=1 shot=find-hits__phone__dark-std.jpg#1 path=label._field_17s1o_194 > span._count_17s1o_253[data-testid="compact-find-count"] in: find-hits/phone
+13. sev 1.13 [dark/std] library/phone text "Read, mark up and sign PDFs. Nothing leaves this" 17px/400 role=p tier=null fg #a1a5ab bg #0a0c0c (bright #0f1b18, dark #08090c) CR 7.92 worst 7.13 Lc -53.1 need 75/85 AA:true n=1 shot=library__phone__dark-std.jpg#1 path=div._intro_182o9_96 > p._promise_182o9_104 in: library/phone
+14. sev 1.1 [dark/more] sidebar-find/desk text "91" 13px/600 role=tab tier=mat-panel fg #bbbec3 bg #47484c (bright #47484c, dark #47484c) CR 4.9 worst 4.9 Lc -54.8 need 60/85 AA:true n=2 shot=sidebar-find__desk__dark-more.jpg#2 path=button#base-ui-_r_91_._segment_1si7q_43[data-orientation="horizontal"] > span._count_1si7q_124 in: sidebar-find/desk,sidebar-find/tablet
+15. sev 1.1 [dark/more] sidebar-review/desk text "6" 13px/600 role=tab tier=mat-panel fg #bbbec3 bg #47484c (bright #47484c, dark #47484c) CR 4.9 worst 4.9 Lc -54.8 need 60/85 AA:true n=2 shot=sidebar-review__desk__dark-more.jpg#3 path=button#base-ui-_r_8s_._segment_1si7q_43[data-orientation="horizontal"] > span._count_1si7q_124 in: sidebar-review/desk,sidebar-review/tablet
+16. sev 1.1 [dark/std] settings/desk text "Light" 13px/500 role=radio tier=mat-sheet fg #bbbec3 bg #45484c (bright #46484c, dark #45474b) CR 4.93 worst 4.92 Lc -55 need 60/100 AA:true n=2 shot=settings__desk__dark-std.jpg#13 path=span#base-ui-_r_97_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/desk,settings/tablet
+17. sev 1.1 [dark/std] sidebar-review/desk text "6" 13px/600 role=tab tier=mat-panel fg #bbbec3 bg #46484a (bright #47494b, dark #454748) CR 4.93 worst 4.85 Lc -55 need 60/85 AA:true n=2 shot=sidebar-review__desk__dark-std.jpg#3 path=button#base-ui-_r_8s_._segment_1si7q_43[data-orientation="horizontal"] > span._count_1si7q_124 in: sidebar-review/desk,sidebar-review/tablet
+18. sev 1.09 [dark/std] sidebar-find/desk text "91" 13px/600 role=tab tier=mat-panel fg #bbbec3 bg #45484a (bright #46494b, dark #444749) CR 4.94 worst 4.87 Lc -55 need 60/85 AA:true n=2 shot=sidebar-find__desk__dark-std.jpg#2 path=button#base-ui-_r_91_._segment_1si7q_43[data-orientation="horizontal"] > span._count_1si7q_124 in: sidebar-find/desk,sidebar-find/tablet
+19. sev 1.08 [light/std] settings/tablet text "Tinted" 15px/500 role=radio tier=mat-sheet fg #4f535a bg #d0d0d2 (bright #d0d0d2, dark #d0d0d2) CR 5.02 worst 5.02 Lc 59.6 need 60/100 AA:true n=1 shot=settings__tablet__light-std.jpg#18 path=span#base-ui-_r_9h_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/tablet
+20. sev 1.08 [light/std] settings/tablet text "Türkçe" 15px/500 role=radio tier=mat-sheet fg #4f535a bg #d0d0d2 (bright #d0d0d3, dark #d0d0d2) CR 5.02 worst 5.02 Lc 59.6 need 60/100 AA:true n=1 shot=settings__tablet__light-std.jpg#30 path=span#base-ui-_r_ad_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/tablet
+21. sev 1.08 [light/std] settings/tablet text "Browser (English)" 15px/500 role=radio tier=mat-sheet fg #4f535a bg #d0d0d2 (bright #d8d9db, dark #d0d0d2) CR 5.02 worst 5.02 Lc 59.6 need 60/100 AA:true n=1 shot=settings__tablet__light-std.jpg#31 path=span#base-ui-_r_ag_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/tablet
+22. sev 1.07 [light/std] settings/phone text "Light" 15px/500 role=radio tier=mat-sheet fg #4f535a bg #d0d0d4 (bright #d1d1d4, dark #d0d0d4) CR 5.03 worst 5.03 Lc 59.7 need 60/100 AA:true n=1 shot=settings__phone__light-std.jpg#5 path=span#base-ui-_r_1p_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/phone
+23. sev 1.07 [light/std] settings/phone text "Dark" 15px/500 role=radio tier=mat-sheet fg #4f535a bg #d0d0d4 (bright #d0d0d4, dark #d0d0d4) CR 5.03 worst 5.03 Lc 59.7 need 60/100 AA:true n=1 shot=settings__phone__light-std.jpg#6 path=span#base-ui-_r_1s_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/phone
+24. sev 1.07 [light/std] settings/phone text "On" 15px/500 role=radio tier=mat-sheet fg #4f535a bg #d0d0d4 (bright #d0d1d4, dark #d0d0d4) CR 5.03 worst 5.03 Lc 59.7 need 60/100 AA:true n=1 shot=settings__phone__light-std.jpg#10 path=span#base-ui-_r_23_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/phone
+25. sev 1.05 [dark/std] markup-tool/desk text "Sign" 13px/500 role=button tier=mat-bar fg #bbbec3 bg #444548 (bright #444548, dark #444548) CR 5.14 worst 5.14 Lc -55.9 need 60/100 AA:true n=1 shot=markup-tool__desk__dark-std.jpg#1 path=button#base-ui-_r_ad_._button_1gbep_12[data-size="bar"] > span[data-label] in: markup-tool/desk
+26. sev 1.05 [dark/std] flag-fillbar/desk text "Sign" 13px/500 role=button tier=mat-bar fg #bbbec3 bg #444548 (bright #444548, dark #434447) CR 5.14 worst 5.14 Lc -55.9 need 60/100 AA:true n=2 shot=flag-fillbar__desk__dark-std.jpg#7 path=button#base-ui-_r_95_._button_1gbep_12[data-size="bar"] > span[data-label] in: flag-fillbar/desk,flag-fillbar/tablet
+27. sev 1.05 [dark/std] sign-sheet/phone text "Select" 13px/500 role=button tier=mat-menu fg #bbbec3 bg #444548 (bright #47484c, dark #434347) CR 5.14 worst 4.9 Lc -55.9 need 60/100 AA:true n=1 shot=sign-sheet__phone__dark-std.jpg#12 path=button.btn > span[data-btn-label] in: sign-sheet/phone
+28. sev 1.05 [dark/std] settings/desk text "Dark" 13px/500 role=radio tier=mat-sheet fg #bbbec3 bg #434549 (bright #44464a, dark #424449) CR 5.15 worst 5.07 Lc -55.9 need 60/100 AA:true n=2 shot=settings__desk__dark-std.jpg#14 path=span#base-ui-_r_9a_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/desk,settings/tablet
+29. sev 1.05 [dark/std] settings/desk text "Tinted" 13px/500 role=radio tier=mat-sheet fg #bbbec3 bg #434549 (bright #434549, dark #424449) CR 5.15 worst 5.15 Lc -55.9 need 60/100 AA:true n=2 shot=settings__desk__dark-std.jpg#18 path=span#base-ui-_r_9h_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/desk,settings/tablet
+30. sev 1.05 [dark/std] settings/desk text "Browser (English)" 13px/500 role=radio tier=mat-sheet fg #bbbec3 bg #434549 (bright #434649, dark #424549) CR 5.15 worst 5.1 Lc -55.9 need 60/100 AA:true n=2 shot=settings__desk__dark-std.jpg#31 path=span#base-ui-_r_ag_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/desk,settings/tablet
+31. sev 1.04 [dark/std] settings/desk text "Türkçe" 13px/500 role=radio tier=mat-sheet fg #bbbec3 bg #424549 (bright #434549, dark #424549) CR 5.17 worst 5.15 Lc -56 need 60/100 AA:true n=2 shot=settings__desk__dark-std.jpg#30 path=span#base-ui-_r_ad_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/desk,settings/tablet
+32. sev 1.04 [dark/std] settings/phone text "Light" 15px/500 role=radio tier=mat-sheet fg #bbbec3 bg #434449 (bright #434549, dark #434449) CR 5.21 worst 5.15 Lc -56.2 need 60/100 AA:true n=1 shot=settings__phone__dark-std.jpg#5 path=span#base-ui-_r_1p_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/phone
+33. sev 1.03 [dark/std] dialog-save-copy/desk text "Images" 13px/500 role=radio tier=mat-sheet fg #bbbec3 bg #434448 (bright #434448, dark #434448) CR 5.22 worst 5.22 Lc -56.2 need 60/100 AA:true n=1 shot=dialog-save-copy__desk__dark-std.jpg#12 path=span#base-ui-_r_9d_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: dialog-save-copy/desk
+34. sev 1.03 [dark/std] dialog-save-copy/desk text "Text" 13px/500 role=radio tier=mat-sheet fg #bbbec3 bg #434448 (bright #434448, dark #434448) CR 5.22 worst 5.22 Lc -56.2 need 60/100 AA:true n=1 shot=dialog-save-copy__desk__dark-std.jpg#13 path=span#base-ui-_r_9g_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: dialog-save-copy/desk
+35. sev 1.03 [dark/std] fill-sign/tablet text "Sign" 15px/500 role=button tier=mat-bar fg #bbbec3 bg #434447 (bright #444548, dark #424346) CR 5.22 worst 5.14 Lc -56.2 need 60/100 AA:true n=2 shot=fill-sign__tablet__dark-std.jpg#1 path=button#base-ui-_r_a7_._button_1gbep_12[data-size="bar"] > span[data-label] in: markup-tool/tablet,fill-sign/tablet
+36. sev 1.03 [dark/std] settings/phone text "Dark" 15px/500 role=radio tier=mat-sheet fg #bbbec3 bg #434448 (bright #434449, dark #434448) CR 5.22 worst 5.21 Lc -56.2 need 60/100 AA:true n=1 shot=settings__phone__dark-std.jpg#6 path=span#base-ui-_r_1s_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/phone
+37. sev 1.03 [dark/std] settings/phone text "On" 15px/500 role=radio tier=mat-sheet fg #bbbec3 bg #434448 (bright #434448, dark #434448) CR 5.22 worst 5.22 Lc -56.2 need 60/100 AA:true n=1 shot=settings__phone__dark-std.jpg#10 path=span#base-ui-_r_23_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/phone
+38. sev 1.03 [dark/std] settings/desk text "Solid" 13px/500 role=radio tier=mat-sheet fg #bbbec3 bg #424449 (bright #424549, dark #424448) CR 5.23 worst 5.17 Lc -56.2 need 60/100 AA:true n=2 shot=settings__desk__dark-std.jpg#19 path=span#base-ui-_r_9k_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/desk,settings/tablet
+39. sev 1.03 [dark/std] settings/desk text "On" 13px/500 role=radio tier=mat-sheet fg #bbbec3 bg #424449 (bright #424449, dark #424449) CR 5.23 worst 5.23 Lc -56.2 need 60/100 AA:true n=2 shot=settings__desk__dark-std.jpg#23 path=span#base-ui-_r_9r_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/desk,settings/tablet
+40. sev 1.03 [dark/std] dialog-save-copy/tablet text "Images" 15px/500 role=radio tier=mat-sheet fg #bbbec3 bg #424448 (bright #424448, dark #424448) CR 5.24 worst 5.24 Lc -56.3 need 60/100 AA:true n=1 shot=dialog-save-copy__tablet__dark-std.jpg#12 path=span#base-ui-_r_9c_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: dialog-save-copy/tablet
+41. sev 1.03 [dark/std] dialog-save-copy/tablet text "Text" 15px/500 role=radio tier=mat-sheet fg #bbbec3 bg #424448 (bright #424448, dark #424448) CR 5.24 worst 5.24 Lc -56.3 need 60/100 AA:true n=1 shot=dialog-save-copy__tablet__dark-std.jpg#13 path=span#base-ui-_r_9f_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: dialog-save-copy/tablet
+42. sev 1.02 [dark/std] flag-fillbar/tablet text "Date" 15px/500 role=button tier=mat-bar fg #bbbec3 bg #424346 (bright #444548, dark #414245) CR 5.31 worst 5.14 Lc -56.6 need 60/100 AA:true n=1 shot=flag-fillbar__tablet__dark-std.jpg#8 path=button#base-ui-_r_98_._button_1gbep_12[data-size="bar"] > span[data-label] in: flag-fillbar/tablet
+43. sev 1.01 [dark/more] dialog-save-copy/desk text "Images" 13px/500 role=radio tier=mat-sheet fg #bbbec3 bg #404346 (bright #404346, dark #404346) CR 5.34 worst 5.34 Lc -56.7 need 60/100 AA:true n=1 shot=dialog-save-copy__desk__dark-more.jpg#12 path=span#base-ui-_r_9d_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: dialog-save-copy/desk
+44. sev 1.01 [dark/more] dialog-save-copy/desk text "Text" 13px/500 role=radio tier=mat-sheet fg #bbbec3 bg #404346 (bright #404346, dark #404346) CR 5.34 worst 5.34 Lc -56.7 need 60/100 AA:true n=1 shot=dialog-save-copy__desk__dark-more.jpg#13 path=span#base-ui-_r_9g_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: dialog-save-copy/desk
+45. sev 1.01 [dark/more] settings/phone text "Light" 15px/500 role=radio tier=mat-sheet fg #bbbec3 bg #404346 (bright #404346, dark #404346) CR 5.34 worst 5.34 Lc -56.7 need 60/100 AA:true n=1 shot=settings__phone__dark-more.jpg#5 path=span#base-ui-_r_1p_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/phone
+46. sev 1.01 [dark/more] settings/phone text "Dark" 15px/500 role=radio tier=mat-sheet fg #bbbec3 bg #404346 (bright #404346, dark #404346) CR 5.34 worst 5.34 Lc -56.7 need 60/100 AA:true n=1 shot=settings__phone__dark-more.jpg#6 path=span#base-ui-_r_1s_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/phone
+47. sev 1.01 [dark/more] settings/phone text "On" 15px/500 role=radio tier=mat-sheet fg #bbbec3 bg #404346 (bright #404346, dark #404346) CR 5.34 worst 5.34 Lc -56.7 need 60/100 AA:true n=1 shot=settings__phone__dark-more.jpg#10 path=span#base-ui-_r_23_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/phone
+48. sev 1.01 [dark/more] settings/phone text "Türkçe" 15px/500 role=radio tier=mat-sheet fg #bbbec3 bg #404346 (bright #404346, dark #404346) CR 5.34 worst 5.34 Lc -56.7 need 60/100 AA:true n=1 shot=settings__phone__dark-more.jpg#15 path=span#base-ui-_r_2g_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/phone
+49. sev 1 [dark/more] settings/desk text "Light" 13px/500 role=radio tier=mat-sheet fg #bbbec3 bg #404247 (bright #404247, dark #404247) CR 5.4 worst 5.4 Lc -56.9 need 60/100 AA:true n=2 shot=settings__desk__dark-more.jpg#13 path=span#base-ui-_r_97_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/desk,settings/tablet
+50. sev 1 [dark/more] settings/desk text "Dark" 13px/500 role=radio tier=mat-sheet fg #bbbec3 bg #404247 (bright #404247, dark #404247) CR 5.4 worst 5.4 Lc -56.9 need 60/100 AA:true n=2 shot=settings__desk__dark-more.jpg#14 path=span#base-ui-_r_9a_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/desk,settings/tablet
+51. sev 1 [dark/more] settings/desk text "Tinted" 13px/500 role=radio tier=mat-sheet fg #bbbec3 bg #404247 (bright #404247, dark #404247) CR 5.4 worst 5.4 Lc -56.9 need 60/100 AA:true n=2 shot=settings__desk__dark-more.jpg#18 path=span#base-ui-_r_9h_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/desk,settings/tablet
+52. sev 1 [dark/more] settings/desk text "Solid" 13px/500 role=radio tier=mat-sheet fg #bbbec3 bg #404247 (bright #404247, dark #404247) CR 5.4 worst 5.4 Lc -56.9 need 60/100 AA:true n=2 shot=settings__desk__dark-more.jpg#19 path=span#base-ui-_r_9k_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/desk,settings/tablet
+53. sev 1 [dark/more] settings/desk text "On" 13px/500 role=radio tier=mat-sheet fg #bbbec3 bg #404247 (bright #404247, dark #404247) CR 5.4 worst 5.4 Lc -56.9 need 60/100 AA:true n=2 shot=settings__desk__dark-more.jpg#23 path=span#base-ui-_r_9r_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/desk,settings/tablet
+54. sev 1 [dark/more] settings/desk text "Türkçe" 13px/500 role=radio tier=mat-sheet fg #bbbec3 bg #404247 (bright #404247, dark #404247) CR 5.4 worst 5.4 Lc -56.9 need 60/100 AA:true n=2 shot=settings__desk__dark-more.jpg#30 path=span#base-ui-_r_ad_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/desk,settings/tablet
+55. sev 1 [dark/more] settings/desk text "Browser (English)" 13px/500 role=radio tier=mat-sheet fg #bbbec3 bg #404247 (bright #404247, dark #404247) CR 5.4 worst 5.4 Lc -56.9 need 60/100 AA:true n=2 shot=settings__desk__dark-more.jpg#31 path=span#base-ui-_r_ag_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: settings/desk,settings/tablet
+56. sev 1 [dark/more] dialog-save-copy/tablet text "Images" 15px/500 role=radio tier=mat-sheet fg #bbbec3 bg #404247 (bright #404247, dark #404247) CR 5.4 worst 5.4 Lc -56.9 need 60/100 AA:true n=1 shot=dialog-save-copy__tablet__dark-more.jpg#12 path=span#base-ui-_r_9c_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: dialog-save-copy/tablet
+57. sev 1 [dark/more] dialog-save-copy/tablet text "Text" 15px/500 role=radio tier=mat-sheet fg #bbbec3 bg #404247 (bright #404247, dark #404247) CR 5.4 worst 5.4 Lc -56.9 need 60/100 AA:true n=1 shot=dialog-save-copy__tablet__dark-more.jpg#13 path=span#base-ui-_r_9f_._segment_1si7q_43[data-unchecked] > span._text_1si7q_118 in: dialog-save-copy/tablet
+58. sev 1 [dark/more] grid-selection/desk text "Delete" 13px/500 role=button tier=mat-bar fg #fd7273 bg #1f2227 (bright #1f2227, dark #1f2227) CR 5.95 worst 5.95 Lc -48.1 need 60/100 AA:true n=2 shot=grid-selection__desk__dark-more.jpg#10 path=button#base-ui-_r_a9_.btn[data-capsule-item="delete"] > span[data-btn-label] in: grid-selection/desk,grid-selection/tablet
+59. sev 0.99 [dark/std] tool-drawer/phone text "Pen" 15px/500 role=button tier=mat-bar fg #bbbec3 bg #404144 (bright #424346, dark #3e3f43) CR 5.48 worst 5.31 Lc -57.2 need 60/100 AA:true n=1 shot=tool-drawer__phone__dark-std.jpg#1 path=span[data-btn-label] > span._label_12goq_116 in: tool-drawer/phone
+60. sev 0.97 [dark/std] tool-drawer/phone text "Eraser" 13px/500 role=button tier=mat-menu fg #bbbec3 bg #3f4045 (bright #424348, dark #3d3f43) CR 5.55 worst 5.29 Lc -57.5 need 60/100 AA:true n=2 shot=tool-drawer__phone__dark-std.jpg#9 path=button.btn > span[data-btn-label] in: tool-drawer/phone,sign-sheet/phone
+61. sev 0.94 [dark/more] title-menu/desk text "Hold to peek" 12px/400 role=button tier=mat-menu fg #a1a5ab bg #1f2227 (bright #1f2227, dark #1f2227) CR 6.45 worst 6.45 Lc -50.9 need 60/100 AA:true n=2 shot=title-menu__desk__dark-more.jpg#12 path=button._privacy_1pv1q_182[data-testid="title-menu-original"] > span#_r_93_._hold_1pv1q_211 in: title-menu/desk,title-menu/tablet
+62. sev 0.94 [dark/more] dialog-signature/desk text "· Optional" 12px/400 role=label tier=mat-sheet fg #a1a5ab bg #1f2227 (bright #1f2227, dark #1f2227) CR 6.45 worst 6.45 Lc -50.9 need 60/100 AA:true n=1 shot=dialog-signature__desk__dark-more.jpg#26 path=label#_r_c9_-label._label_xh8ij_20 > span._optional_xh8ij_27 in: dialog-signature/desk
+63. sev 0.94 [dark/more] dialog-signature/tablet text "· Optional" 13px/400 role=label tier=mat-sheet fg #a1a5ab bg #1f2227 (bright #1f2227, dark #1f2227) CR 6.45 worst 6.45 Lc -50.9 need 60/100 AA:true n=1 shot=dialog-signature__tablet__dark-more.jpg#16 path=label#_r_c3_-label._label_xh8ij_20 > span._optional_xh8ij_27 in: dialog-signature/tablet
+64. sev 0.94 [dark/std] dialog-signature/desk text "A picture of your signature, not a digital signa" 12px/400 role=p tier=mat-sheet fg #bbbec3 bg #27292e (bright #282a30, dark #26282d) CR 7.81 worst 7.7 Lc -63.7 need 75/100 AA:true n=1 shot=dialog-signature__desk__dark-std.jpg#16 path=div._heading_1kzd3_179 > p#base-ui-_r_bi_._subtitle_1kzd3_196 in: dialog-signature/desk
+65. sev 0.94 [dark/std] library/tablet text "Open · 1 document · 8 pages" 13px/500 role=p tier=null fg #a1a5ab bg #12221c (bright #152922, dark #0e1a17) CR 6.67 worst 6.18 Lc -51.3 need 60/100 AA:true n=2 shot=library__tablet__dark-std.jpg#4 path=div._head_w26ln_5[data-text-safe] > p._summary_w26ln_14 in: library/desk,library/tablet
+66. sev 0.93 [dark/std] dialog-signature/tablet text "A picture of your signature, not a digital signa" 13px/400 role=p tier=mat-sheet fg #bbbec3 bg #24262b (bright #25272c, dark #23252a) CR 8.12 worst 8.02 Lc -64.2 need 75/100 AA:true n=1 shot=dialog-signature__tablet__dark-std.jpg#6 path=div._heading_1kzd3_179 > p#base-ui-_r_bc_._subtitle_1kzd3_196 in: dialog-signature/tablet
+67. sev 0.93 [dark/std] library/phone text "Recent" 13px/600 role=h2 tier=null fg #a1a5ab bg #12211c (bright #152b23, dark #0e1a17) CR 6.73 worst 6.05 Lc -51.4 need 60/85 AA:true n=1 shot=library__phone__dark-std.jpg#9 path=div._recentsHeader_182o9_272 > h2#compact-recents-heading._recentsTitle_182o9_281 in: library/phone
+68. sev 0.92 [dark/more] dialog-signature/desk text "A picture of your signature, not a digital signa" 12px/400 role=p tier=mat-sheet fg #bbbec3 bg #1f2227 (bright #1f2227, dark #1f2227) CR 8.56 worst 8.56 Lc -64.9 need 75/100 AA:true n=1 shot=dialog-signature__desk__dark-more.jpg#16 path=div._heading_1kzd3_179 > p#base-ui-_r_bi_._subtitle_1kzd3_196 in: dialog-signature/desk
+69. sev 0.92 [dark/more] dialog-signature/tablet text "A picture of your signature, not a digital signa" 13px/400 role=p tier=mat-sheet fg #bbbec3 bg #1f2227 (bright #1f2227, dark #1f2227) CR 8.56 worst 8.56 Lc -64.9 need 75/100 AA:true n=1 shot=dialog-signature__tablet__dark-more.jpg#6 path=div._heading_1kzd3_179 > p#base-ui-_r_bc_._subtitle_1kzd3_196 in: dialog-signature/tablet
+70. sev 0.92 [dark/more] sidebar-review/desk text "Empty" 12px/400 role=button tier=mat-panel fg #a1a5ab bg #17191e (bright #17191e, dark #17191e) CR 7.11 worst 7.11 Lc -52.1 need 60/100 AA:true n=8 shot=sidebar-review__desk__dark-more.jpg#20 path=span._body_18498_64 > span._value_18498_91[data-empty="true"] in: sidebar-review/desk,sidebar-review/tablet
+
+NON-TEXT
+border dark no-preference n 75 pass3 (edge or fill) 29.3 edge median 1.71 min 1
+border dark more n 75 pass3 (edge or fill) 30.7 edge median 2.5 min 1
+border light no-preference n 72 pass3 (edge or fill) 26.4 edge median 1.14 min 1
+border light more n 72 pass3 (edge or fill) 26.4 edge median 1.14 min 1
+selected dark no-preference n 114 pass3 (edge or fill) 36 edge median 2.24 min 1
+selected dark more n 114 pass3 (edge or fill) 63.2 edge median 4.07 min 1
+selected light no-preference n 114 pass3 (edge or fill) 33.3 edge median 1.41 min 1
+selected light more n 114 pass3 (edge or fill) 38.6 edge median 2.1 min 1
+glass dark no-preference n 269 pass3 (edge or fill) 19.3 edge median 2.13 min 1.39
+glass dark more n 269 pass3 (edge or fill) 100 edge median 4.07 min 3.26
+glass light no-preference n 269 pass3 (edge or fill) 3 edge median 1.25 min 1.16
+glass light more n 269 pass3 (edge or fill) 3 edge median 2.1 min 1.83
+disabled dark no-preference n 46 pass3 (edge or fill) 0 edge median 1.77 min 1
+disabled dark more n 46 pass3 (edge or fill) 30.4 edge median 1.02 min 1
+disabled light no-preference n 49 pass3 (edge or fill) 4.1 edge median 1.02 min 1
+disabled light more n 49 pass3 (edge or fill) 0 edge median 1 min 1
+worst border/selected:
+  [dark/no-preference] title-menu/desk border "Lock" label surround #1f2227 interior #1f2227 edge #1f2227@0 edgeCR 1 fillCR 1 n=2 div._lockRow_1pv1q_138 > label._row_ib1db_6
+  [dark/more] title-menu/desk border "Lock" label surround #1f2227 interior #1f2227 edge #1f2227@0 edgeCR 1 fillCR 1 n=2 div._lockRow_1pv1q_138 > label._row_ib1db_6
+  [light/no-preference] title-menu/desk border "Lock" label surround #fdfdff interior #fdfdff edge #fdfdff@0 edgeCR 1 fillCR 1 n=2 div._lockRow_1pv1q_138 > label._row_ib1db_6
+  [light/more] title-menu/desk border "Lock" label surround #fdfdff interior #fdfdff edge #fdfdff@0 edgeCR 1 fillCR 1 n=2 div._lockRow_1pv1q_138 > label._row_ib1db_6
+  [dark/no-preference] settings/desk border "Background glow A soft light behind the " label surround #33353a interior #33363a edge #33353a@0 edgeCR 1 fillCR 1.01 n=2 div._row_ae2zd_39[data-row="glow"] > label._row_ib1db_6
+  [dark/no-preference] settings/desk border "Dim pages Shows pages less bright in the" label surround #34373a interior #34373a edge #34373a@0 edgeCR 1 fillCR 1 n=3 div._row_ae2zd_39[data-row="dimPages"] > label._row_ib1db_6
+  [dark/no-preference] settings/desk border "Pen draws in Edit Auto turns on when a p" label surround #33363a interior #33363a edge #33363a@0 edgeCR 1 fillCR 1 n=2 div._row_ae2zd_39[data-row="penDrawsInEdit"] > label._row_ib1db_6
+  [dark/more] settings/desk border "Background glow A soft light behind the " label surround #303337 interior #303337 edge #303337@0 edgeCR 1 fillCR 1 n=2 div._row_ae2zd_39[data-row="glow"] > label._row_ib1db_6
+  [dark/more] settings/desk border "Dim pages Shows pages less bright in the" label surround #303337 interior #303337 edge #303337@0 edgeCR 1 fillCR 1 n=3 div._row_ae2zd_39[data-row="dimPages"] > label._row_ib1db_6
+  [dark/more] settings/desk border "Pen draws in Edit Auto turns on when a p" label surround #303337 interior #303337 edge #303337@0 edgeCR 1 fillCR 1 n=2 div._row_ae2zd_39[data-row="penDrawsInEdit"] > label._row_ib1db_6
+  [light/no-preference] settings/desk border "Background glow A soft light behind the " label surround #dddddf interior #dddddf edge #dddddf@0 edgeCR 1 fillCR 1 n=2 div._row_ae2zd_39[data-row="glow"] > label._row_ib1db_6
+  [light/no-preference] settings/desk border "Dim pages Only in the dark theme" label surround #dedfe0 interior #dedfe0 edge #dedfe0@0 edgeCR 1 fillCR 1 n=3 div._row_ae2zd_39[data-row="dimPages"] > label._row_ib1db_6[data-disabled="true"]
+  [light/no-preference] settings/desk border "Pen draws in Edit Auto turns on when a p" label surround #dddde0 interior #dddde0 edge #dddde0@0 edgeCR 1 fillCR 1 n=2 div._row_ae2zd_39[data-row="penDrawsInEdit"] > label._row_ib1db_6
+  [light/more] settings/desk border "Background glow A soft light behind the " label surround #efeff2 interior #efeff2 edge #efeff2@0 edgeCR 1 fillCR 1 n=2 div._row_ae2zd_39[data-row="glow"] > label._row_ib1db_6
+  [light/more] settings/desk border "Dim pages Only in the dark theme" label surround #efeff2 interior #efeff2 edge #efeff2@0 edgeCR 1 fillCR 1 n=3 div._row_ae2zd_39[data-row="dimPages"] > label._row_ib1db_6[data-disabled="true"]
+  [light/more] settings/desk border "Pen draws in Edit Auto turns on when a p" label surround #efeff2 interior #efeff2 edge #efeff2@0 edgeCR 1 fillCR 1 n=2 div._row_ae2zd_39[data-row="penDrawsInEdit"] > label._row_ib1db_6
+  [dark/no-preference] sidebar-pages/desk selected "Page 1" option surround #171b1e interior #171b1e edge #171b1e@0 edgeCR 1 fillCR 1 n=2 div._list_1dy08_25 > div._option_1dy08_35[data-page-id][aria-label="Page 1"]
+  [dark/more] sidebar-pages/desk selected "Page 1" option surround #17191e interior #17191e edge #17191e@0 edgeCR 1 fillCR 1 n=2 div._list_1dy08_25 > div._option_1dy08_35[data-page-id][aria-label="Page 1"]
+  [dark/more] dialog-signature/desk border "Save for next time" label surround #1f2227 interior #1f2227 edge #1f2227@0 edgeCR 1 fillCR 1 n=1 span._field_fwztz_6 > label#base-ui-_r_c7_-label._row_fwztz_11
+  [light/no-preference] dialog-signature/desk border "Save for next time" label surround #eaebec interior #eaeaec edge #eaebec@0 edgeCR 1 fillCR 1.01 n=1 span._field_fwztz_6 > label#base-ui-_r_c7_-label._row_fwztz_11
+  [light/more] dialog-signature/desk border "Save for next time" label surround #fdfdff interior #fdfdff edge #fdfdff@0 edgeCR 1 fillCR 1 n=1 span._field_fwztz_6 > label#base-ui-_r_c7_-label._row_fwztz_11
+  [dark/no-preference] dialog-signature/tablet border "Save for next time" label surround #222429 interior #222429 edge #222429@0 edgeCR 1 fillCR 1 n=1 span._field_fwztz_6 > label#base-ui-_r_c1_-label._row_fwztz_11
+  [dark/more] dialog-signature/tablet border "Save for next time" label surround #1f2227 interior #1f2227 edge #1f2227@0 edgeCR 1 fillCR 1 n=1 span._field_fwztz_6 > label#base-ui-_r_c1_-label._row_fwztz_11
+  [light/no-preference] dialog-signature/tablet border "Save for next time" label surround #f5f5f7 interior #f5f5f7 edge #f5f5f7@0 edgeCR 1 fillCR 1 n=1 span._field_fwztz_6 > label#base-ui-_r_c1_-label._row_fwztz_11
+  [light/more] dialog-signature/tablet border "Save for next time" label surround #fdfdff interior #fdfdff edge #fdfdff@0 edgeCR 1 fillCR 1 n=1 span._field_fwztz_6 > label#base-ui-_r_c1_-label._row_fwztz_11
+  [dark/more] library/phone selected "Recto sample.pdf, 6 pages · 70.1 KB, Rea" button surround #1f2227 interior #1f2227 edge #1f2227@0 edgeCR 1 fillCR 1 n=1 li > button._recentRow_182o9_318[data-reading="true"][aria-label="Recto sample.pdf, 6 pages · 70"]
+  [light/more] library/phone selected "Recto sample.pdf, 6 pages · 70.1 KB, Rea" button surround #fdfdff interior #fdfdff edge #fdfdff@0 edgeCR 1 fillCR 1 n=1 li > button._recentRow_182o9_318[data-reading="true"][aria-label="Recto sample.pdf, 6 pages · 70"]
+  [dark/more] find-hits/phone border "Find in document" input surround #1f2227 interior #282b30 edge #1f2227@0 edgeCR 1 fillCR 1.12 n=1 label._field_17s1o_194 > input._input_17s1o_227[aria-label="Find in document"]
+  [light/more] find-hits/phone border "Find in document" input surround #fdfdff interior #f4f4f6 edge #fdfdff@0 edgeCR 1 fillCR 1.08 n=1 label._field_17s1o_194 > input._input_17s1o_227[aria-label="Find in document"]
+  [dark/no-preference] dialog-signature/desk border "Save for next time" label surround #23262a interior #23252a edge #23252a@0 edgeCR 1.01 fillCR 1.01 n=1 span._field_fwztz_6 > label#base-ui-_r_c7_-label._row_fwztz_11
+  [light/no-preference] find-hits/phone border "Find in document" input surround #fcfcfd interior #f2f2f4 edge #fbfbfd@-2 edgeCR 1.01 fillCR 1.09 n=1 label._field_17s1o_194 > input._input_17s1o_227[aria-label="Find in document"]
+  [light/no-preference] library/phone selected "Recto sample.pdf, 6 pages · 70.1 KB, Rea" button surround #f7f8f9 interior #f4f5f7 edge #f4f5f7@0.67 edgeCR 1.03 fillCR 1.03 n=1 li > button._recentRow_182o9_318[data-reading="true"][aria-label="Recto sample.pdf, 6 pages · 70"]
+  [dark/more] sidebar-pages/desk selected "Hide sidebar" button surround #23262b interior #272a30 edge #272a30@1 edgeCR 1.06 fillCR 1.06 n=3 div._solo_1mqvu_82[data-top-piece="sidebar"] > button#base-ui-_r_40_._button_1gbep_12[data-size="bar"][aria-label="Hide sidebar"]
+  [dark/no-preference] edit-pen/phone selected "Pen" button surround #56575a interior #4f5053 edge #505154@-0.33 edgeCR 1.1 fillCR 1.12 n=1 span._chip_12goq_19[data-compact-tool-chip] > button.btn[data-testid="compact-tool-chip"][aria-label="Pen"]
+  [dark/no-preference] sign-sheet/phone selected "Sign" button surround #56575a interior #4e4f52 edge #505154@-0.33 edgeCR 1.1 fillCR 1.13 n=1 span._chip_12goq_19[data-compact-tool-chip] > button.btn[data-testid="compact-tool-chip"][aria-label="Sign"]
+  [dark/more] library/desk selected "Library" button surround #1f2227 interior #272a30 edge #272a30@0 edgeCR 1.11 fillCR 1.11 n=1 div._piece_1mqvu_69[data-top-piece="home"] > button#base-ui-_r_9_._library_1mqvu_141[data-testid="home-button"][aria-label="Library"]
+  [dark/more] reader/desk selected "Recto sample" div surround #1f2227 interior #272a30 edge #272a30@0 edgeCR 1.11 fillCR 1.11 n=11 div._tablist_1mqvu_222 > div._tabWrap_1mqvu_267[data-selected="true"]
+  [dark/more] reader/desk selected "Recto sample" tab surround #1f2227 interior #272a30 edge #272a30@0 edgeCR 1.11 fillCR 1.11 n=1 div._tabWrap_1mqvu_267[data-selected="true"] > button#tab-doc_4bfd6d52-04fb-4401-b1d5-f4cb1882f8d7._tab_1mqvu_195[data-testid="document-menu"]
+  [dark/more] markup-tool/desk selected "Recto sample" tab surround #1f2227 interior #272a30 edge #272a30@0 edgeCR 1.11 fillCR 1.11 n=1 div._tabWrap_1mqvu_267[data-selected="true"] > button#tab-doc_b83f847d-740f-4466-96ff-d1d14a168c56._tab_1mqvu_195[data-testid="document-menu"]
+  [dark/more] fill-sign/desk selected "Recto sample" tab surround #1f2227 interior #272a30 edge #272a30@0 edgeCR 1.11 fillCR 1.11 n=1 div._tabWrap_1mqvu_267[data-selected="true"] > button#tab-doc_872046d1-d9e4-4688-94d7-3b506ea05b7e._tab_1mqvu_195[data-testid="document-menu"]
+glass rims (edge vs outside, fill vs outside):
+  dark no-preference mat-lit: n7 edge 1.98..2.3..2.54 fill 1.05..1.19..1.24 ≥3: 0% | mat-bar: n218 edge 1.7..2.12..15.58 fill 1.01..1.09..15.64 ≥3: 17.4% | mat-chip: n22 edge 2.97..3.37..3.39 fill 1.07..1.07..1.07 ≥3: 50% | mat-menu: n9 edge 1.86..2.29..5.19 fill 1..1.21..1.77 ≥3: 11.1% | mat-sheet: n7 edge 1.53..1.64..1.88 fill 1.28..1.56..20.04 ≥3: 14.3% | mat-panel: n6 edge 1.39..1.46..1.48 fill 1.15..1.16..7.04 ≥3: 16.7%
+  dark more mat-lit: n7 edge 4.07..4.07..4.07 fill 1.06..1.25..1.25 ≥3: 100% | mat-bar: n218 edge 3.26..4.07..16.42 fill 1.06..1.25..16.42 ≥3: 100% | mat-chip: n22 edge 4.07..4.07..4.07 fill 1.25..1.25..1.25 ≥3: 100% | mat-menu: n9 edge 3.55..3.93..11.58 fill 1.09..1.19..2.3 ≥3: 100% | mat-sheet: n7 edge 3.77..4.11..4.16 fill 1.26..1.58..19.8 ≥3: 100% | mat-panel: n6 edge 3.78..3.78..3.78 fill 1.13..1.13..6.95 ≥3: 100%
+  light no-preference mat-lit: n7 edge 1.18..1.23..1.25 fill 1.11..1.13..14.76 ≥3: 28.6% | mat-bar: n218 edge 1.16..1.25..16.08 fill 1.02..1.19..14.05 ≥3: 1.4% | mat-chip: n22 edge 1.22..1.26..1.27 fill 1.21..1.21..1.22 ≥3: 0% | mat-menu: n9 edge 1.27..1.46..12.36 fill 1.1..1.11..10.84 ≥3: 22.2% | mat-sheet: n7 edge 2.28..2.76..18.37 fill 1.76..2.37..19.15 ≥3: 14.3% | mat-panel: n6 edge 1.46..1.47..1.48 fill 1.41..1.47..1.47 ≥3: 0%
+  light more mat-lit: n7 edge 2.1..2.1..2.1 fill 1.21..1.21..15.27 ≥3: 28.6% | mat-bar: n218 edge 1.98..2.1..16.22 fill 1.02..1.21..14.61 ≥3: 1.4% | mat-chip: n22 edge 2.1..2.1..2.1 fill 1.21..1.21..1.21 ≥3: 0% | mat-menu: n9 edge 2.1..2.1..11.58 fill 1.21..1.21..10.09 ≥3: 22.2% | mat-sheet: n7 edge 1.83..2.21..18.75 fill 1.62..1.95..19.05 ≥3: 14.3% | mat-panel: n6 edge 2.21..2.21..2.21 fill 1.1..1.15..1.15 ≥3: 0%
+
+FOCUS RINGS 464
+desk dark no-preference n 48 visible 100 1.4.11 91.7 2.4.13 10.4 lightBand med 8.46 darkBand med 1.62
+desk dark more n 48 visible 100 1.4.11 97.9 2.4.13 83.3 lightBand med 13.16 darkBand med 1.25
+desk light no-preference n 48 visible 100 1.4.11 68.8 2.4.13 14.6 lightBand med 1.02 darkBand med 5.68
+desk light more n 48 visible 100 1.4.11 68.8 2.4.13 14.6 lightBand med 1.01 darkBand med 1.19
+tablet dark no-preference n 48 visible 100 1.4.11 85.4 2.4.13 6.3 lightBand med 11.99 darkBand med 1.38
+tablet dark more n 48 visible 100 1.4.11 97.9 2.4.13 47.9 lightBand med 13.16 darkBand med 1.25
+tablet light no-preference n 48 visible 100 1.4.11 60.4 2.4.13 12.5 lightBand med 1.02 darkBand med 11.44
+tablet light more n 48 visible 100 1.4.11 60.4 2.4.13 12.5 lightBand med 1.06 darkBand med 1.19
+phone dark no-preference n 20 visible 100 1.4.11 95 2.4.13 10 lightBand med 8.01 darkBand med 2.05
+phone dark more n 20 visible 100 1.4.11 100 2.4.13 85 lightBand med 13.16 darkBand med 1.25
+phone light no-preference n 20 visible 100 1.4.11 75 2.4.13 20 lightBand med 1.03 darkBand med 12.43
+phone light more n 20 visible 100 1.4.11 75 2.4.13 20 lightBand med 1.06 darkBand med 1.19
+  FAIL [light/no-preference] library/desk "Open files" button visible=true light 1.22 (33px²) dark 1.75 (316px²) area/perim 2.73
+  FAIL [light/more] library/desk "Open files" button visible=true light 0 (0px²) dark 1.19 (456px²) area/perim 3.56
+  FAIL [light/no-preference] reader/desk "Library" button visible=true light 1.11 (18px²) dark 1.74 (314px²) area/perim 2.59
+  FAIL [light/no-preference] reader/desk "Show sidebar" button visible=true light 1.11 (15px²) dark 1.75 (316px²) area/perim 2.59
+  FAIL [light/more] reader/desk "Library" button visible=true light 1.13 (1px²) dark 1.19 (456px²) area/perim 3.57
+  FAIL [light/more] reader/desk "Show sidebar" button visible=true light 0 (0px²) dark 1.19 (459px²) area/perim 3.59
+  FAIL [light/no-preference] markup-tool/desk "Blue pen, 1.5 pt" button visible=true light 0 (0px²) dark 1.77 (316px²) area/perim 2.47
+  FAIL [light/no-preference] markup-tool/desk "Lasso" button visible=true light 0 (0px²) dark 1.77 (316px²) area/perim 2.47
+  FAIL [light/no-preference] markup-tool/desk "Image" button visible=true light 0 (0px²) dark 1.74 (319px²) area/perim 2.49
+  FAIL [light/no-preference] markup-tool/desk "Next field" button visible=true light 0 (0px²) dark 1.77 (316px²) area/perim 2.47
+  FAIL [light/no-preference] markup-tool/desk "Open files" button visible=true light 1.23 (32px²) dark 1.75 (316px²) area/perim 2.72
+  FAIL [light/more] markup-tool/desk "Blue pen, 1.5 pt" button visible=true light 0 (0px²) dark 1.19 (411px²) area/perim 3.21
+  FAIL [light/more] markup-tool/desk "Lasso" button visible=true light 0 (0px²) dark 1.19 (411px²) area/perim 3.21
+  FAIL [light/more] markup-tool/desk "Image" button visible=true light 0 (0px²) dark 1.19 (411px²) area/perim 3.21
+  FAIL [light/more] markup-tool/desk "Next field" button visible=true light 1.94 (3px²) dark 1.19 (408px²) area/perim 3.21
+  FAIL [light/more] markup-tool/desk "Open files" button visible=true light 1.14 (2px²) dark 1.19 (458px²) area/perim 3.59
+  FAIL [dark/no-preference] settings/desk "" switch visible=true light 2.47 (207px²) dark 1.62 (77px²) area/perim 2.54
+  FAIL [light/no-preference] settings/desk "Close" button visible=true light 1.1 (9px²) dark 1.7 (316px²) area/perim 2.54
+  FAIL [light/no-preference] settings/desk "" switch visible=true light 2.34 (150px²) dark 5.68 (152px²) area/perim 2.7
+  FAIL [light/more] settings/desk "Close" button visible=true light 0 (0px²) dark 1.19 (411px²) area/perim 3.21
+  FAIL [light/more] settings/desk "" switch visible=true light 1.55 (180px²) dark 1.45 (212px²) area/perim 3.5
+  FAIL [dark/no-preference] grid-selection/desk "This document" radio visible=true light 2.18 (591px²) dark 2.07 (476px²) area/perim 3.46
+  FAIL [light/no-preference] grid-selection/desk "Rotate left" button visible=true light 0 (0px²) dark 1.77 (316px²) area/perim 2.47
+  FAIL [light/no-preference] grid-selection/desk "Move later" button visible=true light 0 (0px²) dark 1.77 (316px²) area/perim 2.47
+  FAIL [light/no-preference] grid-selection/desk "Library" button visible=true light 1.12 (8px²) dark 1.74 (314px²) area/perim 2.52
+  FAIL [light/more] grid-selection/desk "Rotate left" button visible=true light 0 (0px²) dark 1.19 (411px²) area/perim 3.21
+  FAIL [light/more] grid-selection/desk "Move later" button visible=true light 0 (0px²) dark 1.19 (411px²) area/perim 3.21
+  FAIL [light/more] grid-selection/desk "Library" button visible=true light 0 (0px²) dark 1.19 (455px²) area/perim 3.55
+  FAIL [dark/no-preference] dialog-save-copy/desk "" radio visible=true light 1 (52px²) dark 2.38 (115px²) area/perim 2.61
+  FAIL [dark/no-preference] dialog-save-copy/desk "" radio visible=true light 2.43 (120px²) dark 1.62 (45px²) area/perim 2.58
+
+LIME as text/icon colour: 32 light/no-preference:text:"Open files…" on #15171c CR 14.79 Lc -92.9 (library)
+  light/no-preference:icon:"Open files…" on #15171c CR 14.79 Lc -92.9 (library)
+  light/more:text:"Open files…" on #15171c CR 14.79 Lc -92.9 (library)
+  light/more:icon:"Open files…" on #15171c CR 14.79 Lc -92.9 (library)
+  light/no-preference:icon:"Select" on #15171c CR 14.79 Lc -92.9 (fill-sign)
+  light/more:icon:"Select" on #15171c CR 14.79 Lc -92.9 (fill-sign)
+  light/no-preference:text:"Save copy" on #15171c CR 14.79 Lc -92.9 (dialog-save-copy)
+  light/more:text:"Save copy" on #15171c CR 14.79 Lc -92.9 (dialog-save-copy)
+  light/no-preference:text:"Open PDF" on #15171c CR 14.79 Lc -92.9 (library)
+  light/no-preference:icon:"Open PDF" on #15171c CR 14.79 Lc -92.9 (library)
+  light/more:text:"Open PDF" on #15171c CR 14.79 Lc -92.9 (library)
+  light/more:icon:"Open PDF" on #15171c CR 14.79 Lc -92.9 (library)
+  light/no-preference:text:"Done" on #15171c CR 14.79 Lc -92.9 (edit-pen)
+  light/more:text:"Done" on #15171c CR 14.79 Lc -92.9 (edit-pen)
+  light/no-preference:text:"Done" on #15171c CR 14.79 Lc -92.9 (tool-drawer)
+  light/more:text:"Done" on #15171c CR 14.79 Lc -92.9 (tool-drawer)
+  light/no-preference:text:"Done" on #15171c CR 14.79 Lc -92.9 (sign-sheet)
+  light/no-preference:text:"Sign" on #15171c CR 14.79 Lc -92.9 (sign-sheet)
+  light/no-preference:icon:"Sign" on #15171c CR 14.79 Lc -92.9 (sign-sheet)
+  light/more:text:"Done" on #15171c CR 14.79 Lc -92.9 (sign-sheet)
+  light/more:text:"Sign" on #15171c CR 14.79 Lc -92.9 (sign-sheet)
+  light/more:icon:"Sign" on #15171c CR 14.79 Lc -92.9 (sign-sheet)
+  light/no-preference:icon:"Done" on #15171c CR 14.79 Lc -92.9 (find-hits)
+  light/more:icon:"Done" on #15171c CR 14.79 Lc -92.9 (find-hits)
+LIME behind text/icon: 48 dark/no-preference:text:"Open files…" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (library)
+  dark/no-preference:icon:"Open files…" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (library)
+  dark/more:text:"Open files…" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (library)
+  dark/more:icon:"Open files…" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (library)
+  dark/no-preference:icon:"Select" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (fill-sign)
+  dark/more:icon:"Select" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (fill-sign)
+  dark/no-preference:icon:"Page 2 of 8, from Recto sample.pdf, book" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (grid-selection)
+  dark/no-preference:icon:"Page 3 of 8, from Recto sample.pdf, book" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (grid-selection)
+  dark/more:icon:"Page 2 of 8, from Recto sample.pdf, book" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (grid-selection)
+  dark/more:icon:"Page 3 of 8, from Recto sample.pdf, book" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (grid-selection)
+  light/no-preference:icon:"Page 2 of 8, from Recto sample.pdf, book" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (grid-selection)
+  light/no-preference:icon:"Page 3 of 8, from Recto sample.pdf, book" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (grid-selection)
+  light/more:icon:"Page 2 of 8, from Recto sample.pdf, book" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (grid-selection)
+  light/more:icon:"Page 3 of 8, from Recto sample.pdf, book" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (grid-selection)
+  dark/no-preference:text:"Save copy" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (dialog-save-copy)
+  dark/more:text:"Save copy" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (dialog-save-copy)
+  dark/no-preference:text:"Open PDF" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (library)
+  dark/no-preference:icon:"Open PDF" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (library)
+  dark/more:text:"Open PDF" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (library)
+  dark/more:icon:"Open PDF" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (library)
+  dark/no-preference:text:"Done" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (edit-pen)
+  dark/more:text:"Done" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (edit-pen)
+  dark/no-preference:text:"Done" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (tool-drawer)
+  dark/more:text:"Done" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (tool-drawer)
+  dark/no-preference:text:"Done" fg #08090c on #c8fb3d CR 16.42 Lc 93.2 (sign-sheet)
+LIME edges/fills (controls): 24 dark/no-preference:selected:"Yellow highlighter, " edge #deff88 interior #dee901 vs #3e3f42 CR 9.41/7.9 (markup-tool/desk)
+  dark/more:selected:"Yellow highlighter, " edge #ddff82 interior #deea01 vs #1f2227 CR 14.21/12.06 (markup-tool/desk)
+  dark/no-preference:selected:"Select" edge #c9fb41 interior #c8fb3d vs #404144 CR 8.44/8.42 (fill-sign/desk)
+  dark/more:selected:"Select" edge #c8fb3d interior #c8fb3d vs #1f2227 CR 13.16/13.16 (fill-sign/desk)
+  dark/no-preference:border:"Find in document" edge #c8fb3d interior #101215 vs #414344 CR 8.21/1.89 (find-hits/desk)
+  dark/more:border:"Find in document" edge #c8fb3d interior #101215 vs #1f2227 CR 13.16/1.18 (find-hits/desk)
+  dark/no-preference:border:"Search settings" edge #c8fb3d interior #101215 vs #23252b CR 12.63/1.22 (settings/desk)
+  dark/more:border:"Search settings" edge #c8fb3d interior #101215 vs #1f2227 CR 13.16/1.18 (settings/desk)
+  dark/no-preference:selected:"Yellow highlighter, " edge #cbfb4b interior #c8ea0c vs #050609 CR 16.83/14.69 (markup-tool/tablet)
+  dark/more:selected:"Yellow highlighter, " edge #c8fb3d interior #c8ea0c vs #08090c CR 16.42/14.44 (markup-tool/tablet)
+  light/no-preference:selected:"Yellow highlighter, " edge #15171c interior #c8ea1c vs #d6d8db CR 12.55/1.04 (markup-tool/tablet)
+  light/more:selected:"Yellow highlighter, " edge #15171c interior #c8ea1c vs #e6e8eb CR 14.61/1.12 (markup-tool/tablet)
+  dark/no-preference:selected:"Select" edge #ccfb4c interior #c8fb3d vs #06070a CR 16.76/16.62 (fill-sign/tablet)
+  dark/more:selected:"Select" edge #c8fb3d interior #c8fb3d vs #08090c CR 16.42/16.42 (fill-sign/tablet)
+  dark/no-preference:border:"Find in document" edge #c8fb3d interior #101215 vs #0d140e CR 15.42/1 (find-hits/tablet)
+  dark/no-preference:glass:"1 of 91" edge #c8fb3d interior #101215 vs #0e120f CR 15.58/1.01 (find-hits/tablet)
+  dark/more:border:"Find in document" edge #c8fb3d interior #101215 vs #08090c CR 16.42/1.06 (find-hits/tablet)
+  dark/more:glass:"1 of 91" edge #c8fb3d interior #101215 vs #08090c CR 16.42/1.06 (find-hits/tablet)
+  dark/no-preference:selected:"System" edge #c8fb3d interior #5f6165 vs #37393d CR 9.54/1.86 (settings/tablet)
+  dark/more:selected:"System" edge #c8fb3d interior #5a5c60 vs #303337 CR 10.47/1.89 (settings/tablet)
+  dark/no-preference:glass:"Open PDF" edge #494d4e interior #c8fb3d vs #0a1211 CR 2.22/15.64 (library/phone)
+  dark/more:glass:"Open PDF" edge #6f7174 interior #c8fb3d vs #08090c CR 4.07/16.42 (library/phone)
+  dark/no-preference:selected:"Sign" edge #c8fb3d interior #c8fb3d vs #3e3f43 CR 8.67/8.67 (sign-sheet/phone)
+  dark/more:selected:"Sign" edge #c8fb3d interior #c8fb3d vs #1f2227 CR 13.16/13.16 (sign-sheet/phone)
+LIME area % of screen by state (dark std | light std):
+  library: desk 0.412 | 0.021; tablet 0.781 | 0.042; phone 4.825 | 0.106
+  reader: desk 0.076 | 0.068; tablet 0.088 | 0.076; phone 0.162 | 0.162
+  markup-tool: desk 0.115 | 0.076; tablet 0.217 | 0.086; phone - | -
+  fill-sign: desk 0.061 | 0.005; tablet 0.16 | 0.007; phone - | -
+  find-hits: desk 0.173 | 0.173; tablet 0.221 | 0.218; phone 0.764 | 0.327
+  title-menu: desk 0.077 | 0.069; tablet 0.053 | 0.041; phone - | -
+  more-menu: desk 0.076 | 0.068; tablet 0.088 | 0.076; phone - | -
+  settings: desk 0.176 | 0.181; tablet 0.041 | 0.049; phone 0 | 0
+  toast: desk 0.009 | 0.001; tablet 0.017 | 0.005; phone - | -
+  grid-selection: desk 0.241 | 0.036; tablet 0.355 | 0.074; phone - | -
+  sidebar-pages: desk 0.076 | 0.068; tablet 0.09 | 0.078; phone - | -
+  sidebar-find: desk 0.087 | 0.079; tablet 0.101 | 0.089; phone - | -
+  sidebar-review: desk 0.076 | 0.068; tablet 0.088 | 0.076; phone - | -
+  dialog-save-copy: desk 0.181 | 0.006; tablet 0.414 | 0.022; phone - | -
+  dialog-signature: desk 0 | 0; tablet 0 | 0; phone - | -
+  flag-tools: desk 0.076 | 0.068; tablet 0.088 | 0.076; phone - | -
+  flag-fillbar: desk 0.009 | 0.001; tablet 0.014 | 0.002; phone - | -
+  edit-pen: desk - | -; tablet - | -; phone 1.032 | 0.208
+  tool-drawer: desk - | -; tablet - | -; phone 1.02 | 0.201
+  sign-sheet: desk - | -; tablet - | -; phone 2.098 | 0.256
+  file-menu: desk - | -; tablet - | -; phone 0.135 | 0.136
+  pages-overview: desk - | -; tablet - | -; phone 0.013 | 0.013
+
+SIZES
+desk min 11 hist 11:52 12:392 13:928 15:12 17:12
+  smallest: "Ctrl" (title-menu, span._keycaps_8s7e3_1[data-tone="quiet"] > kbd._cap_8s7e3_8); "Shift" (title-menu, span._keycaps_8s7e3_1[data-tone="quiet"] > kbd._cap_8s7e3_8); "S" (title-menu, span._keycaps_8s7e3_1[data-tone="quiet"] > kbd._cap_8s7e3_8); "P" (title-menu, span._keycaps_8s7e3_1[data-tone="quiet"] > kbd._cap_8s7e3_8); "4" (sidebar-find, div._pageHeader_1latm_188[data-page-heading] > span._pageCount_1latm_212); "16" (sidebar-find, div._pageHeader_1latm_188[data-page-heading] > span._pageCount_1latm_212); "Black out text and areas for good" (flag-tools, span._text_1v0j2_9 > span._hint_1v0j2_15); "Make a scan searchable" (flag-tools, span._text_1v0j2_9 > span._hint_1v0j2_15)
+tablet min 12 hist 12:32 13:320 15:824 16:24 17:12 19:12
+  smallest: "4" (sidebar-find, div._pageHeader_1latm_188[data-page-heading] > span._pageCount_1latm_212); "16" (sidebar-find, div._pageHeader_1latm_188[data-page-heading] > span._pageCount_1latm_212); "Black out text and areas for good" (flag-tools, span._text_1v0j2_9 > span._hint_1v0j2_15); "Make a scan searchable" (flag-tools, span._text_1v0j2_9 > span._hint_1v0j2_15); "See what changed between two files" (flag-tools, span._text_1v0j2_9 > span._hint_1v0j2_15); "Join files into one" (flag-tools, span._text_1v0j2_9 > span._hint_1v0j2_15); "Cut the document into parts" (flag-tools, span._text_1v0j2_9 > span._hint_1v0j2_15); "Make the file smaller" (flag-tools, span._text_1v0j2_9 > span._hint_1v0j2_15)
+phone min 13 hist 13:156 15:140 16:4 17:24 30:4
+  smallest: "Pen" (library, ul._chips_182o9_155 > li._chip_182o9_155); "Highlight" (library, ul._chips_182o9_155 > li._chip_182o9_155); "Text" (library, ul._chips_182o9_155 > li._chip_182o9_155); "Sign" (library, ul._chips_182o9_155 > li._chip_182o9_155); "Every tool on a computer or tablet." (library, div._tools_182o9_148[data-testid="compact-tools"] > p._moreTools_182o9_188); "A small magazine to try your phone’s tools on." (library, span._sampleText_182o9_229 > span#compact-sample-line._sampleLine_182o9_242); "Recent" (library, div._recentsHeader_182o9_272 > h2#compact-recents-heading._recentsTitle_182o9_281); "Clear" (library, div._recentsHeader_182o9_272 > button._text_dcsp2_11[aria-label="Clear recents"])
+weights 400:1112 500:1740 600:460
+families [["Inter Recto",3312]]
+distinct measured fg colours 22 [["dark:#bbbec3",1215],["light:#3f424a",1139],["dark:#e8e9ec",1050],["light:#15171c",1044],["light:#4f535a",227],["dark:#a1a5ab",151],["dark:#08090c",44],["light:#c8fb3d",32],["dark:#91949a",30],["light:#5d6067",30],["light:#08090c",8],["dark:#ffa4a4",4],["dark:#fd7273",4],["light:#a20519",4],["light:#c21725",4],["dark:#f4e27a",4],["light:#f4e27a",4],["dark:#1a237e",4],["light:#1a237e",4],["light:#fdfdff",4],["light:#7f838a",3],["light:#a8abb1",3]]

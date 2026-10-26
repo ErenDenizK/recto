@@ -20,7 +20,14 @@ export interface EmptyNoteProps {
   /** A 32 px glyph above the title. */
   readonly icon?: ReactNode;
   /** One quiet action under the lines ("Recognize text…"). */
-  readonly action?: { readonly label: string; readonly onClick: () => void } | undefined;
+  readonly action?:
+    | {
+        readonly label: string;
+        readonly onClick: () => void;
+        readonly busy?: boolean;
+        readonly busyLabel?: string;
+      }
+    | undefined;
   /** Announce it (`role="status"`): a note that replaces results after a search. */
   readonly status?: boolean | undefined;
 }
@@ -36,7 +43,13 @@ export function EmptyNote({ title, body, icon, action, status = false }: EmptyNo
       <p className={styles.title}>{title}</p>
       {body ? <p className={styles.body}>{body}</p> : null}
       {action ? (
-        <Button variant="quiet" className={styles.action} onClick={action.onClick}>
+        <Button
+          variant="quiet"
+          className={styles.action}
+          busy={action.busy === true}
+          busyLabel={action.busyLabel}
+          onClick={action.onClick}
+        >
           {action.label}
         </Button>
       ) : null}

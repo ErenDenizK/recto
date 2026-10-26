@@ -79,6 +79,7 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PRD-30](decisions/product.md) | Markdown polish: GFM tables (header, alignment, wrapping, header repeats, kept with the first row), Markdown/text opened from Home now lands on its document, the Library button reads "Open files…"; opening zoom is the normal fit width (DSN-60) | In force | 2026-10-25 |
 | [PRD-31](decisions/product.md) | "Open with" from the OS: manifest `file_handlers` plus a feature-detected `launchQueue` consumer into the drop path; installed Chromium only, not core | In force | 2026-10-25 |
 | [PRD-32](decisions/product.md) | Browser autofill hints: text-field editors set `autocomplete` from the tooltip/name (EN and TR, small tested matcher); unmatched, other-person and password fields stay `off`; Recto stores nothing | In force | 2026-10-25 |
+| [PRD-33](decisions/product.md) | Add bookmarks from headings: the Markdown export's heading detection builds a nested outline for a document without one; one undo step; home is the empty Contents panel and ⌘K (DSN-46) | In force | 2026-10-25 |
 | [PRD-34](decisions/product.md) | Camera scan to PDF: live outline, steady-outline auto capture, review (corners, rotate, filter, retake, reorder), Done makes one new unsaved "Scan <date>" document | Prototype behind `?scan=1`; owner taste open | 2026-10-25 |
 | [PRD-14](decisions/product.md) | W0-q findings are assigned to waves: signed fixture opens locked and saves byte-identical (W1-a/W1-b), truncated.pdf… | In force; W1-b and W1-g merged | 2026-10-09 |
 | [PF-18](decisions/product.md) | A closed document's source is parked; the engine worker ends when none is open | In force | 2026-10-22 |
@@ -103,7 +104,7 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-8](decisions/design.md) | Floating glass pieces | Done | 2026-10-08 |
 | [DSN-9](decisions/design.md) | Pop-ups fit | In force | 2026-10-08 |
 | [DSN-10](decisions/design.md) | Pages grid selection follows Photos | Done | 2026-10-08 |
-| [DSN-11](decisions/design.md) | Brand in the app: the mark on the Library tab, the favicon and the PWA icons | Done | 2026-10-08 |
+| [DSN-11](decisions/design.md) | Brand in the app: the mark on the Library tab, the favicon and the PWA icons (logo a2, 2026-10-25) | Done | 2026-10-08 |
 | [DSN-12](decisions/design.md) | One size scale for every floating piece | Done | 2026-10-09 |
 | [DSN-13](decisions/design.md) | The Library title | In force | 2026-10-09 |
 | [DSN-14](decisions/design.md) | Glass gloss is a hairline | In force | 2026-10-09 |
@@ -168,6 +169,7 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-67](decisions/design.md) | The save receipt: Save a copy's sizes show at once (approximate, then exact); behind `?receipt=1` the changed pages, size bars, the page's flight to the tab and the "never left this device" toast | Size fix in force; receipt behind `?receipt=1` | 2026-10-23 |
 | [DSN-74](decisions/design.md) | Turkish copy rules: *siz* in sentences, bare imperatives on controls, past passives in history; *karart* means redaction only (Dim pages is "Sayfa parlaklığını azalt"); ’ before suffixes on names and abbreviations | In force | 2026-10-23 |
 | [DSN-76](decisions/design.md) | A visible Tools entry on the dock behind `?tools=1`: Redact, OCR, Compare, Combine, Split, Compress as doorways to the title menu's own commands (DSN-46) | Prototype (flag) | 2026-10-24 |
+| [DSN-80](decisions/design.md) | Colour spot fixes: `--sign-hint` at 0.75, Review glyph darkened in light, Dim pages disabled state already exposed | In force | 2026-10-25 |
 | [DSN-77](decisions/design.md) | A success toast clears that action's earlier errors (same key); Use signature shows a placement hint; the phone's Delete pill keeps off form fields | In force | 2026-10-25 |
 | [DSN-78](decisions/design.md) | Scan lives as a Library launcher button and ⌘K "Scan document…" (one home, not Tools); one overlay sheet holds camera, review and corner editor | Prototype behind `?scan=1`; owner taste open | 2026-10-25 |
 | [DSN-75](decisions/design.md) | Fill & sign gets its own short bar (field stepping, Signature, Date, Done) behind `?fillbar=1`, replacing the shared palette on that door when on | Prototype; owner taste open | 2026-10-24 |
