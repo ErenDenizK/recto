@@ -80,6 +80,7 @@ import {
   useMark,
 } from './mark-host';
 import { openOverview } from './overview-host';
+import { TextViewRow } from './textview-host';
 import {
   consumeStripClick,
   holdForStrip,
@@ -118,6 +119,7 @@ export interface SplitTopParts {
   readonly SaveItems: typeof SaveItems;
   readonly prepareCopy: typeof prepareCopy;
   readonly toSheet: typeof toSheet;
+  readonly TextViewRow: typeof TextViewRow;
   readonly useFileInfo: typeof useFileInfo;
   readonly showLibrary: typeof showLibrary;
   readonly classes: {
@@ -243,6 +245,7 @@ function MoreMenu({ doc }: { readonly doc: VirtualDocument }) {
                 <span>{m.compact_contents()}</span>
               </Menu.Item>
             ) : null}
+            <TextViewRow doc={doc} className={styles.menuItem} />
             <SaveItems doc={doc} />
             <Menu.Item className={styles.menuItem} onClick={toSheet('info')}>
               <Icon name="info" />
@@ -635,6 +638,7 @@ const SPLIT_TOP_PARTS: SplitTopParts = {
   SaveItems,
   prepareCopy,
   toSheet,
+  TextViewRow,
   useFileInfo,
   showLibrary,
   classes: {

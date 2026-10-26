@@ -24,10 +24,6 @@
   overflow-wrap: anywhere;
 }
 
-.sizeGlyph {
-  color: var(--text-secondary);
-}
-
 .control {
   justify-self: end;
   min-width: 0;

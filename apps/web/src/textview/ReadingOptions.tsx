@@ -40,8 +40,8 @@ export function ReadingOptions() {
         data-testid="text-view-options-popup"
       >
         <div className={styles.row}>
-          <Icon name="text-aa" className={styles.sizeGlyph} />
-          <div className={styles.stepper} role="group" aria-label={m.text_view_options()}>
+          <span className={styles.label}>{m.text_view_size()}</span>
+          <div className={styles.stepper} role="group" aria-label={m.text_view_size()}>
             <IconButton
               label={m.text_view_smaller()}
               icon={<Icon name="minus" />}

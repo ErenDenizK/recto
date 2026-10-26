@@ -50,6 +50,8 @@ const COMPACT_GPU_GLASS_SPEC = '**/compact-gpu-glass.spec.ts';
 const COMPACT_PAGE_STRIP_SPEC = '**/compact-page-strip.spec.ts';
 /** The phone's single capsule (EDN-24, `?phonebar=1`). */
 const COMPACT_CAPSULE_SPEC = '**/compact-capsule.spec.ts';
+/** The phone's Text view (PRD-36, behind Labs `text-view`): portrait only, on `phone`. */
+const COMPACT_TEXT_VIEW_SPEC = '**/compact-text-view.spec.ts';
 /** What only the phones run. */
 const PHONE_SPECS = [
   COMPACT_GPU_GLASS_SPEC,
@@ -68,7 +70,7 @@ const PHONE_SPECS = [
   COMPACT_CAPSULE_SPEC,
 ];
 /** Specs the desktop projects never run: every phone spec, portrait or on its side. */
-const PHONE_ONLY = [...PHONE_SPECS, COMPACT_OVERVIEW_SPEC];
+const PHONE_ONLY = [...PHONE_SPECS, COMPACT_OVERVIEW_SPEC, COMPACT_TEXT_VIEW_SPEC];
 /** The control-system audit (quality-bar Q-9, spec D0-3) runs on every density and edition. */
 const BAR_AUDIT_SPEC = '**/bar-audit.spec.ts';
 /** The sheets' presentation on the medium class with a coarse pointer (spec D0-4). */
@@ -163,6 +165,7 @@ export default defineConfig({
       testMatch: [
         ...PHONE_SPECS,
         COMPACT_OVERVIEW_SPEC,
+        COMPACT_TEXT_VIEW_SPEC,
         BAR_AUDIT_SPEC,
         MOTION_SPEC,
         '**/dim-pages.spec.ts',
