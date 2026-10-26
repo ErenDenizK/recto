@@ -279,7 +279,8 @@ Full rows: [`decisions/editions.md`](decisions/editions.md).
 | [EDN-19](decisions/editions.md) | Office conversion is for desktop and tablet; the phone gets guidance, never the download | In force | 2026-10-19 |
 | [EDN-20](decisions/editions.md) | iPad is claimed for Office conversion only after the owner's device check | In force; the check is the owner's | 2026-10-21 |
 | [EDN-21](decisions/editions.md) | Phone editing code loads on intent (✎, first selection, form fields), never on idle; amends EDN-10 | In force | 2026-10-24 |
-| [EDN-22](decisions/editions.md) | Scan is desktop and tablet in lane L3; the phone's scan is lane L4 | Prototype behind `?scan=1` | 2026-10-25 |
+| [EDN-22](decisions/editions.md) | Scan is desktop and tablet in lane L3; the phone's scan is lane L4 | Phone built in EDN-23 | 2026-10-25 |
+| [EDN-23](decisions/editions.md) | The phone scans: Scan in the Library dock, a full-screen sheet on the scan core, 2,400 px pages, 40-page cap | Prototype behind `?scan=1` | 2026-10-26 |
 
 ## Phone work
 

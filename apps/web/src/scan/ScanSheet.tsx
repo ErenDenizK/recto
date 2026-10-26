@@ -100,22 +100,52 @@ function PhotoFallback({ onPhotos }: { readonly onPhotos: (files: File[]) => voi
   );
 }
 
+/**
+ * What a smaller device holds (EDN-23): the most pages a scan keeps, and the longest side a
+ * photo is kept at (a larger one is re-encoded smaller). Without limits nothing is capped.
+ */
+export interface ScanLimits {
+  readonly maxPages?: number;
+  readonly photoSide?: number;
+}
+
 /** Adds each photo as a page; the corners are found on the photo. */
-async function addPhotos(files: readonly File[]): Promise<void> {
+export async function addPhotos(files: readonly File[], limits: ScanLimits = {}): Promise<void> {
+  const room =
+    limits.maxPages === undefined
+      ? files.length
+      : Math.max(0, limits.maxPages - useScanStore.getState().pages.length);
+  if (files.length > room && limits.maxPages !== undefined) {
+    toast.failure(m.scan_limit_phone({ max: limits.maxPages }), { key: 'scan-limit' });
+  }
   const detector = new Detector();
   let skipped = 0;
   try {
-    for (const file of files) {
+    for (const file of files.slice(0, room)) {
       // One unreadable photo (HEIC off Safari) skips only itself.
       try {
         const bitmap = await createImageBitmap(file);
-        const { width, height } = bitmap;
         const probe = await createImageBitmap(bitmap);
-        bitmap.close();
         const found = await detector.detect(probe).catch(() => null);
+        let { width, height } = bitmap;
+        let source: Blob = file;
+        const long = Math.max(width, height);
+        if (limits.photoSide !== undefined && long > limits.photoSide) {
+          const scale = limits.photoSide / long;
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+          const small = await createImageBitmap(bitmap, {
+            resizeWidth: width,
+            resizeHeight: height,
+            resizeQuality: 'high',
+          });
+          source = await jpegOf(small);
+          small.close();
+        }
+        bitmap.close();
         const quad =
           (found?.quad && toPixels(found.quad, width, height)) ?? defaultQuad(width, height);
-        addPage({ source: file, width, height, quad });
+        addPage({ source, width, height, quad });
       } catch {
         skipped += 1;
       }
@@ -127,9 +157,18 @@ async function addPhotos(files: readonly File[]): Promise<void> {
   if (useScanStore.getState().pages.length > 0) setView('review');
 }
 
-function CameraView({ active }: { readonly active: boolean }) {
+export function CameraView({
+  active,
+  limits = {},
+}: {
+  readonly active: boolean;
+  readonly limits?: ScanLimits;
+}) {
   const auto = useScanStore((s) => s.auto);
   const count = useScanStore((s) => s.pages.length);
+  const retaking = useScanStore((s) => s.retaking !== null);
+  // A retake replaces a page, so it fits even at the limit.
+  const full = limits.maxPages !== undefined && count >= limits.maxPages && !retaking;
   const video = useRef<HTMLVideoElement>(null);
   const [status, setStatus] = useState<CameraStatus>('starting');
   const [size, setSize] = useState({ width: 16, height: 9 });
@@ -143,6 +182,7 @@ function CameraView({ active }: { readonly active: boolean }) {
   const armed = useRef(true);
   const capturing = useRef(false);
   const autoRef = useRef(auto);
+  const fullRef = useRef(full);
 
   // The stream: opened with the sheet, stopped with it and while the page is hidden.
   useEffect(() => {
@@ -191,7 +231,7 @@ function CameraView({ active }: { readonly active: boolean }) {
 
   const capture = async (corners: readonly { x: number; y: number }[] | null) => {
     const el = video.current;
-    if (!el || el.videoWidth === 0 || capturing.current) return;
+    if (!el || el.videoWidth === 0 || capturing.current || fullRef.current) return;
     capturing.current = true;
     // The flash and the pulse answer the press, not the encoding; a failure takes them back.
     setFlash((n) => n + 1);
@@ -219,6 +259,7 @@ function CameraView({ active }: { readonly active: boolean }) {
   const captureRef = useRef(capture);
   useLayoutEffect(() => {
     autoRef.current = auto;
+    fullRef.current = full;
     captureRef.current = capture;
   });
 
@@ -251,7 +292,13 @@ function CameraView({ active }: { readonly active: boolean }) {
             armed.current = true;
             setSpent(false);
           }
-          if (autoRef.current && armed.current && result.stable && !capturing.current) {
+          if (
+            autoRef.current &&
+            armed.current &&
+            result.stable &&
+            !capturing.current &&
+            !fullRef.current
+          ) {
             armed.current = false;
             await captureRef.current(result.quad);
             detector.reset();
@@ -304,7 +351,7 @@ function CameraView({ active }: { readonly active: boolean }) {
                   ? m.scan_none()
                   : m.scan_failed()}
             </p>
-            <PhotoFallback onPhotos={(files) => void addPhotos(files)} />
+            <PhotoFallback onPhotos={(files) => void addPhotos(files, limits)} />
           </div>
         ) : (
           <div
@@ -344,13 +391,15 @@ function CameraView({ active }: { readonly active: boolean }) {
             <p className={styles.hint} data-testid="scan-hint">
               {status === 'starting'
                 ? m.scan_camera_starting()
-                : captured || (auto && spent && outline)
-                  ? m.scan_hint_captured()
-                  : outline
-                    ? auto
-                      ? m.scan_hint_hold()
-                      : m.scan_hint_shutter()
-                    : m.scan_hint_searching()}
+                : full
+                  ? m.scan_limit_phone({ max: limits.maxPages ?? 0 })
+                  : captured || (auto && spent && outline)
+                    ? m.scan_hint_captured()
+                    : outline
+                      ? auto
+                        ? m.scan_hint_hold()
+                        : m.scan_hint_shutter()
+                      : m.scan_hint_searching()}
             </p>
           </div>
         )}
@@ -374,7 +423,7 @@ function CameraView({ active }: { readonly active: boolean }) {
             className={styles.shutter}
             data-pulse={flash > 0 && !reducedMotion() ? '' : undefined}
             aria-label={m.scan_shutter()}
-            disabled={status !== 'live'}
+            disabled={status !== 'live' || full}
             data-testid="scan-shutter"
             onClick={() => void capture(latest.current)}
           />
@@ -397,7 +446,7 @@ function CameraView({ active }: { readonly active: boolean }) {
 }
 
 /** Makes each page's small preview, one at a time, as pages and choices change. */
-function usePreviews(open: boolean): void {
+export function usePreviews(open: boolean): void {
   const pages = useScanStore((s) => s.pages);
   const scanner = useRef<Scanner | null>(null);
   const busy = useRef(false);
@@ -447,7 +496,7 @@ function usePreviews(open: boolean): void {
 }
 
 /** Corner adjust with its own Apply, and Back, which puts the corners back as they were. */
-function AdjustView({ page }: { readonly page: ScanPage }) {
+export function AdjustView({ page }: { readonly page: ScanPage }) {
   const [original] = useState(page.quad);
   return (
     <div className={styles.adjust}>

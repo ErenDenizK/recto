@@ -3522,5 +3522,6 @@
   "scan_detect_failed": "Sayfa algılama durdu. Deklanşörü kullanın ya da Tara’yı kapatıp yeniden açın.",
   "scan_photos_skipped": "{count} fotoğraf okunamadı ve atlandı.",
   "scan_apply": "Uygula",
-  "scan_back": "Geri"
+  "scan_back": "Geri",
+  "scan_limit_phone": "Telefon bir taramada {max} sayfa tutar. Bitti’ye basın, sonra yenisini tarayın."
 }

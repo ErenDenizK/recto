@@ -101,7 +101,7 @@ export function openDocument(): VirtualDocument | undefined {
  * not stored yet, and once the reset closes its source in the engine its kept record could
  * not be written (ADR-0032 §2.6, closed documents stay in Recents).
  */
-async function closeOpenDocument(): Promise<void> {
+export async function closeOpenDocument(): Promise<void> {
   if (useWorkspaceStore.getState().workspace.documentOrder.length === 0) return;
   await flushSession();
   clearSearch();

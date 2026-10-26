@@ -48,8 +48,11 @@ const COMPACT_FIND_MAP_SPEC = '**/compact-find-map.spec.ts';
 const COMPACT_GPU_GLASS_SPEC = '**/compact-gpu-glass.spec.ts';
 /** The page strip's rail on the phone (DSN-63). */
 const COMPACT_PAGE_STRIP_SPEC = '**/compact-page-strip.spec.ts';
+/** The camera scan on the phone (EDN-23, `?scan=1`; Chromium's fake camera). */
+const COMPACT_SCAN_SPEC = '**/compact-scan.spec.ts';
 /** What only the phones run. */
 const PHONE_SPECS = [
+  COMPACT_SCAN_SPEC,
   COMPACT_GPU_GLASS_SPEC,
   COMPACT_FIND_MAP_SPEC,
   COMPACT_SPEC,

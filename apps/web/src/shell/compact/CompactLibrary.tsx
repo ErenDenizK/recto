@@ -27,6 +27,10 @@
  *    (M2, `compact-library-dock` in the coverage registry): in thumb reach, above the home
  *    indicator, with Recents scrolling under it.
  *
+ * Behind `?scan=1`, when the device reports a camera, a **Scan** button stands left of Open PDF in
+ * the same dock (EDN-23): a quiet text button, so Open PDF stays the one lime; it opens the
+ * phone's scan sheet (`scan/`), whose code loads only then (PF-23).
+ *
  * A file that did not open leaves one line saying why (`role="alert"`), under the sample.
  */
 import { lazy, type ReactNode, Suspense, useState } from 'react';
@@ -48,6 +52,7 @@ import type { IconName } from '../../ui/icons.generated';
 import { announce } from '../announcer';
 import { PRODUCT_NAME } from '../about/build-info';
 import { CompactSheets } from './CompactSheets';
+import { ScanButton } from './scan/ScanEntry';
 import { isOpenEntry, openRecentEntry, pickAndOpen, trySample } from './compact-actions';
 import { openSheet, useCompactStore } from './compact-store';
 import controls from './controls.module.css';
@@ -131,6 +136,7 @@ export function LibraryScreen({
       </div>
       <div className={styles.dock}>
         <div className={styles.dockPiece} data-testid="compact-library-dock">
+          <ScanButton />
           <button
             type="button"
             className={`${continued ? controls.text : controls.primary} ${styles.open}`}
