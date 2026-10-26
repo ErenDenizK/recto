@@ -4,6 +4,8 @@
  * kept in `localStorage`, so the reload into cross-origin isolation (and later visits) keep
  * it; when storage is unavailable it lasts as long as the address carries it.
  */
+import { labsStored } from '../labs/stored';
+
 export const OFFICE_FLAG_PARAM = 'office';
 export const OFFICE_FLAG_KEY = 'pdf-editor:office:v1';
 /** Session key of the one reload into cross-origin isolation (`isolation.ts`). */
@@ -31,7 +33,7 @@ export function officeEnabled(): boolean {
   } catch {
     // Storage blocked (a private window, site data off): the address alone decides.
   }
-  decided = decideOfficeFlag(location.search, stored);
+  decided = decideOfficeFlag(location.search, labsStored('office', stored));
   return decided;
 }
 

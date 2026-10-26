@@ -20,6 +20,7 @@
  *
  * The Saved signatures page (D0-11) lives in `SavedSignatures.tsx`, beside its row.
  */
+import { RevealTap } from '../labs/RevealTap';
 import { useEffect, useState } from 'react';
 
 import { formatFileSize } from '../home/home-model';
@@ -275,9 +276,11 @@ export function AboutPage({ info = BUILD_INFO }: { readonly info?: BuildInfo }) 
           <Line
             label={m.about_version()}
             value={
-              <span className={styles.literal} data-testid="about-version">
-                {info.version}
-              </span>
+              <RevealTap>
+                <span className={styles.literal} data-testid="about-version">
+                  {info.version}
+                </span>
+              </RevealTap>
             }
           />
         </Row>
