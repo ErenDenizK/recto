@@ -16,6 +16,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { page, userEvent } from 'vitest/browser';
 
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
+import { settled } from '../../test/settled';
 import { fixtureFile } from '../../test/store-harness';
 import {
   type PageTarget,
@@ -437,6 +438,8 @@ describe('Markup palette', () => {
       return found;
     });
     expect(chips).toHaveLength(1);
+    // The bar enters in motion; a click before it rests can land beside the chip.
+    await settled(bar());
     await userEvent.click(chips[0] as HTMLElement);
     await waitFor(() => expect(useToolStore.getState().mode).toBe('signature'));
     expect(chips[0]).toHaveAttribute('aria-pressed', 'true');
