@@ -19,6 +19,7 @@ import {
   armTool,
   canUndoAbove,
   enterEditing,
+  eraserFrom,
   exitEditing,
   resetBridge,
   toggleEraser,
@@ -73,6 +74,16 @@ describe('the editing bridge', () => {
     toggleEraser();
     expect(compact().tool).toBe('highlight');
     expect(mode()).toBe('ink');
+  });
+
+  it('says which tool the eraser took over from (EDN-24)', () => {
+    enterEditing();
+    expect(eraserFrom()).toBe('pen');
+    armTool('highlight');
+    toggleEraser();
+    expect(eraserFrom()).toBe('highlight');
+    toggleEraser();
+    expect(eraserFrom()).toBe('highlight');
   });
 
   it('a soon tool does not arm; a stub arms Select or its mode', () => {

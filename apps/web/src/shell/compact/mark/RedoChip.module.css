@@ -1,0 +1,67 @@
+/*
+ * The Redo chip (RedoChip.tsx; EDN-24): an M1 glass circle of 44 px (Q-9) above Undo. It enters
+ * from the capsule's Undo, scale .6 to 1 with a fade, on --spring-quick; it leaves on
+ * --duration-fast. Transform and opacity only; at rest nothing animates. Reduced motion: a fade.
+ */
+.chip {
+  composes: mat mat-chip s7 c8 from global;
+  color: var(--text-primary);
+  transform-origin: 50% 100%;
+  animation: chip-in var(--spring-quick) var(--ease-spring) both;
+}
+
+.chip[data-leaving] {
+  pointer-events: none;
+  animation: chip-out var(--duration-fast) var(--ease-out) both;
+}
+
+/* Over IconButton's own 32 px fine-pointer box (same weight, so the element name wins). */
+button.chip {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-capsule);
+}
+
+@keyframes chip-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+@keyframes chip-out {
+  to {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+@keyframes chip-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes chip-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip {
+    animation: chip-fade-in var(--duration-fast) var(--ease-out) both;
+  }
+
+  .chip[data-leaving] {
+    animation: chip-fade-out var(--duration-fast) var(--ease-out) both;
+  }
+}
+
+:global(:root[data-motion='reduced']) .chip {
+  animation: chip-fade-in var(--duration-fast) var(--ease-out) both;
+}
+
+:global(:root[data-motion='reduced']) .chip[data-leaving] {
+  animation: chip-fade-out var(--duration-fast) var(--ease-out) both;
+}

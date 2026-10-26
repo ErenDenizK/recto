@@ -16,7 +16,6 @@ import { PDFHexString, PDFName, setFillingRgbColor } from '@cantoo/pdf-lib';
 import { seededRandom } from '../../lib/common.ts';
 import { Canvas } from '../../lib/raster.ts';
 import { type PageCtx, type SlipRun, trySlip } from '../context.ts';
-import { lampTab } from '../light.ts';
 import {
   type Elem,
   FACES,
@@ -356,7 +355,6 @@ export function scanPage(ctx: PageCtx): void {
   trySlip(ctx, copy.scan.tryLine, {
     raster: (runs) => stencils(ctx, 'Mk', w.elem('Figure', w.elem('Div'), copy.scan.tryLine), runs),
   });
-  w.art(...lampTab(w, 'scan'));
 }
 
 /** Lines of type as 1-bit stencil masks filled in their colour: as a Figure, or artifacts. */

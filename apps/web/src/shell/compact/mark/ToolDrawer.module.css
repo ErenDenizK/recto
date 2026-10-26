@@ -140,6 +140,8 @@
 
 /* The armed tool: filled, as the full edition's armed tool (the palette's tool-active fill). */
 .tile[aria-pressed='true'] {
+  --shadow-own: inset 0 0 0 1px var(--accent-edge);
+  box-shadow: var(--shadow-own);
   background: var(--tool-active-fill);
   color: var(--tool-active-ink);
 }

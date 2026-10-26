@@ -44,6 +44,8 @@ import {
   type SettingsTarget,
   targetOf,
 } from './open-settings';
+import { LabsSection } from '../labs/LabsSection';
+import { useLabsVisible } from '../labs/store';
 import { AboutPage, KeptPage, PrivacyPage } from './pages';
 import { SavedSignaturesPage, SavedSignaturesRow } from './SavedSignatures';
 import { Section } from './rows';
@@ -202,6 +204,7 @@ export default function SettingsSheet() {
   const initial = landingOf(targetOf(open?.preset ?? null));
   const [page, setPage] = useState<SettingsPageId | null>(initial.page);
   const [reveal, setReveal] = useState<SettingsTarget | null>(initial.reveal);
+  const labsVisible = useLabsVisible();
   const pointers = usePointerCapabilities();
   const keyboardSeen = useLastInput() === 'keyboard';
   const coarse = pointers.primary === 'coarse';
@@ -372,6 +375,7 @@ export default function SettingsSheet() {
               </Section>
             ))
           )}
+          {page === null && !searching && labsVisible ? <LabsSection /> : null}
         </ScrollArea>
         <FocusTarget
           choose={() => {
