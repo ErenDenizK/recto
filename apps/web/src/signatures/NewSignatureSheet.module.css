@@ -185,7 +185,8 @@
 }
 
 .hint {
-  color: var(--text-secondary);
+  /* Body copy: primary clears APCA Lc 75 (colour audit 25 Oct 2026, DSN-79). */
+  color: var(--text-primary);
   font-size: var(--type-footnote);
   line-height: var(--type-footnote-lh);
 }

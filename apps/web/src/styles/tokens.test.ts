@@ -429,9 +429,9 @@ describe('tokens.css', () => {
         '#303339',
         '#3f4249',
         '#55585f',
-        '#91949a',
-        '#a1a5ab',
-        '#bbbec3',
+        '#a8abb0',
+        '#b8bbc0',
+        '#c8cbd0',
         '#e8e9ec',
       ];
       ramp.forEach((hex, i) => expect(resolve(`--n${i + 1}`), `--n${i + 1}`).toBe(hex));
@@ -480,15 +480,15 @@ describe('tokens.css', () => {
         ['--n12', '--n1', 16.4, 93],
         ['--n12', '--n3', 14.48, 92],
         ['--n12', '--n5', 11.85, 90],
-        ['--n11', '--n1', 10.68, 67],
-        ['--n11', '--n3', 9.43, 66],
-        ['--n11', '--n5', 7.72, 64],
-        ['--n10', '--n1', 8.05, 53],
-        ['--n10', '--n3', 7.11, 52],
-        ['--n10', '--n5', 5.81, 50],
-        ['--n9', '--n1', 6.55, 44],
-        ['--n9', '--n3', 5.78, 43],
-        ['--n9', '--n5', 4.73, 41],
+        ['--n11', '--n1', 12.24, 75],
+        ['--n11', '--n3', 10.81, 74],
+        ['--n11', '--n5', 8.84, 71],
+        ['--n10', '--n1', 10.34, 66],
+        ['--n10', '--n3', 9.13, 64],
+        ['--n10', '--n5', 7.47, 62],
+        ['--n9', '--n1', 8.64, 56],
+        ['--n9', '--n3', 7.63, 55],
+        ['--n9', '--n5', 6.24, 53],
         ['--n8', '--n1', 2.79, 0],
         ['--n8', '--n3', 2.47, 0],
         ['--n8', '--n5', 2.02, 0],
@@ -501,14 +501,14 @@ describe('tokens.css', () => {
       }
     });
 
-    it('keeps body text AA on every surface of the ladder, and tertiary off n6', () => {
+    it('keeps body text AA on every surface of the ladder, tertiary included on n6', () => {
       for (const text of ['--text-primary', '--text-secondary', '--text-tertiary']) {
         for (const surface of SURFACES) {
           atLeast(contrast(colour(text), colour(surface)), AA_TEXT, `${text} on ${surface}`);
         }
       }
-      // 4.16:1: tertiary never sits on n6 (language.md §1.7).
-      expect(contrast(colour('--text-tertiary'), colour('--n6'))).toBeLessThan(AA_TEXT);
+      // The lifted n9 holds 5.50:1 on n6 (colour audit 25 Oct 2026), so the old "never on n6" rule is gone.
+      atLeast(contrast(colour('--text-tertiary'), colour('--n6')), 5.49, 'tertiary on n6');
       expect(resolve('--badge-fill')).toBe(resolve('--n6'));
     });
 
@@ -596,8 +596,8 @@ describe('tokens.css', () => {
       const row = on('--accent-muted', colour('--surface-frame'));
       atLeast(contrast(colour('--text-primary'), row), 10.67, 'primary');
       atLeast(contrast(colour('--text-secondary'), row), 5.23, 'secondary');
-      // Tertiary steps up to secondary on a current row (language.md §1.7).
-      expect(contrast(colour('--text-tertiary'), row)).toBeLessThan(AA_TEXT);
+      // Tertiary holds AA on a current row since the ladder lift (colour audit 25 Oct 2026).
+      atLeast(contrast(colour('--text-tertiary'), row), AA_TEXT, 'tertiary');
     });
 
     it('draws 1 px lines at lime 0.50: 4.56 on the canvas, 4.49 on the frame', () => {
@@ -685,12 +685,12 @@ describe('tokens.css', () => {
   });
 
   describe('status and tags (language.md §1.6, ADR-0023 §2.7–§2.8)', () => {
-    it('holds danger, warning (hue 72) and success on the frame: 6.56, 10.18, 9.25', () => {
-      expect(resolve('--danger')).toBe('#fd7273');
+    it('holds danger, warning (hue 72) and success on the frame: 8.66, 10.18, 9.25', () => {
+      expect(resolve('--danger')).toBe('#ff9a9a');
       expect(resolve('--warning')).toBe('#ffb756');
       expect(resolve('--success')).toBe('#56d1a3');
       const frame = colour('--surface-frame');
-      atLeast(contrast(colour('--danger'), frame), 6.56, 'danger');
+      atLeast(contrast(colour('--danger'), frame), 8.66, 'danger');
       atLeast(contrast(colour('--warning'), frame), 10.18, 'warning');
       atLeast(contrast(colour('--success'), frame), 9.25, 'success');
       for (const status of ['--danger', '--warning', '--success']) {
@@ -701,11 +701,11 @@ describe('tokens.css', () => {
       expect(wash('--warning-line').rgb).toEqual(colour('--warning'));
     });
 
-    it('steps danger up on glass (#ffa4a4) and keeps warning and success as they are', () => {
+    it('keeps danger AA on glass, with #ffa4a4 on the glass tiers, warning and success as they are', () => {
       expect(resolve('--glass-danger')).toBe('#ffa4a4');
       expect(resolve('--glass-warning')).toBe(resolve('--warning'));
       expect(resolve('--glass-success')).toBe(resolve('--success'));
-      expect(contrast(colour('--danger'), glassOver(darkWorst('bar')))).toBeLessThan(AA_TEXT);
+      atLeast(contrast(colour('--danger'), glassOver(darkWorst('bar'))), 4.72, 'danger');
       atLeast(
         contrast(colour('--glass-danger'), glassOver(darkWorst('bar'))),
         4.54,
@@ -736,8 +736,8 @@ describe('tokens.css', () => {
         [colour('--accent'), literal(TINT.green), 7.4, 5.3, 6.9, 8.4],
         [colour('--accent'), colour('--warning'), 19.0, 15.2, 9.0, 17.9],
         [colour('--accent'), colour('--success'), 20.1, 18.3, 20.5, 18.0],
-        [colour('--accent'), colour('--danger'), 35.9, 32.8, 21.3, 32.6],
-        [colour('--success'), colour('--danger'), 29.1, 17.9, 7.0, 34.2],
+        [colour('--accent'), colour('--danger'), 29.7, 25.6, 17.2, 22.9],
+        [colour('--success'), colour('--danger'), 24.0, 8.4, 3.5, 27.1],
         [colour('--select'), literal(INK.blue), 4.5, 0.7, 1.8, 0.3],
       ];
       for (const [a, b, ...expected] of pairs) {
@@ -762,13 +762,13 @@ describe('tokens.css', () => {
     const TABLE: Readonly<
       Record<GlassTier, readonly [string, number, number, number, number, number, number]>
     > = {
-      chip: ['#434447', 8.02, 5.22, 5.14, 5.63, 82, 56],
-      bar: ['#444548', 7.89, 5.14, 5.06, 5.55, 82, 56],
-      panel: ['#34363a', 9.97, 6.49, 6.4, 7.01, 87, 61],
-      menu: ['#424347', 8.13, 5.3, 5.22, 5.72, 83, 57],
-      sheet: ['#34363b', 9.96, 6.49, 6.39, 7.0, 87, 61],
+      chip: ['#434447', 8.02, 5.99, 5.15, 5.64, 82, 64],
+      bar: ['#444548', 7.89, 5.89, 5.07, 5.55, 82, 63],
+      panel: ['#34363a', 9.97, 7.44, 6.4, 7.01, 87, 68],
+      menu: ['#424347', 8.13, 6.07, 5.22, 5.72, 83, 64],
+      sheet: ['#34363b', 9.96, 7.43, 6.39, 7.0, 87, 68],
       // Lit glass is never over a page: its worst is the field's brightest pixel.
-      lit: ['#57585d', 7.38, 4.8, 4.73, 5.19, 81, 54],
+      lit: ['#57585d', 7.38, 5.5, 4.73, 5.19, 81, 62],
     };
     const worst = darkWorst;
 
@@ -793,9 +793,9 @@ describe('tokens.css', () => {
       expect(SMALL).toEqual(['chip', 'bar']);
       for (const tier of SMALL) {
         expect(resolve(`--glass-${tier}-alpha`), tier).toBe('0.6');
-        // Over a white page, the worst: primary 7.89:1 and more, glass-secondary 5.14:1.
+        // Over a white page, the worst: primary 7.89:1 and more, glass-secondary 5.89:1.
         atLeast(contrast(colour('--text-primary'), tierOver(tier, WHITE)), 7.89, tier);
-        atLeast(contrast(colour('--glass-text-secondary'), tierOver(tier, WHITE)), 5.14, tier);
+        atLeast(contrast(colour('--glass-text-secondary'), tierOver(tier, WHITE)), 5.89, tier);
       }
       // No rule gives a piece the other theme's block: the root's theme is the only one.
       expect(stripComments(materialsCss)).not.toMatch(/\.mat[\w.-]*\[data-theme/);
@@ -841,11 +841,11 @@ describe('tokens.css', () => {
     it('measures states inside glass over white as §2.6 does', () => {
       // [tier, hover glass-sec, pressed glass-sec, current primary, current glass-sec]
       const rows: readonly (readonly [GlassTier, number, number, number, number])[] = [
-        ['chip', 4.61, 4.19, 5.93, 3.86],
-        ['bar', 4.53, 4.13, 5.84, 3.8],
-        ['panel', 5.66, 5.15, 7.17, 4.67],
-        ['menu', 4.66, 4.25, 6.01, 3.92],
-        ['sheet', 5.65, 5.15, 7.17, 4.67],
+        ['chip', 5.28, 4.8, 5.93, 4.42],
+        ['bar', 5.2, 4.73, 5.84, 4.35],
+        ['panel', 6.49, 5.91, 7.17, 5.35],
+        ['menu', 5.34, 4.87, 6.01, 4.49],
+        ['sheet', 6.48, 5.9, 7.17, 5.35],
       ];
       const secondary = colour('--glass-text-secondary');
       for (const [tier, hover, pressed, currentP, currentS] of rows) {
@@ -891,26 +891,26 @@ describe('tokens.css', () => {
       expect(resolve('--scroll-thumb-edge')).toMatch(/^inset 0 0 0 0\.5px rgb\(0 0 0 \/ 0\.\d+\)$/);
     });
 
-    it('lists the APCA warnings: secondary text under Lc 60 (A-4; a new one fails until listed)', () => {
-      const warnings: string[] = [];
-      const check = (label: string, text: string, under: Rgb) => {
-        const value = lc(colour(text), under);
-        if (value < 60) warnings.push(`${label}: ${text} Lc ${Math.round(value)}`);
-      };
-      for (const surface of SURFACES) check(surface, '--text-secondary', colour(surface));
-      for (const tier of GLASS_TIERS) {
-        check(`${tier} over its worst`, '--glass-text-secondary', tierOver(tier, worst(tier)));
+    it('holds the secondary APCA floor: Lc 60 on every surface and glass tier over its worst (A-4)', () => {
+      // Colour audit 25 Oct 2026, lane 3 and 6: the ladder is lifted so nothing is listed.
+      const under: [string, string, Rgb][] = [
+        ...SURFACES.map((surface): [string, string, Rgb] => [
+          surface,
+          '--text-secondary',
+          colour(surface),
+        ]),
+        ...GLASS_TIERS.map((tier): [string, string, Rgb] => [
+          `${tier} over its worst`,
+          '--glass-text-secondary',
+          tierOver(tier, worst(tier)),
+        ]),
+      ];
+      for (const [label, text, backdrop] of under) {
+        expect(lc(colour(text), backdrop), `${label}: ${text}`).toBeGreaterThanOrEqual(60);
+        expect(lc(colour('--text-primary'), backdrop), `${label}: primary`).toBeGreaterThanOrEqual(
+          75,
+        );
       }
-      expect(warnings).toEqual([
-        '--canvas: --text-secondary Lc 53',
-        '--surface-frame: --text-secondary Lc 52',
-        '--surface-raised: --text-secondary Lc 51',
-        '--surface-on: --text-secondary Lc 50',
-        'chip over its worst: --glass-text-secondary Lc 56',
-        'bar over its worst: --glass-text-secondary Lc 56',
-        'menu over its worst: --glass-text-secondary Lc 57',
-        'lit over its worst: --glass-text-secondary Lc 54',
-      ]);
     });
 
     it('keeps alphas as their own tokens, solids opaque, shadows from the elevation scale', () => {
@@ -1414,8 +1414,9 @@ describe('tokens.css', () => {
       // The drawer's list variant (EDN-16), its own floating panel over the island: one more.
       // The phone reader's split top (DSN-34), its glass circles in their own module: one more.
       // The phone's note popover becomes the phone sheet (DSN-53): one fewer.
-      // The page strip (R26, DSN-63) floats in a module of its own: one more.
-      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(31);
+      // The page strip (R26, DSN-63) floats in a module of its own: one more. The single
+      // capsule's tray and Redo chip (EDN-24, `?phonebar=1`) are modules of their own: two more.
+      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(33);
       // The capsule at the one piece height (G1): σ 8 at 40 px, 9 at 48 coarse.
       expect(entryClasses(COVERAGE_REGISTRY[0] as GlassSurfaceEntry)).toEqual([
         'mat',
@@ -1817,7 +1818,7 @@ describe('tokens.css', () => {
         '#c5c7cd',
         '#a8abb1',
         '#5d6067',
-        '#4f535a',
+        '#4a4d54',
         '#3f424a',
         '#15171c',
       ];
@@ -1873,9 +1874,9 @@ describe('tokens.css', () => {
         ['--n11', '--n1', 9.89, 92],
         ['--n11', '--n2', 9.38, 89],
         ['--n11', '--n4', 8.19, 80],
-        ['--n10', '--n1', 7.61, 86],
-        ['--n10', '--n2', 7.21, 82],
-        ['--n10', '--n4', 6.3, 73],
+        ['--n10', '--n1', 8.33, 88],
+        ['--n10', '--n2', 7.9, 84],
+        ['--n10', '--n4', 6.9, 76],
         ['--n9', '--n1', 6.2, 80],
         ['--n9', '--n2', 5.88, 77],
         ['--n9', '--n4', 5.13, 68],
