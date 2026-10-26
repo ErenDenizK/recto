@@ -9,7 +9,7 @@ import type { ScaleKind } from './css-scale';
 export const CSS_SCALE_ALLOW: Readonly<Record<string, Partial<Record<ScaleKind, number>>>> = {
   'annotations/lasso/Lasso.module.css': { radius: 1, duration: 1, stroke: 5 },
   'redaction/RedactionLayer.module.css': { stroke: 4 },
-  'tools/ToolDialog.module.css': { radius: 1, spacing: 1 },
+  'tools/ToolDialog.module.css': { radius: 1 },
   'ui/Avatar.module.css': { icon: 2 },
   'ui/Badge.module.css': { spacing: 1 },
   'ui/Chip.module.css': { stroke: 1 },
