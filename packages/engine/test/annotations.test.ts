@@ -112,33 +112,21 @@ async function openBlank(pages = 1, engine = adapter): Promise<ReturnType<typeof
   return id;
 }
 
-/** Reddish pixels (red over green and blue by 60; `pngBlob` is half-transparent red) of a page render inside a user-space rect; `rotation` is the page's /Rotate. */
+/** Reddish pixels (red over green and blue by 60; `pngBlob` is half-transparent red) of an unrotated page render inside a user-space rect. */
 async function redPixels(
   engine: PdfiumAdapter,
   id: ReturnType<typeof sid>,
   rect: Rect,
-  pageIndex = 0,
-  rotation: Rotation = 0,
 ): Promise<number> {
-  const r = await engine.renderPage(id, pageIndex, { scale: 1 });
+  const r = await engine.renderPage(id, 0, { scale: 1 });
   const canvas = new OffscreenCanvas(r.width, r.height);
   const ctx = canvas.getContext('2d') as OffscreenCanvasRenderingContext2D;
   ctx.drawImage(r.bitmap, 0, 0);
-  const box = userToDeviceRect(
-    {
-      quarterTurns: (rotation / 90) as 0 | 1 | 2 | 3,
-      displayWidth: r.width,
-      displayHeight: r.height,
-      originX: 0,
-      originY: 0,
-    },
-    rect,
-  );
   const data = ctx.getImageData(
-    Math.round(box.origin.x),
-    Math.round(box.origin.y),
-    Math.round(box.size.width),
-    Math.round(box.size.height),
+    Math.round(rect.x),
+    Math.round(r.height - rect.y - rect.height),
+    Math.round(rect.width),
+    Math.round(rect.height),
   ).data;
   let red = 0;
   for (let i = 0; i < data.length; i += 4) {
@@ -297,6 +285,103 @@ describe('ids (/NM)', () => {
   });
 });
 
+const ROTATIONS = [
+  [0, 0],
+  [1, 90],
+  [2, 180],
+  [3, 270],
+] as const;
+
+/** The /Rect at user (x, y) that the viewer sees as `shown.width` × `shown.height`. */
+function shownRect(rotation: Rotation, shown: Rect): Rect {
+  return rotation % 180 === 0 ? shown : { ...shown, width: shown.height, height: shown.width };
+}
+
+/** A 20 × 10 PNG: blue, with its top-left quarter red (to tell its orientation). */
+async function markerPng(): Promise<Blob> {
+  const canvas = new OffscreenCanvas(20, 10);
+  const ctx = canvas.getContext('2d') as OffscreenCanvasRenderingContext2D;
+  ctx.fillStyle = '#0000ff';
+  ctx.fillRect(0, 0, 20, 10);
+  ctx.fillStyle = '#ff0000';
+  ctx.fillRect(0, 0, 10, 5);
+  return canvas.convertToBlob({ type: 'image/png' });
+}
+
+/** The page render's pixels inside a user-space rect, as the viewer sees them (rows top down). */
+async function viewedPixels(
+  engine: PdfiumAdapter,
+  id: ReturnType<typeof sid>,
+  pageIndex: number,
+  rotation: Rotation,
+  rect: Rect,
+): Promise<ImageData> {
+  const r = await engine.renderPage(id, pageIndex, { scale: 1 });
+  const canvas = new OffscreenCanvas(r.width, r.height);
+  const ctx = canvas.getContext('2d') as OffscreenCanvasRenderingContext2D;
+  ctx.drawImage(r.bitmap, 0, 0);
+  const box = userToDeviceRect(
+    {
+      quarterTurns: (rotation / 90) as 0 | 1 | 2 | 3,
+      displayWidth: r.width,
+      displayHeight: r.height,
+      originX: 0,
+      originY: 0,
+    },
+    rect,
+  );
+  return ctx.getImageData(
+    Math.round(box.origin.x),
+    Math.round(box.origin.y),
+    Math.round(box.size.width),
+    Math.round(box.size.height),
+  );
+}
+
+const UPRIGHT = { topLeft: 'red', topRight: 'blue', bottomLeft: 'blue', inked: true };
+
+/** The colour of each viewed quarter's centre, and whether 90 % of the rect is inked. */
+async function viewed(
+  engine: PdfiumAdapter,
+  id: ReturnType<typeof sid>,
+  pageIndex: number,
+  rotation: Rotation,
+  rect: Rect,
+): Promise<typeof UPRIGHT | { inked: boolean }> {
+  const px = await viewedPixels(engine, id, pageIndex, rotation, rect);
+  const colour = (fx: number, fy: number): string => {
+    const i = (Math.floor(fy * px.height) * px.width + Math.floor(fx * px.width)) * 4;
+    const [r, g, b] = [px.data[i] ?? 0, px.data[i + 1] ?? 0, px.data[i + 2] ?? 0];
+    if (r > 200 && g < 60 && b < 60) return 'red';
+    if (b > 200 && r < 60 && g < 60) return 'blue';
+    return 'other';
+  };
+  let ink = 0;
+  for (let i = 0; i < px.data.length; i += 4) if ((px.data[i + 1] ?? 255) < 200) ink += 1;
+  const inked = ink > 0.9 * px.width * px.height;
+  if (!inked) return { inked };
+  return {
+    topLeft: colour(0.25, 0.25),
+    topRight: colour(0.75, 0.25),
+    bottomLeft: colour(0.25, 0.75),
+    inked,
+  };
+}
+
+/** Which viewed pixels in a user-space rect are not white. */
+async function inkMask(
+  engine: PdfiumAdapter,
+  id: ReturnType<typeof sid>,
+  pageIndex: number,
+  rotation: Rotation,
+  rect: Rect,
+): Promise<boolean[]> {
+  const px = await viewedPixels(engine, id, pageIndex, rotation, rect);
+  const mask: boolean[] = [];
+  for (let i = 0; i < px.data.length; i += 4) mask.push((px.data[i + 1] ?? 255) < 200);
+  return mask;
+}
+
 describe('rotated pages and crop boxes', () => {
   test('rects read back in user space on /Rotate 0, 90, 180 and 270', async () => {
     const id = sid('rotated');
@@ -338,38 +423,50 @@ describe('rotated pages and crop boxes', () => {
     ['with raw access', () => rawAdapter],
     ['without raw access', () => adapter],
   ])(
-    'an image stamp fills its rect on /Rotate 0, 90, 180 and 270, created and moved (IM-19, %s)',
+    'a stamp image fills its rect and reads upright on /Rotate 0, 90, 180 and 270, created and moved (IM-19, DSN-81, %s)',
     async (_, engineOf) => {
       const engine = engineOf();
       const id = sid(`rotated-stamp-${++counter}`);
       await engine.open(id, await fixture(rotatedUrl));
-      const at = { x: 100, y: 200, width: 120, height: 40 };
-      const to = { x: 250, y: 450, width: 90, height: 30 };
-      for (const [pageIndex, rotation] of [
-        [0, 0],
-        [1, 90],
-        [2, 180],
-        [3, 270],
-      ] as const) {
+      const image = await markerPng();
+      for (const [pageIndex, rotation] of ROTATIONS) {
+        // The viewer sees 120 × 40 (then 90 × 30): a quarter turn swaps the /Rect's sides.
+        const at = shownRect(rotation, { x: 100, y: 200, width: 120, height: 40 });
+        const to = shownRect(rotation, { x: 250, y: 450, width: 90, height: 30 });
         const stamp = await engine.createAnnotation(id, {
           kind: 'stamp',
           pageIndex,
           rect: at,
-          imageBlob: pngBlob(),
+          imageBlob: image,
         });
         expectRect(stamp.rect, at);
-        // Not a sliver: the image covers its whole rect (the edge pixels may anti-alias).
-        expect(await redPixels(engine, id, at, pageIndex, rotation)).toBeGreaterThan(
-          0.9 * 120 * 40,
-        );
+        expect(await viewed(engine, id, pageIndex, rotation, at)).toEqual(UPRIGHT);
         // A drag commits the stamp with only its rect changed (the in-place path, #128).
         await engine.updateAnnotation(id, { ...stamp, rect: to });
-        expect(await redPixels(engine, id, to, pageIndex, rotation)).toBeGreaterThan(0.9 * 90 * 30);
-        expect(await redPixels(engine, id, at, pageIndex, rotation)).toBe(0);
+        expect(await viewed(engine, id, pageIndex, rotation, to)).toEqual(UPRIGHT);
+        expect((await viewed(engine, id, pageIndex, rotation, at)).inked).toBe(false);
       }
       await engine.close(id);
     },
   );
+
+  test('a named stamp on a rotated page looks as it does on an unrotated one (DSN-81)', async () => {
+    const id = sid(`rotated-named-${++counter}`);
+    await rawAdapter.open(id, await fixture(rotatedUrl));
+    const masks: boolean[][] = [];
+    for (const [pageIndex, rotation] of ROTATIONS) {
+      const rect = shownRect(rotation, { x: 100, y: 200, width: 120, height: 40 });
+      await rawAdapter.createAnnotation(id, { kind: 'stamp', pageIndex, rect, name: 'Draft' });
+      masks.push(await inkMask(rawAdapter, id, pageIndex, rotation, rect));
+    }
+    const [upright, ...turned] = masks as [boolean[], ...boolean[][]];
+    expect(upright.filter(Boolean).length).toBeGreaterThan(500);
+    for (const mask of turned) {
+      const differ = mask.filter((v, i) => v !== upright[i]).length;
+      expect(differ / mask.length).toBeLessThan(0.05);
+    }
+    await rawAdapter.close(id);
+  });
 
   test('rects are absolute user space on a page whose CropBox is offset', async () => {
     const id = sid('cropped');

@@ -7,6 +7,8 @@
  */
 import '../styles/fonts.css';
 
+import type { Rect, Rotation } from '@pdf-editor/document-model';
+
 import { decodeImageFile } from '../files/images';
 import { m } from '../i18n';
 import { traceSmooth } from '../signatures/smooth-ink';
@@ -168,6 +170,32 @@ export async function drawnSignature(
   }
   const blob = await c.convertToBlob({ type: 'image/png' });
   return { kind: 'signature', blob, width: c.width, height: c.height };
+}
+
+/**
+ * The /Rect (user space) of a stamp placed by a click `at` a point (centred, at its natural
+ * size) or by a `drag` (its width decides, the aspect stays). `natural` is the size the viewer
+ * sees: the engine draws a stamp upright to the viewer on a page with /Rotate (DSN-81), so a
+ * quarter turn swaps the /Rect's sides. The app's own view rotation is not countered.
+ */
+export function placedStampRect(
+  natural: { width: number; height: number },
+  rotation: Rotation,
+  placed: { readonly at: { x: number; y: number } } | { readonly drag: Rect },
+): Rect {
+  const odd = rotation === 90 || rotation === 270;
+  const ratio = natural.height / natural.width;
+  if ('drag' in placed) {
+    const r = placed.drag;
+    // The width the viewer dragged runs along user y on a quarter turn.
+    const shown = Math.max(12, odd ? r.height : r.width);
+    const width = odd ? shown * ratio : shown;
+    const height = odd ? shown : shown * ratio;
+    return { x: r.x, y: r.y + r.height - height, width, height };
+  }
+  const width = odd ? natural.height : natural.width;
+  const height = odd ? natural.width : natural.height;
+  return { x: placed.at.x - width / 2, y: placed.at.y - height / 2, width, height };
 }
 
 /**
