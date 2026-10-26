@@ -86,6 +86,8 @@ import {
   stripPreview,
 } from '../frame/strip/strip-hold';
 import { CompactTopSplit } from './CompactTopSplit';
+import { PhoneCapsule } from './PhoneCapsule';
+import { phoneCapsule } from './phone-capsule-flag';
 import { topVariant } from './top-variant';
 
 /** The container transform's popup class (`ui/container-transform.ts`, not imported here). */
@@ -498,7 +500,15 @@ function FindBar({
   );
 }
 
+/**
+ * The bottom capsule: the single capsule (EDN-24, `?phonebar=1`) is its own host, read once per
+ * page so the branch never changes under the reader; otherwise the shipped one, unchanged.
+ */
 export function CompactCapsule({ doc }: { readonly doc: VirtualDocument }) {
+  return phoneCapsule() ? <PhoneCapsule doc={doc} /> : <ShippedCapsule doc={doc} />;
+}
+
+function ShippedCapsule({ doc }: { readonly doc: VirtualDocument }) {
   const away = useCompactStore(capsuleAway);
   const editing = useCompactStore((s) => s.editing);
   const mark = useMark();

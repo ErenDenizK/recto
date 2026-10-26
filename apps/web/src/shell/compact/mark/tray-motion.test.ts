@@ -8,7 +8,14 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { settled } from '../../../../test/settled';
 import { progressFrames } from './drawer-motion';
 import { springs } from '../../../motion/springs';
-import { originX, TRAY_RISE_PX, TRAY_SCALE, trayFrame, trayMotion } from './tray-motion';
+import {
+  fadeContent,
+  originX,
+  TRAY_RISE_PX,
+  TRAY_SCALE,
+  trayFrame,
+  trayMotion,
+} from './tray-motion';
 
 function panel(): HTMLElement {
   const el = document.createElement('div');
@@ -20,6 +27,16 @@ function panel(): HTMLElement {
 afterEach(() => {
   document.body.replaceChildren();
   delete document.documentElement.dataset.motion;
+});
+
+describe('a tool change’s fade', () => {
+  it('ends with the content opaque: the fade in drops the fade out’s held frame', async () => {
+    const el = panel();
+    await fadeContent(el, 'out').finished;
+    expect(getComputedStyle(el).opacity).toBe('0');
+    await fadeContent(el, 'in').finished;
+    expect(getComputedStyle(el).opacity).toBe('1');
+  });
 });
 
 describe('the tray’s frames', () => {

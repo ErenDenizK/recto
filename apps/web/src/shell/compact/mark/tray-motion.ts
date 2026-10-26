@@ -59,6 +59,12 @@ export function originX(panel: HTMLElement): string {
 export function fadeContent(el: HTMLElement, way: 'in' | 'out'): Animation {
   const reduced = reducedMotion();
   const ms = reduced ? REDUCED_DURATION_MS.fast : way === 'out' ? CONTENT_OUT_MS : CONTENT_IN_MS;
+  // The fade out holds its last frame (`forwards`); coming in drops it, or it would take the
+  // opacity back the moment the fade in ends.
+  if (way === 'in') {
+    for (const held of el.getAnimations())
+      if (held.effect?.getTiming().fill === 'forwards') held.cancel();
+  }
   return el.animate(
     way === 'out' ? [{ opacity: 1 }, { opacity: 0 }] : [{ opacity: 0 }, { opacity: 1 }],
     {
