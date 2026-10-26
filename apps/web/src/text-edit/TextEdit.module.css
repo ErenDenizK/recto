@@ -253,3 +253,38 @@
 :global(:root[data-motion='reduced']) .paragraph {
   transition: none;
 }
+
+/*
+ * Paragraph outlines (TXT-25): a 1 px hairline round each paragraph while the tool is armed;
+ * no fill, no pointer. Hover or focus strengthens it. They fade in over 120 ms in all: each
+ * box takes half of it and starts after its share of the other half (`--outline-delay`, set
+ * in reading order); instant under reduced motion (the component leaves `data-fade` off).
+ */
+.outlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.outline {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid var(--select-wash);
+  border-radius: var(--radius-page);
+  background: transparent;
+}
+
+.outline[data-strong] {
+  border-color: var(--select);
+}
+
+.outline[data-fade] {
+  animation: outline-in calc(var(--duration-fast) / 2) var(--ease-out) var(--outline-delay)
+    backwards;
+}
+
+@keyframes outline-in {
+  from {
+    opacity: 0;
+  }
+}

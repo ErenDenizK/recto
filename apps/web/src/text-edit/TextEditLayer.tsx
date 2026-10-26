@@ -59,6 +59,7 @@ import {
   textPrecomputeEnabled,
   usePrecomputeParagraphs,
 } from './paragraph-precompute';
+import { ParagraphOutlines, useOutlinesOn } from './ParagraphOutlines';
 import { usePageRevision, usePageRuns } from './runs';
 import styles from './TextEdit.module.css';
 import { TextEditor } from './TextEditor';
@@ -199,6 +200,10 @@ export function TextEditLayer(props: PageOverlayProps) {
   usePrecomputeParagraphs(located, sourceIndex, revision, blocks, active && inView);
   const focusReturn = useTextEditStore((s) =>
     s.focusReturn?.pageId === pageId ? s.focusReturn : null,
+  );
+  const outlines = useOutlinesOn();
+  const openIndex = useTextEditStore((s) =>
+    s.paragraph?.target.pageId === pageId ? s.paragraph.block.ref.index : null,
   );
   const layerRef = useRef<HTMLDivElement>(null);
   const shown = session !== null && editable;
@@ -346,6 +351,9 @@ export function TextEditLayer(props: PageOverlayProps) {
             ),
           )
         : null}
+      {active && plan && outlines ? (
+        <ParagraphOutlines items={plan.items} frame={frame} openIndex={openIndex} />
+      ) : null}
       {session && shown ? <TextEditor session={session} frame={frame} revision={revision} /> : null}
     </div>
   );

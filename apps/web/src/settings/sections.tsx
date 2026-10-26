@@ -55,6 +55,7 @@ import { useUiStore } from '../state/ui-store';
 import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
 import { Segmented } from '../ui/Segmented';
+import { useOutlineSetting } from '../text-edit/outline-setting';
 import { Switch } from '../ui/Switch';
 import { TextField } from '../ui/TextField';
 import { setPenDrawsInMarkup, usePenDrawsInMarkup } from '../viewer/edit-policy';
@@ -191,6 +192,20 @@ export function PenDrawsRow() {
         description={auto ? m.settings_pen_draws_hint() : undefined}
         checked={on}
         onCheckedChange={setPenDrawsInMarkup}
+      />
+    </Row>
+  );
+}
+
+export function ParagraphOutlinesRow() {
+  const show = useOutlineSetting((s) => s.show);
+  return (
+    <Row id="paragraphOutlines">
+      <Switch
+        className={styles.switch}
+        label={m.paragraph_outlines_setting()}
+        checked={show}
+        onCheckedChange={(on) => useOutlineSetting.getState().setShow(on)}
       />
     </Row>
   );

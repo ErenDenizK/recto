@@ -43,6 +43,7 @@ export type SettingsRowId =
   | 'dimPages'
   | 'language'
   | 'penDrawsInEdit'
+  | 'paragraphOutlines'
   | 'keptDocuments'
   | 'savedSignatures'
   | 'recents'
@@ -170,6 +171,12 @@ export const SETTINGS_ROWS: readonly SettingsRow[] = [
     title: at(m.pen_draws_in_edit),
     keywords: at(m.settings_pen_draws_keywords),
     commands: ['view.penDrawsInEdit'],
+  },
+  {
+    id: 'paragraphOutlines',
+    section: 'pen',
+    title: at(m.paragraph_outlines_setting),
+    commands: ['settings.open'],
   },
   {
     id: 'keptDocuments',
