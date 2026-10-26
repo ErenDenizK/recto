@@ -1,3 +1,5 @@
+> **Superseded by [`redesign-2026-10/language.md`](redesign-2026-10/language.md)** and the rows of [`docs/process/decisions.md`](../process/decisions.md). Kept in place because the decisions index cites its "Lead's resolution" as a source.
+
 # Visual system audit (2026-10-09): one system for every surface
 
 **Status:** proposal for the owner and the lead · **Applies to:** both editions, every surface ·

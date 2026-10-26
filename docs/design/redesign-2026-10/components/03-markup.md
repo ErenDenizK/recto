@@ -7,7 +7,7 @@ status: proposed
 > Wave 2 component spec. Binding inputs: [`flows.md`](../flows.md) (§2.4–§2.6 state and guard,
 > §3 input rules, §4.2–§4.3 dock and palette, §4.7 depths, §6 size classes, §7 keys, §13) and
 > [`language.md`](../language.md) (§1.4 lime, §1.9, §2 glass, §3.2–§3.3 under-light, §5 icons,
-> §6 shape, §7 motion, §9 accessibility). Evidence: [`inventory.md`](../inventory.md) §7 (7.1–7.16)
+> §6 shape, §7 motion, §9 accessibility). Evidence: [`inventory.md`](../../../archive/design/redesign-2026-10/inventory.md) §7 (7.1–7.16)
 > and §8.7–8.9, 9.4, 9.15, 12.7; code on `develop` (`shell/FloatingToolbar*.ts(x)`,
 > `annotations/pen/PenBar.tsx`, `annotations/pen/presets.ts`, `annotations/palette.ts`,
 > `annotations/tools.ts`, `viewer/tool-store.ts`, `state/edit-policy-store.ts`); ADR-0021;

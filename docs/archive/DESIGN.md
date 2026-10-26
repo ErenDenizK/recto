@@ -201,7 +201,7 @@ containers; and the anti-pattern of CSS-invert dark mode).
   bar) becomes a denser glass that composites to exactly `--surface-1` over the canvas, so
   it changes only where a page passes under it (§3). With the setting on, all four docked
   surfaces blur in every view; there is no geometry gate. This is pending spike S2 on the
-  owner's machine ([`research/14-glass-spike.md`](research/14-glass-spike.md)); until S2
+  owner's machine ([`research/14-glass-spike.md`](../research/14-glass-spike.md)); until S2
   passes and the owner approves, the rule above stands: everything docked is opaque. If S2
   fails, the setting goes and the full-bleed stage and the menu tier stay. *Added
   2026-10-04 (M8, A15, pending S2); amended 2026-10-04 (M8 review).*
@@ -354,7 +354,7 @@ Rules:
   surfaces carries the backdrop filter in every view; the 80 px geometry gate was removed
   after the M8 review. Over the canvas the blurred surface equals the solid token, so
   nothing changes at rest. The cost is measured in
-  [`research/14-glass-spike.md`](research/14-glass-spike.md) §4.2: in Read it is as before,
+  [`research/14-glass-spike.md`](../research/14-glass-spike.md) §4.2: in Read it is as before,
   and in Arrange the median frame is unchanged while the slow tail (p95) rises. The
   floating bar's tier 1 stays as it is, because no lighter value passed the contrast tests
   (§4.3 there: a lighter backdrop takes the accent fill under 3:1, and a darker tint lets
@@ -363,7 +363,7 @@ Rules:
   steps while the setting is on. Contrast is final for all
   three tiers over white, the canvas, `#808080` and black; frame rate, GPU memory and
   legibility on a 2020-class GPU at DPR 2 wait for the owner's machine
-  ([`research/14-glass-spike.md`](research/14-glass-spike.md)). Without the owner's
+  ([`research/14-glass-spike.md`](../research/14-glass-spike.md)). Without the owner's
   approval after S2, this rule does not replace "everything docked is opaque" (§2).
   *Added 2026-10-04 (M8, A15, pending S2); amended 2026-10-04 (M8 review).*
 - **Chrome colour is for state; colour enters through content.** In the chrome, accent is
@@ -744,9 +744,9 @@ contrast measurements in
 ## 9. Craft (M8)
 
 **Built (2026-10-04)**, pending the owner's checks. The independent review ran on the same
-day ([`docs/archive/DISCUSSION.md`](archive/DISCUSSION.md) #31); its fixes are marked "M8 review" in §2–§4.8.
+day ([`docs/archive/DISCUSSION.md`](DISCUSSION.md) #31); its fixes are marked "M8 review" in §2–§4.8.
 Owner feedback on the beta: everything works, nothing feels native yet. This pass amended §2–§5
-with A8–A14 of the [spec](specs/craft.md) §2, as built: Home as a view and documents in Read
+with A8–A14 of the [spec](../specs/craft.md) §2, as built: Home as a view and documents in Read
 (locked), Edit or Arrange with keys `1`–`4` (A8); one Edit button in Read and five groups in
 Edit, with the text selection bar and the page context menu (A9); Esc never leaving Edit
 and the interaction policy of §4.8 (A10); the paragraph editor drawn from the page's own
@@ -756,11 +756,11 @@ dry ink (A12); a lasso that takes every kind, with resize and rotate (A13); one 
 built: tag dots stay desaturated and the accent's state alphas are unchanged. A15 (glass on
 the docked frame, now with no geometry gate) is only a trial behind the Glass panels
 setting, default off, pending spike S2 on the owner's machine
-([`research/14-glass-spike.md`](research/14-glass-spike.md));
+([`research/14-glass-spike.md`](../research/14-glass-spike.md));
 the menu glass tier, Reduce transparency and the full-bleed stage are in place for
 everyone. What each work package delivered, and where it differs from the plan, is in the
 spec's §15; the latency measurements are in
-[`qa/ink-latency-baseline.md`](qa/ink-latency-baseline.md).
+[`qa/ink-latency-baseline.md`](../qa/ink-latency-baseline.md).
 
 ## 10. Redesign (M9)
 
@@ -768,7 +768,7 @@ spec's §15; the latency measurements are in
 for the whole interface to be rethought in a language of glass, lime light and motion, simple
 and native like Apple Preview and Notability. The owner's review the same day set the scope:
 widescreen desktops and tablets first, and on phones a read-only compact edition whose real
-interface is M10 ([ADR-0033](adr/0033-compact-edition.md)). When built, M9
+interface is M10 ([ADR-0033](../adr/0033-compact-edition.md)). When built, M9
 replaces §1's intent ("quiet, dense … nothing glows" becomes "the page is the brightest thing;
 only light glows") and most of §2–§4: the Read · Edit · Arrange control gives way to viewing
 with targeted acts, one Markup state and a per-document Lock; the grid of title bar, rail,
@@ -777,13 +777,13 @@ dock that morphs into the Markup palette, one sidebar, sheets and a page pill; t
 `#7c8cff` gives way to one lime and a selection blue, with five glass densities, an aurora that
 answers events, springs, `'Inter Recto'`, Phosphor icons and a light theme equal to dark; and
 saving gains Save in place, snapshots on the device and a visible Undo. The amendments are
-numbered B1–B15 in the [spec](specs/redesign.md) §2 and are applied here together by the
-spec's D4-9, when the parts are built. The model is [`design/redesign-2026-10/flows.md`](design/redesign-2026-10/flows.md),
-the language [`design/redesign-2026-10/language.md`](design/redesign-2026-10/language.md), and
-the decisions [ADR-0022](adr/0022-recto-glass-design-language.md) to
-[ADR-0028](adr/0028-accessibility-gates-expressive-ui.md) (the language) and
-[ADR-0029](adr/0029-viewing-markup-and-lock.md) to [ADR-0032](adr/0032-saving-restore-history.md)
+numbered B1–B15 in the [spec](../specs/redesign.md) §2 and are applied here together by the
+spec's D4-9, when the parts are built. The model is [`design/redesign-2026-10/flows.md`](../design/redesign-2026-10/flows.md),
+the language [`design/redesign-2026-10/language.md`](../design/redesign-2026-10/language.md), and
+the decisions [ADR-0022](../adr/0022-recto-glass-design-language.md) to
+[ADR-0028](../adr/0028-accessibility-gates-expressive-ui.md) (the language) and
+[ADR-0029](../adr/0029-viewing-markup-and-lock.md) to [ADR-0032](../adr/0032-saving-restore-history.md)
 (the model, the guard, the shell, saving), with ADR-0033 (two editions), all accepted; the
-[quality bar](design/redesign-2026-10/quality-bar.md) and the
-[ink family](design/redesign-2026-10/components/10-ink.md) hold the owner's standing
+[quality bar](../design/redesign-2026-10/quality-bar.md) and the
+[ink family](../design/redesign-2026-10/components/10-ink.md) hold the owner's standing
 requirements. Until M9 lands, §1–§9 describe the shipped app.

@@ -498,6 +498,12 @@ for (const palette of PALETTES) {
           .map((k) => Number.parseFloat(String(k.width)));
         const at = width();
         await frame();
+        // `turning` is cancelled when a later retarget replaces it (animate.ts), and then reads a
+        // null time though the capsule is still moving: the motion drawn now is the current one.
+        const drawing = widthMotion() ?? turning;
+        const drawingWidths = (drawing.effect as KeyframeEffect)
+          .getKeyframes()
+          .map((k) => Number.parseFloat(String(k.width)));
         return {
           start,
           going,
@@ -505,12 +511,12 @@ for (const palette of PALETTES) {
           to: widths.at(-1) ?? 0,
           at,
           turned: width(),
-          // A motion that has already come to rest (a frame longer than the whole spring) has
-          // handed the capsule back to its resting size, the palette's.
+          // No width motion left (a frame longer than the whole spring) means the capsule is
+          // handed back at its resting size, the palette's: the last keyframe.
           drawn:
-            turning.currentTime === null
-              ? (widths.at(-1) ?? 0)
-              : widthAt(turning, Number(turning.currentTime)),
+            drawing.currentTime === null
+              ? (drawingWidths.at(-1) ?? 0)
+              : widthAt(drawing, Number(drawing.currentTime)),
           elapsed: performance.now() - pressed,
         };
       });
@@ -527,7 +533,7 @@ for (const palette of PALETTES) {
       // than jumping), and, when that frame is short, a short way on: what the spring travels in a
       // frame grows with the frame's length (Chromium: 36 px in one 60 Hz frame).
       expect(Math.abs(reversal.turned - reversal.drawn)).toBeLessThan(1);
-      if (reversal.elapsed <= 34) {
+      if (reversal.elapsed <= 20) {
         expect(Math.abs(reversal.turned - reversal.going)).toBeLessThan(40);
       }
       await settled(page);

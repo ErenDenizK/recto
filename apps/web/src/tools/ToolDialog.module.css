@@ -1,37 +1,3 @@
-/* Tool dialogs, layered on ShortcutOverlay.module.css's popup like the export dialog. */
-.popup {
-  width: min(560px, calc(100vw - 32px));
-}
-
-.wide {
-  width: min(920px, calc(100vw - 32px));
-  max-height: min(820px, calc(100vh - 48px));
-}
-
-.body {
-  display: grid;
-  grid-auto-rows: max-content;
-  gap: var(--space-3);
-  overflow-y: auto;
-  padding: var(--space-5) var(--space-6) var(--space-6);
-}
-
-.description {
-  color: var(--text-secondary);
-  line-height: var(--leading-base);
-}
-
-.numeric {
-  font-variant-numeric: tabular-nums;
-}
-
-.strong {
-  color: var(--text-primary);
-  font-size: var(--type-callout);
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-}
-
 .fieldset {
   display: grid;
   gap: var(--space-2);
@@ -45,45 +11,6 @@
   margin-bottom: var(--space-1);
   color: var(--text-tertiary);
   font-size: var(--type-footnote);
-}
-
-.presets {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-2);
-}
-
-.preset {
-  display: grid;
-  gap: 2px;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  cursor: pointer;
-}
-
-/* An option choice: accent-muted, no accent border (design audit D11, G5). */
-.preset:has(input:checked) {
-  background: var(--accent-muted);
-  /* The hint is 4.3:1 in tertiary on the accent-muted fill; it steps up to secondary (AA). */
-  --text-tertiary: var(--text-secondary);
-}
-
-.preset:has(input:focus-visible) {
-  outline: 2px solid var(--focus-light);
-  outline-offset: var(--focus-offset-in);
-  box-shadow: inset 0 0 0 4px var(--focus-dark);
-}
-
-.preset input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.presetName {
-  font-weight: 500;
 }
 
 .hint {
@@ -105,8 +32,7 @@
   gap: var(--space-1);
 }
 
-.input,
-.select {
+.input {
   height: 32px;
   padding: 0 var(--space-3);
   border: 1px solid var(--border-strong);
@@ -115,78 +41,6 @@
   background: var(--surface-raised);
   color: var(--text-primary);
   font-size: var(--type-body);
-}
-
-.check {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
-  color: var(--text-primary);
-  font-size: var(--type-body);
-  line-height: var(--leading-base);
-}
-
-.check input {
-  margin-top: 3px;
-  accent-color: var(--control-on);
-}
-
-.estimate {
-  padding: var(--space-3);
-  border-radius: var(--radius-sm);
-  background: var(--surface-raised);
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.notice {
-  color: var(--warning);
-  font-size: var(--type-footnote);
-  line-height: var(--leading-base);
-}
-
-.tableWrap {
-  max-height: 220px;
-  overflow: auto;
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-sm);
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--type-footnote);
-  font-variant-numeric: tabular-nums;
-}
-
-.table caption {
-  padding: var(--space-2) var(--space-3);
-  color: var(--text-tertiary);
-  text-align: left;
-}
-
-.table th,
-.table td {
-  padding: var(--space-1) var(--space-3);
-  border-top: 1px solid var(--border-hairline);
-  text-align: left;
-  white-space: nowrap;
-}
-
-.table th {
-  position: sticky;
-  top: 0;
-  background: var(--surface-frame);
-  color: var(--text-tertiary);
-  font-weight: 500;
-}
-
-.table td {
-  color: var(--text-secondary);
-}
-
-.table td[data-skip] {
-  color: var(--text-tertiary);
 }
 
 .progress {
@@ -223,78 +77,10 @@
   background: var(--progress-fill);
 }
 
-.error {
-  color: var(--danger);
-  line-height: var(--leading-base);
-}
-
-.list {
-  margin: 0;
-  padding-left: var(--space-4);
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  line-height: var(--leading-base);
-}
-
-.compare {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-2);
-}
-
-.pane {
-  display: grid;
-  grid-template-rows: auto 1fr;
-  gap: var(--space-1);
-  min-width: 0;
-}
-
-.paneLabel {
-  color: var(--text-tertiary);
-  font-size: var(--type-footnote);
-}
-
-.viewport {
-  height: 360px;
-  overflow: auto;
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-sm);
-  background: var(--canvas);
-}
-
-.viewport canvas {
-  display: block;
-  /* True 200 %: the reset's max-width: 100% would fit the page to the pane. */
-  max-width: none;
-  height: auto;
-}
-
 .actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--space-2);
   padding-top: var(--space-1);
-}
-
-.spacer {
-  flex: 1;
-}
-
-.primary {
-  composes: btn btn-prominent from global;
-}
-
-.secondary {
-  composes: btn btn-standard from global;
-}
-
-@media (max-width: 640px) {
-  .presets {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .compare {
-    grid-template-columns: 1fr;
-  }
 }

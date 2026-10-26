@@ -1,17 +1,15 @@
 /**
  * "Save repaired copy" and the structural check on an encrypted, damaged source (review
- * M3 #6), and verification of a compressed copy before download (review M3 #5). Runs
+ * M3 #6). Runs
  * against the app's engine service and compress worker.
  */
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { afterAll, describe, expect, it } from 'vitest';
 
 import encryptedUrl from '../../../../test/fixtures/encrypted-aes-256.pdf?url';
-import imagesUrl from '../../../../test/fixtures/images.pdf?url';
 import { getEngineService } from '../engine/engine-service';
 import { disposeCompressor } from './compress-client';
 import { repairedCopy, structuralCheck } from './repair';
-import { verifyCopy } from './verify-copy';
 
 const fetchBytes = async (url: string) => (await fetch(url)).arrayBuffer();
 
@@ -58,18 +56,5 @@ describe('repair of an encrypted source', () => {
     } finally {
       await engine.close(id);
     }
-  });
-});
-
-describe('compressed copy verification', () => {
-  it('accepts a faithful copy and reports a copy that lost pages', async () => {
-    const source = await fetchBytes(imagesUrl);
-    expect(await verifyCopy(source, source.slice(0))).toEqual([]);
-    const shorter = await PDFDocument.load(source.slice(0));
-    shorter.removePage(2);
-    const problems = await verifyCopy(source, (await shorter.save()).slice().buffer);
-    expect(problems.join(' ')).toMatch(/Page count is 2, expected 3/);
-    // Neither buffer was detached.
-    expect(source.byteLength).toBeGreaterThan(0);
   });
 });
