@@ -27,6 +27,7 @@ import {
   type ParagraphEdit,
   type ParagraphEditResult,
   type ParagraphEditSpan,
+  type ParagraphFrameChange,
   type ParagraphLayout,
   type PdfParagraphEditor,
   type PdfTextEditor,
@@ -221,6 +222,8 @@ export interface TextEditParagraphPayload {
   readonly layout?: ParagraphLayout;
   /** Once applied: 2 (original font only) or 1 (some characters in a bundled substitute). */
   readonly tier?: 1 | 2;
+  /** Move and/or resize (TXT-24, `ParagraphEdit.frame`); payloads recorded before it have none. */
+  readonly frame?: ParagraphFrameChange;
 }
 
 function invalidParagraph(why: string): EngineError {
@@ -252,7 +255,7 @@ export function readParagraphEditPayload(payload: unknown): TextEditParagraphPay
   if (!isObject(payload) || !isObject(payload.paragraph) || !isObject(payload.caretSpan)) {
     throw invalidParagraph('expected { paragraph, text, caretSpan, … }');
   }
-  const { paragraph, text, caretSpan, style, spans, layout, tier } = payload;
+  const { paragraph, text, caretSpan, style, spans, layout, tier, frame } = payload;
   if (!Number.isInteger(paragraph.index) || (paragraph.index as number) < 0) {
     throw invalidParagraph('paragraph.index must be a non-negative integer');
   }
@@ -272,6 +275,7 @@ export function readParagraphEditPayload(payload: unknown): TextEditParagraphPay
     throw invalidParagraph('layout must be a layout of the text');
   }
   if (tier !== undefined && tier !== 1 && tier !== 2) throw invalidParagraph('tier must be 1 or 2');
+  const readFrame = frame === undefined ? undefined : readFrameChange(frame);
   return {
     paragraph: { index: paragraph.index as number, runs: paragraph.runs.map(readRun) },
     text,
@@ -280,6 +284,31 @@ export function readParagraphEditPayload(payload: unknown): TextEditParagraphPay
     ...(readSpans === undefined ? {} : { spans: readSpans }),
     ...(layout === undefined ? {} : { layout: layout as unknown as ParagraphLayout }),
     ...(tier === undefined ? {} : { tier }),
+    ...(readFrame === undefined ? {} : { frame: readFrame }),
+  };
+}
+
+/** The recorded frame change: finite offsets and, when present, an ordered measure. */
+function readFrameChange(frame: unknown): ParagraphFrameChange {
+  if (!isObject(frame) || !Number.isFinite(frame.dx) || !Number.isFinite(frame.dy)) {
+    throw invalidParagraph('frame needs finite dx and dy');
+  }
+  const { measure } = frame;
+  if (
+    measure !== undefined &&
+    (!isObject(measure) ||
+      !Number.isFinite(measure.left) ||
+      !Number.isFinite(measure.right) ||
+      (measure.left as number) >= (measure.right as number))
+  ) {
+    throw invalidParagraph('frame.measure needs finite left < right');
+  }
+  return {
+    dx: frame.dx as number,
+    dy: frame.dy as number,
+    ...(measure === undefined
+      ? {}
+      : { measure: { left: measure.left as number, right: measure.right as number } }),
   };
 }
 
@@ -333,6 +362,7 @@ export function paragraphEditOf(
     ...(payload.style === undefined ? {} : { style: payload.style }),
     ...(payload.spans === undefined ? {} : { spans: payload.spans }),
     ...(payload.layout === undefined ? {} : { layout: payload.layout }),
+    ...(payload.frame === undefined ? {} : { frame: payload.frame }),
   };
 }
 
@@ -361,6 +391,15 @@ export function paragraphEditPayloadOf(
     ...(edit.spans === undefined ? {} : { spans: edit.spans.map((span) => ({ ...span })) }),
     ...(layout === undefined ? {} : { layout }),
     ...(result ? { tier: result.tier } : {}),
+    ...(edit.frame === undefined
+      ? {}
+      : {
+          frame: {
+            dx: edit.frame.dx,
+            dy: edit.frame.dy,
+            ...(edit.frame.measure === undefined ? {} : { measure: { ...edit.frame.measure } }),
+          },
+        }),
   };
 }
 

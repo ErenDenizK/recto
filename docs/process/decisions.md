@@ -336,6 +336,8 @@ Full rows: [`decisions/text-editing.md`](decisions/text-editing.md).
 | [TXT-21](decisions/text-editing.md) | Plain letters stand down after a double-click selection until a press or Esc (owner, console r25-dblclick-edit) | In force | 2026-10-23 |
 | [TXT-22](decisions/text-editing.md) | The page in view analyses its paragraphs ahead of a click, behind `?textpre=1` | In force behind the flag | 2026-10-23 |
 | [TXT-23](decisions/text-editing.md) | A new text box's default colour reads on the page under it (ink black on light, white on dark); a picked colour wins | In force | 2026-10-24 |
+| [TXT-24](decisions/text-editing.md) | A paragraph can be moved and given another width: the writer translates, never writes the lines again; one undo step; behind Labs `paragraphFrame` | In force behind Labs | 2026-10-26 |
+| [TXT-25](decisions/text-editing.md) | Edit text shows every paragraph's outline (cap 250 per page, off on phones, a setting); behind Labs `paragraphOutlines` | In force behind Labs | 2026-10-26 |
 
 ## Redaction
 
