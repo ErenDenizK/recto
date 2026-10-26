@@ -22,7 +22,7 @@
   place-items: center;
   min-height: 0;
   border-radius: var(--radius-md);
-  background: #000;
+  background: var(--camera-stage);
   overflow: hidden;
 }
 
@@ -51,7 +51,6 @@
 .outline polygon {
   fill: none;
   stroke: var(--accent);
-  stroke-width: 3;
   stroke-dasharray: 8 6;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
@@ -68,8 +67,8 @@
   margin: 0;
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-capsule);
-  background: rgb(0 0 0 / 0.6);
-  color: #fff;
+  background: var(--camera-wash);
+  color: var(--camera-ink);
   font-size: var(--type-body);
   line-height: var(--type-body-lh);
   transform: translateX(-50%);
@@ -79,7 +78,7 @@
 .flash {
   position: absolute;
   inset: 0;
-  background: #fff;
+  background: var(--camera-ink);
   opacity: 0;
   animation: flash var(--duration-base) var(--ease-out) both;
   pointer-events: none;
@@ -107,7 +106,7 @@
   gap: var(--space-3);
   max-width: 360px;
   padding: var(--space-6);
-  color: #fff;
+  color: var(--camera-ink);
   text-align: center;
 }
 
@@ -133,26 +132,21 @@
 /* 72 px (plan §3). The fill and the outer ring are the primary text colour, which reads on the
    sheet in both themes (well over 3:1); the sheet-coloured gap keeps the two apart. */
 .shutter {
+  composes: focus-gap from global;
   width: 72px;
   height: 72px;
   padding: 0;
   border: 0;
   border-radius: 50%;
   background: var(--text-primary);
-  box-shadow:
-    0 0 0 4px var(--surface-raised),
-    0 0 0 7px var(--text-primary);
+  --shadow-own: 0 0 0 4px var(--surface-raised), 0 0 0 7px var(--text-primary);
+  box-shadow: var(--shadow-own);
   cursor: pointer;
 }
 
 .shutter:disabled {
   opacity: 0.4;
   cursor: default;
-}
-
-.shutter:focus-visible {
-  outline: 2px solid var(--accent-ring);
-  outline-offset: 4px;
 }
 
 .shutter[data-pulse] {
