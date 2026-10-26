@@ -7,7 +7,7 @@
  *
  * Pages is no sheet any more: it is the page overview (MOB-2, `overview-host.tsx`). The four
  * are rarely used and load on demand (`CompactMoreSheets`; phone code audit 2026-10 §4a, the
- * bundle gate PRC-11). Their module is fetched on intent (EDN-22, never on idle): at the pointerdown on
+ * bundle gate PRC-11). Their module is fetched on intent (EDN-25, never on idle): at the pointerdown on
  * the page number or the Library's gear, and at the latest when ⋯ opens or one of them is asked
  * for. It stays mounted from then on, so each later opening rises at once.
  */
@@ -40,7 +40,7 @@ export function CompactSheets({ doc }: { readonly doc?: VirtualDocument | undefi
   const wanted = usePasswordStore((s) => s.queue.length > 0) || asked;
   const [More, setMore] = useState<MoreSheets | null>(null);
 
-  // Fetched when asked for (EDN-22): ⋯, a sheet or a password prompt.
+  // Fetched when asked for (EDN-25): ⋯, a sheet or a password prompt.
   useEffect(() => {
     if (More || !wanted) return;
     let live = true;
