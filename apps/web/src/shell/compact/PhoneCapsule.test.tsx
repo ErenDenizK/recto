@@ -55,6 +55,8 @@ describe('with the switch off', () => {
 describe('with ?phonebar=1', () => {
   it('reads as the icon capsule with ✎ inside it', async () => {
     await open('?phonebar=1');
+    // The host loads lazily (PF-23): wait for it.
+    await screen.findByTestId('compact-capsule-edit', {}, { timeout: 10_000 });
     const capsule = screen.getByTestId('compact-capsule');
     expect(capsule).toHaveAccessibleName('Reading tools');
     expect(screen.queryByTestId('compact-edit')).toBeNull();
@@ -67,7 +69,9 @@ describe('with ?phonebar=1', () => {
 
   it('morphs into the tools with a tray, and Done gives focus back to ✎', async () => {
     await open('?phonebar=1');
-    await userEvent.click(screen.getByTestId('compact-capsule-edit'));
+    await userEvent.click(
+      await screen.findByTestId('compact-capsule-edit', {}, { timeout: 10_000 }),
+    );
     const pen = await screen.findByTestId('compact-capsule-tool-pen', {}, { timeout: 10_000 });
     const capsule = screen.getByTestId('compact-capsule');
     expect(capsule).toHaveAccessibleName('Editing tools');
