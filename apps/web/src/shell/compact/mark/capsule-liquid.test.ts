@@ -88,4 +88,27 @@ describe('the capsule and ✎ as one body (DSN-43, MOT-14)', () => {
       expect(capsule.hasAttribute('data-glass-settle')).toBe(false);
     });
   });
+  it('moves only the capsule’s three parts when there is no ✎ beside it (EDN-24)', async () => {
+    dock = document.createElement('div');
+    dock.style.cssText =
+      'position:fixed;left:0;right:0;bottom:12px;display:flex;justify-content:center;';
+    const capsule = document.createElement('nav');
+    capsule.className = 'capsule mat mat-bar s10';
+    capsule.style.cssText = 'width:230px;height:56px;border-radius:28px;';
+    dock.append(capsule);
+    document.body.append(dock);
+    const before = capsule.getBoundingClientRect();
+    capsule.style.width = '324px';
+    fuseDock(capsule, before);
+    const layer = dock.querySelector<HTMLElement>('[data-testid="compact-dock-liquid"]');
+    expect(layer?.children).toHaveLength(3);
+    expect(capsule.hasAttribute('data-liquid')).toBe(true);
+    const island = dock;
+    await settled(island);
+    await vi.waitFor(() => {
+      expect(island.querySelector('[data-testid="compact-dock-liquid"]')).toBeNull();
+      expect(capsule.hasAttribute('data-liquid')).toBe(false);
+      expect(capsule.hasAttribute('data-glass-settle')).toBe(false);
+    });
+  });
 });

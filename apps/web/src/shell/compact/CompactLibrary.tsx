@@ -47,7 +47,7 @@ import { Icon } from '../../ui/Icon';
 import type { IconName } from '../../ui/icons.generated';
 import { announce } from '../announcer';
 import { PRODUCT_NAME } from '../about/build-info';
-import { CompactSheets } from './CompactSheets';
+import { CompactSheets, loadMoreSheets } from './CompactSheets';
 import { isOpenEntry, openRecentEntry, pickAndOpen, trySample } from './compact-actions';
 import { openSheet, useCompactStore } from './compact-store';
 import controls from './controls.module.css';
@@ -111,6 +111,7 @@ export function LibraryScreen({
         aria-label={m.settings_title()}
         aria-haspopup="dialog"
         data-testid="compact-library-more"
+        onPointerDown={() => void loadMoreSheets().catch(() => undefined)}
         onClick={() => openSheet('settings')}
       >
         <Icon name="gear-six" />

@@ -12,6 +12,7 @@
  * same device keeps it; when storage is unavailable it lasts as long as the address carries it.
  * Read once per page.
  */
+import { labsStored } from '../labs/stored';
 
 export type PaletteVariant = 'row' | 'groups' | 'labels';
 
@@ -42,7 +43,7 @@ export function paletteVariant(): PaletteVariant {
   } catch {
     // Storage blocked (a private window, site data off): the address alone decides.
   }
-  chosen = decidePaletteVariant(location.search, stored);
+  chosen = decidePaletteVariant(location.search, labsStored('palette', stored));
   return chosen;
 }
 

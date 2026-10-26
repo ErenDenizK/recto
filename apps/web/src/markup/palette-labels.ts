@@ -13,6 +13,7 @@
  * This file is the small, eager part (the palette reads the flag); the bloom itself is
  * `PaletteBloom.tsx`, loaded only when the flag is on.
  */
+import { labsStored } from '../labs/stored';
 
 export const LABELS_QUERY_PARAM = 'labels';
 export const LABELS_FLAG_KEY = 'pdf-editor:labels:v1';
@@ -62,7 +63,7 @@ export function labelsEnabled(): boolean {
   } catch {
     // Storage blocked: the address alone decides.
   }
-  decided = decideLabelsFlag(location.search, stored);
+  decided = decideLabelsFlag(location.search, labsStored('labels', stored));
   return decided;
 }
 

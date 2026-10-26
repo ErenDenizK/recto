@@ -68,6 +68,7 @@ import type {
   LocatedRun,
   ParagraphBlock,
   ParagraphEditRefusal,
+  ParagraphFrameRefusal,
   ParagraphRef,
   ParagraphSpan,
   ParagraphStyleInfo,
@@ -121,6 +122,8 @@ const MAX_FORM_DEPTH = 8;
  * text (its block is the obstacle), popups are not drawn on the page.
  */
 const PASSABLE_ANNOTS: ReadonlySet<number> = new Set([2, 9, 10, 11, 12, 16]);
+/** `FPDF_ANNOT_WIDGET`. */
+const ANNOT_WIDGET = 20;
 /** `FPDF_ANNOT_FLAG_HIDDEN`. */
 const ANNOT_FLAG_HIDDEN = 2;
 
@@ -129,9 +132,13 @@ const ANNOT_FLAG_HIDDEN = 2;
  * shapes): the paragraph grows into the space below only up to them, as for graphics, since
  * the writer never moves a widget (craft §4.4) and drawn text must not cover one.
  */
-function annotationObstacles(raw: RawText, pagePtr: number): Rect[] {
+function annotationObstacles(
+  raw: RawText,
+  pagePtr: number,
+): { obstacles: Rect[]; widgets: Rect[] } {
   const { m, mem } = raw;
   const out: Rect[] = [];
+  const widgets: Rect[] = [];
   const count = m.FPDFPage_GetAnnotCount(pagePtr);
   for (let index = 0; index < count; index++) {
     const annot = m.FPDFPage_GetAnnot(pagePtr, index);
@@ -152,12 +159,15 @@ function annotationObstacles(raw: RawText, pagePtr: number): Rect[] {
           height: Math.abs(top - bottom),
         };
       });
-      if (rect && rect.width > 0 && rect.height > 0) out.push(rect);
+      if (rect && rect.width > 0 && rect.height > 0) {
+        out.push(rect);
+        if (m.FPDFAnnot_GetSubtype(annot) === ANNOT_WIDGET) widgets.push(rect);
+      }
     } finally {
       m.FPDFPage_CloseAnnot(annot);
     }
   }
-  return out;
+  return { obstacles: out, widgets };
 }
 
 /** The bounding box of `rect` mapped by `m`. */
@@ -234,6 +244,8 @@ export interface ParagraphModel {
   /** Page box and graphics (bounds of path, image and shading objects), user space. */
   readonly pageBox: Rect;
   readonly graphics: readonly Rect[];
+  /** /Rect of the page's visible form widgets (a moved paragraph must not take words from one). */
+  readonly widgets: readonly Rect[];
   /** Why paragraph mode is refused, when it is (found while building the model). */
   readonly refusal?: ParagraphEditRefusal;
 }
@@ -302,6 +314,11 @@ export interface PreparedParagraph {
   readonly pageRoom: number;
   /** Empty space above the paragraph's ink up to the content above it (points). */
   readonly gapAbove: number;
+  /** How far the measure can grow to the left and right (`ParagraphLayoutAnalysis`). */
+  readonly roomLeft: number;
+  readonly roomRight: number;
+  /** Why the paragraph cannot be moved or resized, when it cannot (TXT-24). */
+  readonly frameRefusal?: ParagraphFrameRefusal;
   readonly refusal?: ParagraphEditRefusal;
 }
 
@@ -354,7 +371,10 @@ function sameRef(a: TextRunRef, b: TextRunRef): boolean {
 }
 
 /** A refusal as the error `applyParagraphEdit` fails with. */
-export function paragraphRefusalError(refusal: ParagraphEditRefusal, detail = ''): Error {
+export function paragraphRefusalError(
+  refusal: ParagraphEditRefusal | ParagraphFrameRefusal,
+  detail = '',
+): Error {
   return textEditError(
     refusal === 'unsupported-chars'
       ? 'unsupported-chars'
@@ -367,10 +387,15 @@ export function paragraphRefusalError(refusal: ParagraphEditRefusal, detail = ''
 
 const REFUSAL_PATTERN = /\(paragraph:([a-z0-9-]+)\)/;
 
-/** The `ParagraphEditRefusal` of a failed paragraph edit (also across the worker), or undefined. */
-export function paragraphRefusalReason(error: unknown): ParagraphEditRefusal | undefined {
+/** The refusal of a failed paragraph edit (also across the worker), or undefined. */
+export function paragraphRefusalReason(
+  error: unknown,
+): ParagraphEditRefusal | ParagraphFrameRefusal | undefined {
   if (!(error instanceof Error)) return undefined;
-  return REFUSAL_PATTERN.exec(error.message)?.[1] as ParagraphEditRefusal | undefined;
+  return REFUSAL_PATTERN.exec(error.message)?.[1] as
+    | ParagraphEditRefusal
+    | ParagraphFrameRefusal
+    | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -561,6 +586,7 @@ function buildModel(
   const page = target.access.doc.acquirePage(target.pageIndex);
   let pageBox: Rect;
   const graphics: Rect[] = [];
+  const widgets: Rect[] = [];
   try {
     pageBox = raw.pageBox(page.pagePtr);
     // Graphics inside Form XObjects (a stamped logo, a table's rules) stop growth too: their
@@ -581,7 +607,9 @@ function buildModel(
       }
     };
     walk(raw.pageObjects(page.pagePtr), undefined, 0);
-    graphics.push(...annotationObstacles(raw, page.pagePtr));
+    const annots = annotationObstacles(raw, page.pagePtr);
+    graphics.push(...annots.obstacles);
+    widgets.push(...annots.widgets);
   } finally {
     page.release();
   }
@@ -599,6 +627,7 @@ function buildModel(
     n,
     pageBox,
     graphics,
+    widgets,
     ...(refusal ? { refusal } : {}),
   };
 }
@@ -1100,6 +1129,58 @@ export function spaceAbove(model: ParagraphModel): number {
   return Math.max(0, nearest - mine.y1);
 }
 
+/**
+ * `roomLeft` and `roomRight` (TXT-24): the empty space beside the paragraph's measure up to
+ * the nearest block or graphic that overlaps it vertically (a neighbouring column), else up to
+ * the visible box's edge. A graphic that holds the paragraph is not beside it.
+ */
+export function spaceBeside(model: ParagraphModel): { roomLeft: number; roomRight: number } {
+  const { block, blocks, u } = model;
+  const sameFrame = (b: ParagraphBlock) =>
+    Math.abs(b.direction.x - u.x) < 1e-6 && Math.abs(b.direction.y - u.y) < 1e-6;
+  const mine = textSpaceExtent(block.box, u);
+  const page = textSpaceExtent(model.pageBox, u);
+  const left = block.measure.left;
+  const right = block.wrapRight ?? block.measure.right;
+  const sharesRows = (y0: number, y1: number) => Math.min(y1, mine.y1) - Math.max(y0, mine.y0) > 1;
+  let nearLeft = page.x0;
+  let nearRight = page.x1;
+  const consider = (x0: number, x1: number) => {
+    if (x1 <= left + 0.5) nearLeft = Math.max(nearLeft, x1);
+    else if (x0 >= right - 0.5) nearRight = Math.min(nearRight, x0);
+  };
+  for (const other of blocks) {
+    if (other.ref.index === block.ref.index || !sameFrame(other)) continue;
+    const e = textSpaceExtent(other.box, u);
+    if (sharesRows(e.y0, e.y1)) consider(e.x0, e.x1);
+  }
+  const center = userPoint(u, (mine.x0 + mine.x1) / 2, (mine.y0 + mine.y1) / 2);
+  for (const g of model.graphics) {
+    const contains =
+      center.x >= g.x && center.x <= g.x + g.width && center.y >= g.y && center.y <= g.y + g.height;
+    if (contains) continue;
+    const e = textSpaceExtent(g, u);
+    if (sharesRows(e.y0, e.y1)) consider(e.x0, e.x1);
+  }
+  return { roomLeft: Math.max(0, left - nearLeft), roomRight: Math.max(0, nearRight - right) };
+}
+
+/**
+ * Why the paragraph cannot be moved or resized (TXT-24), or undefined: a text object it
+ * draws with also draws another paragraph, a form widget lies over its words, or its text
+ * does not run along a multiple of 90° (moving is fine, a new width is not).
+ */
+export function frameRefusalOf(model: ParagraphModel): ParagraphFrameRefusal | undefined {
+  const objects = model.lineObjects.flat();
+  if (objects.some((o) => model.sharedObjects.has(o))) return 'move-shared-object';
+  const over = (a: Rect, b: Rect) =>
+    Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x) > 0 &&
+    Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y) > 0;
+  if (model.widgets.some((w) => model.chars.some((c) => over(c.box, w)))) return 'move-form-field';
+  if (Math.min(Math.abs(model.u.x), Math.abs(model.u.y)) > 1e-6) return 'resize-direction';
+  return undefined;
+}
+
 /** `gapBelow`, `paragraphGap` and `pageRoom` (see the module comment). */
 export function overflowFacts(model: ParagraphModel): {
   gapBelow: number;
@@ -1227,6 +1308,7 @@ export async function prepareParagraph(
   }
   const input = layoutInputOf(model, metrics);
   const { gapBelow, paragraphGap, pageRoom } = overflowFacts(model);
+  const frame = refusal ? undefined : frameRefusalOf(model);
   return {
     model,
     metrics,
@@ -1236,6 +1318,8 @@ export async function prepareParagraph(
     paragraphGap,
     pageRoom,
     gapAbove: spaceAbove(model),
+    ...spaceBeside(model),
+    ...(frame ? { frameRefusal: frame } : {}),
     ...(refusal ? { refusal } : {}),
   };
 }
