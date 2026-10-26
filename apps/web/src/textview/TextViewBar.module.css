@@ -1,0 +1,34 @@
+/*
+ * The bar (PRD-36 §2): the reading capsule's 56 px pill of 44 px controls, centred above the
+ * home indicator, as the overview's bar is (`CompactOverview.module.css`). Fixed in the view,
+ * so it never moves with the column.
+ */
+.bar {
+  position: absolute;
+  right: 0;
+  bottom: max(env(safe-area-inset-bottom, 0px), 12px);
+  left: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  height: 56px;
+  margin-inline: auto;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-capsule);
+  color: var(--text-primary);
+}
+
+/* Over white pages, as the capsule: the sheet tier's denser tint in the light theme. */
+:global([data-theme='light']) .bar {
+  --mat-tint: var(--glass-sheet-tint);
+}
+
+/* "3 / 12" in tabular numerals; a long Turkish page count never clips. */
+.position {
+  min-width: 64px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

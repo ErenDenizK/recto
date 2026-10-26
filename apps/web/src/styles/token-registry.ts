@@ -184,6 +184,13 @@ export const CONTROL_TOKENS: readonly string[] = [
 export const THEME_FREE_TOKENS: readonly string[] = [
   // The signature pad's hint ink, on the white page in both themes (DSN-80).
   '--sign-hint',
+  // The Text view's reading surface, light and dark at once (DSN-84).
+  ...['light', 'dark'].flatMap((look) =>
+    ['bg', 'text', 'muted', 'rule', 'card'].map((part) => `--reader-${look}-${part}`),
+  ),
+  '--reader-mark',
+  '--reader-mark-ink',
+  '--reader-mark-soft',
   // Type (ADR-0027, language.md §4; spec D3-5): the face, three weights (Q-8), the scale with
   // a line height and a tracking per step.
   '--font-ui',

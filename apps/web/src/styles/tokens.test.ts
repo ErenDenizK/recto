@@ -1466,6 +1466,44 @@ describe('tokens.css', () => {
     });
   });
 
+  describe('the Text view reads in both looks (DSN-84, PRD-36)', () => {
+    for (const look of ['light', 'dark'] as const) {
+      const bg = () => colour(`--reader-${look}-bg`);
+      const card = () => colour(`--reader-${look}-card`);
+
+      it(`${look}: the text is 7:1 or more and the quieter text 4.5:1 or more`, () => {
+        atLeast(contrast(colour(`--reader-${look}-text`), bg()), 7, `${look} text on the page`);
+        atLeast(contrast(colour(`--reader-${look}-text`), card()), 7, `${look} text on a card`);
+        atLeast(contrast(colour(`--reader-${look}-muted`), bg()), 4.5, `${look} quieter text`);
+        atLeast(
+          contrast(colour(`--reader-${look}-muted`), card()),
+          4.5,
+          `${look} quieter on a card`,
+        );
+      });
+
+      it(`${look}: the mark keeps the text readable`, () => {
+        const soft = on('--reader-mark-soft', bg());
+        atLeast(
+          contrast(colour(`--reader-${look}-text`), soft),
+          4.5,
+          `${look} text on a soft mark`,
+        );
+        atLeast(
+          contrast(colour('--reader-mark-ink'), colour('--reader-mark')),
+          7,
+          'ink on the mark',
+        );
+      });
+    }
+
+    it('sets the dark look softer than the app’s own ink, for long reading', () => {
+      expect(contrast(colour('--reader-dark-text'), colour('--reader-dark-bg'))).toBeLessThan(
+        contrast(literal('#e8e9ec'), colour('--reader-dark-bg')),
+      );
+    });
+  });
+
   describe('the page layers keep to content colours (ADR-0023 §2.1, A-19)', () => {
     /**
      * The modules that draw on the page. A few also hold chrome (the controls of a popover or a
