@@ -60,7 +60,7 @@ describe('the docked frame', () => {
       'rgba(255, 255, 255, 0.06) 0px 1px 2px -1px inset',
     ]);
     // Text is on the glass ladder at once, so nothing jumps when a page passes.
-    expect(title.getPropertyValue('--text-secondary').trim()).toBe('#bbbec3');
+    expect(title.getPropertyValue('--text-secondary').trim()).toBe('#c8cbd0');
     // The stage sits under the frame (the strip is the top layer, AppShell.module.css).
     expect(title.zIndex).toBe('4');
   });
@@ -81,7 +81,7 @@ describe('the docked frame', () => {
     // Solid keeps the rim (language.md §2.8): the inner light stays.
     expect(solid.boxShadow).toMatch(/rgba\(255, 255, 255, 0\.06\) 0px 1px 2px -1px inset/);
     // The normal text ladder comes back on an opaque surface.
-    expect(solid.getPropertyValue('--text-secondary').trim()).not.toBe('#bbbec3');
+    expect(solid.getPropertyValue('--text-secondary').trim()).not.toBe('#c8cbd0');
   });
 
   it('offers Glass: Clear, Tinted and Solid in the palette, each setting its value', async () => {
