@@ -48,6 +48,11 @@ export interface CompactToolSpec {
   readonly soon?: boolean;
   /** The drawer's second row while this tool is armed. */
   readonly Options?: ComponentType;
+  /**
+   * The single capsule's tray content while this tool is armed (EDN-24, Labs `phone-capsule`);
+   * the tray falls back to `Options`. Unused while the switch is off.
+   */
+  readonly Tray?: ComponentType;
   /** The second row's one line when the tool has no options. */
   readonly hint?: () => string;
   /** Drawn over the chip's glyph while armed (the ink's colour). */

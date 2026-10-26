@@ -22,6 +22,7 @@ export const LABS_TEXT: Readonly<
   'home-continue': { title: m.labs_home_continue, hint: m.labs_home_continue_hint },
   top: { title: m.labs_top, hint: m.labs_top_hint },
   drawer: { title: m.labs_drawer, hint: m.labs_drawer_hint },
+  'phone-capsule': { title: m.labs_phone_capsule, hint: m.labs_phone_capsule_hint },
   textpre: { title: m.labs_textpre, hint: m.labs_textpre_hint },
   scan: { title: m.labs_scan, hint: m.labs_scan_hint },
 };

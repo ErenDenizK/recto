@@ -2429,6 +2429,9 @@
   "compact_edit_text_bar": "Metin düzenleme",
   "compact_sign_saved": "Kayıtlı imzalar",
   "compact_sign_new": "Yeni",
+  "compact_reading_tools": "Okuma araçları",
+  "compact_tray_label": "{tool} seçenekleri",
+  "compact_sign_new_label": "Yeni imza",
   "compact_save_changed": "Bu cihazda değiştirildi",
   "compact_save_share": "Kopyasını paylaş",
   "compact_save_copy": "Kopyasını kaydet",
@@ -3527,5 +3530,7 @@
   "labs_textpre": "Metin ön analizi",
   "labs_textpre_hint": "Metin düzenle daha hızlı açılsın diye paragrafları önceden hazırlar.",
   "labs_scan": "Kamerayla tara",
-  "labs_scan_hint": "Kâğıdı kamerayla tarayıp yeni bir PDF yapar."
+  "labs_scan_hint": "Kâğıdı kamerayla tarayıp yeni bir PDF yapar.",
+  "labs_phone_capsule": "Telefonda tek kapsül",
+  "labs_phone_capsule_hint": "Telefonun alt çubuğu tek kapsül olur: okurken simgeler, düzenlerken araçlar, renk ve kalınlık için bir tepsi. Araç çekmecesinin yerini alır."
 }

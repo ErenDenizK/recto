@@ -3858,6 +3858,9 @@
   "compact_edit_text_bar": "Editing text",
   "compact_sign_saved": "Saved signatures",
   "compact_sign_new": "New",
+  "compact_reading_tools": "Reading tools",
+  "compact_tray_label": "{tool} options",
+  "compact_sign_new_label": "New signature",
   "compact_save_changed": "Changed on this device",
   "compact_save_share": "Share a copy",
   "compact_save_copy": "Save a copy",
@@ -5212,5 +5215,7 @@
   "labs_textpre": "Text pre-analysis",
   "labs_textpre_hint": "Prepares paragraphs ahead so Edit text opens faster.",
   "labs_scan": "Camera scan",
-  "labs_scan_hint": "Scan paper with the camera into a new PDF."
+  "labs_scan_hint": "Scan paper with the camera into a new PDF.",
+  "labs_phone_capsule": "One capsule on the phone",
+  "labs_phone_capsule_hint": "The phone's bottom bar as one capsule: icons while reading, the tools while editing, a tray for colours and sizes. Replaces the tool drawer."
 }

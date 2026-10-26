@@ -29,6 +29,7 @@ export type LabsKey =
   | 'home-continue'
   | 'top'
   | 'drawer'
+  | 'phone-capsule'
   | 'textpre'
   | 'scan';
 
@@ -108,6 +109,7 @@ export const LABS_FLAGS: readonly LabsFlag[] = [
   sw('home-continue', 'home', 'all', 'soon', local('pdf-editor:home-continue:v1'), 'continue'),
   choice('top', 'top', ['split', 'capsule'], 'compact', session('pdf-editor:top:v1')),
   choice('drawer', 'drawer', ['tiles', 'list'], 'compact', session('pdf-editor:drawer:v1')),
+  sw('phone-capsule', 'phonebar', 'compact', 'prototype'),
   sw('textpre', 'textpre', 'all', 'prototype'),
   sw('scan', 'scan', 'all', 'prototype'),
 ];
