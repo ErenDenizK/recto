@@ -284,6 +284,7 @@ Full rows: [`decisions/editions.md`](decisions/editions.md).
 | [EDN-21](decisions/editions.md) | Phone editing code loads on intent (✎, first selection, form fields), never on idle; amends EDN-10 | In force | 2026-10-24 |
 | [EDN-25](decisions/editions.md) | The phone's on-demand sheets load on intent (page number, gear, ⋯), never on idle; amends EDN-10 | In force | 2026-10-26 |
 | [EDN-24](decisions/editions.md) | The phone's single capsule (reading icons, editing tools, a tray), behind Labs `phone-capsule` | In force behind Labs | 2026-10-26 |
+| [EDN-28](decisions/editions.md) | The first phone stroke after picking Pen or Highlight draws; phone Save a copy shows the success toast | In force; amends EDN-18 | 2026-10-26 |
 
 ## Phone work
 

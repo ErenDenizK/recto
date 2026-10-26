@@ -113,4 +113,23 @@ test.describe('phone pen with a real finger (MOB-18)', () => {
     await fingerStroke(cdp, await strokeArea(page));
     await expectUndoable(undo(page), true);
   });
+
+  test('the first stroke after picking a tool in the open drawer draws (EDN-28)', async ({
+    page,
+  }) => {
+    await editSample(page);
+    const cdp = await page.context().newCDPSession(page);
+    for (const name of ['Pen', 'Highlight']) {
+      await page.getByTestId('compact-tool-more').click();
+      await expect(drawer(page)).toBeVisible();
+      await drawer(page).getByRole('button', { name }).click();
+      await expect(chip(page)).toHaveAccessibleName(name);
+      // The drawer is still open (EDN-18); the first touch closes it and draws.
+      await fingerStroke(cdp, await strokeArea(page));
+      await expect(drawer(page)).toHaveCount(0);
+      await expectUndoable(undo(page), true);
+      await undo(page).click();
+      await expectUndoable(undo(page), false);
+    }
+  });
 });
