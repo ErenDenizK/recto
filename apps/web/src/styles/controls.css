@@ -201,10 +201,37 @@
   transform: none;
 }
 
-/* Prominent. A button whose menu or popover is open keeps its pressed fill (G6). */
+/* Prominent. A button whose menu or popover is open keeps its pressed fill (G6). The lime fill
+   carries a lime-800 edge in light (transparent in dark), added to the lens in --shadow-own so
+   the focus ring still adds its bands (DSN-83). */
 .btn-prominent {
   background: var(--primary-fill);
   color: var(--primary-ink);
+}
+
+.btn.btn-prominent {
+  --shadow-own: var(--lens-rim), inset 0 0 0 1px var(--accent-edge);
+}
+
+@media (hover: hover) {
+  .btn.btn-prominent:hover:not([aria-disabled='true'], [aria-busy='true'], [data-blocked]) {
+    --shadow-own: var(--lens-rim-hover), inset 0 0 0 1px var(--accent-edge);
+  }
+}
+
+.btn.btn-prominent:is([data-popup-open], [data-origin-open]):not(
+  [aria-disabled='true'],
+  [data-blocked]
+) {
+  --shadow-own: var(--lens-rim), inset 0 0 0 1px var(--accent-edge);
+}
+
+.btn.btn-prominent:active:not([aria-disabled='true'], [aria-busy='true'], [data-blocked]) {
+  --shadow-own: var(--lens-rim-pressed), inset 0 0 0 1px var(--accent-edge);
+}
+
+.btn.btn-prominent:is([aria-disabled='true'], :disabled, [data-blocked]) {
+  --shadow-own: 0 0 #0000;
 }
 
 @media (hover: hover) {
