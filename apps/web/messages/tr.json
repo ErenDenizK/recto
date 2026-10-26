@@ -998,6 +998,8 @@
   "paragraph_outlines_setting": "Metni düzenle’de paragraf çerçevelerini göster",
   "labs_paragraph_frame": "Paragrafları taşı ve boyutlandır",
   "labs_paragraph_outlines": "Paragraf çerçeveleri",
+  "labs_paragraph_outlines_hint": "Metni düzenle açıkken her paragrafın çerçevesini gösterir.",
+  "labs_paragraph_frame_hint": "Açık bir paragrafı kenarından sürükleyerek taşı, yanlarından çekerek genişliğini değiştir.",
   "history_paragraph_edit_same_font": "Paragraf düzenlendi (aynı yazı tipi)",
   "history_paragraph_edit_same_font_not_embedded": "Paragraf düzenlendi (aynı yazı tipi, gömülü değil)",
   "history_paragraph_edit_substituted": "Paragraf düzenlendi (bazı karakterler {family} ile)",

@@ -12,34 +12,36 @@
  * - `scan` has no reader on this branch (`scan/scan-flag.ts` lands with its own change); its
  *   row waits here and the reader gets the same one-line `labsStored` call.
  */
-import type { LabsState } from './stored';
+import type { LabsState } from "./stored";
 
 export type LabsKey =
-  | 'tools'
-  | 'fillbar'
-  | 'margin'
-  | 'strip'
-  | 'palette'
-  | 'labels'
-  | 'receipt'
-  | 'office'
-  | 'open-page'
-  | 'open-light'
-  | 'home-search'
-  | 'home-continue'
-  | 'top'
-  | 'drawer'
-  | 'textpre'
-  | 'scan';
+  | "tools"
+  | "fillbar"
+  | "margin"
+  | "strip"
+  | "palette"
+  | "labels"
+  | "receipt"
+  | "office"
+  | "open-page"
+  | "open-light"
+  | "home-search"
+  | "home-continue"
+  | "top"
+  | "drawer"
+  | "textpre"
+  | "scan"
+  | "paragraph-frame"
+  | "paragraph-outlines";
 
-export type LabsEdition = 'full' | 'compact' | 'all';
+export type LabsEdition = "full" | "compact" | "all";
 
 export interface LabsFlag {
   readonly key: LabsKey;
   /** The address parameter. */
   readonly param: string;
   /** `switch` is on or off; `choice` is one of `values`. */
-  readonly kind: 'switch' | 'choice';
+  readonly kind: "switch" | "choice";
   /** Switch: the address word that turns it on. Choice: unused. */
   readonly on: string;
   /** Choice: the values, the default among them. */
@@ -47,28 +49,28 @@ export interface LabsFlag {
   /** The value when nothing sets it. */
   readonly fallback: string;
   /** `prototype` is being tried; `soon` is about to become the default. */
-  readonly status: 'prototype' | 'soon';
+  readonly status: "prototype" | "soon";
   /** The edition(s) it changes: desktop and tablet, the phone, or all. */
   readonly edition: LabsEdition;
   /** What the flag keeps by itself, read for the panel and cleared by Reset all. */
-  readonly legacy?: { readonly area: 'local' | 'session'; readonly key: string } | undefined;
+  readonly legacy?: { readonly area: "local" | "session"; readonly key: string } | undefined;
 }
 
-const SWITCH = ['0', '1'] as const;
+const SWITCH = ["0", "1"] as const;
 const sw = (
   key: LabsKey,
   param: string,
   edition: LabsEdition,
-  status: LabsFlag['status'],
-  legacy?: LabsFlag['legacy'],
-  on = '1',
+  status: LabsFlag["status"],
+  legacy?: LabsFlag["legacy"],
+  on = "1",
 ): LabsFlag => ({
   key,
   param,
-  kind: 'switch',
+  kind: "switch",
   on,
   values: SWITCH,
-  fallback: '0',
+  fallback: "0",
   status,
   edition,
   legacy,
@@ -78,42 +80,44 @@ const choice = (
   param: string,
   values: readonly string[],
   edition: LabsEdition,
-  legacy: LabsFlag['legacy'],
+  legacy: LabsFlag["legacy"],
 ): LabsFlag => ({
   key,
   param,
-  kind: 'choice',
-  on: '1',
+  kind: "choice",
+  on: "1",
   values,
-  fallback: values[0] ?? '',
-  status: 'prototype',
+  fallback: values[0] ?? "",
+  status: "prototype",
   edition,
   legacy,
 });
-const local = (key: string) => ({ area: 'local', key }) as const;
-const session = (key: string) => ({ area: 'session', key }) as const;
+const local = (key: string) => ({ area: "local", key }) as const;
+const session = (key: string) => ({ area: "session", key }) as const;
 
 export const LABS_FLAGS: readonly LabsFlag[] = [
-  sw('tools', 'tools', 'full', 'prototype'),
-  sw('fillbar', 'fillbar', 'full', 'prototype', local('pdf-editor:fillbar:v1')),
-  sw('margin', 'margin', 'full', 'prototype', local('pdf-editor:margin:v1')),
-  sw('strip', 'strip', 'all', 'prototype', local('pdf-editor:strip:v1')),
-  choice('palette', 'palette', ['row', 'groups', 'labels'], 'full', local('pdf-editor:palette:v1')),
-  sw('labels', 'labels', 'full', 'prototype', local('pdf-editor:labels:v1')),
-  sw('receipt', 'receipt', 'full', 'soon', session('pdf-editor:receipt:v1')),
-  sw('office', 'office', 'all', 'prototype', local('pdf-editor:office:v1')),
-  sw('open-page', 'open', 'all', 'prototype', local('pdf-editor:open-page:v1'), 'page'),
-  sw('open-light', 'open', 'all', 'prototype', local('pdf-editor:open-light:v1'), 'light'),
-  sw('home-search', 'home', 'all', 'soon', local('pdf-editor:home-search:v1'), 'search'),
-  sw('home-continue', 'home', 'all', 'soon', local('pdf-editor:home-continue:v1'), 'continue'),
-  choice('top', 'top', ['split', 'capsule'], 'compact', session('pdf-editor:top:v1')),
-  choice('drawer', 'drawer', ['tiles', 'list'], 'compact', session('pdf-editor:drawer:v1')),
-  sw('textpre', 'textpre', 'all', 'prototype'),
-  sw('scan', 'scan', 'all', 'prototype'),
+  sw("tools", "tools", "full", "prototype"),
+  sw("fillbar", "fillbar", "full", "prototype", local("pdf-editor:fillbar:v1")),
+  sw("margin", "margin", "full", "prototype", local("pdf-editor:margin:v1")),
+  sw("strip", "strip", "all", "prototype", local("pdf-editor:strip:v1")),
+  choice("palette", "palette", ["row", "groups", "labels"], "full", local("pdf-editor:palette:v1")),
+  sw("labels", "labels", "full", "prototype", local("pdf-editor:labels:v1")),
+  sw("receipt", "receipt", "full", "soon", session("pdf-editor:receipt:v1")),
+  sw("office", "office", "all", "prototype", local("pdf-editor:office:v1")),
+  sw("open-page", "open", "all", "prototype", local("pdf-editor:open-page:v1"), "page"),
+  sw("open-light", "open", "all", "prototype", local("pdf-editor:open-light:v1"), "light"),
+  sw("home-search", "home", "all", "soon", local("pdf-editor:home-search:v1"), "search"),
+  sw("home-continue", "home", "all", "soon", local("pdf-editor:home-continue:v1"), "continue"),
+  choice("top", "top", ["split", "capsule"], "compact", session("pdf-editor:top:v1")),
+  choice("drawer", "drawer", ["tiles", "list"], "compact", session("pdf-editor:drawer:v1")),
+  sw("textpre", "textpre", "all", "prototype"),
+  sw("scan", "scan", "all", "prototype"),
+  sw("paragraph-frame", "paraframe", "full", "prototype"),
+  sw("paragraph-outlines", "paraoutlines", "full", "prototype"),
 ];
 
 /** Where a flag's value came from. */
-export type LabsSource = 'url' | 'labs' | 'own' | 'default';
+export type LabsSource = "url" | "labs" | "own" | "default";
 
 export interface LabsResolved {
   readonly value: string;
@@ -127,30 +131,30 @@ function parse(
   address: boolean,
 ): string | undefined {
   if (raw === null || raw === undefined) return undefined;
-  if (flag.kind === 'choice') return flag.values.includes(raw) ? raw : undefined;
-  if (raw === '0') return '0';
-  return raw === (address ? flag.on : '1') ? '1' : undefined;
+  if (flag.kind === "choice") return flag.values.includes(raw) ? raw : undefined;
+  if (raw === "0") return "0";
+  return raw === (address ? flag.on : "1") ? "1" : undefined;
 }
 
 /** The order of DSN-82: the address, the Labs toggle, the flag's own kept value, the default. */
 export function resolveFlag(
   flag: LabsFlag,
   search: string,
-  labs: LabsState['flags'],
+  labs: LabsState["flags"],
   own: string | null,
 ): LabsResolved {
   const asked = parse(flag, new URLSearchParams(search).get(flag.param), true);
-  if (asked !== undefined) return { value: asked, source: 'url' };
+  if (asked !== undefined) return { value: asked, source: "url" };
   const toggled = parse(flag, labs[flag.key], false);
-  if (toggled !== undefined) return { value: toggled, source: 'labs' };
+  if (toggled !== undefined) return { value: toggled, source: "labs" };
   const kept = parse(flag, own, false);
-  if (kept !== undefined) return { value: kept, source: 'own' };
-  return { value: flag.fallback, source: 'default' };
+  if (kept !== undefined) return { value: kept, source: "own" };
+  return { value: flag.fallback, source: "default" };
 }
 
-function storage(area: 'local' | 'session'): Storage | undefined {
+function storage(area: "local" | "session"): Storage | undefined {
   try {
-    return area === 'local' ? localStorage : sessionStorage;
+    return area === "local" ? localStorage : sessionStorage;
   } catch {
     return undefined;
   }
@@ -179,7 +183,7 @@ export function forgetOwnValue(flag: LabsFlag): void {
 /** Every flag as it resolves now, for the address `search`. */
 export function resolveAll(
   search: string,
-  labs: LabsState['flags'],
+  labs: LabsState["flags"],
 ): ReadonlyMap<LabsKey, LabsResolved> {
   return new Map(
     LABS_FLAGS.map((flag) => [flag.key, resolveFlag(flag, search, labs, ownValue(flag))]),
@@ -190,6 +194,6 @@ export function resolveAll(
 export function anyFlagOnByAddress(search: string): boolean {
   return LABS_FLAGS.some((flag) => {
     const { value, source } = resolveFlag(flag, search, {}, null);
-    return source === 'url' && value !== flag.fallback;
+    return source === "url" && value !== flag.fallback;
   });
 }

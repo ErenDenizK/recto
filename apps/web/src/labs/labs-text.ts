@@ -2,8 +2,8 @@
  * The Labs panel's words (DSN-82), apart from the registry so the eager flag readers never
  * pull the messages in.
  */
-import { m } from '../i18n';
-import type { LabsKey } from './flags';
+import { m } from "../i18n";
+import type { LabsKey } from "./flags";
 
 export const LABS_TEXT: Readonly<
   Record<LabsKey, { readonly title: () => string; readonly hint: () => string }>
@@ -16,14 +16,19 @@ export const LABS_TEXT: Readonly<
   labels: { title: m.labs_labels, hint: m.labs_labels_hint },
   receipt: { title: m.labs_receipt, hint: m.labs_receipt_hint },
   office: { title: m.labs_office, hint: m.labs_office_hint },
-  'open-page': { title: m.labs_open_page, hint: m.labs_open_page_hint },
-  'open-light': { title: m.labs_open_light, hint: m.labs_open_light_hint },
-  'home-search': { title: m.labs_home_search, hint: m.labs_home_search_hint },
-  'home-continue': { title: m.labs_home_continue, hint: m.labs_home_continue_hint },
+  "open-page": { title: m.labs_open_page, hint: m.labs_open_page_hint },
+  "open-light": { title: m.labs_open_light, hint: m.labs_open_light_hint },
+  "home-search": { title: m.labs_home_search, hint: m.labs_home_search_hint },
+  "home-continue": { title: m.labs_home_continue, hint: m.labs_home_continue_hint },
   top: { title: m.labs_top, hint: m.labs_top_hint },
   drawer: { title: m.labs_drawer, hint: m.labs_drawer_hint },
   textpre: { title: m.labs_textpre, hint: m.labs_textpre_hint },
   scan: { title: m.labs_scan, hint: m.labs_scan_hint },
+  "paragraph-frame": { title: m.labs_paragraph_frame, hint: m.labs_paragraph_frame_hint },
+  "paragraph-outlines": {
+    title: m.labs_paragraph_outlines,
+    hint: m.labs_paragraph_outlines_hint,
+  },
 };
 
 /** The names of a choice flag's values. */

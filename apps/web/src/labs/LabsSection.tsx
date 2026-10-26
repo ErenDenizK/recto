@@ -9,16 +9,16 @@
  * the address wins (`flags.ts`).
  */
 
-import { m } from '../i18n';
-import { Row, Section, Line } from '../settings/rows';
-import styles from '../settings/Settings.module.css';
-import { Button } from '../ui/Button';
-import { Segmented } from '../ui/Segmented';
-import { Switch } from '../ui/Switch';
-import { LABS_FLAGS, type LabsEdition, type LabsFlag, resolveAll } from './flags';
-import { LABS_TEXT, LABS_VALUE } from './labs-text';
-import { resetLabs, setLabsFlag, useLabsState } from './store';
-import { readLabs } from './stored';
+import { m } from "../i18n";
+import { Row, Section, Line } from "../settings/rows";
+import styles from "../settings/Settings.module.css";
+import { Button } from "../ui/Button";
+import { Segmented } from "../ui/Segmented";
+import { Switch } from "../ui/Switch";
+import { LABS_FLAGS, type LabsEdition, type LabsFlag, resolveAll } from "./flags";
+import { LABS_TEXT, LABS_VALUE } from "./labs-text";
+import { resetLabs, setLabsFlag, useLabsState } from "./store";
+import { readLabs } from "./stored";
 
 const EDITION: Record<LabsEdition, () => string> = {
   full: m.labs_edition_full,
@@ -28,7 +28,7 @@ const EDITION: Record<LabsEdition, () => string> = {
 
 /** "Prototype · Desktop and tablet", then what must happen next. */
 function describe(flag: LabsFlag, address: boolean, reload: boolean): string {
-  const status = flag.status === 'soon' ? m.labs_status_soon() : m.labs_status_prototype();
+  const status = flag.status === "soon" ? m.labs_status_soon() : m.labs_status_prototype();
   return [
     LABS_TEXT[flag.key].hint(),
     `${status} ${EDITION[flag.edition]()}`,
@@ -36,7 +36,7 @@ function describe(flag: LabsFlag, address: boolean, reload: boolean): string {
     reload ? m.labs_reload() : null,
   ]
     .filter(Boolean)
-    .join(' ');
+    .join(" ");
 }
 
 /** What each flag was when this page started (read with the panel's code, before any toggle). */
@@ -50,19 +50,19 @@ export function LabsSection() {
       {LABS_FLAGS.map((flag) => {
         const here = now.get(flag.key);
         if (!here) return null;
-        const address = here.source === 'url';
+        const address = here.source === "url";
         const reload = here.value !== started.get(flag.key)?.value;
         const hint = describe(flag, address, reload);
         const title = LABS_TEXT[flag.key].title();
-        return flag.kind === 'switch' ? (
+        return flag.kind === "switch" ? (
           <Row key={flag.key} id={`labs-${flag.key}`}>
             <Switch
               className={styles.switch}
               label={title}
               description={hint}
-              checked={here.value === '1'}
+              checked={here.value === "1"}
               disabled={address}
-              onCheckedChange={(on) => setLabsFlag(flag.key, on ? '1' : '0')}
+              onCheckedChange={(on) => setLabsFlag(flag.key, on ? "1" : "0")}
             />
           </Row>
         ) : (

@@ -7,7 +7,7 @@
  * A flag's resolution order is: the address (`?param=…`), then the Labs toggle, then what the
  * flag kept on its own before Labs existed (`stored` in each reader), then its default.
  */
-export const LABS_KEY = 'pdf-editor:labs:v1';
+export const LABS_KEY = "pdf-editor:labs:v1";
 
 export interface LabsState {
   readonly shown: boolean;
@@ -17,13 +17,13 @@ export interface LabsState {
 /** The kept state; storage that is blocked or holds something else reads as nothing set. */
 export function readLabs(): LabsState {
   try {
-    const parsed: unknown = JSON.parse(localStorage.getItem(LABS_KEY) ?? 'null');
-    if (typeof parsed !== 'object' || parsed === null) return { shown: false, flags: {} };
+    const parsed: unknown = JSON.parse(localStorage.getItem(LABS_KEY) ?? "null");
+    if (typeof parsed !== "object" || parsed === null) return { shown: false, flags: {} };
     const { shown, flags } = parsed as { shown?: unknown; flags?: unknown };
     const kept: Record<string, string> = {};
-    if (typeof flags === 'object' && flags !== null) {
+    if (typeof flags === "object" && flags !== null) {
       for (const [key, value] of Object.entries(flags)) {
-        if (typeof value === 'string') kept[key] = value;
+        if (typeof value === "string") kept[key] = value;
       }
     }
     return { shown: shown === true, flags: kept };

@@ -1339,6 +1339,8 @@
   "paragraph_outlines_setting": "Show paragraph outlines in Edit text",
   "labs_paragraph_frame": "Move and resize paragraphs",
   "labs_paragraph_outlines": "Paragraph outlines",
+  "labs_paragraph_outlines_hint": "Outlines every paragraph while Edit text is on.",
+  "labs_paragraph_frame_hint": "Drag an open paragraph by its edge to move it, or by its sides to change its width.",
   "history_paragraph_edit_same_font": "Paragraph edited (same font)",
   "history_paragraph_edit_same_font_not_embedded": "Paragraph edited (same font, not embedded)",
   "history_paragraph_edit_substituted": "Paragraph edited (some characters in {family})",
