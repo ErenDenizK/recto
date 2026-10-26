@@ -12,7 +12,6 @@ import { renderScanFiles, scanTitle } from '../../../scan/render-files';
 import type { ScanPage } from '../../../scan/scan-store';
 import { useViewStore } from '../../../state/view-store';
 import { useWorkspaceStore } from '../../../state/workspace-store';
-import { openImagesAsDocument } from '../../../stage/section-operations';
 import { closeOpenDocument } from '../compact-actions';
 import { showReader, useCompactStore } from '../compact-store';
 import { PHONE_PAGE_SIDE } from './phone-caps';
@@ -21,6 +20,8 @@ import { PHONE_PAGE_SIDE } from './phone-caps';
 export async function finishPhoneScan(pages: readonly ScanPage[]): Promise<boolean> {
   const files = await renderScanFiles(pages, PHONE_PAGE_SIDE);
   await closeOpenDocument();
+  // Loaded here, not statically, so the sheet's chunk shares no new module with the first load (PF-23).
+  const { openImagesAsDocument } = await import('../../../stage/section-operations');
   const id = await openImagesAsDocument(files, { sizing: 'fit-paper', manyTitle: scanTitle() });
   const doc = id === undefined ? undefined : useWorkspaceStore.getState().workspace.documents[id];
   if (doc === undefined) return false;

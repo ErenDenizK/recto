@@ -283,7 +283,7 @@ test.describe('keyboard', () => {
     await expect(contents).toHaveAttribute('aria-expanded', 'true');
     await expect(page.locator('[data-pages-view="bookmarks"]')).toBeVisible();
     await page.keyboard.press('Tab');
-    await expect(page.getByRole('button', { name: 'Add bookmark' })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Add bookmark', exact: true })).toBeFocused();
     await axe(page, 'Sidebar, thumbnails and contents');
     await contents.focus();
     await page.keyboard.press('Space');

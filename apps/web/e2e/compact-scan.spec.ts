@@ -96,7 +96,9 @@ test('two captures become one document with two pages in the reader', async ({ p
   const sheet = await openSheet(page);
   // Auto takes the first page by itself; Manual and the shutter take the second.
   await expect(sheet.getByTestId('scan-stack')).toContainText('1', { timeout: 20_000 });
-  await sheet.getByRole('radio', { name: 'Manual' }).tap();
+  // On a phone the modes are a Select: the cell beside the shutter is too narrow for both.
+  await sheet.getByRole('combobox', { name: 'Capture mode' }).tap();
+  await page.getByRole('option', { name: 'Manual' }).tap();
   await sheet.getByTestId('scan-shutter').tap();
   await expect(sheet.getByTestId('scan-stack')).toContainText('2');
 

@@ -5,12 +5,12 @@
  * first load, so it stays a stub: the flag check, the camera check and one `import()`; the sheet,
  * the camera plumbing, the worker and the warp load only when Scan is pressed (PF-23).
  */
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 
 import { m } from '../../../i18n';
-import { openScan, scanEnabled, setScanOpen, useScanOpen } from '../../../scan/scan-flag';
+import { openScan, scanEnabled, useScanOpen } from '../../../scan/scan-flag';
 import { Icon } from '../../../ui/Icon';
-import { createSheetHost } from '../../../ui/sheet-host';
+import { useCompactStore } from '../compact-store';
 import controls from '../controls.module.css';
 
 /** Whether the device reports a camera (plan §3 "Visibility"). */
@@ -39,17 +39,48 @@ export function ScanButton() {
   if (!camera) return null;
   return (
     // The dock's own control, beside Open PDF (`CompactLibrary`); `ui/Button` stays out of the first load.
-    // eslint-disable-next-line recto/q9-controls
-    <button type="button" className={controls.text} data-testid="compact-scan" onClick={openScan}>
+    <button
+      type="button"
+      // eslint-disable-next-line recto/q9-controls
+      className={controls.text}
+      data-testid="compact-scan"
+      onClick={() => void openPhoneScan()}
+    >
       <Icon name="scan" />
       {m.scan_button()}
     </button>
   );
 }
 
-/** Mounts the phone's scan sheet once it first opens; it stays mounted afterwards. */
-export const PhoneScanHost = createSheetHost(
-  () => import('./PhoneScanSheet').then((module) => ({ default: module.PhoneScanSheet })),
-  useScanOpen,
-  () => setScanOpen(false),
+const Sheet = lazy(() =>
+  import('./PhoneScanSheet').then((module) => ({ default: module.PhoneScanSheet })),
 );
+
+/**
+ * Loads the sheet's chunk, then opens it: a chunk that fails to load (offline, a stale deploy)
+ * says so on the Library's line and opens nothing, so the lazy sheet never sees a failed import.
+ * The host stays out of `ui/sheet-host` and its toast, which would join the first load (PF-23).
+ */
+async function openPhoneScan(): Promise<void> {
+  try {
+    await import('./PhoneScanSheet');
+  } catch {
+    useCompactStore.setState({ openError: m.error_load_failed() });
+    return;
+  }
+  useCompactStore.setState({ openError: null });
+  openScan();
+}
+
+/** Mounts the phone's scan sheet once it first opens; it stays mounted afterwards. */
+export function PhoneScanHost() {
+  const open = useScanOpen();
+  const [asked, setAsked] = useState(open);
+  if (open && !asked) setAsked(true);
+  if (!asked) return null;
+  return (
+    <Suspense fallback={null}>
+      <Sheet />
+    </Suspense>
+  );
+}
