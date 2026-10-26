@@ -102,7 +102,7 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-8](decisions/design.md) | Floating glass pieces | Done | 2026-10-08 |
 | [DSN-9](decisions/design.md) | Pop-ups fit | In force | 2026-10-08 |
 | [DSN-10](decisions/design.md) | Pages grid selection follows Photos | Done | 2026-10-08 |
-| [DSN-11](decisions/design.md) | Brand in the app: the mark on the Library tab, the favicon and the PWA icons | Done | 2026-10-08 |
+| [DSN-11](decisions/design.md) | Brand in the app: the mark on the Library tab, the favicon and the PWA icons (logo a2, 2026-10-25) | Done | 2026-10-08 |
 | [DSN-12](decisions/design.md) | One size scale for every floating piece | Done | 2026-10-09 |
 | [DSN-13](decisions/design.md) | The Library title | In force | 2026-10-09 |
 | [DSN-14](decisions/design.md) | Glass gloss is a hairline | In force | 2026-10-09 |
