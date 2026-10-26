@@ -54,7 +54,7 @@ import { pageFrame } from '../viewer/page-frame';
 import { useToolStore } from '../viewer/tool-store';
 import { blockerLabel, blockerOfRun, caretOffset, focusReturnRun, runKey, wordAt } from './model';
 import { openRunEditor } from './paragraph-open';
-import { nudgeParagraph } from './paragraph-nudge';
+import { nudgeParagraph, openAfterNudge } from './paragraph-nudge';
 import {
   prefetchParagraph,
   textPrecomputeEnabled,
@@ -275,6 +275,7 @@ export function TextEditLayer(props: PageOverlayProps) {
    * and the focus comes back to this target when the editor closes.
    */
   const openParagraph = ({ block, runs: inside }: ParagraphTarget) => {
+    if (openAfterNudge(target, block)) return;
     const first = inside[0];
     if (!first) return;
     useTextEditStore.getState().openParagraph({

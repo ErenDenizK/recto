@@ -43,9 +43,11 @@
  *   next" and "Split here" stay hidden until detection takes hints.
  */
 import { Popover } from '@base-ui/react/popover';
+import type { Rect } from '@pdf-editor/document-model';
 import type {
   LayoutEdit,
   LayoutEditSpan,
+  ParagraphBlock,
   ParagraphEditRefusal,
   ParagraphFrameChange,
   ParagraphLayout,
@@ -92,6 +94,7 @@ import {
   initialFrame,
   moveBy,
   pastSlop,
+  rectOverlapsMoved,
   snapAnchors,
   textDelta,
   widthBy,
@@ -216,8 +219,6 @@ interface FrameDrag {
   readonly y: number;
   readonly base: FrameDraft;
   started: boolean;
-  /** Left edges the move snaps to (CSS px), read when the press began. */
-  anchors: readonly number[];
 }
 
 /** The grip's and the side bars' touch targets, CSS px (quality bar Q-9). */
@@ -510,6 +511,22 @@ export function ParagraphEditor({
   const [guide, setGuide] = useState<number | null>(null);
   const moveRef = useRef<FrameDraft | null>(null);
   const dragRef = useRef<FrameDrag | null>(null);
+  const movedOverRef = useRef(false);
+  /** The page's other paragraphs: where a move snaps to and what it must not land on. */
+  const [others, setOthers] = useState<readonly ParagraphBlock[]>([]);
+  useEffect(() => {
+    if (!framed) return;
+    let live = true;
+    pageParagraphs(block.ref.source, block.ref.pageIndex).then(
+      (blocks) => {
+        if (live) setOthers(blocks.filter((other) => other.ref.index !== block.ref.index));
+      },
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [framed, block.ref.source, block.ref.pageIndex, block.ref.index]);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
@@ -874,6 +891,26 @@ export function ParagraphEditor({
     };
     return framedRect(ink, measureNow, widthChanged ? lastBaselineShift : 0);
   }, [block, textToUser, measureNow, widthChanged, lastBaselineShift]);
+  /** The frame in user space, in its own place before the move: what a move is kept inside. */
+  const frameUser: Rect = useMemo(() => {
+    const corners = [
+      { x: frameText.x0, y: frameText.y0 },
+      { x: frameText.x1, y: frameText.y1 },
+    ].map((p) => apply(textToUser, p));
+    const x = Math.min(...corners.map((c) => c.x));
+    const y = Math.min(...corners.map((c) => c.y));
+    return {
+      x,
+      y,
+      width: Math.max(...corners.map((c) => c.x)) - x,
+      height: Math.max(...corners.map((c) => c.y)) - y,
+    };
+  }, [frameText, textToUser]);
+  /** The moved frame lands on another paragraph (TXT-24): leaving asks first. */
+  const movedOver =
+    moving &&
+    moveDraft !== null &&
+    others.some((o) => rectOverlapsMoved(frameUser, moveDraft, o.box));
   /** Where the frame's hairline, band and grip are, CSS px (the paragraph, before the move). */
   const frameBox = useMemo(() => {
     if (!framed) return paragraphBox;
@@ -1193,7 +1230,8 @@ export function ParagraphEditor({
    */
   const leave = useCallback(
     async (resolution?: 'tighten' | 'overlap') => {
-      if (finishedRef.current || busy) return;
+      // Esc during a drag cancels the drag; it never commits a half-done move (TXT-24).
+      if (finishedRef.current || busy || dragRef.current) return;
       const pending = draftRef.current;
       const shown = layoutRef.current;
       if (!pending) {
@@ -1221,6 +1259,12 @@ export function ParagraphEditor({
           return;
         }
       }
+      // A move onto another paragraph is written over it: ask first (TXT-24).
+      if (movedOverRef.current && resolution === undefined) {
+        setChoice(true);
+        announce(m.paragraph_move_overlap_choice(), { politeness: 'assertive' });
+        return;
+      }
       const fit =
         resolution === 'tighten' && decision?.kind === 'overflow' ? decision.fit : undefined;
       if (fit) announce(m.paragraph_tightened({ percent: formatPercent(fit.percent / 100) }));
@@ -1247,9 +1291,10 @@ export function ParagraphEditor({
             .getState()
             .keepParagraph({ session, state: typed, error: outcome.message });
         }
-        announce(m.paragraph_commit_failed({ page: target.position, reason: outcome.message }), {
-          politeness: 'assertive',
-        });
+        announce(
+          `${m.paragraph_commit_failed({ page: target.position, reason: outcome.message })}${moveRef.current ? ` ${m.paragraph_move_dropped()}` : ''}`,
+          { politeness: 'assertive' },
+        );
         return;
       }
       finishedRef.current = false;
@@ -1329,9 +1374,10 @@ export function ParagraphEditor({
               .getState()
               .keepParagraph({ session, state: typed, error: outcome.message });
           }
-          announce(m.paragraph_commit_failed({ page, reason: outcome.message }), {
-            politeness: 'assertive',
-          });
+          announce(
+            `${m.paragraph_commit_failed({ page, reason: outcome.message })}${moveRef.current ? ` ${m.paragraph_move_dropped()}` : ''}`,
+            { politeness: 'assertive' },
+          );
         },
       );
     },
@@ -1372,7 +1418,11 @@ export function ParagraphEditor({
     event.preventDefault();
     event.stopPropagation();
     mirrorRef.current?.focus({ preventScroll: true });
-    event.currentTarget.setPointerCapture(event.pointerId);
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // A pointer that is gone (a synthetic event): the drag still follows the window's moves.
+    }
     const drag: FrameDrag = {
       kind,
       pointerId: event.pointerId,
@@ -1381,17 +1431,8 @@ export function ParagraphEditor({
       y: event.clientY,
       base: moveRef.current ?? initialFrame(block),
       started: false,
-      anchors: [],
     };
     dragRef.current = drag;
-    if (kind === 'move') {
-      pageParagraphs(block.ref.source, block.ref.pageIndex).then(
-        (blocks) => {
-          drag.anchors = snapAnchors(frame, block, blocks);
-        },
-        () => undefined,
-      );
-    }
   };
   const onFrameMove = (event: ReactPointerEvent<HTMLElement>) => {
     const drag = dragRef.current;
@@ -1405,11 +1446,11 @@ export function ParagraphEditor({
     if (drag.kind === 'move') {
       const moved = moveBy({
         frame,
-        box: block.box,
+        box: frameUser,
         base: drag.base,
         start: { x: drag.x, y: drag.y },
         now: { x: event.clientX, y: event.clientY },
-        anchors: drag.anchors,
+        anchors: snapAnchors(frame, block, others),
         alt: event.altKey,
       });
       setFrameDraft({ ...drag.base, dx: moved.dx, dy: moved.dy });
@@ -1484,6 +1525,10 @@ export function ParagraphEditor({
     };
     if (event.key === 'Escape') {
       handled();
+      if (dragRef.current) {
+        endDrag(true);
+        return;
+      }
       // Esc on the overlap choice keeps editing; otherwise it leaves.
       if (choice) keepEditing();
       else void leave();
@@ -1782,6 +1827,7 @@ export function ParagraphEditor({
     commitRef.current = commitOf;
     frameEditRef.current = frameEditOf;
     endDragRef.current = endDrag;
+    movedOverRef.current = movedOver;
     finishRef.current = finishWith;
     holdRef.current = holdOver;
     honestyRef.current = honestyFacts;
@@ -1871,6 +1917,7 @@ export function ParagraphEditor({
           ref={frameRef}
           className={styles.frame}
           data-paragraph-frame=""
+          data-overlap={movedOver || undefined}
           aria-hidden="true"
           // 3 px out from the paragraph on every side.
           style={{
@@ -1951,12 +1998,11 @@ export function ParagraphEditor({
               />
             ))}
             <div
-              role="button"
-              tabIndex={-1}
               className={styles.grip}
               data-testid="paragraph-grip"
               data-frame-control="move"
-              aria-label={m.paragraph_move_grip()}
+              aria-hidden="true"
+              title={m.paragraph_move_grip()}
               style={{
                 left: frameBox.left + frameBox.width / 2 - GRIP_PX / 2,
                 top: frameBox.top - 3 - GRIP_PX,
@@ -1970,13 +2016,12 @@ export function ParagraphEditor({
               ? sideBars.map((bar) => (
                   <div
                     key={bar.side}
-                    role="button"
-                    tabIndex={-1}
                     className={styles.bar}
                     data-testid={`paragraph-width-${bar.side}`}
                     data-frame-control={bar.side}
                     data-axis={bar.axis}
-                    aria-label={m.paragraph_width_handle()}
+                    aria-hidden="true"
+                    title={m.paragraph_width_handle()}
                     style={bar.style}
                     onPointerDown={onFrameDown}
                     onPointerMove={onFrameMove}
@@ -2027,6 +2072,15 @@ export function ParagraphEditor({
           ) : null}
           {ragged ? <p className={styles.note}>{m.paragraph_ragged()}</p> : null}
           {frameNote ? <p className={styles.note}>{frameNote}</p> : null}
+          {movedOver ? (
+            <p
+              className={styles.overflow}
+              data-kind="overflow"
+              data-testid="paragraph-move-overlap"
+            >
+              {m.paragraph_move_overlaps()}
+            </p>
+          ) : null}
           {shownError ? (
             <p className={styles.error} role="alert" data-testid="paragraph-error">
               {shownError}
@@ -2040,6 +2094,37 @@ export function ParagraphEditor({
                 : edition.hint()}
           </p>
         </div>
+        {choice && movedOver && !(decision?.kind === 'overflow' && !decision.offPage) ? (
+          <div
+            className={styles.choice}
+            role="group"
+            aria-label={m.paragraph_move_overlaps()}
+            data-testid="paragraph-choice"
+          >
+            <p className={styles.choiceText}>{m.paragraph_move_overlap_choice()}</p>
+            <div className={styles.choiceActions}>
+              <Button
+                size="sm"
+                data-testid="paragraph-overlap"
+                onKeyDown={onChoiceKey}
+                onClick={() => void leave('overlap')}
+              >
+                {m.paragraph_let_overlap()}
+              </Button>
+              <Button
+                ref={keepEditingRef}
+                size="sm"
+                variant="prominent"
+                data-default=""
+                data-testid="paragraph-keep-editing"
+                onKeyDown={onChoiceKey}
+                onClick={keepEditing}
+              >
+                {m.paragraph_keep_editing()}
+              </Button>
+            </div>
+          </div>
+        ) : null}
         {choice && decision?.kind === 'overflow' && !decision.offPage ? (
           <div
             className={styles.choice}

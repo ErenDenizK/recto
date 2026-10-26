@@ -19,9 +19,13 @@ const flagged = (() => {
 })();
 let override: boolean | null = null;
 
-/** Whether the frame controls are on (the address, else the Labs toggle). */
+/**
+ * Whether the frame controls are on (the address, else the Labs toggle). The phone's compact
+ * edition never has them in v1 (TXT-24).
+ */
 export function paragraphFrameEnabled(): boolean {
-  return override ?? flagged;
+  if (!(override ?? flagged)) return false;
+  return typeof document === 'undefined' || document.documentElement.dataset.edition !== 'compact';
 }
 
 /** Tests only: turns the flag on or off (null: back to the address). */

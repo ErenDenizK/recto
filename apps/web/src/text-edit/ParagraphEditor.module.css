@@ -322,3 +322,8 @@
   background: var(--select);
   pointer-events: none;
 }
+
+/* A moved frame that lands on another paragraph: the frame turns to the warning colour. */
+.frame[data-overlap] {
+  box-shadow: 0 0 0 1px var(--warning);
+}

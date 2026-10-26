@@ -93,6 +93,19 @@ export function cssDelta(frame: PageFrame, d: Delta): { readonly x: number; read
   return { x: to.x - from.x, y: to.y - from.y };
 }
 
+/** `box` moved by `d` lands on `other`, by more than a point each way (TXT-24). */
+export function rectOverlapsMoved(box: Rect, d: Delta, other: Rect): boolean {
+  const slack = 1;
+  const x = box.x + d.dx;
+  const y = box.y + d.dy;
+  return (
+    x + box.width - slack > other.x &&
+    x + slack < other.x + other.width &&
+    y + box.height - slack > other.y &&
+    y + slack < other.y + other.height
+  );
+}
+
 /** The page's visible box (CropBox) in user space. */
 export function cropOf(frame: PageFrame): Rect {
   return { x: frame.originX, y: frame.originY, width: frame.size.width, height: frame.size.height };

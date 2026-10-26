@@ -3,11 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PageTarget } from '../annotations/annotation-store';
 import type { PageFrame } from '../viewer/geometry';
 import { paragraph } from './paragraph-fixtures';
-import { NUDGE_IDLE_MS, nudgeParagraph } from './paragraph-nudge';
+import { NUDGE_IDLE_MS, nudgeParagraph, openAfterNudge } from './paragraph-nudge';
 import { setParagraphFrameForTests } from './paragraph-frame-flag';
 
 const commit = vi.hoisted(() => vi.fn());
+const open = vi.hoisted(() => vi.fn());
 vi.mock('./actions', () => ({ commitParagraphMove: commit }));
+vi.mock('./paragraph-open', () => ({ openParagraphEditor: open }));
 
 const frame: PageFrame = {
   size: { width: 612, height: 792 },
@@ -32,6 +34,7 @@ describe('the keyboard nudge (TXT-24)', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     commit.mockReset();
+    open.mockReset();
     commit.mockResolvedValue({ ok: true, label: 'Move paragraph' });
     setParagraphFrameForTests(true);
   });
@@ -58,5 +61,19 @@ describe('the keyboard nudge (TXT-24)', () => {
     expect(nudgeParagraph(key('ArrowUp'), at)).toBe(false);
     vi.advanceTimersByTime(NUDGE_IDLE_MS);
     expect(commit).not.toHaveBeenCalled();
+  });
+
+  it('opening the paragraph meanwhile commits the nudge first, then opens it where it lies', async () => {
+    nudgeParagraph(key('ArrowRight', true), at);
+    expect(openAfterNudge(target, block)).toBe(true);
+    expect(commit).toHaveBeenCalledTimes(1);
+    expect(open).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(open).toHaveBeenCalledTimes(1));
+    const point = open.mock.calls[0]?.[2] as { x: number; y: number };
+    expect(point.x).toBeCloseTo((block.lines[0]?.x0 ?? 0) + 10);
+    // Nothing is left to commit when the idle time ends.
+    vi.advanceTimersByTime(NUDGE_IDLE_MS);
+    expect(commit).toHaveBeenCalledTimes(1);
+    expect(openAfterNudge(target, block)).toBe(false);
   });
 });

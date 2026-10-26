@@ -11,6 +11,7 @@ import {
   moveBy,
   nudgeOf,
   pastSlop,
+  rectOverlapsMoved,
   snapTo,
   textDelta,
   userDelta,
@@ -20,6 +21,7 @@ import { cssFromUser } from './glyph-canvas';
 import { initialState, relayout } from './paragraph-model';
 import { paragraph } from './paragraph-fixtures';
 
+const fns = { layoutParagraph, decideOverflow };
 const upright: PageFrame = {
   size: { width: 612, height: 792 },
   originX: 0,
@@ -120,6 +122,36 @@ describe('frame drag (TXT-24)', () => {
     );
   });
 
+  it('keeps a resized, taller frame inside the page when it is dragged to the bottom', () => {
+    const setup = paragraph(['aaaa bbbb cccc dddd', 'eeee ffff gggg hhhh'], { width: 20 * 6 });
+    const state = initialState(setup.input, 0);
+    const narrow = relayout(fns, setup, state, { left: 72, right: 72 + 10 * 6 });
+    const grown = narrow.layout.lines.length - 2;
+    expect(grown).toBeGreaterThan(0);
+    // The ink box of the original two lines, and the frame as tall as the new lines make it.
+    const box = { x: 72, y: 20, width: 60, height: 12 * (2 + grown) };
+    const moved = moveBy({
+      frame: upright,
+      box,
+      base: { dx: 0, dy: 0 },
+      start: { x: 0, y: 0 },
+      now: { x: 0, y: 5000 },
+      anchors: [],
+      alt: false,
+    });
+    expect(box.y + moved.dy + box.height).toBeLessThanOrEqual(upright.size.height + 1e-6);
+    // The original, shorter box would have let it run past the edge.
+    expect(20 + moved.dy + 24).toBeLessThan(upright.size.height);
+  });
+
+  it('knows a moved frame that lands on another paragraph', () => {
+    const box = { x: 100, y: 100, width: 100, height: 40 };
+    const other = { x: 100, y: 150, width: 100, height: 40 };
+    expect(rectOverlapsMoved(box, { dx: 0, dy: 0 }, other)).toBe(false);
+    expect(rectOverlapsMoved(box, { dx: 0, dy: 20 }, other)).toBe(true);
+    expect(rectOverlapsMoved(box, { dx: 120, dy: 20 }, other)).toBe(false);
+  });
+
   it('reads a CSS vector along the writing direction', () => {
     const cssOfText = cssFromUser(upright);
     expect(textDelta(cssOfText, 20, 0).dx).toBeCloseTo(10);
@@ -148,7 +180,6 @@ describe('frame drag (TXT-24)', () => {
 });
 
 describe('a width the side bars asked for (TXT-24)', () => {
-  const fns = { layoutParagraph, decideOverflow };
   const lines = ['aaaa bbbb cccc dddd', 'eeee ffff gggg hhhh'];
 
   it('lays the whole paragraph out again in the new measure', () => {

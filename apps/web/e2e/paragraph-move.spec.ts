@@ -103,7 +103,10 @@ test.describe('with a mouse', () => {
     expect((mirrorAfter?.x ?? 0) - (mirrorBefore?.x ?? 0)).toBeGreaterThan(40);
     expect((mirrorAfter?.y ?? 0) - (mirrorBefore?.y ?? 0)).toBeGreaterThan(20);
 
+    // The paragraph now lies over the next one: leaving asks, and the choice applies it.
+    await expect(page.getByTestId('paragraph-move-overlap')).toBeVisible();
     await page.keyboard.press('Escape');
+    await page.getByTestId('paragraph-overlap').click();
     await expect(editor).toHaveCount(0, { timeout: 20_000 });
     await inHistory(page, (list) =>
       expect(historyStep(list, 'Move paragraph')).toHaveCount(1, { timeout: 20_000 }),
@@ -178,6 +181,7 @@ test.describe('with a finger on a tablet', () => {
     const grip = await centreOf(page, 'paragraph-grip');
     await fingerDrag(page, grip, { x: 60, y: 30 });
     await page.keyboard.press('Escape');
+    await page.getByTestId('paragraph-overlap').click();
     await expect(editor).toHaveCount(0, { timeout: 20_000 });
     await expect
       .poll(async () => (await cornerOf(page, 'T')).x - before.x, { timeout: 20_000 })
