@@ -180,3 +180,10 @@
     color: HighlightText;
   }
 }
+
+/* Board prototype (r29, lane 5; styles/proto-selected.css): the thumb takes the option's fill. */
+:global(:root[data-selopt]) .root {
+  --seg-thumb: var(--proto-on-fill);
+  --seg-thumb-ring: transparent;
+  --seg-on: var(--proto-on-ink);
+}

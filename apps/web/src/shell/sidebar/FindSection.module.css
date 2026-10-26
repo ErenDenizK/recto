@@ -279,3 +279,14 @@
     color: HighlightText;
   }
 }
+
+/* Board prototype (r29, lane 5; styles/proto-selected.css): the current row takes the
+   option's fill; its matches keep their weight. */
+:global(:root[data-selopt]) .hit[aria-selected='true'] {
+  background: var(--proto-on-fill);
+}
+
+:global(:root[data-selopt]) .hit[aria-selected='true'],
+:global(:root[data-selopt]) .hit[aria-selected='true'] .match {
+  color: var(--proto-on-ink);
+}

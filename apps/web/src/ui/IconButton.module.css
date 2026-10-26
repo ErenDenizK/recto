@@ -136,3 +136,11 @@
     color: GrayText;
   }
 }
+
+/* Board prototype (r29, lane 5; styles/proto-selected.css): an on toggle takes the option's
+   fill. */
+:global(:root[data-selopt])
+.button:is([aria-pressed='true'], [aria-selected='true']):not([data-tool]) {
+  background: var(--proto-on-fill);
+  color: var(--proto-on-ink);
+}

@@ -106,6 +106,56 @@
   box-shadow: var(--focus-field-shadow), var(--shadow-own, 0 0 #0000);
 }
 
+/*
+ * Board prototypes (r29, colour audit lane 2; temporary, `proto-options.ts`): three light-theme
+ * rings, picked with `?focusopt=a|b|c`; dark keeps its ring. Each is a 3 px carrier drawn by the
+ * outline, since an inset box-shadow is painted under a glass button's lens and cannot carry
+ * the ring there, with a light separator between it and the control: C40's two bands at
+ * >= 9:1; the option tokens are in tokens.css. Hosts follow through the form tokens (their outline stays 2 px). `:where()` keeps each
+ * form's specificity, so the modules' own rules (suppressed rings) still win.
+ *
+ * - a, deep lime: the brand lime at ink strength (--lime-900), crisp, nothing else.
+ * - b, halo: the deep lime ring with the aurora's light round it, a soft mint glow outside.
+ * - c, lift: a graphite ring (--n12) with a wider light separator and a soft shadow under it,
+ *   so the focused control reads as lifted off the glass.
+ */
+:where(:root[data-theme='light']:is([data-focusopt='a'], [data-focusopt='b'], [data-focusopt='c']))
+:focus-visible {
+  outline-width: 3px;
+  outline-offset: var(--proto-sep, var(--focus-offset-out));
+  box-shadow: var(--focus-shadow-outset), var(--shadow-own, 0 0 #0000);
+}
+
+:where(:root[data-theme='light']:is([data-focusopt='a'], [data-focusopt='b'], [data-focusopt='c']))
+  :is(.focus-inset, [data-focus='inset']):focus-visible,
+:where(:root[data-theme='light']:is([data-focusopt='a'], [data-focusopt='b'], [data-focusopt='c']))
+  .mat
+  :focus-visible {
+  outline-offset: -3px;
+  box-shadow: var(--focus-shadow-inset), var(--shadow-own, 0 0 #0000);
+}
+
+:where(:root[data-theme='light']:is([data-focusopt='a'], [data-focusopt='b'], [data-focusopt='c']))
+  :is(.focus-gap, [data-focus='gap']):focus-visible {
+  outline-offset: var(--focus-offset-gap);
+  box-shadow: var(--focus-shadow-gap), var(--shadow-own, 0 0 #0000);
+}
+
+:where(:root[data-theme='light']:is([data-focusopt='a'], [data-focusopt='b'], [data-focusopt='c']))
+  :is(.focus-field, [data-focus='field']):focus-visible {
+  outline-offset: var(--focus-field-offset);
+  box-shadow: var(--focus-field-shadow), var(--shadow-own, 0 0 #0000);
+}
+
+/* A menu's keyboard row, whose ring the menu suppresses (its wash alone is 1.15:1 in light),
+   takes the inset form in these options. */
+:root[data-theme='light']:is([data-focusopt='a'], [data-focusopt='b'], [data-focusopt='c'])
+[role='menuitem']:focus-visible {
+  outline: 3px solid var(--focus-light);
+  outline-offset: -3px;
+  box-shadow: var(--focus-shadow-inset);
+}
+
 /* More contrast asked for: a 3 px light band (A-18). */
 @media (prefers-contrast: more) {
   :focus-visible {

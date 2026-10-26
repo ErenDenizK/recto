@@ -11,6 +11,7 @@ import { createRoot } from 'react-dom/client';
 import { getLocale } from './i18n/locale';
 import { loadOrReload } from './pwa/boot-reload';
 import { armServiceWorkerRegistration, startServiceWorker } from './pwa/register';
+import { applyProtoOptions } from './proto-options';
 import { launchEdition } from './shell/frame/edition';
 import { useSizeClass } from './shell/frame/size-class';
 
@@ -23,6 +24,10 @@ startServiceWorker();
 
 // Lab builds only (`RECTO_LAB=1`, ED-3): compiled out of every other build.
 if (__LAB__) void import('./lab').then((lab) => lab.startLab());
+
+// The colour audit's board prototypes (r29, temporary): dev server and test builds only.
+if (import.meta.env.DEV || __RENDER_OVERRIDE__)
+  applyProtoOptions(document.documentElement, location.search);
 
 /**
  * Turkish needs the Latin Extended file (ğ İ ş) on its first screen; `index.html` preloads only

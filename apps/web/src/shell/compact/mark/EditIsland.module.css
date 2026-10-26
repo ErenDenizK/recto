@@ -150,3 +150,10 @@
   font-weight: 600;
   line-height: var(--type-body-lh);
 }
+
+/* Board prototype (r29, lane 5; styles/proto-selected.css): the armed chip takes the
+   option's fill. */
+:global(:root[data-selopt]) .chip[data-armed] {
+  background: var(--proto-on-fill);
+  color: var(--proto-on-ink);
+}

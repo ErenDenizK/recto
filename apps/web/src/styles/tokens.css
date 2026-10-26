@@ -1380,3 +1380,72 @@
     --aurora-lemon: oklch(0.93 0.211 105);
   }
 }
+
+/* Board prototypes (r29, colour audit lanes 2 and 5; temporary, `proto-options.ts`): the
+   tokens of the light-theme focus options (`?focusopt=`, drawn by styles/focus.css) and of the
+   selected-state options (`?selopt=`, read by the modules). Removed once the board picks. */
+/* Focus options (lane 2): a deep lime, b deep lime with the aurora's mint glow, c a graphite
+   ring with a wider separator and a lift shadow. --proto-sep is the separator's width. */
+:root[data-theme='light']:is([data-focusopt='a'], [data-focusopt='b'], [data-focusopt='c']) {
+  --focus-light: var(--lime-900);
+  --focus-dark: var(--n1);
+  --proto-sep: 2px;
+  --focus-shadow-outset: 0 0 0 2px var(--n1);
+  --focus-shadow-inset: inset 0 0 0 5px var(--n1);
+  --focus-shadow-gap: 0 0 0 4px var(--n1);
+  --focus-field-offset: 2px;
+  --focus-field-shadow: 0 0 0 2px var(--n1);
+}
+
+:root[data-theme='light'][data-focusopt='b'] {
+  --focus-shadow-outset:
+    0 0 0 2px var(--n1), 0 0 16px 6px color-mix(in oklab, var(--aurora-mint) 75%, transparent);
+  --focus-shadow-inset:
+    inset 0 0 0 5px var(--n1), 0 0 14px 2px color-mix(in oklab, var(--aurora-mint) 70%, transparent);
+  --focus-shadow-gap:
+    0 0 0 4px var(--n1), 0 0 16px 6px color-mix(in oklab, var(--aurora-mint) 75%, transparent);
+  --focus-field-shadow:
+    0 0 0 2px var(--n1), 0 0 16px 6px color-mix(in oklab, var(--aurora-mint) 75%, transparent);
+}
+
+:root[data-theme='light'][data-focusopt='c'] {
+  --focus-light: var(--n12);
+  --proto-sep: 3px;
+  --focus-shadow-outset: 0 0 0 3px var(--n1), 0 8px 18px 2px rgb(var(--ink-rgb) / 0.28);
+  --focus-shadow-inset: inset 0 0 0 5px var(--n1), 0 4px 12px rgb(var(--ink-rgb) / 0.26);
+  --focus-shadow-gap: 0 0 0 4px var(--n1), 0 8px 18px 2px rgb(var(--ink-rgb) / 0.28);
+  --focus-field-offset: 3px;
+  --focus-field-shadow: 0 0 0 3px var(--n1), 0 8px 18px 2px rgb(var(--ink-rgb) / 0.28);
+}
+
+/*
+ * Selected-state options (lane 5): three ways to
+ * mark the selected segment, the active tab, a pressed toggle, the phone's armed tool and the
+ * current Find row at >= 3:1 (WCAG 1.4.11) with no ring and no underline, picked with
+ * `?selopt=a|b|c`. Each fills the selected thing's own lens (the thumb, the tab's fill, the
+ * toggle, the row) and turns its content to n1; the modules read these two tokens.
+ *
+ * - a, ink pill: the far end of the ramp (n12): an ink pill in light, a pale one in dark, as
+ *   the light theme's armed tool.
+ * - b, graphite pill: two steps quieter (n10), in both themes.
+ * - c, smoked glass: a translucent ink (light) or white (dark) lens that lets the backdrop's
+ *   colour through, with the lens rim kept. No backdrop filter: no glass in glass.
+ */
+:root[data-selopt='a'] {
+  --proto-on-fill: var(--n12);
+  --proto-on-ink: var(--n1);
+}
+
+:root[data-selopt='b'] {
+  --proto-on-fill: var(--n10);
+  --proto-on-ink: var(--n1);
+}
+
+:root[data-selopt='c'] {
+  --proto-on-fill: rgb(var(--white-rgb) / 0.78);
+  --proto-on-ink: var(--n1);
+}
+
+:root[data-selopt='c'][data-theme='light'] {
+  --proto-on-fill: rgb(var(--ink-rgb) / 0.74);
+}

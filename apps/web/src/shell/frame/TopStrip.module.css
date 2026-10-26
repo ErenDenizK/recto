@@ -820,3 +820,18 @@
 .note:empty {
   display: none;
 }
+
+/* Board prototype (r29, lane 5; styles/proto-selected.css): the active tab's fill and the
+   strip's pressed toggles take the option's fill. */
+:global(:root[data-selopt]) .tabFill {
+  background: var(--proto-on-fill);
+}
+
+:global(:root[data-selopt]) .tabWrap[data-selected] :is(.tab, .close, .caret, .lock),
+:global(:root[data-selopt]) .strip [data-size='bar'][aria-pressed='true']:not([data-tool]) {
+  color: var(--proto-on-ink);
+}
+
+:global(:root[data-selopt]) .strip [data-size='bar'][aria-pressed='true']:not([data-tool]) {
+  background: var(--proto-on-fill);
+}
