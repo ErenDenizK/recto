@@ -34,7 +34,7 @@
   right: -2px;
   box-sizing: border-box;
   max-width: 220px;
-  padding: 3px var(--space-2);
+  padding: var(--space-half) var(--space-2);
   overflow: hidden;
   border-radius: var(--radius-capsule);
   box-shadow: var(--mat-rim), var(--scroll-thumb-edge);

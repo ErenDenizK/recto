@@ -133,6 +133,8 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:recents:v1',
       // "Don't ask again for this file" on Save's Replace question (files/save.ts, ADR-0032 §2.1).
       'pdf-editor:save:replace-ok:v1',
+      // The glass scroll bar flag, ?scroll=glass-a|glass-b (ui/scroll-glass-flag.ts, GLS-28).
+      'pdf-editor:scroll:v1',
       // The private-window notice dismissed on this device (session/session.ts, FB9).
       'pdf-editor:session:not-kept-dismissed:v1',
       // This tab's id across reloads (sessionStorage, session/session.ts, ADR-0032 §2.5).
