@@ -6,14 +6,22 @@
  */
 import type { VirtualDocument, Workspace } from '@pdf-editor/document-model';
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import simpleUrl from '../../../../../test/fixtures/simple-text.pdf?url';
 import { createAnnotations } from '../../annotations/actions';
 import { undoStep } from '../../history/actions';
 import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
+import { resetToasts, useToastStore } from '../../ui/Toast/toast-store';
 import { fixtureFile } from '../../../test/store-harness';
-import { copyKey, openDocument, openPdf, prepareCopy, sameCopy } from './compact-actions';
+import {
+  copyKey,
+  openDocument,
+  openPdf,
+  prepareCopy,
+  sameCopy,
+  shareOrDownload,
+} from './compact-actions';
 import { resetCompactStore } from './compact-store';
 
 /** The /Annots entries of a copy's first page. */
@@ -86,5 +94,20 @@ describe('prepareCopy', () => {
     const undone = prepareCopy(doc);
     expect(undone).not.toBe(edited);
     await expect(undone).resolves.toBeInstanceOf(File);
+  });
+});
+
+describe('Download a copy', () => {
+  it('confirms in a toast, with the desktop message', async () => {
+    resetWorkspace();
+    resetCompactStore();
+    resetToasts();
+    URL.createObjectURL = vi.fn(() => 'blob:copy');
+    URL.revokeObjectURL = vi.fn();
+    expect(await openPdf(await fixtureFile(simpleUrl, 'simple-text.pdf'))).toBe(true);
+    await shareOrDownload('download');
+    expect(useToastStore.getState().shown.map((t) => t.text)).toEqual([
+      'Downloaded simple-text.pdf',
+    ]);
   });
 });
