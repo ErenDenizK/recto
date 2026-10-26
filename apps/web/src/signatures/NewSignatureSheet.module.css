@@ -59,8 +59,8 @@
 /* The pad keeps 440 × 160 as its aspect at any width, so strokes never stretch. */
 .padFrame {
   position: relative;
-  /* Ink on the page, not chrome: the signature's navy at 45 % for the hint and line. */
-  --pad-hint: rgb(26 35 126 / 0.45);
+  /* Ink on the page, not chrome: the signature's navy for the hint and line (`--sign-hint`). */
+  --pad-hint: var(--sign-hint);
 }
 
 .pad {

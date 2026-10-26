@@ -7,7 +7,7 @@
  * comment appears; "Set comment author name…" in the palette asks again.
  */
 import type { Annotation } from '@pdf-editor/engine';
-import { type SyntheticEvent, useEffect, useRef, useState } from 'react';
+import { type CSSProperties, type SyntheticEvent, useEffect, useRef, useState } from 'react';
 
 import { useAnnotationStore } from '../annotations/annotation-store';
 import { annotationIcon } from '../annotations/icons';
@@ -111,7 +111,12 @@ export function CommentRow({ item }: { readonly item: CommentItem }) {
         data-annotation-row={a.id}
         onClick={() => openComment(item)}
       >
-        <span className={styles.icon} style={{ color: a.color ?? undefined }} aria-hidden="true">
+        <span
+          className={styles.icon}
+          style={a.color ? ({ '--note-ink': a.color } as CSSProperties) : undefined}
+          data-tinted={a.color ? '' : undefined}
+          aria-hidden="true"
+        >
           <Icon name={annotationIcon(a)} />
         </span>
         <span className={styles.body}>

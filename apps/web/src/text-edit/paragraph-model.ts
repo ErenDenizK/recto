@@ -391,22 +391,30 @@ export function originalStylesOf(input: LayoutInput): readonly string[] {
   return styles;
 }
 
-/** Lays the paragraph out for the state's text and applies the overflow policy. */
+/**
+ * Lays the paragraph out for the state's text and applies the overflow policy. With `measure`
+ * (TXT-24, a width the side bars asked for) the whole paragraph is laid out again in it, as
+ * the engine does (`whole`); the policy then judges that layout.
+ */
 export function relayout(
   fns: LayoutFunctions,
   setup: ParagraphSetup,
   state: ParagraphState,
+  measure?: { readonly left: number; readonly right: number },
 ): ParagraphRelayout {
   const edit = paragraphEdit(setup.input.text, state, originalStylesOf(setup.input));
   const used = edit ?? NO_EDIT;
-  const natural = fns.layoutParagraph(setup.input, used);
+  const input = measure
+    ? { ...setup.input, measure: { ...setup.input.measure, ...measure } }
+    : setup.input;
+  const natural = fns.layoutParagraph(input, used, measure ? { whole: true } : undefined);
   const decision =
-    edit === null
+    edit === null && !measure
       ? ({ kind: 'commit', layout: natural } as const)
       : fns.decideOverflow(
           natural,
           {
-            input: setup.input,
+            input,
             edit: used,
             paragraphGap: setup.paragraphGap,
             ...(setup.pageRoom === undefined ? {} : { pageRoom: setup.pageRoom }),
@@ -414,6 +422,24 @@ export function relayout(
           setup.gapBelow,
         );
   return { edit, layout: decision.layout, decision };
+}
+
+/**
+ * The layout and caret lines with every line marked as moved, so the scene plates and draws
+ * the whole paragraph (TXT-24: a moving paragraph is drawn from its glyphs while the plate
+ * hides the original). A kept line is read as reused with a nonzero `dy`, which keeps the
+ * hyphen that ends a joined line.
+ */
+export function drawnWhole(
+  relayoutOf: ParagraphRelayout,
+  lines: readonly CaretLine[],
+): { readonly result: ParagraphRelayout; readonly lines: CaretLine[] } {
+  const mark = <T extends { readonly status: LayoutLineStatus; readonly dy: number }>(
+    line: T,
+  ): T =>
+    line.status === 'rewritten' ? line : { ...line, status: 'reused' as const, dy: line.dy || 1 };
+  const layout = { ...relayoutOf.layout, lines: relayoutOf.layout.lines.map(mark) };
+  return { result: { ...relayoutOf, layout }, lines: lines.map(mark) };
 }
 
 // ---------------------------------------------------------------------------

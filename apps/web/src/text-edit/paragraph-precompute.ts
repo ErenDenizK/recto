@@ -20,6 +20,7 @@ import type { SourceId } from '@pdf-editor/document-model';
 import type { ParagraphBlock } from '@pdf-editor/engine';
 import { useEffect } from 'react';
 
+import { labsStored } from '../labs/stored';
 import { getEngineService } from '../engine/engine-service';
 import { pageRevision } from './runs';
 import { hasParagraphLayoutAnalysis, paragraphLayoutAnalysisOf } from './text-edit-store';
@@ -34,7 +35,8 @@ export const PRE_MAX = 32;
 // later, and turning the flag on or off takes a reload.
 const flagged = (() => {
   try {
-    return new URLSearchParams(location.search).get(TEXT_PRE_PARAM) === '1';
+    const asked = new URLSearchParams(location.search).get(TEXT_PRE_PARAM);
+    return asked === null ? labsStored('textpre', null) === '1' : asked === '1';
   } catch {
     return false;
   }

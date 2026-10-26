@@ -168,9 +168,11 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-67](decisions/design.md) | The save receipt: Save a copy's sizes show at once (approximate, then exact); behind `?receipt=1` the changed pages, size bars, the page's flight to the tab and the "never left this device" toast | Size fix in force; receipt behind `?receipt=1` | 2026-10-23 |
 | [DSN-74](decisions/design.md) | Turkish copy rules: *siz* in sentences, bare imperatives on controls, past passives in history; *karart* means redaction only (Dim pages is "Sayfa parlaklığını azalt"); ’ before suffixes on names and abbreviations | In force | 2026-10-23 |
 | [DSN-76](decisions/design.md) | A visible Tools entry on the dock behind `?tools=1`: Redact, OCR, Compare, Combine, Split, Compress as doorways to the title menu's own commands (DSN-46) | Prototype (flag) | 2026-10-24 |
+| [DSN-80](decisions/design.md) | Colour spot fixes: `--sign-hint` at 0.75, Review glyph darkened in light, Dim pages disabled state already exposed | In force | 2026-10-25 |
 | [DSN-79](decisions/design.md) | Dark text ladder lifted for APCA: dark n9/n10/n11 and danger step up, light n10 darker, APCA floor test (colour audit 25 Oct 2026) | In force | 2026-10-25 |
 | [DSN-77](decisions/design.md) | A success toast clears that action's earlier errors (same key); Use signature shows a placement hint; the phone's Delete pill keeps off form fields | In force | 2026-10-25 |
 | [DSN-75](decisions/design.md) | Fill & sign gets its own short bar (field stepping, Signature, Date, Done) behind `?fillbar=1`, replacing the shared palette on that door when on | Prototype; owner taste open | 2026-10-24 |
+| [DSN-82](decisions/design.md) | A Labs panel in Settings (revealed by five taps on the version) toggles every feature flag; address, then Labs toggle, then the flag's own value, then default | In force | 2026-10-26 |
 
 ## Motion
 
@@ -267,7 +269,7 @@ Full rows: [`decisions/editions.md`](decisions/editions.md).
 | [EDN-7](decisions/editions.md) | The phone edition becomes editable, radically simple | In force; supersedes EDN-4's read-only rule once it ships | 2026-10-11 |
 | [EDN-8](decisions/editions.md) | Phone editing takes architecture A, with a designed drawer | In force | 2026-10-11 |
 | [EDN-9](decisions/editions.md) | The sample PDF is rewritten for phones | In force | 2026-10-11 |
-| [EDN-10](decisions/editions.md) | The phone's rarely used sheets load on demand | In force; amended by EDN-21 for editing code | 2026-10-11 |
+| [EDN-10](decisions/editions.md) | The phone's rarely used sheets load on demand | In force; amended by EDN-21 for editing code and EDN-25 for the sheets | 2026-10-11 |
 | [EDN-11](decisions/editions.md) | Phone editing's foundation (WP1) works through the full edition's gate and presets | In force | 2026-10-11 |
 | [EDN-12](decisions/editions.md) | Adding text on phones (WP4): the island steps away while typing and a small Done rides on the keyboard | In force | 2026-10-11 |
 | [EDN-13](decisions/editions.md) | Phone ink and highlight (lane B) | In force | 2026-10-11 |
@@ -279,6 +281,8 @@ Full rows: [`decisions/editions.md`](decisions/editions.md).
 | [EDN-19](decisions/editions.md) | Office conversion is for desktop and tablet; the phone gets guidance, never the download | In force | 2026-10-19 |
 | [EDN-20](decisions/editions.md) | iPad is claimed for Office conversion only after the owner's device check | In force; the check is the owner's | 2026-10-21 |
 | [EDN-21](decisions/editions.md) | Phone editing code loads on intent (✎, first selection, form fields), never on idle; amends EDN-10 | In force | 2026-10-24 |
+| [EDN-25](decisions/editions.md) | The phone's on-demand sheets load on intent (page number, gear, ⋯), never on idle; amends EDN-10 | In force | 2026-10-26 |
+| [EDN-24](decisions/editions.md) | The phone's single capsule (reading icons, editing tools, a tray), behind Labs `phone-capsule` | In force behind Labs | 2026-10-26 |
 
 ## Phone work
 
@@ -336,6 +340,8 @@ Full rows: [`decisions/text-editing.md`](decisions/text-editing.md).
 | [TXT-21](decisions/text-editing.md) | Plain letters stand down after a double-click selection until a press or Esc (owner, console r25-dblclick-edit) | In force | 2026-10-23 |
 | [TXT-22](decisions/text-editing.md) | The page in view analyses its paragraphs ahead of a click, behind `?textpre=1` | In force behind the flag | 2026-10-23 |
 | [TXT-23](decisions/text-editing.md) | A new text box's default colour reads on the page under it (ink black on light, white on dark); a picked colour wins | In force | 2026-10-24 |
+| [TXT-24](decisions/text-editing.md) | A paragraph can be moved and given another width: the writer translates, never writes the lines again; one undo step; behind Labs `paragraphFrame` | In force behind Labs | 2026-10-26 |
+| [TXT-25](decisions/text-editing.md) | Edit text shows every paragraph's outline (cap 250 per page, off on phones, a setting); behind Labs `paragraphOutlines` | In force behind Labs | 2026-10-26 |
 
 ## Redaction
 

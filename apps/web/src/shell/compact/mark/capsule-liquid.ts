@@ -12,9 +12,10 @@
  * - **The capsule's shape** is three parts that never distort: its two round ends, each a
  *   circle that only translates, and the straight middle between their centres, which
  *   translates and scales along x (a rectangle scaled sideways keeps its edges).
- * - **✎** is a drop under the capsule's shape: entering, it travels from its place into the
+ * - **✎** (beside the capsule) is a drop under the capsule's shape: entering, it travels from its place into the
  *   capsule's trailing end and shrinks there, absorbed; leaving, it grows out of that end into
- *   its place. Solid on solid, the two read as one body where they meet.
+ *   its place. With no ✎ beside the capsule (the single capsule, EDN-24, holds it inside), only
+ *   the three parts move. Solid on solid, the two read as one body where they meet.
  * - **Timing** is the morph's spring, `smooth` (Q-6); content only fades (MOT-5,
  *   `capsule-morph.ts`). The body is drawn under the pieces (the dock is their stacking
  *   context), so their content stays on top.
@@ -105,7 +106,7 @@ export function fuseDock(capsule: HTMLElement, from: DOMRect, restWidth = 56): (
   running?.();
   const edit = editOf(capsule);
   const dock = capsule.parentElement;
-  if (!edit || !dock) return () => undefined;
+  if (!dock) return () => undefined;
   const host = dock.getBoundingClientRect();
   const local = (r: { x: number; y: number; width: number; height: number }): DockBox => ({
     x: r.x - host.x,
@@ -115,17 +116,19 @@ export function fuseDock(capsule: HTMLElement, from: DOMRect, restWidth = 56): (
   });
   const a = local(from);
   const b = local(capsule.getBoundingClientRect());
-  const entering = edit.hasAttribute('data-away');
+  const entering = edit?.hasAttribute('data-away') ?? false;
   const gap = Number.parseFloat(getComputedStyle(dock).columnGap) || 0;
   // ✎ where it rests: entering, where it stood beside the old capsule; leaving, its new box.
-  const editBox: DockBox = entering
-    ? {
-        x: a.x + a.width + gap,
-        y: a.y + (a.height - restWidth) / 2,
-        width: restWidth,
-        height: restWidth,
-      }
-    : local(edit.getBoundingClientRect());
+  const editBox: DockBox | null = !edit
+    ? null
+    : entering
+      ? {
+          x: a.x + a.width + gap,
+          y: a.y + (a.height - restWidth) / 2,
+          width: restWidth,
+          height: restWidth,
+        }
+      : local(edit.getBoundingClientRect());
   const oldEnd: DockBox = {
     x: a.x + a.width - a.height,
     y: a.y,
@@ -138,7 +141,7 @@ export function fuseDock(capsule: HTMLElement, from: DOMRect, restWidth = 56): (
     width: b.height,
     height: b.height,
   };
-  const drop = dropPart(editBox, entering ? newEnd : oldEnd);
+  const drop = editBox ? dropPart(editBox, entering ? newEnd : oldEnd) : null;
 
   const layer = document.createElement('div');
   layer.dataset.testid = 'compact-dock-liquid';
@@ -161,19 +164,22 @@ export function fuseDock(capsule: HTMLElement, from: DOMRect, restWidth = 56): (
     return el;
   };
   // ✎'s drop first, under the capsule's shape: it is absorbed into the end, and grows out of it.
-  const dropEl = part(drop.box, drop.box.height / 2);
-  const motions: Motion<readonly number[]>[] = [
-    entering
-      ? animateStyle(dropEl, 'transform', IDENTITY, drop.at, { spring: 'smooth', keep: true })
-      : animateStyle(dropEl, 'transform', drop.at, IDENTITY, { spring: 'smooth' }),
-  ];
+  const motions: Motion<readonly number[]>[] = [];
+  if (drop) {
+    const dropEl = part(drop.box, drop.box.height / 2);
+    motions.push(
+      entering
+        ? animateStyle(dropEl, 'transform', IDENTITY, drop.at, { spring: 'smooth', keep: true })
+        : animateStyle(dropEl, 'transform', drop.at, IDENTITY, { spring: 'smooth' }),
+    );
+  }
   for (const p of capsuleParts(a, b)) {
     const el = part(p.box, p.radius, p.fromLeft);
     motions.push(animateStyle(el, 'transform', p.from, IDENTITY, { spring: 'smooth' }));
   }
   dock.prepend(layer);
   capsule.dataset.liquid = '';
-  edit.dataset.liquid = '';
+  if (edit) edit.dataset.liquid = '';
 
   let stopped = false;
   let handover: ReturnType<typeof setTimeout> | undefined;
@@ -183,13 +189,13 @@ export function fuseDock(capsule: HTMLElement, from: DOMRect, restWidth = 56): (
     for (const m of motions) m.stop();
     layer.remove();
     delete capsule.dataset.liquid;
-    delete edit.dataset.liquid;
+    if (edit) delete edit.dataset.liquid;
     if (running === stop) running = null;
   };
   // At rest: the pieces' glass fades back in over the body, which fades out under it.
   void Promise.all(motions.map((m) => m.finished)).then(() => {
     if (stopped) return;
-    for (const piece of [capsule, edit]) {
+    for (const piece of edit ? [capsule, edit] : [capsule]) {
       delete piece.dataset.liquid;
       glassSettle(piece);
     }
