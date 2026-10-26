@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
 import { chromiumLaunchOptions } from '../../../tooling/playwright-chromium.ts';
-import { atRest, motionDone } from './helpers';
+import { atRest, fixturePath, motionDone, useFileInputPicker } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Fake camera files are Chromium-only');
 
@@ -55,8 +55,8 @@ async function shot(page: Page, name: string): Promise<void> {
   await page.screenshot({ path: join(SHOTS, `scan-phone-${name}-${scheme}.png`) });
 }
 
-async function openSheet(page: Page): Promise<Locator> {
-  await page.goto('./?lang=en&scan=1');
+async function openSheet(page: Page, { fresh = true } = {}): Promise<Locator> {
+  if (fresh) await page.goto('./?lang=en&scan=1');
   await expect(page.getByTestId('compact-library')).toBeVisible();
   await shot(page, 'library');
   await page.getByTestId('compact-scan').tap();
@@ -129,6 +129,25 @@ test('two captures become one document with two pages in the reader', async ({ p
   await expect(sheet).toBeHidden();
   await expect(page.locator('[data-page-index="1"]').first()).toBeVisible({ timeout: 20_000 });
   await expect(page.locator('[data-page-index="2"]')).toHaveCount(0);
+});
+
+test('Done replaces the document that was open with the scan', async ({ page }) => {
+  test.setTimeout(90_000);
+  await useFileInputPicker(page);
+  await page.goto('./?lang=en&scan=1');
+  const chooser = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Open PDF' }).tap();
+  await (await chooser).setFiles(fixturePath('simple-text.pdf'));
+  await expect(page.getByTestId('compact-reader')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'simple-text' })).toBeVisible();
+  // Back to the Library, where Scan stands, with the document still open.
+  await page.getByRole('button', { name: 'Library' }).tap();
+  const sheet = await openSheet(page, { fresh: false });
+  await expect(sheet.getByTestId('scan-stack')).toContainText('1', { timeout: 20_000 });
+  await sheet.getByTestId('scan-done').tap();
+  await expect(page.getByTestId('compact-reader')).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole('heading', { name: /^Scan \d/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'simple-text' })).toHaveCount(0);
 });
 
 test.describe('light', () => {

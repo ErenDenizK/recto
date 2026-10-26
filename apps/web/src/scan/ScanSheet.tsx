@@ -28,7 +28,6 @@ import { toast } from '../ui/Toast';
 import { openCamera, detectionFrame, Detector, jpegOf, stopCamera } from './camera';
 import { CornerEditor } from './CornerEditor';
 import { Scanner } from './encode';
-import { finishScan } from './finish';
 import { useScanOpen } from './scan-flag';
 import { ReviewStrip } from './ReviewStrip';
 import styles from './ScanSheet.module.css';
@@ -564,6 +563,8 @@ export function ScanSheet() {
   const done = async () => {
     setBusy(true);
     try {
+      // Loaded on Done, so the phone's sheet, which shares this file, does not carry the full edition's opening (PF-23).
+      const { finishScan } = await import('./finish');
       if (await finishScan(pages)) closeScanSheet();
       else toast.failure(m.scan_finish_failed());
     } catch {
