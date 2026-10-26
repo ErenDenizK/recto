@@ -35,7 +35,7 @@ import {
   roundedPath,
   raw,
 } from './kit.ts';
-import { FRAME_TIME, gs, hex, lampTab, mix, scale, sharedShading } from './light.ts';
+import { FRAME_TIME, gs, hex, mix, scale, sharedShading } from './light.ts';
 
 const SLIP_GROUND = hex('#15171C');
 /** The sticky note's paper and its fold (B2). */
@@ -81,7 +81,6 @@ export function furniture(ctx: PageCtx, section: string): void {
   w.text(null, STYLE.head, RIGHT - tw - 9, HEAD_Y, up(ctx, section), 'right');
   w.art(...hairline(LEFT, HEAD_RULE_Y, RIGHT, HEAD_RULE_Y, RULE));
   footer(ctx);
-  w.art(...lampTab(w, id));
 }
 
 export function footer(ctx: PageCtx, dark = false): void {
