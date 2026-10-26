@@ -1,7 +1,8 @@
 /**
  * The Labs section of Settings (DSN-82): every flag of the registry with a switch (or a segmented
  * control for a flag with several values), its one-line description, its status and edition,
- * and "Reload to apply" once a choice differs from what this page started with. Reset all
+ * and "Reload to apply" (a note on the row, and a Reload now button on top) once a choice differs
+ * from what this page started with. A row shows only on the edition it changes. Reset all
  * clears every toggle and everything a flag kept itself. Hidden until revealed (`store.ts`).
  *
  * Built on the Settings rows and the `Switch` and `Segmented` primitives, so touch targets
@@ -12,6 +13,7 @@
 import { m } from '../i18n';
 import { Row, Section, Line } from '../settings/rows';
 import styles from '../settings/Settings.module.css';
+import { getEdition } from '../shell/frame/edition';
 import { Button } from '../ui/Button';
 import { Segmented } from '../ui/Segmented';
 import { Switch } from '../ui/Switch';
@@ -45,9 +47,21 @@ const started = resolveAll(location.search, readLabs().flags);
 export function LabsSection() {
   const state = useLabsState();
   const now = resolveAll(location.search, state.flags);
+  const edition = getEdition();
+  const shown = LABS_FLAGS.filter((flag) => flag.edition === 'all' || flag.edition === edition);
+  const changed = shown.some((flag) => now.get(flag.key)?.value !== started.get(flag.key)?.value);
   return (
     <Section id="labs" title={m.labs_title()}>
-      {LABS_FLAGS.map((flag) => {
+      {changed ? (
+        <Row id="labs-reload" bar>
+          <Line label={m.labs_reload()}>
+            <Button variant="prominent" onClick={() => location.reload()}>
+              {m.labs_reload_now()}
+            </Button>
+          </Line>
+        </Row>
+      ) : null}
+      {shown.map((flag) => {
         const here = now.get(flag.key);
         if (!here) return null;
         const address = here.source === 'url';
