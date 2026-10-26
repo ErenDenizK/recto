@@ -17,8 +17,13 @@ import { announce } from '../../announcer';
 import { CompactSheet } from '../CompactSheet';
 import styles from './sign.module.css';
 
-/** New opened it from the drawer, which closed: focus goes back to the tool chip's ▾. */
-const toolChip = () => document.querySelector<HTMLElement>('[data-testid="compact-tool-more"]');
+/**
+ * New opened it from the drawer, which closed: focus goes back to the tool chip's ▾; with the
+ * single capsule (EDN-24) there is none, and it goes to the armed tool.
+ */
+const toolChip = () =>
+  document.querySelector<HTMLElement>('[data-testid="compact-tool-more"]') ??
+  document.querySelector<HTMLElement>('[data-compact-tool-chip]');
 
 export default function CompactNewSignature() {
   const form = useNewSignatureForm();

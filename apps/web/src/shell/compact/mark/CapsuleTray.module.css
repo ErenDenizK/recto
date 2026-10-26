@@ -1,0 +1,98 @@
+/*
+ * The single capsule's tray (CapsuleTray.tsx; EDN-24, plan "Widths"): a 56 px capsule of glass,
+ * 324 px wide (--tray-w) like the edit capsule under it, holding 7 targets of 44 px. The widths
+ * add up: 7 x 44 + 2 hairlines + 12 padding + 2 border = 324. The options it reuses
+ * (InkOptions, TextOptions, SignaturePlate) keep their own markup; their gaps and hairline
+ * margins give way here to 0 and 1 px, the 44 px boxes being the spacing. On a screen narrower
+ * than the tray the content scrolls sideways inside it (max-width: 100vw - 24px).
+ *
+ * Motion is script's (tray-motion.ts): at rest nothing here transforms (Q-2), and the tray
+ * grows from --tray-origin-x (the pressed tool's x, set by the capsule), else the middle.
+ */
+.tray {
+  composes: mat mat-bar s10 from global;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tray-w, 324px);
+  max-width: calc(100vw - 24px);
+  height: 56px;
+  padding: 0 var(--space-1h);
+  border-radius: var(--radius-capsule);
+  color: var(--text-primary);
+  outline: none;
+  /* The tray's own swipe: the page under it never scrolls or zooms from here. */
+  touch-action: none;
+  transform-origin: var(--tray-origin-x, 50%) 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.content {
+  display: flex;
+  align-items: center;
+  justify-content: safe center;
+  gap: 0;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  /* Sideways pans scroll; the swipe down is the tray's (CapsuleTray.tsx). */
+  touch-action: pan-x;
+}
+
+.content::-webkit-scrollbar {
+  display: none;
+}
+
+/* The reused rows: no gaps, 1 px hairlines; the 44 px boxes are the spacing. */
+.content > [data-testid],
+.content [role='radiogroup'] {
+  gap: 0;
+  flex: none;
+}
+
+.content [data-testid='compact-ink-options'] > span[aria-hidden='true'],
+.content [data-testid='compact-text-options'] > span[aria-hidden='true'] {
+  margin-inline: 0;
+}
+
+.rule {
+  flex: none;
+  width: 1px;
+  height: 24px;
+  background: var(--border-hairline);
+}
+
+.eraser {
+  flex: none;
+  justify-content: center;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--text-primary);
+  touch-action: manipulation;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    scale var(--spring-press) var(--ease-spring);
+}
+
+.eraser:active {
+  scale: var(--press-scale);
+  background: var(--control-fill-pressed);
+  transition-duration: var(--duration-instant);
+}
+
+.eraser[aria-pressed='true'] {
+  background: var(--tool-active-fill);
+  color: var(--tool-active-ink);
+}
+
+.eraser svg {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}

@@ -1,0 +1,56 @@
+/*
+ * The Text tray's switch and hint (TextTray.tsx): a 44 px round toggle in the tool-active fill
+ * while Edit text is on, a hairline, then the options or, with it on, the hint in the room the
+ * colours and sizes leave (two lines at most).
+ */
+.switch {
+  flex: none;
+  justify-content: center;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--text-primary);
+  touch-action: manipulation;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    scale var(--spring-press) var(--ease-spring);
+}
+
+.switch:active {
+  scale: var(--press-scale);
+  background: var(--control-fill-pressed);
+  transition-duration: var(--duration-instant);
+}
+
+.switch[aria-checked='true'] {
+  background: var(--tool-active-fill);
+  color: var(--tool-active-ink);
+}
+
+.switch svg {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+.rule {
+  flex: none;
+  width: 1px;
+  height: 24px;
+  background: var(--border-hairline);
+}
+
+.hint {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  padding-inline: var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
