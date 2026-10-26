@@ -180,6 +180,8 @@ export const CONTROL_TOKENS: readonly string[] = [
  * named in `motion/tokens.ts` (`MOTION_TOKENS`) and held to it by `motion.test.ts`.
  */
 export const THEME_FREE_TOKENS: readonly string[] = [
+  // The signature pad's hint ink, on the white page in both themes (DSN-80).
+  '--sign-hint',
   // Type (ADR-0027, language.md §4; spec D3-5): the face, three weights (Q-8), the scale with
   // a line height and a tracking per step.
   '--font-ui',

@@ -61,11 +61,13 @@ import { m } from '../i18n';
 import { revealFor } from '../outline/current-view';
 import editStyles from '../outline/Outline.module.css';
 import {
+  addBookmarksFromHeadings,
   deleteBookmark,
   displayTitle,
   dropBookmark,
   moveBookmark,
   removeDeadLinks,
+  useHeadingsRunStore,
 } from '../outline/outline-actions';
 import {
   canDropOn,
@@ -107,6 +109,8 @@ function rowHeight(element: Element): number {
 
 export function OutlinePanel() {
   const doc = useActiveDocument();
+  const running = useHeadingsRunStore((s) => doc !== undefined && s.running[doc.id] === true);
+  const noHeadings = useHeadingsRunStore((s) => doc !== undefined && s.none[doc.id] === true);
   if (!doc) {
     return (
       <div className={styles.empty}>
@@ -114,12 +118,25 @@ export function OutlinePanel() {
       </div>
     );
   }
+  const fromHeadings =
+    doc.pages.length > 0 && !noHeadings
+      ? {
+          label: m.cmd_outline_from_headings(),
+          busy: running,
+          busyLabel: m.outline_from_headings_pending(),
+          onClick: () => void addBookmarksFromHeadings(doc.id),
+        }
+      : undefined;
   return (
     <div className={styles.root}>
       <DeadLinks doc={doc} />
       {doc.outline.length === 0 ? (
         <div className={styles.empty}>
-          <EmptyNote title={m.outline_empty_title()} body={m.outline_empty_body()} />
+          <EmptyNote
+            title={m.outline_empty_title()}
+            body={m.outline_empty_body()}
+            action={fromHeadings}
+          />
         </div>
       ) : (
         <OutlineTree key={doc.id} doc={doc} />
