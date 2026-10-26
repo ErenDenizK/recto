@@ -18,6 +18,8 @@ No claim of "done", "passes", "green" or "fixed" without fresh evidence from thi
    - `cd apps/web && pnpm exec vitest run --maxWorkers=1 <files>` for the covering tests;
    - e2e only when the brief asks (CLAUDE.md "Verifying cheaply": `RECTO_RENDER_OVERRIDE=1`
      build through `tools/dev/heavy.sh`, then the spec on Chromium).
+   A change to CSS, tokens, strings, ids or decisions also runs the repo-wide gates in
+   `repo-gates`; a focused run never reaches them.
    Heavy commands go through `tools/dev/heavy.sh`; never run typecheck, lint or build at the same
    time as vitest.
 2. **Run it now,** after your last edit. An earlier run, another lane's run or "it should pass" is

@@ -41,8 +41,9 @@ build can go to the builder.
   scope, checks to run, output, done condition. Large handovers burn usage.
 - **The reader stays narrow.** Read-only, prompts under 100K tokens (its price steps up five times above
   that), never code edits.
-- **Skills (PRC-29).** `implementer` preloads `lean-change` and `verify-before-done` through its
-  `skills:` frontmatter. A root-cause brief (general-purpose agent, no frontmatter of ours) names
+- **Skills (PRC-29).** `implementer` preloads `lean-change`, `verify-before-done` and `repo-gates`
+  through its `skills:` frontmatter. The lead uses `decision-rows`, `merge-queue` and `hq-report`
+  when it briefs, merges and reports. A root-cause brief (general-purpose agent, no frontmatter of ours) names
   the skill in its first line: "Invoke the `root-cause` skill first (`.claude/skills/root-cause/`)."
 - **No mid-run switches.** A lane keeps its model; a harder task than expected is reported and
   re-briefed, not escalated inside the same agent.
