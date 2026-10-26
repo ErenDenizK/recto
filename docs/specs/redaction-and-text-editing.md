@@ -1,6 +1,6 @@
 # Spec: Redaction and text editing (M4)
 
-**Status:** draft (2026-09-27) · **Milestone:** M4 (v1.x) · **Owner:** project lead
+**Status:** built (drafted 2026-09-27; done 2026-09-28, ROADMAP M4) · **Milestone:** M4 (v1.x) · **Owner:** project lead
 
 These two features carry the highest correctness risk in the product. A redaction that
 leaves text recoverable, or a text edit that silently reflows a page, is worse than not

@@ -22,10 +22,6 @@ export function getDocument(ws: Workspace, id: DocumentId): VirtualDocument {
   return requireDocument(ws, id);
 }
 
-export function findDocument(ws: Workspace, id: DocumentId): VirtualDocument | undefined {
-  return lookup(ws.documents, id);
-}
-
 export function getSource(ws: Workspace, id: SourceId): SourceDocument {
   return requireSource(ws, id);
 }
@@ -53,10 +49,6 @@ export function getPage(ws: Workspace, id: PageId): VirtualPage {
     throw new DocumentModelError('unknown-page', `Unknown page: ${String(id)}`);
   }
   return page;
-}
-
-export function documentPageCount(ws: Workspace, id: DocumentId): number {
-  return requireDocument(ws, id).pages.length;
 }
 
 /** Intrinsic rotation plus the page's delta, normalized. */

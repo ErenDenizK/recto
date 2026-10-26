@@ -61,8 +61,8 @@ spends the week's budget fast, so the mode is chosen on purpose and stated in ea
 - **The default after a burst window is Safe**, until the owner raises it. A burst window
   closes when the owner says so, or at the end of the time the owner gave.
 - Which model a lane runs on is set by `model-routing.md` (PRC-23) in every mode: settled-spec
-  lanes on Sonnet 5.5 (`implementer`), taste and unknown-cause lanes on Opus 5.5, reads on Haiku 5.5.
-  Sonnet's lower cost buys more lanes within a mode, never a lower bar.
+  lanes with the builder (`implementer`), taste and unknown-cause lanes with the judge, reads with the reader.
+  The builder's lower cost buys more lanes within a mode, never a lower bar.
 - In Safe, the lead makes small fixes inline instead of briefing an agent, and lets CI do the
   verifying.
 - The lead says which mode is in force when reporting to the owner.
@@ -103,7 +103,15 @@ Agents read `CLAUDE.md` automatically, so a brief stays short and self-contained
 4. **Checks to run** and the **output** wanted (report length, screenshots, numbers).
 5. **Done condition**: pushed branch name, no PR unless asked.
 
-Pick the agent and model by `model-routing.md`: an `implementer` (Sonnet 5.5) only when the brief
-settles every decision; otherwise an Opus 5.5 agent. Before an `implementer` lane's PR opens, the lead
+Pick the agent and model by `model-routing.md`: an `implementer` (builder) only when the brief
+settles every decision; otherwise a judge agent. Before an `implementer` lane's PR opens, the lead
 checks its `git diff --stat` against the files in scope and adds the lane's row to
 `agent-metrics.md` once its first CI run is known.
+
+## Colour audit harness
+
+`tools/colour-audit/` measures text, icon and focus-ring contrast (WCAG 2.x and APCA) on the built
+app across desk, tablet and phone, light and dark, standard and more-contrast. A colour lane quotes
+its before and after against `tools/colour-audit/baseline/` (`agg.txt`, `top40.md`) in its PR
+(rendering is deterministic on the software rasteriser, so a re-run on the same tree matches within
+0.5 points per slice). Its README says how to rerun it; run the measures through `tools/dev/heavy.sh`.
