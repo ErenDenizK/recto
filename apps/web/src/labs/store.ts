@@ -7,12 +7,12 @@
  *   toast. It also shows whenever the address turns a flag on (`anyFlagOnByAddress`).
  * - A change of a flag applies at the next start: every reader decides once per page.
  */
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore } from 'react';
 
-import { m } from "../i18n";
-import { toast } from "../ui/Toast/toast";
-import { anyFlagOnByAddress, forgetOwnValue, LABS_FLAGS, type LabsKey } from "./flags";
-import { LABS_KEY, type LabsState, readLabs } from "./stored";
+import { m } from '../i18n';
+import { toast } from '../ui/Toast/toast';
+import { anyFlagOnByAddress, forgetOwnValue, LABS_FLAGS, type LabsKey } from './flags';
+import { LABS_KEY, type LabsState, readLabs } from './stored';
 
 export const REVEAL_TAPS = 5;
 /** A tap later than this after the last starts the count again. */
