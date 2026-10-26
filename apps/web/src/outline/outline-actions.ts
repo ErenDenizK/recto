@@ -21,14 +21,18 @@ import {
   type VirtualDocument,
   type Workspace,
 } from '@pdf-editor/document-model';
+import { create } from 'zustand';
 
+import { convertDocumentPages, DEFAULT_CHOICE } from '../convert/convert-run';
 import { currentPlatform } from '../commands/shortcuts';
 import { m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { showOverlaySidebar } from '../shell/frame/frame-store';
 import { isNavigatorShowing, useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { toast } from '../ui/Toast/toast';
 import { currentViewDestination } from './current-view';
+import { outlineFromHeadings, pagesStillPresent } from './headings-outline';
 import {
   followEdits,
   keyOf,
@@ -302,6 +306,90 @@ export function removeDeadLinks(documentId: DocumentId): boolean {
   if (done === undefined) return false;
   announce(m.announce_outline_dead_removed());
   return true;
+}
+
+/**
+ * Run state of "Add bookmarks from headings" per document (PRD-33): `running` while the worker
+ * reads the pages (the button shows its busy state and the command is unavailable, Q-14),
+ * `none` once a run found no headings (the action is hidden for that document for the session).
+ */
+export const useHeadingsRunStore = create<{
+  running: Readonly<Record<string, true>>;
+  none: Readonly<Record<string, true>>;
+}>(() => ({ running: {}, none: {} }));
+
+function markRun(key: 'running' | 'none', documentId: DocumentId, on: boolean): void {
+  useHeadingsRunStore.setState((s) => {
+    const rest = Object.entries(s[key]).filter(([id]) => id !== documentId);
+    return { [key]: Object.fromEntries(on ? [...rest, [documentId, true]] : rest) };
+  });
+}
+
+/**
+ * Adds bookmarks from the document's headings (PRD-33): the Markdown export's heading
+ * detection (`convertDocumentPages`) read once, nested by level, inserted at the end of the
+ * outline as one history entry. Only for a document without an outline. With no headings it
+ * says so (a toast) and changes nothing. The run stops when the document closes; if pages
+ * left meanwhile it adds nothing. Returns the number of top-level bookmarks added.
+ */
+export async function addBookmarksFromHeadings(documentId: DocumentId): Promise<number> {
+  const doc = documentOf(documentId);
+  if (!doc || doc.outline.length > 0 || doc.pages.length === 0) return 0;
+  if (useHeadingsRunStore.getState().running[documentId]) return 0;
+  const startIds = doc.pages.map((p) => p.id);
+  const abort = new AbortController();
+  const stop = useWorkspaceStore.subscribe((state) => {
+    if (!Object.hasOwn(state.workspace.documents, documentId)) abort.abort();
+  });
+  markRun('running', documentId, true);
+  let nodes: OutlineNode[];
+  try {
+    const result = await convertDocumentPages(
+      documentId,
+      startIds.map((_, i) => i),
+      { ...DEFAULT_CHOICE, images: false },
+      { signal: abort.signal },
+    );
+    // The tabs may have changed while the worker read the pages: indices belong to the page
+    // list taken at the start, so a page that left makes them untrustworthy.
+    const now = documentOf(documentId);
+    if (abort.signal.aborted || !now || now.outline.length > 0) return 0;
+    if (
+      !pagesStillPresent(
+        startIds,
+        now.pages.map((p) => p.id),
+      )
+    ) {
+      toast.info(m.outline_from_headings_changed());
+      return 0;
+    }
+    nodes = outlineFromHeadings(result.report.headingList, startIds);
+  } catch {
+    if (!abort.signal.aborted) toast.failure(m.outline_from_headings_failed());
+    return 0;
+  } finally {
+    stop();
+    markRun('running', documentId, false);
+  }
+  if (nodes.length === 0) {
+    markRun('none', documentId, true);
+    toast.info(m.outline_from_headings_none());
+    return 0;
+  }
+  const count = countNodes(nodes);
+  const done = commit(
+    documentId,
+    nodes.map((node, index) => ({ kind: 'insert', at: { parent: [], index }, node })),
+    m.history_outline_from_headings({ count }),
+    () => [0],
+  );
+  if (done === undefined) return 0;
+  announce(m.announce_outline_from_headings({ count, shortcut: undoHint() }));
+  return nodes.length;
+}
+
+function countNodes(nodes: readonly OutlineNode[]): number {
+  return nodes.reduce((sum, node) => sum + 1 + countNodes(node.children), 0);
 }
 
 /**

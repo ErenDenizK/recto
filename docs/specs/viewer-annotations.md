@@ -1,6 +1,6 @@
 # Spec: Viewer and annotations (Read mode)
 
-**Status:** draft (2026-09-27) · **Milestone:** M2 · **Owner:** project lead
+**Status:** built (drafted 2026-09-27; done 2026-09-27, ROADMAP M2) · **Milestone:** M2 · **Owner:** project lead
 
 Read mode is where a document is read, searched and marked up. Everything written here
 must be a standard PDF annotation with an appearance stream, so that it renders the same

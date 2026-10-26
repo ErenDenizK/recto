@@ -1,6 +1,6 @@
 # Spec: Recognize and compare (M5)
 
-**Status:** draft (2026-09-28) · **Milestone:** M5 (→ v1.2) · **Owner:** project lead
+**Status:** built (drafted 2026-09-28; done 2026-09-28, ROADMAP M5) · **Milestone:** M5 (→ v1.2) · **Owner:** project lead
 
 M5 adds OCR, document comparison, signature validation and PAdES-B signing, text /
 Markdown conversion and batch recipes. Each has limits the output does not show, so each

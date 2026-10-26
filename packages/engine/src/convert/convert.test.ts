@@ -172,6 +172,21 @@ describe('heuristics', () => {
     );
   });
 
+  test('the report lists the headings with page and level (PRD-33)', async () => {
+    const { report } = await convertPages([
+      page([
+        run('Big title', 72, 700, 20, 'Helvetica-Bold'),
+        run('Body text that is long enough to be the body size.', 72, 670),
+        run('More body text on a second paragraph line here.', 72, 640),
+        run('Bold aside', 72, 610, 11, 'Helvetica-Bold'),
+      ]),
+    ]);
+    expect(report.headingList).toEqual([
+      { page: 0, level: 1, text: 'Big title' },
+      { page: 0, level: 2, text: 'Bold aside' },
+    ]);
+  });
+
   test('line-end hyphens: a soft marker joins, a hard hyphen joins before lower case only', async () => {
     const soft = run('A word broken with a soft hy', 72, 700);
     const marker: Glyph = {

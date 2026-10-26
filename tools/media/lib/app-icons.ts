@@ -12,7 +12,7 @@
  *   public/favicon.ico          16, 32, 48 from the rounded tile (legacy browsers, Windows)
  *
  * The tile (brand plan §5.3): always dark, n3 at the top to n1 at the bottom, one soft glow in
- * the mark's lime behind it, no specular or shadow. The mark is 56 % of the tile's height and
+ * the mark's beam colours behind it, no specular or shadow. The mark is 56 % of the tile's height and
  * centred, inside the maskable 80 % circle and well above iOS's 19 % bottom clearance.
  *
  * The two 512 px manifest tiles are palette-quantised (`quantise`): their gradient and glow made
@@ -83,10 +83,10 @@ function tile({ radius, scale }: { radius: number; scale: number }): string {
     `<svg xmlns="${SVG_NS}" viewBox="0 0 ${String(size)} ${String(size)}"><defs>`,
     '<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#17191e"/><stop offset="1" stop-color="#08090c"/></linearGradient>',
     '<radialGradient id="glow" cx=".5" cy=".46" r=".5">',
-    '<stop offset="0" stop-color="#cbff5f" stop-opacity=".2"/>',
-    '<stop offset=".35" stop-color="#9df27e" stop-opacity=".11"/>',
-    '<stop offset=".7" stop-color="#69eaa3" stop-opacity=".03"/>',
-    '<stop offset="1" stop-color="#69eaa3" stop-opacity="0"/></radialGradient>',
+    '<stop offset="0" stop-color="#c8fb3d" stop-opacity=".2"/>',
+    '<stop offset=".35" stop-color="#6eedbb" stop-opacity=".11"/>',
+    '<stop offset=".7" stop-color="#2fb3a8" stop-opacity=".03"/>',
+    '<stop offset="1" stop-color="#2fb3a8" stop-opacity="0"/></radialGradient>',
     `${gradient('mark')}</defs>${shape}`,
     `<g transform="${place}" fill="url(#mark)">${paths}</g></svg>\n`,
   ].join('');
