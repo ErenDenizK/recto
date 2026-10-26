@@ -80,3 +80,29 @@ export function setSessionNotice(notice: SessionNotice | null): void {
 export function resetSessionStore(): void {
   useSessionStore.setState(INITIAL);
 }
+
+/** Whether the launch's restore is over (or there is none), so a new tab cannot stop it. */
+function launchSettled(): boolean {
+  // No session running (a component test): nothing to wait for.
+  if (document.documentElement.dataset.session === undefined) return true;
+  const { keeping, restoring } = useSessionStore.getState();
+  return keeping === 'unavailable' || (keeping === 'available' && !restoring);
+}
+
+/**
+ * Runs `run` once the launch's restore is over (at once if it is): a document opened during the
+ * restore would stop it, since the restore only fills an empty workspace and its last step
+ * replaces the workspace (`?sample`, "Open with"). Returns a canceller.
+ */
+export function whenLaunchSettled(run: () => void): () => void {
+  if (launchSettled()) {
+    run();
+    return () => undefined;
+  }
+  const unsubscribe = useSessionStore.subscribe(() => {
+    if (!launchSettled()) return;
+    unsubscribe();
+    run();
+  });
+  return unsubscribe;
+}

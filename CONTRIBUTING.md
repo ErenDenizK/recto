@@ -46,27 +46,27 @@ in **English**. User-facing strings live in locale files and are translated sepa
 
 ## Branches and commits
 
-> The maintainers' own sessions commit straight to `develop` (the dev branch, which deploys)
-> and release to `main` by hand (`docs/process/decisions.md` PRC-5). The flow below is for
-> outside contributors.
+> All work lands on `develop` (the dev branch, which deploys) through pull requests: one branch and
+> one pull request per lane, merged with a merge commit, never squashed (`docs/process/decisions.md`
+> PRC-17). `main` takes only manual releases (PRC-5).
 
 - Branch from `develop`: `feat/<topic>`, `fix/<topic>`, `docs/<topic>`, `chore/<topic>`.
 - Use [Conventional Commits](https://www.conventionalcommits.org/):
   `feat(light-table): move pages across documents with keyboard`. Commitlint enforces it.
-- Keep commits focused; rebase on `develop` before requesting review; no merge commits in
-  feature branches.
+- Keep commits focused: each one a reviewable step, with a body that says why.
 - Every PR runs lint, typecheck, unit tests, build, end-to-end tests on Chromium, Firefox
   and WebKit, and the copy and link checks. All must pass. Add tests for behavior you
   change.
 
 ## Pull requests
 
-- Small and reviewable. One concern per PR.
+- Small and reviewable. One concern per PR, and one PR per lane (PRC-18).
 - Fill in the PR template: what, why, how tested, screenshots for UI changes, ADR link for
   architecture changes.
 - Add a Changeset (`pnpm changeset`) for any user-visible change (see
   [`.changeset/README.md`](.changeset/README.md)).
-- Squash-merge into `develop`. Only release pull requests go from `develop` to `main`
+- Merge into `develop` with a merge commit once the checks pass (PRC-17); never squash, so every
+  commit stays in history. Only release pull requests go from `develop` to `main`
   (see [Releases](#releases)).
 
 ## Public copy

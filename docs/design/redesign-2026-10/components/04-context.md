@@ -6,7 +6,7 @@ status: proposed
 
 > Wave 2 component spec. Binding inputs: [`flows.md`](../flows.md) (cited as F§) and
 > [`language.md`](../language.md) (cited as L§), with its ten §13.2 amendments applied. Evidence:
-> [`inventory.md`](../inventory.md) (INV ids, family 8 rows 8.1–8.21), the baseline frames
+> [`inventory.md`](../../../archive/design/redesign-2026-10/inventory.md) (INV ids, family 8 rows 8.1–8.21), the baseline frames
 > `08-selection-bar`, `09-page-menu`, `10-annotation-selected`, `11-lasso`, `28-privacy`, and
 > research 15, 18, 19, 22 (RA, MC, M, A ids). Code facts are from `develop`: `annotations/
 > ReadSelectionBar.tsx`, `AnnotationBar.tsx`, `image-objects/ImageBar.tsx`, `stage/ContextualBar.tsx`,

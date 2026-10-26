@@ -1,6 +1,6 @@
 # Spec: Light table (Arrange mode)
 
-**Status:** draft (2026-09-26) · **Milestone:** M1 · **Owner:** project lead
+**Status:** built (drafted 2026-09-26; done 2026-09-27, ROADMAP M1) · **Milestone:** M1 · **Owner:** project lead
 
 The light table is the view where pages are physical objects. It is the answer to the
 single most requested capability (merge many PDFs with drag-and-drop reordering) and the
