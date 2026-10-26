@@ -85,6 +85,7 @@ import {
   stripEnabled,
   stripPreview,
 } from '../frame/strip/strip-hold';
+import { loadMoreSheets } from './CompactSheets';
 import { CompactTopSplit } from './CompactTopSplit';
 import { topVariant } from './top-variant';
 
@@ -580,7 +581,10 @@ function ReadingCapsule({ doc }: { readonly doc: VirtualDocument }) {
         aria-label={m.compact_page_button({ current: current + 1, total })}
         data-testid="compact-page-number"
         data-strip={stripEnabled() ? '' : undefined}
-        onPointerDown={(e) => holdForStrip(e, 'y')}
+        onPointerDown={(e) => {
+          void loadMoreSheets().catch(() => undefined);
+          holdForStrip(e, 'y');
+        }}
         onKeyDown={(e) => keyForStrip(e, 'y')}
         onClick={() => {
           if (!consumeStripClick()) openSheet('goto');

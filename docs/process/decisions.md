@@ -268,7 +268,7 @@ Full rows: [`decisions/editions.md`](decisions/editions.md).
 | [EDN-7](decisions/editions.md) | The phone edition becomes editable, radically simple | In force; supersedes EDN-4's read-only rule once it ships | 2026-10-11 |
 | [EDN-8](decisions/editions.md) | Phone editing takes architecture A, with a designed drawer | In force | 2026-10-11 |
 | [EDN-9](decisions/editions.md) | The sample PDF is rewritten for phones | In force | 2026-10-11 |
-| [EDN-10](decisions/editions.md) | The phone's rarely used sheets load on demand | In force; amended by EDN-21 for editing code | 2026-10-11 |
+| [EDN-10](decisions/editions.md) | The phone's rarely used sheets load on demand | In force; amended by EDN-21 for editing code and EDN-25 for the sheets | 2026-10-11 |
 | [EDN-11](decisions/editions.md) | Phone editing's foundation (WP1) works through the full edition's gate and presets | In force | 2026-10-11 |
 | [EDN-12](decisions/editions.md) | Adding text on phones (WP4): the island steps away while typing and a small Done rides on the keyboard | In force | 2026-10-11 |
 | [EDN-13](decisions/editions.md) | Phone ink and highlight (lane B) | In force | 2026-10-11 |
@@ -280,6 +280,7 @@ Full rows: [`decisions/editions.md`](decisions/editions.md).
 | [EDN-19](decisions/editions.md) | Office conversion is for desktop and tablet; the phone gets guidance, never the download | In force | 2026-10-19 |
 | [EDN-20](decisions/editions.md) | iPad is claimed for Office conversion only after the owner's device check | In force; the check is the owner's | 2026-10-21 |
 | [EDN-21](decisions/editions.md) | Phone editing code loads on intent (✎, first selection, form fields), never on idle; amends EDN-10 | In force | 2026-10-24 |
+| [EDN-25](decisions/editions.md) | The phone's on-demand sheets load on intent (page number, gear, ⋯), never on idle; amends EDN-10 | In force | 2026-10-26 |
 
 ## Phone work
 
