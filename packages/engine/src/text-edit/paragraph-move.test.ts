@@ -444,6 +444,9 @@ describe('refusals', () => {
       const error = await rejection(h.editor.applyParagraphEdit(id, 0, edit, { commit: false }));
       expect(paragraphRefusalReason(error)).toBe('move-form-field');
     }
+    // A frame that neither moves nor resizes is no frame: the plain edit still goes through.
+    const still = await h.editor.applyParagraphEdit(id, 0, moveOf(block, 0, 0), { commit: false });
+    expect(still.translated).toBeUndefined();
     await h.adapter.close(id);
   });
 

@@ -1334,7 +1334,11 @@ export class ParagraphWriter {
     if (prepared.refusal) throw paragraphRefusalError(prepared.refusal);
     const { model, metrics } = prepared;
     const layoutEdit = layoutEditOf(model.block.text, edit);
-    const frame = edit.frame;
+    // A frame that neither moves nor resizes is no frame: plain text edits keep their refusals.
+    const frame =
+      edit.frame && (edit.frame.dx !== 0 || edit.frame.dy !== 0 || edit.frame.measure)
+        ? edit.frame
+        : undefined;
     if (frame) this.checkFrame(prepared, frame);
     const measure = frame?.measure;
     let layout: ParagraphLayout;
