@@ -31,6 +31,7 @@ import {
 import { m } from '../i18n';
 import type { Box, PageFrame } from '../viewer/geometry';
 import { commitFieldValue, type FieldValue, fieldLabel } from './actions';
+import { autofillToken } from './autofill-hint';
 import { type ActiveField, useFormStore } from './form-store';
 import styles from './FormLayer.module.css';
 import { canMoveField, moveField } from './navigation';
@@ -237,6 +238,7 @@ export function TextEditor({ field, here, box, frame, minFontPx, onMove }: Edito
     value: text,
     maxLength: field.maxLength,
     spellCheck: !field.password,
+    autoComplete: autofillToken(field),
     style: { ...style, fontSize, ...combStyle },
     onBlur: blur,
     onPointerDown: (e: { stopPropagation: () => void }) => e.stopPropagation(),
@@ -257,7 +259,6 @@ export function TextEditor({ field, here, box, frame, minFontPx, onMove }: Edito
       <input
         {...shared}
         type={field.password ? 'password' : 'text'}
-        autoComplete="off"
         list={options.length > 0 ? listId : undefined}
         onChange={(e) => change(e.target.value)}
         onKeyDown={(e) => onKey(e, false)}

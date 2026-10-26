@@ -59,11 +59,6 @@
   height: var(--piece-icon);
 }
 
-.label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 /* Labels under the glyphs: the same piece and M items, caption under the glyph (F10 §2). */
 .toolbar[data-labels='under'] .item {
   flex-direction: column;

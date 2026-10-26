@@ -28,15 +28,15 @@ existing language, and lists the change with before/after screenshots in the dai
 
 Lean: an agent is hired for a lane and leaves when it reports. Nobody is kept on payroll.
 
-| Role | Agent | Model | Hired for |
+| Role | Agent | Tier | Hired for |
 |---|---|---|---|
-| CEO | the cycle's session | Opus 5.5 | picks the cycle's work, writes briefs, decides, merges, reports |
-| Strategist | `general-purpose`, `model: "opus"` | Opus 5.5 | product and market research, the weekly memo, options for the board |
-| Principal engineer | `reviewer` | Opus 5.5 | review of a risky or multi-file lane before its PR |
-| Root-cause engineer | `general-purpose`, `model: "opus"` | Opus 5.5 | a bug with an unknown cause, profiling, a red CI with no known cause |
-| Design director | `design-critic` | Opus 5.5 | screenshots of a UI lane against the quality bar (Q-1…Q-14) before its PR merges |
-| Builders | `implementer` | Sonnet 5.5 | a settled spec: features with a decision row, refactors, tests, docs, copy, known CI fixes |
-| Analysts | `Explore`, `log-reader` | Haiku 5.5 | where-is-X, inventories, CI and test logs, metrics tables |
+| CEO | the cycle's session | judge | picks the cycle's work, writes briefs, decides, merges, reports |
+| Strategist | `general-purpose` on the judge model | judge | product and market research, the weekly memo, options for the board |
+| Principal engineer | `reviewer` | judge | review of a risky or multi-file lane before its PR |
+| Root-cause engineer | `general-purpose` on the judge model | judge | a bug with an unknown cause, profiling, a red CI with no known cause |
+| Design director | `design-critic` | judge | screenshots of a UI lane against the quality bar (Q-1…Q-14) before its PR merges |
+| Builders | `implementer` | builder | a settled spec: features with a decision row, refactors, tests, docs, copy, known CI fixes |
+| Analysts | `Explore`, `log-reader` | reader | where-is-X, inventories, CI and test logs, metrics tables |
 
 Routing and its guards are `docs/process/model-routing.md` (PRC-23). Agents do not hire agents:
 depth stays at two (CEO → agent), because each level loses context and adds cost. A lane too big
@@ -81,8 +81,8 @@ work earns it. The caps below are working defaults the CEO may move, and must re
   about 2.2 M agent tokens (the harness totals), and about five hours of wall time; a heartbeat may
   start a queued lane when a slot is free. A cycle that hits a cap
   stops opening lanes and finishes what is open.
-- **Spend by tier:** builders on Sonnet are the default; Opus agents are for the jobs above; a
-  log or a search never goes to Opus. Effort `medium` everywhere.
+- **Spend by tier:** the builder tier is the default; judge agents are for the jobs above; a
+  log or a search never goes to the judge tier. Effort `medium` everywhere.
 - **Idle is allowed:** when the backlog has nothing worth doing at the bar, the cycle does the
   report and stops. Busywork is not work.
 - **Work-sized sessions (PRC-28):** a fixed cycle is a poor fit for every task, so the clock only
@@ -118,7 +118,7 @@ in a sprint most build lanes belong to one.
 2. **Shape.** The principal turns the next epic into lane briefs with done conditions and checks.
    Taste inside the existing language is the CEO's (DSN-57); a new flow, a removed feature or a
    change to an owner row is a board question, asked once with a recommendation and a default.
-3. **Build.** Up to three lanes in parallel on separate files; builders on Sonnet, the reviewer on
+3. **Build.** Up to three lanes in parallel on separate files; builders in the builder tier, the reviewer on
    every multi-file lane, the design director on every lane that changes what is seen.
 4. **Prove.** An epic is done when its outcome is measured or shown: before and after screenshots
    at desktop, tablet and phone, or the perf numbers re-run with the same script.
@@ -170,7 +170,7 @@ default that applies until answered. It ends with a push notification.
 ## Weekly review (Sunday)
 
 The strategist writes a one-page memo (what moved, what the numbers say, the next week's three
-themes, one bold idea); the CEO re-ranks `roadmap.md`, compares the Sonnet lanes with the Opus
+themes, one bold idea); the CEO re-ranks `roadmap.md`, compares the builder lanes with the judge
 baseline as `model-routing.md` says, and publishes the week as an HTML brief for the owner.
 
 ## Stop rules

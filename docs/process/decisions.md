@@ -78,6 +78,7 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PRD-29](decisions/product.md) | Palette empty state and scope chip: selection section, suggestions for the document (fields, scans), open documents; Backspace removes the chip | In force; deploys after the owner's yes (PRC-25) | 2026-10-24 |
 | [PRD-30](decisions/product.md) | Markdown polish: GFM tables (header, alignment, wrapping, header repeats, kept with the first row), Markdown/text opened from Home now lands on its document, the Library button reads "Open files…"; opening zoom is the normal fit width (DSN-60) | In force | 2026-10-25 |
 | [PRD-31](decisions/product.md) | "Open with" from the OS: manifest `file_handlers` plus a feature-detected `launchQueue` consumer into the drop path; installed Chromium only, not core | In force | 2026-10-25 |
+| [PRD-32](decisions/product.md) | Browser autofill hints: text-field editors set `autocomplete` from the tooltip/name (EN and TR, small tested matcher); unmatched, other-person and password fields stay `off`; Recto stores nothing | In force | 2026-10-25 |
 | [PRD-33](decisions/product.md) | Add bookmarks from headings: the Markdown export's heading detection builds a nested outline for a document without one; one undo step; home is the empty Contents panel and ⌘K (DSN-46) | In force | 2026-10-25 |
 | [PRD-14](decisions/product.md) | W0-q findings are assigned to waves: signed fixture opens locked and saves byte-identical (W1-a/W1-b), truncated.pdf… | In force; W1-b and W1-g merged | 2026-10-09 |
 | [PF-18](decisions/product.md) | A closed document's source is parked; the engine worker ends when none is open | In force | 2026-10-22 |
@@ -102,7 +103,7 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-8](decisions/design.md) | Floating glass pieces | Done | 2026-10-08 |
 | [DSN-9](decisions/design.md) | Pop-ups fit | In force | 2026-10-08 |
 | [DSN-10](decisions/design.md) | Pages grid selection follows Photos | Done | 2026-10-08 |
-| [DSN-11](decisions/design.md) | Brand in the app: the mark on the Library tab, the favicon and the PWA icons | Done | 2026-10-08 |
+| [DSN-11](decisions/design.md) | Brand in the app: the mark on the Library tab, the favicon and the PWA icons (logo a2, 2026-10-25) | Done | 2026-10-08 |
 | [DSN-12](decisions/design.md) | One size scale for every floating piece | Done | 2026-10-09 |
 | [DSN-13](decisions/design.md) | The Library title | In force | 2026-10-09 |
 | [DSN-14](decisions/design.md) | Glass gloss is a hairline | In force | 2026-10-09 |

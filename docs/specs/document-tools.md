@@ -1,6 +1,6 @@
 # Spec: Document tools (M3)
 
-**Status:** draft (2026-09-27) · **Milestone:** M3 · **Owner:** project lead
+**Status:** built (drafted 2026-09-27; done 2026-09-27, ROADMAP M3) · **Milestone:** M3 · **Owner:** project lead
 
 M3 turns the workspace into a complete everyday PDF tool: forms, page furniture (numbers,
 headers, footers, watermarks, Bates), metadata, passwords and permissions, compression

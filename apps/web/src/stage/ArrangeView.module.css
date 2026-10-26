@@ -517,10 +517,6 @@
   pointer-events: none;
 }
 
-.menuKeys {
-  margin-left: auto;
-}
-
 .menuSubmenuArrow {
   width: var(--icon-sm);
   height: var(--icon-sm);
