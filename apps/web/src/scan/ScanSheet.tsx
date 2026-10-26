@@ -328,6 +328,7 @@ function CameraView({ active }: { readonly active: boolean }) {
               {outline && (
                 <polygon
                   points={outline.points}
+                  strokeWidth={3}
                   data-locked={outline.locked || undefined}
                   data-testid="scan-outline"
                 />

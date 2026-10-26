@@ -64,7 +64,7 @@ export function CornerEditor({ src, width, height, quad, onChange }: CornerEdito
       <div ref={box} className={styles.box} style={{ '--ar': width / height } as CSSProperties}>
         {src && <img className={styles.image} src={src} alt="" draggable={false} />}
         <svg className={styles.outline} viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
-          <polygon points={quad.map((p) => `${p.x},${p.y}`).join(' ')} />
+          <polygon points={quad.map((p) => `${p.x},${p.y}`).join(' ')} strokeWidth={2} />
         </svg>
         {quad.map((p, index) => (
           <button

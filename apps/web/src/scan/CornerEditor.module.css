@@ -35,7 +35,6 @@
 .outline polygon {
   fill: none;
   stroke: var(--accent);
-  stroke-width: 2;
   vector-effect: non-scaling-stroke;
 }
 
@@ -64,9 +63,4 @@
   border-radius: 50%;
   background: var(--surface-raised);
   box-shadow: 0 0 0 1px var(--border-opaque);
-}
-
-.handle:focus-visible .dot {
-  outline: 2px solid var(--accent-ring);
-  outline-offset: 2px;
 }

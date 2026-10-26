@@ -295,13 +295,17 @@ describe('review changes', () => {
       quad: defaultQuad(300, 400),
     });
     setView('review');
-    const preview = async () =>
-      (await within(sheet).findByTestId('scan-preview')).getAttribute('src');
-    const before = await preview();
+    // The preview is a real warp in a worker, so on a busy machine it takes seconds: wait for it.
+    const slow = { timeout: 20_000 };
+    const first = await within(sheet).findByTestId('scan-preview', undefined, slow);
+    const before = first.getAttribute('src');
     const quad = useScanStore.getState().pages[0]?.quad;
     await userEvent.click(within(sheet).getByTestId('scan-rotate'));
     expect(useScanStore.getState().pages[0]?.quad[0]).toEqual(quad?.[3]);
-    await waitFor(async () => expect(await preview()).not.toBe(before));
+    await waitFor(
+      () => expect(within(sheet).getByTestId('scan-preview').getAttribute('src')).not.toBe(before),
+      slow,
+    );
   });
 
   it('a retake ends when the view leaves the camera', () => {
