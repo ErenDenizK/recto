@@ -41,7 +41,6 @@ import {
   grain,
   gs,
   hex,
-  lampTab,
   latticeShading,
   mix,
   radialShading,
@@ -169,7 +168,6 @@ export function coverPage(ctx: PageCtx): void {
 
   trySlip(ctx, c.tryLine, { onDark: true, y: 34 });
   footer(ctx, true);
-  w.art(...lampTab(w, 'cover'));
 }
 
 /** The masthead's baseline. */

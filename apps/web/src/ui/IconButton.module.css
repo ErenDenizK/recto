@@ -107,18 +107,21 @@
    >= 3:1 against the glass over any page (DESIGN.md §3). Hover and press move one accent step,
    like the prominent button. */
 .button[data-size='bar'][data-tool][aria-pressed='true'] {
+  --shadow-own: var(--lens-rim), inset 0 0 0 1px var(--accent-edge);
   background: var(--tool-active-fill);
   color: var(--tool-active-ink);
 }
 
 @media (hover: hover) {
   .button[data-size='bar'][data-tool][aria-pressed='true']:hover {
+    --shadow-own: var(--lens-rim-hover), inset 0 0 0 1px var(--accent-edge);
     background: var(--tool-active-fill-hover);
     color: var(--tool-active-ink);
   }
 }
 
 .button[data-size='bar'][data-tool][aria-pressed='true']:active {
+  --shadow-own: var(--lens-rim-pressed), inset 0 0 0 1px var(--accent-edge);
   background: var(--tool-active-fill-pressed);
 }
 

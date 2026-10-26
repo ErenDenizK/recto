@@ -27,6 +27,7 @@ import {
   type ParagraphEdit,
   type ParagraphEditResult,
   type ParagraphEditSpan,
+  type ParagraphFrameChange,
   type ParagraphLayout,
   type PdfParagraphEditor,
   type PdfTextEditor,
@@ -221,6 +222,8 @@ export interface TextEditParagraphPayload {
   readonly layout?: ParagraphLayout;
   /** Once applied: 2 (original font only) or 1 (some characters in a bundled substitute). */
   readonly tier?: 1 | 2;
+  /** Move and/or resize (TXT-24, `ParagraphEdit.frame`); payloads recorded before it have none. */
+  readonly frame?: ParagraphFrameChange;
 }
 
 function invalidParagraph(why: string): EngineError {
@@ -252,7 +255,7 @@ export function readParagraphEditPayload(payload: unknown): TextEditParagraphPay
   if (!isObject(payload) || !isObject(payload.paragraph) || !isObject(payload.caretSpan)) {
     throw invalidParagraph('expected { paragraph, text, caretSpan, … }');
   }
-  const { paragraph, text, caretSpan, style, spans, layout, tier } = payload;
+  const { paragraph, text, caretSpan, style, spans, layout, tier, frame } = payload;
   if (!Number.isInteger(paragraph.index) || (paragraph.index as number) < 0) {
     throw invalidParagraph('paragraph.index must be a non-negative integer');
   }
@@ -280,7 +283,22 @@ export function readParagraphEditPayload(payload: unknown): TextEditParagraphPay
     ...(readSpans === undefined ? {} : { spans: readSpans }),
     ...(layout === undefined ? {} : { layout: layout as unknown as ParagraphLayout }),
     ...(tier === undefined ? {} : { tier }),
+    ...(frame !== undefined && { frame: readFrameChange(frame) }),
   };
+}
+
+/** A recorded frame change, checked: finite offsets and, when present, a measure left < right. */
+function readFrameChange(frame: unknown): ParagraphFrameChange {
+  const m = isObject(frame) ? frame.measure : 0;
+  if (
+    !isObject(frame) ||
+    !Number.isFinite(frame.dx) ||
+    !Number.isFinite(frame.dy) ||
+    (m !== undefined && !(isObject(m) && (m.left as number) < (m.right as number)))
+  ) {
+    throw invalidParagraph('bad frame');
+  }
+  return frame as unknown as ParagraphFrameChange;
 }
 
 /** The recorded style spans: sorted, non-empty stretches with a style and an optional source. */
@@ -333,6 +351,7 @@ export function paragraphEditOf(
     ...(payload.style === undefined ? {} : { style: payload.style }),
     ...(payload.spans === undefined ? {} : { spans: payload.spans }),
     ...(payload.layout === undefined ? {} : { layout: payload.layout }),
+    ...(payload.frame && { frame: payload.frame }),
   };
 }
 
@@ -361,6 +380,7 @@ export function paragraphEditPayloadOf(
     ...(edit.spans === undefined ? {} : { spans: edit.spans.map((span) => ({ ...span })) }),
     ...(layout === undefined ? {} : { layout }),
     ...(result ? { tier: result.tier } : {}),
+    ...(edit.frame && { frame: edit.frame }),
   };
 }
 

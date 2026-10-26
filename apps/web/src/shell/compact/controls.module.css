@@ -82,8 +82,8 @@
   color: var(--text-disabled);
 }
 
-/* The one primary action of a place: the prominent fill, lime with an ink label in dark, ink
-   with a lime label in light (ADR-0023 §2.3). */
+/* The one primary action of a place: the prominent fill, lime with an ink label, edged in
+   lime-800 in light (DSN-83). */
 .primary {
   composes: btn-prominent from global;
   min-width: 200px;
@@ -98,11 +98,11 @@
    all but vanish on that fill, and `.btn`'s disabled label is not composed here. */
 /* The primary rests as a seated lens and sinks on press like every control (GLS-25). */
 .primary:not(:disabled, [aria-disabled='true']) {
-  --shadow-own: var(--lens-rim);
+  --shadow-own: var(--lens-rim), inset 0 0 0 1px var(--accent-edge);
 }
 
 .primary:active:not(:disabled, [aria-disabled='true'], [aria-busy='true']) {
-  --shadow-own: var(--lens-rim-pressed);
+  --shadow-own: var(--lens-rim-pressed), inset 0 0 0 1px var(--accent-edge);
   scale: var(--press-scale);
   transition:
     background-color var(--duration-instant) var(--ease-out),

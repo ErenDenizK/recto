@@ -59,9 +59,9 @@
   --n6: #303339; /* 0.320 0.012 */
   --n7: #3f4249; /* 0.380 0.012 */
   --n8: #55585f; /* 0.460 0.012 */
-  --n9: #91949a; /* 0.665 0.010 */
-  --n10: #a1a5ab; /* 0.720 0.010 */
-  --n11: #bbbec3; /* 0.800 0.008 */
+  --n9: #a8abb0; /* 0.740 0.008 */
+  --n10: #b8bbc0; /* 0.790 0.008 */
+  --n11: #c8cbd0; /* 0.840 0.008 */
   --n12: #e8e9ec; /* 0.935 0.004 */
 
   /* Layer 1: the lime ramp (language.md §1.4), hue 123–131 at about 92 % of the sRGB chroma
@@ -128,22 +128,27 @@
   --accent-hover: #ddff82;
   --accent-pressed: #b2e93c;
   --accent-ink: var(--n1);
+  /* Accent roles (DSN-83): the fill, the ink on it, the edge drawn round it and the accent as
+     type. Dark: lime is the fill and the type, ink on it, no edge. */
+  --accent-fill: var(--lime-300);
+  --accent-on-fill: var(--n1);
+  --accent-edge: transparent;
+  --accent-text: var(--lime-300);
   /* subtle: previews and drop hints · muted: current rows (0.12: 0.16 drops a menu's secondary
      text under 4.5:1, language.md §2.6) · line: 1 px rings of non-focus states and drop
      outlines, 4.56:1 on the canvas. */
   --accent-subtle: rgb(var(--lime-rgb) / 0.08);
   --accent-muted: rgb(var(--lime-rgb) / 0.12);
   --accent-line: rgb(var(--lime-rgb) / 0.5);
-  /* The prominent button and the armed tool: lime fill, ink label (dark); light turns both to
-     an ink fill with a lime label. */
-  --primary-fill: var(--accent);
+  /* The prominent button and the armed tool: the accent fill with its ink label. */
+  --primary-fill: var(--accent-fill);
   --primary-fill-hover: var(--accent-hover);
   --primary-fill-pressed: var(--accent-pressed);
-  --primary-ink: var(--accent-ink);
-  --tool-active-fill: var(--accent);
+  --primary-ink: var(--accent-on-fill);
+  --tool-active-fill: var(--accent-fill);
   --tool-active-fill-hover: var(--accent-hover);
   --tool-active-fill-pressed: var(--accent-pressed);
-  --tool-active-ink: var(--accent-ink);
+  --tool-active-ink: var(--accent-on-fill);
   /* Lime as a thin ring or line of its own (language.md §1.9): the 2 px current-thumbnail ring,
      the selected Library card, drop lines, the processing arc and the success bloom on a rim.
      Lime itself in the dark theme; lime-800 in the light one, where lime vanishes (1.21:1 on
@@ -198,8 +203,8 @@
   /* Layer 2: status (language.md §1.6), always beside a glyph (check, triangle, cross) and
      words, never a wash. Warning sits at hue 72, away from the lime and the aurora's lemon.
      Success is for signature validity and verified results only. On glass, danger steps up
-     (#fd7273 is 3.9:1 on the bar over a white page); warning and success hold as they are. */
-  --danger: #fd7273; /* 6.56:1 on the frame */
+     (#fd7273, the former value, was 3.9:1 on the bar over a white page); warning and success hold as they are. */
+  --danger: #ff9a9a; /* 8.66:1 on the frame, |Lc| 61.9 on n3 */
   --warning: #ffb756; /* 10.18:1 */
   --success: #56d1a3; /* 9.25:1 */
   --glass-danger: #ffa4a4;
@@ -375,6 +380,9 @@
    */
   --lens-hover: rgb(var(--white-rgb) / 0.045);
   --lens-pressed: rgb(var(--white-rgb) / 0.02);
+  /* The selected tab's fill: a brighter lens of the same glass (GLS-25, R29). */
+  --lens-selected: rgb(var(--white-rgb) / 0.1);
+  --lens-selected-lift: 0 0 #0000;
   --lens-rim:
     inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.22),
     inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.08);
@@ -430,7 +438,7 @@
   --n7: #c5c7cd; /* 0.830 0.008 */
   --n8: #a8abb1; /* 0.740 0.010 */
   --n9: #5d6067; /* 0.490 0.012 */
-  --n10: #4f535a; /* 0.440 0.013 */
+  --n10: #4a4d54; /* 0.420 0.013 */
   --n11: #3f424a; /* 0.380 0.013 */
   --n12: #15171c; /* 0.205 0.010 */
 
@@ -488,10 +496,11 @@
   --glass-text-secondary: var(--n11);
   --glass-text-disabled: #7f838a; /* 2.45:1 worst over black, 3.68:1 typical */
 
-  /* Layer 2: interaction. Lime always touches ink (ADR-0023 §2.3): in light the prominent
-     button and the armed tool are an ink fill with a lime label (14.79:1; on hover n11 8.29,
-     pressed #000 17.32). Lime is never text on a light surface; its 1 px lines are lime-800
-     (6.57 on white, 5.35 on the canvas), current rows ink 0.07. */
+  /* Layer 2: interaction. Lime is a fill with ink on it and a lime-800 edge (DSN-83, amends
+     ADR-0023 §2.3): ink on lime 16.42:1 (hover 17.73, pressed 13.86); the edge is 5.42:1 on the
+     fill and 6.47 on n1; accent text is lime-900 (10.10:1 on white, Lc 75 or more on n1 to n5).
+     Lime is never type on a light surface; its 1 px lines are lime-800 (6.57 on white, 5.35 on
+     the canvas), current rows ink 0.07. */
   --accent: var(--lime-300);
   --accent-hover: #ddff82;
   --accent-pressed: #b2e93c;
@@ -499,14 +508,18 @@
   --accent-subtle: rgb(var(--ink-rgb) / 0.04);
   --accent-muted: rgb(var(--ink-rgb) / 0.07);
   --accent-line: var(--lime-800);
-  --primary-fill: var(--n12);
-  --primary-fill-hover: var(--n11);
-  --primary-fill-pressed: #000000;
-  --primary-ink: var(--lime-300);
-  --tool-active-fill: var(--n12);
-  --tool-active-fill-hover: var(--n11);
-  --tool-active-fill-pressed: #000000;
-  --tool-active-ink: var(--lime-300);
+  --accent-fill: var(--lime-300);
+  --accent-on-fill: #08090c;
+  --accent-edge: var(--lime-800);
+  --accent-text: var(--lime-900);
+  --primary-fill: var(--accent-fill);
+  --primary-fill-hover: var(--accent-hover);
+  --primary-fill-pressed: var(--accent-pressed);
+  --primary-ink: var(--accent-on-fill);
+  --tool-active-fill: var(--accent-fill);
+  --tool-active-fill-hover: var(--accent-hover);
+  --tool-active-fill-pressed: var(--accent-pressed);
+  --tool-active-ink: var(--accent-on-fill);
   --accent-ring: var(--lime-800);
 
   /* Layer 2: content (language.md §1.5): never themed. The page keeps a hairline, ink 0.14,
@@ -686,6 +699,8 @@
      white lens read faint on light glass), a deeper one under the ink press glow. */
   --lens-hover: rgb(var(--ink-rgb) / 0.06);
   --lens-pressed: rgb(var(--ink-rgb) / 0.07);
+  --lens-selected: rgb(var(--white-rgb) / 0.92);
+  --lens-selected-lift: var(--e1);
   --lens-rim:
     inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.85),
     inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.4),
@@ -730,7 +745,7 @@
     --n7: #c5c7cd; /* 0.830 0.008 */
     --n8: #a8abb1; /* 0.740 0.010 */
     --n9: #5d6067; /* 0.490 0.012 */
-    --n10: #4f535a; /* 0.440 0.013 */
+    --n10: #4a4d54; /* 0.420 0.013 */
     --n11: #3f424a; /* 0.380 0.013 */
     --n12: #15171c; /* 0.205 0.010 */
 
@@ -788,10 +803,11 @@
     --glass-text-secondary: var(--n11);
     --glass-text-disabled: #7f838a; /* 2.45:1 worst over black, 3.68:1 typical */
 
-    /* Layer 2: interaction. Lime always touches ink (ADR-0023 §2.3): in light the prominent
-       button and the armed tool are an ink fill with a lime label (14.79:1; on hover n11 8.29,
-       pressed #000 17.32). Lime is never text on a light surface; its 1 px lines are lime-800
-       (6.57 on white, 5.35 on the canvas), current rows ink 0.07. */
+    /* Layer 2: interaction. Lime is a fill with ink on it and a lime-800 edge (DSN-83, amends
+       ADR-0023 §2.3): ink on lime 16.42:1 (hover 17.73, pressed 13.86); the edge is 5.42:1 on the
+       fill and 6.47 on n1; accent text is lime-900 (10.10:1 on white, Lc 75 or more on n1 to n5).
+       Lime is never type on a light surface; its 1 px lines are lime-800 (6.57 on white, 5.35 on
+       the canvas), current rows ink 0.07. */
     --accent: var(--lime-300);
     --accent-hover: #ddff82;
     --accent-pressed: #b2e93c;
@@ -799,14 +815,18 @@
     --accent-subtle: rgb(var(--ink-rgb) / 0.04);
     --accent-muted: rgb(var(--ink-rgb) / 0.07);
     --accent-line: var(--lime-800);
-    --primary-fill: var(--n12);
-    --primary-fill-hover: var(--n11);
-    --primary-fill-pressed: #000000;
-    --primary-ink: var(--lime-300);
-    --tool-active-fill: var(--n12);
-    --tool-active-fill-hover: var(--n11);
-    --tool-active-fill-pressed: #000000;
-    --tool-active-ink: var(--lime-300);
+    --accent-fill: var(--lime-300);
+    --accent-on-fill: #08090c;
+    --accent-edge: var(--lime-800);
+    --accent-text: var(--lime-900);
+    --primary-fill: var(--accent-fill);
+    --primary-fill-hover: var(--accent-hover);
+    --primary-fill-pressed: var(--accent-pressed);
+    --primary-ink: var(--accent-on-fill);
+    --tool-active-fill: var(--accent-fill);
+    --tool-active-fill-hover: var(--accent-hover);
+    --tool-active-fill-pressed: var(--accent-pressed);
+    --tool-active-ink: var(--accent-on-fill);
     --accent-ring: var(--lime-800);
 
     /* Layer 2: content (language.md §1.5): never themed. The page keeps a hairline, ink 0.14,
@@ -986,6 +1006,8 @@
        white lens read faint on light glass), a deeper one under the ink press glow. */
     --lens-hover: rgb(var(--ink-rgb) / 0.06);
     --lens-pressed: rgb(var(--ink-rgb) / 0.07);
+    --lens-selected: rgb(var(--white-rgb) / 0.92);
+    --lens-selected-lift: var(--e1);
     --lens-rim:
       inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.85),
       inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.4),

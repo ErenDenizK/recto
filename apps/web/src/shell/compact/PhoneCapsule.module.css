@@ -1,0 +1,128 @@
+/*
+ * The single capsule's dock (PhoneCapsule.tsx; EDN-24, plan "Widths" and "Phone on its side").
+ * Three slots in one grid column above the home indicator, bottom up: the capsule, the tray and
+ * the Redo chip. The capsule's own look is `CompactChrome.module.css` `.capsule` (its material,
+ * the hide-on-scroll spring and the morph's `data-liquid` rules), so nothing here composes a
+ * material. Layout only: the dock holds still while the tray toggles, and the morph moves the
+ * capsule by transform alone (MOT-14).
+ *
+ * Safe areas: the dock keeps `max(env(safe-area-inset-bottom), 12px)` from the bottom and
+ * `max(env(safe-area-inset-left/right), 12px)` from the sides.
+ */
+.dock {
+  position: fixed;
+  right: 0;
+  bottom: max(env(safe-area-inset-bottom, 0px), 12px);
+  left: 0;
+  z-index: 2;
+  display: grid;
+  justify-content: center;
+  justify-items: center;
+  row-gap: var(--space-2);
+  padding-inline: max(env(safe-area-inset-left, 0px), 12px)
+    max(env(safe-area-inset-right, 0px), 12px);
+  pointer-events: none;
+}
+
+.dock > * {
+  pointer-events: auto;
+}
+
+/* An empty slot takes no room and no presses. */
+.chip,
+.tray {
+  display: contents;
+}
+
+.chip:empty,
+.tray:empty {
+  display: none;
+}
+
+/* The chip sits over Undo, the capsule's leading end (1 px rim + 6 px padding). */
+.chip > * {
+  justify-self: start;
+  margin-inline-start: calc(1px + var(--space-1h));
+}
+
+/* The capsule has the row to itself: no edit button beside it. */
+.dock .bar,
+.dock .bar[data-editing] {
+  max-width: calc(100vw - 24px);
+}
+
+/* The icon targets are 44 px on a fine pointer too (Q-9), over IconButton's own 32 px box. */
+button.icon[data-size] {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  color: var(--text-primary);
+}
+
+/* The page button is wide enough for the largest number, so scrolling never changes the
+   capsule's width: the shipped button's `minWidth`, as rules of its digit count. */
+button.page {
+  flex: none;
+  height: 44px;
+  padding: 0 14px;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The page strip's rail opens from a hold on the page number (DSN-63). */
+button.page[data-strip] {
+  touch-action: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+button.page[data-digits='1'] {
+  min-width: calc(5ch + 28px);
+}
+
+button.page[data-digits='2'] {
+  min-width: calc(7ch + 28px);
+}
+
+button.page[data-digits='3'] {
+  min-width: calc(9ch + 28px);
+}
+
+button.page[data-digits='4'] {
+  min-width: calc(11ch + 28px);
+}
+
+.rule {
+  flex: none;
+  width: 1px;
+  height: 20px;
+  background: var(--border-hairline);
+}
+
+/*
+ * A phone on its side (landscape, 500 px or less high, 760 px or more wide): while editing the
+ * capsule rests right of centre and the tray opens to its left, in a column the dock keeps for
+ * it, so nothing moves when the tray toggles. The chip stays over Undo.
+ */
+@media (orientation: landscape) and (max-height: 500px) and (min-width: 760px) {
+  .dock[data-editing] {
+    grid-template-columns: var(--tray-w, 324px) auto;
+    grid-template-areas:
+      '. chip'
+      'tray bar';
+    column-gap: var(--space-2);
+  }
+
+  .dock[data-editing] .chip > * {
+    grid-area: chip;
+  }
+
+  .dock[data-editing] .tray > * {
+    grid-area: tray;
+  }
+
+  .dock[data-editing] .bar {
+    grid-area: bar;
+  }
+}

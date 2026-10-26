@@ -33,6 +33,16 @@
  *    private copy of the page (`FPDF_ImportPagesByIndex` into a scratch document) and closes
  *    it: the source never changes, and fonts loaded for substitutes go with the copy.
  *
+ * Moving and resizing (TXT-24, `ParagraphEdit.frame`): the plan is laid out in the paragraph's
+ * own place (a new `measure` lays the whole paragraph out again), then `translatePlan` adds
+ * (dx, dy) to every planned origin and moves each object of a kept or reused line with
+ * `setMatrix`; nothing is deleted and written again, so fonts, marked content (tagged reading
+ * order) and clips stay. Links and markup follow their words like any moved word. Refused
+ * before any change: a shared text object, a form widget over the words, a new width on text
+ * not along a multiple of 90°, and (`move-clipped`) a new place outside a clip. Known limit:
+ * PDFium reports an object's clip only where it cuts the object, so a clip that holds the
+ * paragraph where it is now is not seen, and a move out of it is not refused.
+ *
  * Replay (ADR-0011): the `text.editParagraph` edit records the layout; applying it again on
  * the reopened bytes runs the same raw calls in the same order and writes the same bytes.
  */
@@ -48,6 +58,7 @@ import type {
   ParagraphEdit,
   ParagraphEditResult,
   ParagraphEditVerification,
+  ParagraphFrameChange,
   ParagraphLayout,
   ParagraphLayoutAnalysis,
   ParagraphMovedAnnotation,
@@ -167,6 +178,8 @@ interface WritePlan {
   readonly glyphAt: ReadonlyMap<number, PlacedGlyph>;
   /** Per original line its container objects in page order (rewritten lines). */
   readonly containers: readonly (readonly number[])[];
+  /** The translation of the whole paragraph (`ParagraphEdit.frame`), already in the plan. */
+  readonly shift: Point;
 }
 
 function plus(p: Point, q: Point): Point {
@@ -668,7 +681,36 @@ function planWrite(prepared: PreparedParagraph, layout: ParagraphLayout): WriteP
       if (!used.has(object) && !removed.includes(object)) removed.push(object);
     }
   }
-  return { fates, placements, removed, moved, glyphAt, containers };
+  return { fates, placements, removed, moved, glyphAt, containers, shift: { x: 0, y: 0 } };
+}
+
+/**
+ * The plan moved by `shift` (TXT-24): every planned glyph origin, and every object of a kept
+ * or reused line, which is set to its place plus the shift (`setMatrix`, as the reused lines
+ * of an edit move). Nothing is deleted and written again; rewritten lines were going to be
+ * placed anyway, now at their shifted origins.
+ */
+function translatePlan(prepared: PreparedParagraph, plan: WritePlan, shift: Point): WritePlan {
+  if (Math.hypot(shift.x, shift.y) <= 1e-9) return plan;
+  const { model } = prepared;
+  const glyph = (g: PlannedGlyph): PlannedGlyph => ({ ...g, origin: plus(g.origin, shift) });
+  const moved = new Map(plan.moved);
+  const still = new Set<number>();
+  model.lineObjects.forEach((objects, li) => {
+    if (plan.fates[li]?.kind === 'rewritten') return;
+    for (const object of objects) still.add(object);
+  });
+  for (const object of still) moved.set(object, plus(moved.get(object) ?? { x: 0, y: 0 }, shift));
+  return {
+    ...plan,
+    placements: plan.placements.map((p) => ({
+      ...p,
+      segment: { ...p.segment, glyphs: p.segment.glyphs.map(glyph) },
+    })),
+    moved,
+    glyphAt: new Map([...plan.glyphAt].map(([k, v]) => [k, { ...v, glyph: glyph(v.glyph) }])),
+    shift,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -937,9 +979,16 @@ function annotationMoves(
     const offset = map.newOf(c.offset);
     const fate = plan.fates[c.line];
     if (offset !== undefined && fate?.kind === 'kept') {
-      out = { char: c, offset, origin: c.origin, box: c.box, line: `o${c.line}` };
+      const shift = plan.shift;
+      out = {
+        char: c,
+        offset,
+        origin: plus(c.origin, shift),
+        box: shiftedRect(c.box, shift),
+        line: `o${c.line}`,
+      };
     } else if (offset !== undefined && fate?.kind === 'reused') {
-      const shift = scaleVec(model.n, -fate.dy);
+      const shift = plus(scaleVec(model.n, -fate.dy), plan.shift);
       const box = shiftedRect(c.box, shift);
       out = { char: c, offset, origin: plus(c.origin, shift), box, line: `o${c.line}` };
     } else if (offset !== undefined) {
@@ -1224,6 +1273,9 @@ export class ParagraphWriter {
       paragraphGap: prepared.paragraphGap,
       pageRoom: prepared.pageRoom,
       gapAbove: prepared.gapAbove,
+      roomLeft: prepared.roomLeft,
+      roomRight: prepared.roomRight,
+      ...(prepared.frameRefusal ? { frameRefusal: prepared.frameRefusal } : {}),
       ...(prepared.refusal ? { refusal: prepared.refusal } : {}),
     };
   }
@@ -1282,6 +1334,13 @@ export class ParagraphWriter {
     if (prepared.refusal) throw paragraphRefusalError(prepared.refusal);
     const { model, metrics } = prepared;
     const layoutEdit = layoutEditOf(model.block.text, edit);
+    // A frame that neither moves nor resizes is no frame: plain text edits keep their refusals.
+    const frame =
+      edit.frame && (edit.frame.dx !== 0 || edit.frame.dy !== 0 || edit.frame.measure)
+        ? edit.frame
+        : undefined;
+    if (frame) this.checkFrame(prepared, frame);
+    const measure = frame?.measure;
     let layout: ParagraphLayout;
     let decision: OverflowDecision;
     if (edit.layout) {
@@ -1289,6 +1348,17 @@ export class ParagraphWriter {
         throw textEditError('invalid-range', 'The layout was made for another text');
       }
       layout = edit.layout;
+      decision = classifyLayout(
+        layout,
+        prepared.gapBelow,
+        prepared.paragraphGap,
+        prepared.pageRoom,
+      );
+    } else if (measure) {
+      // Another width: the whole paragraph is laid out again (TXT-24); no tightening search,
+      // which would rewrap only from the caret.
+      const input = { ...prepared.input, measure: { ...prepared.input.measure, ...measure } };
+      layout = layoutParagraph(input, layoutEdit, { whole: true });
       decision = classifyLayout(
         layout,
         prepared.gapBelow,
@@ -1322,7 +1392,8 @@ export class ParagraphWriter {
     }
     const map = offsetMap(layoutEdit);
     checkPlannedStyles(prepared, layout, map, layoutEdit);
-    const plan = planWrite(prepared, layout);
+    const shift = frame ? { x: frame.dx, y: frame.dy } : { x: 0, y: 0 };
+    const plan = translatePlan(prepared, planWrite(prepared, layout), shift);
     checkPageBounds(prepared, plan);
 
     const { m } = raw;
@@ -1346,7 +1417,7 @@ export class ParagraphWriter {
     const fonts: number[] = [];
     try {
       // Refusals that need the page: clips.
-      this.checkClips(raw, prepared, plan, ptr);
+      this.checkClips(raw, prepared, plan, ptr, frame !== undefined);
       // How each style is drawn before the edit: written objects must read back the same.
       const looks = new Map<string, ObjectLook>();
       for (const style of model.styles) looks.set(style.id, lookOf(raw, ptr(style.object)));
@@ -1576,6 +1647,9 @@ export class ParagraphWriter {
           to: rect,
         })),
         ...(colorSpaceChanged ? { colorSpaceChanged: true } : {}),
+        ...(frame && (shift.x !== 0 || shift.y !== 0)
+          ? { translated: { dx: shift.x, dy: shift.y } }
+          : {}),
         verification: report,
         box: extent,
       };
@@ -1591,13 +1665,37 @@ export class ParagraphWriter {
     }
   }
 
+  /**
+   * Refuses a frame change the paragraph cannot take (TXT-24): `move-shared-object` and
+   * `move-form-field` for any change, `resize-direction` for a new width on text that does
+   * not run along a multiple of 90°; `invalid-range` for a width under four times the size.
+   */
+  private checkFrame(prepared: PreparedParagraph, frame: ParagraphFrameChange): void {
+    const { frameRefusal } = prepared;
+    if (frameRefusal === 'move-shared-object' || frameRefusal === 'move-form-field') {
+      throw paragraphRefusalError(frameRefusal);
+    }
+    if (!Number.isFinite(frame.dx) || !Number.isFinite(frame.dy)) {
+      throw textEditError('invalid-range', 'The paragraph move is not a number');
+    }
+    const { measure } = frame;
+    if (!measure) return;
+    if (frameRefusal === 'resize-direction') throw paragraphRefusalError(frameRefusal);
+    const width = measure.right - measure.left;
+    if (!Number.isFinite(width) || width < 4 * prepared.model.block.size) {
+      throw textEditError('invalid-range', 'The paragraph width is under four times its size');
+    }
+  }
+
   /** Refuses (`clipped`) when a planned glyph would leave the clip it is drawn under. */
   private checkClips(
     raw: RawText,
     prepared: PreparedParagraph,
     plan: WritePlan,
     ptr: (index: number) => number,
+    framed: boolean,
   ): void {
+    const clipped = () => paragraphRefusalError(framed ? 'move-clipped' : 'clipped');
     const clips = new Map<number, ClipRegion | undefined>();
     const clipOfIndex = (index: number) => {
       if (!clips.has(index)) clips.set(index, clipOf(raw, ptr(index)));
@@ -1622,7 +1720,7 @@ export class ParagraphWriter {
               height: 0.9 * size,
             };
         if (box.width <= 0 && box.height <= 0) continue;
-        if (!clipsContain([clip], box)) throw paragraphRefusalError('clipped');
+        if (!clipsContain([clip], box)) throw clipped();
       }
     }
     for (const [index, shift] of plan.moved) {
@@ -1630,8 +1728,7 @@ export class ParagraphWriter {
       if (!clip) continue;
       for (const c of prepared.model.chars) {
         if (c.object !== index || c.box.width * c.box.height === 0) continue;
-        if (!clipsContain([clip], shiftedRect(c.box, shift)))
-          throw paragraphRefusalError('clipped');
+        if (!clipsContain([clip], shiftedRect(c.box, shift))) throw clipped();
       }
     }
   }
