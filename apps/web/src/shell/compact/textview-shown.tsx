@@ -7,8 +7,10 @@
  */
 import type { VirtualDocument } from '@pdf-editor/document-model';
 import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 
 import { useViewStore } from '../../state/view-store';
+import { useWorkspaceStore } from '../../state/workspace-store';
 import type { FindMark, TextViewPlace } from '../../textview';
 import { TextView } from '../../textview';
 import { markForHit } from '../../textview/find-map';
@@ -96,11 +98,25 @@ function remember(next: TextViewPlace): void {
 let live: Live | null = null;
 let starting = false;
 
-/** Leaves for the page view: the reader moves to `place`, the view goes and its lease ends. */
+/**
+ * Leaves for the page view: the reader moves to `place` and takes focus, the view goes. The data
+ * is released and "Page view" said when the flag falls (`ended`), not when the view unmounts:
+ * React's dev double effect unmounts it once on open.
+ */
 function close(reader: TextViewReader | null, place: TextViewPlace): void {
   if (reader) showReaderAt(reader, place);
-  setTextView(false);
+  flushSync(() => setTextView(false));
+  reader?.scroller.focus({ preventScroll: true });
 }
+
+/** The view is gone (closed, or the Library took the place): its lease ends. */
+useCompactStore.subscribe((state, before) => {
+  if (!before.textView || state.textView) return;
+  live?.session.dispose();
+  live = null;
+  // Leaving for the Library is not a return to the page view.
+  if (state.place === 'reader') announce(m.text_view_closed({ page: (where?.page ?? 0) + 1 }));
+});
 
 /**
  * The title menu's row: opens the Text view from the reader's top place (after its data is
@@ -116,10 +132,15 @@ export async function toggleTextView(
   }
   if (starting) return;
   starting = true;
+  // At the tap: the data takes a moment (the worker starts), and nothing else says so.
+  announce(m.text_view_loading());
   try {
     const session = await openTextViewSession(doc.id);
-    // Left for the Library while the data was coming.
-    if (useCompactStore.getState().place !== 'reader') {
+    // Left for the Library, or another document, while the data was coming.
+    if (
+      useCompactStore.getState().place !== 'reader' ||
+      useWorkspaceStore.getState().workspace.activeDocument !== doc.id
+    ) {
       session.dispose();
       return;
     }
@@ -161,15 +182,8 @@ function Shown({
   readonly data: Live;
 }) {
   const { session, place, serial } = data;
+  const findOpen = useCompactStore((s) => s.findOpen);
   const onClose = (to: TextViewPlace) => close(reader, to);
-  // Gone (closed, or the Library): the lease ends.
-  useEffect(
-    () => () => {
-      data.session.dispose();
-      if (live === data) live = null;
-    },
-    [data],
-  );
   // The mark and the jump follow Find, the view store and the loader (a page arriving). The same
   // mark or jump keeps its identity, so the view acts on a change only.
   const [mark, setMark] = useState<FindMark | null>(null);
@@ -195,8 +209,7 @@ function Shown({
       for (const stop of stops) stop();
     };
   }, [doc, session, serial]);
-  // Where the view is, for Esc and for the announcement when it goes (the view announces its own
-  // opening; it is unmounted here, so leaving is said here).
+  // Where the view is, for Esc.
   const at = useRef(place);
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -208,10 +221,7 @@ function Shown({
       close(reader, at.current);
     };
     window.addEventListener('keydown', onKeyDown);
-    return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      announce(m.text_view_closed({ page: at.current.page + 1 }));
-    };
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, [reader]);
   return (
     <TextView
@@ -223,6 +233,7 @@ function Shown({
       jump={jump}
       mark={mark}
       hidden={false}
+      barAway={findOpen}
       onPlace={(next) => {
         at.current = next;
         remember(next);

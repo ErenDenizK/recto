@@ -26,9 +26,16 @@
   --mat-tint: var(--glass-sheet-tint);
 }
 
-/* "3 / 12" in tabular numerals; a long Turkish page count never clips. */
+/* Find has the bottom (a docked field): one glass piece at a time. */
+.bar[data-away] {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+/* "3 / 12" in tabular numerals, wide enough for the largest count, so the bar never changes
+   width while the number moves; a long Turkish page count never clips. */
 .position {
-  min-width: 64px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }

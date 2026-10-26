@@ -17,7 +17,7 @@ import { join } from 'node:path';
 
 import { expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, useFileInputPicker } from './helpers';
+import { fixturePath, motionDone, useFileInputPicker } from './helpers';
 import { settleAnimations } from './support/glass-walker';
 
 const SHOTS = process.env.CAPTURE_SCREENSHOTS;
@@ -35,8 +35,14 @@ const article = (page: Page) => page.getByTestId('text-view-article');
 const position = (page: Page) => page.getByTestId('text-view-position');
 
 /** Opens a fixture on the phone; `query` is the address' query without the language. */
-async function openPdf(page: Page, name: string, query = ''): Promise<string[]> {
+async function openPdf(
+  page: Page,
+  name: string,
+  query = '',
+): Promise<{ chunks: string[]; workers: string[] }> {
   const chunks: string[] = [];
+  /** Workers that start once the reader is up: the analysis worker must not be one (EDN-26). */
+  const workers: string[] = [];
   page.on('request', (request) => {
     if (request.url().includes(CHUNK)) chunks.push(request.url());
   });
@@ -51,7 +57,8 @@ async function openPdf(page: Page, name: string, query = ''): Promise<string[]> 
     'data-state',
     'rendered',
   );
-  return chunks;
+  page.on('worker', (worker) => workers.push(worker.url()));
+  return { chunks, workers };
 }
 
 async function openMenu(page: Page): Promise<void> {
@@ -80,31 +87,37 @@ const readerTop = (page: Page) => page.getByTestId('compact-pages').evaluate((el
 
 test.describe('Text view', () => {
   test('flag off: no row, no chunk', async ({ page }) => {
-    const chunks = await openPdf(page, 'markdown-source.pdf');
+    const { chunks, workers } = await openPdf(page, 'markdown-source.pdf');
     await openMenu(page);
     await expect(row(page)).toHaveCount(0);
-    await page.keyboard.press('Escape');
+    await motionDone(page);
     expect(chunks).toEqual([]);
+    expect(workers).toEqual([]);
   });
 
   test('?textview=0 keeps the row away', async ({ page }) => {
-    const chunks = await openPdf(page, 'markdown-source.pdf', '&textview=0');
+    const { chunks, workers } = await openPdf(page, 'markdown-source.pdf', '&textview=0');
     await openMenu(page);
     await expect(row(page)).toHaveCount(0);
+    await motionDone(page);
     expect(chunks).toEqual([]);
+    expect(workers).toEqual([]);
   });
 
   test('loads on the row, not on the menu', async ({ page }) => {
-    const chunks = await openPdf(page, 'markdown-source.pdf', '&textview=1');
+    const { chunks, workers } = await openPdf(page, 'markdown-source.pdf', '&textview=1');
     await openMenu(page);
     await expect(row(page)).toBeVisible();
     await expect(row(page)).toHaveText('Text view');
     await shot(page, 'menu');
-    // Opening the menu, and a pause, load nothing (EDN-26).
-    await page.waitForTimeout(500);
+    // Opening the menu, once it has come to rest, loads nothing and starts no worker (EDN-26).
+    await motionDone(page);
     expect(chunks).toEqual([]);
+    expect(workers).toEqual([]);
     await row(page).dispatchEvent('pointerdown');
     await expect.poll(() => chunks.length).toBeGreaterThan(0);
+    // The chunk alone starts no worker: the data opens on the tap.
+    expect(workers).toEqual([]);
     await row(page).click();
     await expect(article(page)).toBeVisible({ timeout: 30_000 });
   });
@@ -197,6 +210,36 @@ test.describe('Text view', () => {
     await expect(page.getByTestId('text-view-scanned').first()).toBeVisible();
     await expect(page.getByTestId('text-view-ocr').first()).toBeVisible();
     await shot(page, 'scanned');
+  });
+
+  test('Find takes the bar, and closing Find returns focus to the column', async ({ page }) => {
+    await openPdf(page, 'markdown-source.pdf', '&textview=1');
+    await enterTextView(page);
+    await page.getByTestId('text-view-find').click();
+    await expect(page.getByTestId('text-view-bar')).toHaveAttribute('data-away', 'true');
+    await page.getByTestId('compact-find-done').click();
+    await expect(page.getByTestId('text-view-bar')).not.toHaveAttribute('data-away', 'true');
+    await expect(article(page)).toBeFocused();
+  });
+
+  test('a tap outside Aa leaves no tooltip and no focus ring on it', async ({ page }) => {
+    await openPdf(page, 'markdown-source.pdf', '&textview=1');
+    await enterTextView(page);
+    await page.getByTestId('text-view-options').tap();
+    await expect(page.getByTestId('text-view-options-popup')).toBeVisible();
+    await article(page).tap({ position: { x: 20, y: 200 } });
+    await expect(page.getByTestId('text-view-options-popup')).toHaveCount(0);
+    await motionDone(page);
+    await expect(page.getByRole('tooltip')).toHaveCount(0);
+    await expect(page.getByTestId('text-view-options')).not.toHaveCSS('outline-style', 'solid');
+  });
+
+  test('leaving returns focus to the reader', async ({ page }) => {
+    await openPdf(page, 'markdown-source.pdf', '&textview=1');
+    await enterTextView(page);
+    await page.getByTestId('text-view-page-view').click();
+    await expect(view(page)).toHaveCount(0);
+    await expect(page.getByTestId('compact-pages')).toBeFocused();
   });
 
   test('works on its side', async ({ page }) => {

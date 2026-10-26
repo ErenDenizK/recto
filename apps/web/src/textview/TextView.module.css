@@ -145,6 +145,8 @@
 
 .showPage {
   flex: none;
+  /* Its label ends on the column's edge, with the rule. */
+  margin-inline-end: calc(-1 * var(--btn-pad));
   color: var(--rv-muted);
 }
 
@@ -153,6 +155,11 @@
   color: var(--rv-text);
   text-wrap: balance;
   margin-block: 1.4em 0.4em;
+}
+
+/* The first heading of a page sits under the page's rule, with no room of its own above. */
+.page .pageHead + :where(h2, h3, h4, h5) {
+  margin-block-start: 0;
 }
 
 .page h2 {
@@ -329,8 +336,21 @@
   gap: var(--space-2);
 }
 
+/* A scan: the thumbnail centred, the card as wide as its caption wants, not a grey field. */
+.card[data-testid='text-view-scanned'] {
+  justify-items: center;
+  width: 100%;
+  max-width: 280px;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.card[data-testid='text-view-scanned'] .cardText {
+  text-wrap: balance;
+}
+
 .scanThumb {
-  width: min(160px, 100%);
+  width: min(180px, 100%);
 }
 
 .scanRun {

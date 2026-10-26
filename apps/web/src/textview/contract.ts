@@ -130,6 +130,8 @@ export interface TextViewHostProps {
   readonly jump: { readonly id: number; readonly place: TextViewPlace } | null;
   /** Find's current hit in the text, or null. */
   readonly mark: FindMark | null;
+  /** The view's bar steps away (Find has the bottom); the door sets it while Find is docked. */
+  readonly barAway?: boolean;
   /** Mounted but not shown (the reader is): inert, and it loads nothing. */
   readonly hidden: boolean;
   /** The place at the top of the column changed (the door sets the current page from it). */

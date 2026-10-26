@@ -3,8 +3,8 @@
  * a place over the reader. One `<article>` is the scroll region, a section per page; pages are
  * read in chunks through the loader as they come within two screens, and each section skips its
  * layout until it is near (`content-visibility`). The view is read-only (BM-15) and takes its
- * chrome through `TextViewHostProps`; it imports nothing from the shell and never carries the
- * text-layer attribute, so the editing chunk is never reached from here.
+ * chrome through `TextViewHostProps`; it imports nothing from the shell but the announcer and
+ * never carries the text-layer attribute, so the editing chunk is never reached from here.
  *
  * - **Looks (DSN-84).** The root re-scopes the app's tokens with `data-theme` to the reader's
  *   look (Auto follows the app), so buttons and glass inside it read on it; the column's own
@@ -214,6 +214,15 @@ export function TextView(props: TextViewHostProps) {
     if (!element) return;
     revealMark.current = false;
     element.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    // A hit crowded to an edge lands with about a third of the screen above it (as in the page
+    // view).
+    const view = scroller.current;
+    if (!view) return;
+    const box = element.getBoundingClientRect();
+    const edge = view.getBoundingClientRect();
+    if (box.top < edge.top + edge.height * 0.12 || box.bottom > edge.bottom - edge.height * 0.25) {
+      view.scrollTop += box.top - edge.top - edge.height / 3;
+    }
   };
 
   const goTo = (target: TextViewPlace) => {
@@ -475,6 +484,7 @@ export function TextView(props: TextViewHostProps) {
         onPageView={() => props.onPageView(current.current)}
         onGoto={() => props.onGoto()}
         onFind={() => props.onFind()}
+        away={props.barAway ?? false}
       />
     </div>
   );

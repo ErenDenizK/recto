@@ -19,12 +19,28 @@ export interface TextViewBarProps {
   readonly onPageView: () => void;
   readonly onGoto: () => void;
   readonly onFind: () => void;
+  /** Steps away (inert, faded) while another bar, Find's, takes its place. */
+  readonly away?: boolean;
 }
 
-export function TextViewBar({ page, pageCount, onPageView, onGoto, onFind }: TextViewBarProps) {
+export function TextViewBar({
+  page,
+  pageCount,
+  onPageView,
+  onGoto,
+  onFind,
+  away = false,
+}: TextViewBarProps) {
   const position = `${formatNumber(page + 1)} / ${formatNumber(pageCount)}`;
   return (
-    <Surface tier="bar" sigma={10} className={styles.bar} data-testid="text-view-bar">
+    <Surface
+      tier="bar"
+      sigma={10}
+      className={styles.bar}
+      data-away={away || undefined}
+      inert={away}
+      data-testid="text-view-bar"
+    >
       <IconButton
         label={m.text_view_close()}
         icon={<Icon name="file-text" />}
@@ -35,6 +51,7 @@ export function TextViewBar({ page, pageCount, onPageView, onGoto, onFind }: Tex
       <Button
         variant="quiet"
         className={styles.position}
+        style={{ minWidth: `calc(${2 * String(pageCount).length + 3}ch + 28px)` }}
         aria-label={`${m.goto_title()}, ${position}`}
         onClick={onGoto}
         data-testid="text-view-position"

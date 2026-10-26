@@ -44,20 +44,19 @@ describe('ReadingOptions', () => {
     expect(within(popup).getByRole('button', { name: 'Larger text' })).toBeDisabled();
   });
 
-  it('chooses spacing, theme and face, and keeps them on the device', async () => {
+  it('chooses spacing and theme, and keeps them on the device', async () => {
     const { popup } = await open();
     await userEvent.click(within(popup).getByRole('radio', { name: 'Loose' }));
     await userEvent.click(within(popup).getByRole('radio', { name: 'Dark' }));
-    await userEvent.click(within(popup).getByRole('radio', { name: 'Serif' }));
+    // The Typeface row is gated off (DSN-84, pending the owner's face answer).
+    expect(within(popup).queryByRole('radio', { name: 'Serif' })).toBeNull();
     expect(useReadingPrefs.getState()).toMatchObject({
       spacing: 'loose',
       theme: 'dark',
-      face: 'serif',
     });
     expect(JSON.parse(localStorage.getItem(READING_PREFS_KEY) ?? '{}')).toMatchObject({
       spacing: 'loose',
       theme: 'dark',
-      face: 'serif',
     });
   });
 

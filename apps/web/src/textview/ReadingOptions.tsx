@@ -16,6 +16,12 @@ import type { ReadingFace, ReadingSpacing, ReadingTheme } from './contract';
 import styles from './ReadingOptions.module.css';
 import { setReadingPrefs, stepSize, TEXT_SIZES, useReadingPrefs } from './reading-prefs';
 
+/**
+ * The Typeface row (Sans / Serif): off until the owner answers the face question, which DSN-84
+ * keeps open (pending the owner's face answer). The pref, the CSS and the strings stay.
+ */
+const FACE_ROW = false;
+
 export function ReadingOptions() {
   const prefs = useReadingPrefs();
   const px = TEXT_SIZES[prefs.size] ?? TEXT_SIZES[2];
@@ -87,19 +93,21 @@ export function ReadingOptions() {
             frameClassName={styles.control}
           />
         </div>
-        <div className={styles.row}>
-          <span className={styles.label}>{m.text_view_face()}</span>
-          <Segmented<ReadingFace>
-            label={m.text_view_face()}
-            value={prefs.face}
-            onValueChange={(face) => setReadingPrefs({ face })}
-            options={[
-              { value: 'sans', label: m.text_view_face_sans() },
-              { value: 'serif', label: m.text_view_face_serif() },
-            ]}
-            frameClassName={styles.control}
-          />
-        </div>
+        {FACE_ROW ? (
+          <div className={styles.row}>
+            <span className={styles.label}>{m.text_view_face()}</span>
+            <Segmented<ReadingFace>
+              label={m.text_view_face()}
+              value={prefs.face}
+              onValueChange={(face) => setReadingPrefs({ face })}
+              options={[
+                { value: 'sans', label: m.text_view_face_sans() },
+                { value: 'serif', label: m.text_view_face_serif() },
+              ]}
+              frameClassName={styles.control}
+            />
+          </div>
+        ) : null}
       </PopoverPopup>
     </Popover.Root>
   );
