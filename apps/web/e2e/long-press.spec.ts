@@ -55,6 +55,45 @@ async function touchAt(page: Page, phase: Phase, x: number, y: number, cdp: CDPS
   );
 }
 
+/**
+ * A press held 200 ms, well short of the 450 ms long press. Without real touch the down, the
+ * hold and the lift run in one page task, so a slow runner's round trips cannot stretch the
+ * hold past the recogniser's deadline.
+ */
+async function shortPress(page: Page, x: number, y: number, cdp: CDPSession | null) {
+  if (cdp) {
+    await touchAt(page, 'start', x, y, cdp);
+    await pastDeadline(page, 200); // a hold shorter than the long press, the rule under test
+    await touchAt(page, 'end', x, y, cdp);
+    return;
+  }
+  await page.evaluate(
+    async ([px, py]) => {
+      const target = document.elementFromPoint(px, py);
+      if (!target) throw new Error('nothing under the touch');
+      const send = (type: string) =>
+        target.dispatchEvent(
+          new PointerEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            composed: true,
+            pointerId: 41,
+            pointerType: 'touch',
+            isPrimary: true,
+            button: 0,
+            clientX: px,
+            clientY: py,
+          }),
+        );
+      send('pointerdown');
+      // A hold shorter than the long press, the rule under test.
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      send('pointerup');
+    },
+    [x, y] as const,
+  );
+}
+
 test('a long press on a page opens the page menu at the press, once', async ({
   page,
   browserName,
@@ -77,9 +116,7 @@ test('a long press on a page opens the page menu at the press, once', async ({
   const menu = page.getByTestId('page-context-menu');
 
   // A short press (held 200 ms) is no long press.
-  await touchAt(page, 'start', x, y, cdp);
-  await pastDeadline(page, 200); // a hold shorter than the long press, the rule under test
-  await touchAt(page, 'end', x, y, cdp);
+  await shortPress(page, x, y, cdp);
   await quiet(page);
   await expect(menu).toHaveCount(0);
 
