@@ -24,6 +24,11 @@ export const LABS_TEXT: Readonly<
   drawer: { title: m.labs_drawer, hint: m.labs_drawer_hint },
   textpre: { title: m.labs_textpre, hint: m.labs_textpre_hint },
   scan: { title: m.labs_scan, hint: m.labs_scan_hint },
+  'paragraph-frame': { title: m.labs_paragraph_frame, hint: m.labs_paragraph_frame_hint },
+  'paragraph-outlines': {
+    title: m.labs_paragraph_outlines,
+    hint: m.labs_paragraph_outlines_hint,
+  },
 };
 
 /** The names of a choice flag's values. */

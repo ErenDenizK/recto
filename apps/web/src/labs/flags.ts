@@ -30,7 +30,9 @@ export type LabsKey =
   | 'top'
   | 'drawer'
   | 'textpre'
-  | 'scan';
+  | 'scan'
+  | 'paragraph-frame'
+  | 'paragraph-outlines';
 
 export type LabsEdition = 'full' | 'compact' | 'all';
 
@@ -110,6 +112,8 @@ export const LABS_FLAGS: readonly LabsFlag[] = [
   choice('drawer', 'drawer', ['tiles', 'list'], 'compact', session('pdf-editor:drawer:v1')),
   sw('textpre', 'textpre', 'all', 'prototype'),
   sw('scan', 'scan', 'all', 'prototype'),
+  sw('paragraph-frame', 'paraframe', 'full', 'prototype'),
+  sw('paragraph-outlines', 'paraoutlines', 'full', 'prototype'),
 ];
 
 /** Where a flag's value came from. */
