@@ -43,6 +43,7 @@ import type {
   DestinationView,
   DocumentMetadata,
   Rect,
+  Rotation,
   SourceFlags,
   SourceId,
 } from '@pdf-editor/document-model';
@@ -98,7 +99,7 @@ import {
 } from '../annotations/free-text-appearance';
 import { loadBundledFont } from '../fonts/bundled-fonts';
 import { jpegInfo } from '../images/jpeg-orientation';
-import { uprightJpegPage } from '../images/upright-page';
+import { imageStampPage, uprightJpegPage } from '../images/upright-page';
 import { restoreLostTail } from '../structure/tail-repair';
 import { checkXrefStructure } from '../structure/xref-check';
 import { permissionsFromP } from '../pdflib/inspect';
@@ -918,10 +919,12 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
    */
   private async stampContext(
     annotation: Extract<NewAnnotation, { kind: 'stamp' }>,
+    rotation: Rotation,
   ): Promise<{ data: ArrayBuffer }> {
     if (annotation.imageBlob) {
       const data = await annotation.imageBlob.arrayBuffer();
-      if (!sniffStampData(new Uint8Array(data, 0, Math.min(data.byteLength, 8)))) {
+      const format = sniffStampData(new Uint8Array(data, 0, Math.min(data.byteLength, 8)));
+      if (!format) {
         throw new EngineError(
           'unsupported',
           `Stamp images must be PNG, JPEG or a one-page PDF (got ${annotation.imageBlob.type || 'unknown type'})`,
@@ -931,6 +934,11 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
       const jpeg = jpegInfo(new Uint8Array(data));
       if (jpeg && jpeg.orientation !== 1) {
         return { data: await uprightJpegPage(new Uint8Array(data), jpeg) };
+      }
+      // EmbedPDF misplaces an image on a rotated page (IM-19, images/upright-page.ts).
+      if (rotation !== 0 && format !== 'pdf') {
+        const { width, height } = effectiveRect(annotation);
+        return { data: await imageStampPage(new Uint8Array(data), format, width, height) };
       }
       return { data };
     }
@@ -1100,7 +1108,7 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
             doc,
             page,
             object,
-            (await this.stampContext(annotation)) as never,
+            (await this.stampContext(annotation, rotationDegrees(page))) as never,
           )
         : engine.createPageAnnotation(doc, page, object);
     const newId = await this.run(task, options, 'createAnnotation');

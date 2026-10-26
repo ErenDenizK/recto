@@ -6,7 +6,7 @@
 
 import type { PDFArray, PDFDict, PDFNumber, PDFString } from '@cantoo/pdf-lib';
 import { decodePDFRawStream, PDFDocument, PDFName, PDFRawStream } from '@cantoo/pdf-lib';
-import type { Rect } from '@pdf-editor/document-model';
+import type { Rect, Rotation } from '@pdf-editor/document-model';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 
 import rotatedUrl from '../../../test/fixtures/rotated-pages.pdf?url';
@@ -14,6 +14,7 @@ import annotationsUrl from '../../../test/fixtures/annotations.pdf?url';
 import { checkAnnotationConformance } from '../src/annotations/conformance';
 import { PdfLibAssembler } from '../src/pdflib/pdflib-assembler';
 import { createHostedEngine } from '../src/pdfium/host';
+import { userToDeviceRect } from '../src/pdfium/coords';
 import { PdfiumAdapter } from '../src/pdfium/pdfium-adapter';
 import {
   type Annotation,
@@ -111,21 +112,33 @@ async function openBlank(pages = 1, engine = adapter): Promise<ReturnType<typeof
   return id;
 }
 
-/** Reddish pixels (red over green and blue by 60; `pngBlob` is half-transparent red) of an unrotated page render inside a user-space rect. */
+/** Reddish pixels (red over green and blue by 60; `pngBlob` is half-transparent red) of a page render inside a user-space rect; `rotation` is the page's /Rotate. */
 async function redPixels(
   engine: PdfiumAdapter,
   id: ReturnType<typeof sid>,
   rect: Rect,
+  pageIndex = 0,
+  rotation: Rotation = 0,
 ): Promise<number> {
-  const r = await engine.renderPage(id, 0, { scale: 1 });
+  const r = await engine.renderPage(id, pageIndex, { scale: 1 });
   const canvas = new OffscreenCanvas(r.width, r.height);
   const ctx = canvas.getContext('2d') as OffscreenCanvasRenderingContext2D;
   ctx.drawImage(r.bitmap, 0, 0);
+  const box = userToDeviceRect(
+    {
+      quarterTurns: (rotation / 90) as 0 | 1 | 2 | 3,
+      displayWidth: r.width,
+      displayHeight: r.height,
+      originX: 0,
+      originY: 0,
+    },
+    rect,
+  );
   const data = ctx.getImageData(
-    Math.round(rect.x),
-    Math.round(r.height - rect.y - rect.height),
-    Math.round(rect.width),
-    Math.round(rect.height),
+    Math.round(box.origin.x),
+    Math.round(box.origin.y),
+    Math.round(box.size.width),
+    Math.round(box.size.height),
   ).data;
   let red = 0;
   for (let i = 0; i < data.length; i += 4) {
@@ -320,6 +333,43 @@ describe('rotated pages and crop boxes', () => {
     expect(report.problems).toEqual([]);
     await adapter.close(id);
   });
+
+  test.each([
+    ['with raw access', () => rawAdapter],
+    ['without raw access', () => adapter],
+  ])(
+    'an image stamp fills its rect on /Rotate 0, 90, 180 and 270, created and moved (IM-19, %s)',
+    async (_, engineOf) => {
+      const engine = engineOf();
+      const id = sid(`rotated-stamp-${++counter}`);
+      await engine.open(id, await fixture(rotatedUrl));
+      const at = { x: 100, y: 200, width: 120, height: 40 };
+      const to = { x: 250, y: 450, width: 90, height: 30 };
+      for (const [pageIndex, rotation] of [
+        [0, 0],
+        [1, 90],
+        [2, 180],
+        [3, 270],
+      ] as const) {
+        const stamp = await engine.createAnnotation(id, {
+          kind: 'stamp',
+          pageIndex,
+          rect: at,
+          imageBlob: pngBlob(),
+        });
+        expectRect(stamp.rect, at);
+        // Not a sliver: the image covers its whole rect (the edge pixels may anti-alias).
+        expect(await redPixels(engine, id, at, pageIndex, rotation)).toBeGreaterThan(
+          0.9 * 120 * 40,
+        );
+        // A drag commits the stamp with only its rect changed (the in-place path, #128).
+        await engine.updateAnnotation(id, { ...stamp, rect: to });
+        expect(await redPixels(engine, id, to, pageIndex, rotation)).toBeGreaterThan(0.9 * 90 * 30);
+        expect(await redPixels(engine, id, at, pageIndex, rotation)).toBe(0);
+      }
+      await engine.close(id);
+    },
+  );
 
   test('rects are absolute user space on a page whose CropBox is offset', async () => {
     const id = sid('cropped');
