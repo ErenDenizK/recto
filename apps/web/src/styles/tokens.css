@@ -1018,6 +1018,9 @@
 
 /* ── §3 Theme-free ─────────────────────────────────────────────────────────────────────── */
 :root {
+  /* The signature pad's "Sign here" hint and line: ink on the white page, so theme-free. The
+     signature's navy at 0.75 composites to #535a9e, 6.32:1 on white (was 0.45, 2.66:1; DSN-80). */
+  --sign-hint: rgb(26 35 126 / 0.75);
   /* Type (ADR-0027, language.md §4; spec D3-5). One face, 'Inter Recto' (styles/fonts.css),
      with its metric-matched fallback next so a cold load moves nothing (quality-bar Q-8).
      JetBrains Mono left the UI: technical strings use the `.technical` class (fonts.css). */
