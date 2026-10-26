@@ -184,3 +184,36 @@ test('✕ sits the same distance after every tab’s name, a short one too', asy
     expect(Math.abs(gap - (gaps[0] ?? 0)), JSON.stringify(gaps)).toBeLessThan(1);
   }
 });
+
+test('the active tab’s fill sits 4 px inside the piece on every side', async ({ page }) => {
+  // R29 (amends 01-frame F4 §3): the fill, a lens of the glass, is one inset from the piece's
+  // outer edge top and bottom, and the same from its tab's box at both ends, fine and coarse.
+  await useFileInputPicker(page);
+  await page.goto('./?lang=en');
+  await openFixtures(page, ['simple-text.pdf', 'forms-a.pdf', 'rotated-pages.pdf']);
+  await page.getByRole('tab', { name: /^forms-a/ }).click();
+  await expect(page.getByRole('tab', { name: /^forms-a/ })).toHaveAttribute('tabindex', '0');
+  await atRest(page.locator('[data-bar="title"]'));
+  const g = await page.evaluate(() => {
+    const fill = document.querySelector<HTMLElement>('[data-selected] > [data-tab-fill]');
+    const wrap = fill?.parentElement;
+    const piece = wrap?.closest<HTMLElement>('[data-top-piece="tabs"]');
+    if (!fill || !wrap || !piece) throw new Error('no selected fill');
+    const f = fill.getBoundingClientRect();
+    const w = wrap.getBoundingClientRect();
+    const p = piece.getBoundingClientRect();
+    return {
+      top: f.top - p.top,
+      bottom: p.bottom - f.bottom,
+      tabInset: f.top - w.top,
+      start: f.left - w.left,
+      end: w.right - f.right,
+      wrapHeight: w.height,
+    };
+  });
+  expect(g.top).toBeCloseTo(4, 0);
+  expect(g.bottom).toBeCloseTo(4, 0);
+  expect(g.start).toBeCloseTo(g.tabInset, 0);
+  expect(g.end).toBeCloseTo(g.tabInset, 0);
+  expect(g.wrapHeight).toBeGreaterThanOrEqual(32);
+});

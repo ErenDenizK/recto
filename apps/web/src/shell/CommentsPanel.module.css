@@ -27,6 +27,17 @@
   color: var(--text-secondary);
 }
 
+/* The annotation's own colour (a note's yellow). In the light theme it keeps 45 % of its
+   strength, the rest black, so the glyph holds 4.5:1 on the panel (colour audit, DSN-80:
+   #f4e27a was 1.22:1, now 5.4:1; #FFEA00 5.2:1); the dark theme keeps it as is. */
+.icon[data-tinted] {
+  color: var(--note-ink);
+}
+
+:global([data-theme='light']) .icon[data-tinted] {
+  color: color-mix(in srgb, var(--note-ink) 45%, black);
+}
+
 .icon svg {
   width: var(--icon-sm);
   height: var(--icon-sm);

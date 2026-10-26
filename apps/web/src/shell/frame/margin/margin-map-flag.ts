@@ -5,6 +5,8 @@
  * - **Flag:** `?margin=1` turns it on, `?margin=0` off; the choice is kept in `localStorage`
  *   (`pdf-editor:margin:v1`), as the strip's is (`strip/strip-hold.ts`). Off by default.
  */
+import { labsStored } from '../../../labs/stored';
+
 const QUERY_PARAM = 'margin';
 const STORAGE_KEY = 'pdf-editor:margin:v1';
 
@@ -22,6 +24,6 @@ export function marginMapEnabled(): boolean {
   } catch {
     // Storage blocked: the address alone decides.
   }
-  enabled = asked === '1' || (asked !== '0' && stored === '1');
+  enabled = asked === '1' || (asked !== '0' && labsStored('margin', stored) === '1');
   return enabled;
 }

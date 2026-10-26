@@ -375,6 +375,9 @@
    */
   --lens-hover: rgb(var(--white-rgb) / 0.045);
   --lens-pressed: rgb(var(--white-rgb) / 0.02);
+  /* The selected tab's fill: a brighter lens of the same glass (GLS-25, R29). */
+  --lens-selected: rgb(var(--white-rgb) / 0.1);
+  --lens-selected-lift: 0 0 #0000;
   --lens-rim:
     inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.22),
     inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.08);
@@ -686,6 +689,8 @@
      white lens read faint on light glass), a deeper one under the ink press glow. */
   --lens-hover: rgb(var(--ink-rgb) / 0.06);
   --lens-pressed: rgb(var(--ink-rgb) / 0.07);
+  --lens-selected: rgb(var(--white-rgb) / 0.92);
+  --lens-selected-lift: var(--e1);
   --lens-rim:
     inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.85),
     inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.4),
@@ -986,6 +991,8 @@
        white lens read faint on light glass), a deeper one under the ink press glow. */
     --lens-hover: rgb(var(--ink-rgb) / 0.06);
     --lens-pressed: rgb(var(--ink-rgb) / 0.07);
+    --lens-selected: rgb(var(--white-rgb) / 0.92);
+    --lens-selected-lift: var(--e1);
     --lens-rim:
       inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.85),
       inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.4),
@@ -1018,6 +1025,9 @@
 
 /* ── §3 Theme-free ─────────────────────────────────────────────────────────────────────── */
 :root {
+  /* The signature pad's "Sign here" hint and line: ink on the white page, so theme-free. The
+     signature's navy at 0.75 composites to #535a9e, 6.32:1 on white (was 0.45, 2.66:1; DSN-80). */
+  --sign-hint: rgb(26 35 126 / 0.75);
   /* Type (ADR-0027, language.md §4; spec D3-5). One face, 'Inter Recto' (styles/fonts.css),
      with its metric-matched fallback next so a cold load moves nothing (quality-bar Q-8).
      JetBrains Mono left the UI: technical strings use the `.technical` class (fonts.css). */

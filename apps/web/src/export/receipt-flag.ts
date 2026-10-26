@@ -7,6 +7,7 @@
  *
  * The size estimate's speed-up is not behind it: it is a fix.
  */
+import { labsStored } from '../labs/stored';
 
 export const RECEIPT_QUERY_PARAM = 'receipt';
 /** Session storage key of a `?receipt` choice (this tab only). */
@@ -34,7 +35,7 @@ export function receiptOn(): boolean {
     stored = null;
   }
   const search = window.location.search;
-  chosen = decideReceipt(search, stored);
+  chosen = decideReceipt(search, labsStored('receipt', stored));
   if (asked(new URLSearchParams(search).get(RECEIPT_QUERY_PARAM)) !== undefined) {
     try {
       storage?.setItem(RECEIPT_SESSION_KEY, chosen ? '1' : '0');

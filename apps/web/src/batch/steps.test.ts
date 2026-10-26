@@ -12,6 +12,7 @@ const report: ConvertReport = {
   pages: 3,
   pagesWithoutText: [],
   headings: 0,
+  headingList: [],
   paragraphs: 3,
   listItems: 0,
   images: 0,
