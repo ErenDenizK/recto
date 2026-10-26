@@ -158,7 +158,7 @@ describe('the Read lock (mounted)', () => {
     const names = within(dock())
       .getAllByRole('button')
       .map((b) => b.textContent);
-    expect(names).toEqual(['Pages', 'Markup', 'Fill & sign', 'More']);
+    expect(names).toEqual(['Pages', 'Markup', 'Fill & sign', 'Tools', 'More']);
     const markup = within(dock()).getByRole('button', { name: 'Markup' });
     expect(markup).toHaveAttribute('aria-keyshortcuts', 'M 2');
     expect(markup).toHaveAttribute('aria-pressed', 'false');
@@ -176,7 +176,7 @@ describe('the Read lock (mounted)', () => {
     // `1` (the mode command) closes it: the dock again.
     await userEvent.keyboard('1');
     await waitFor(() => expect(screen.queryByRole('toolbar', { name: 'Markup' })).toBeNull());
-    expect(within(dock()).getAllByRole('button')).toHaveLength(4);
+    expect(within(dock()).getAllByRole('button')).toHaveLength(5);
   });
 
   it('in viewing a press on an annotation selects it with its bar; locked, nothing changes', async () => {
