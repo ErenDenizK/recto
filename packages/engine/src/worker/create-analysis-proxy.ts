@@ -22,6 +22,7 @@ import {
   type ConvertOptions,
   type ConvertPageInput,
   type ConvertResult,
+  type TextViewPage,
   type EngineCallOptions,
   EngineError,
   type ProgressCallback,
@@ -40,6 +41,18 @@ export interface AnalysisProxy extends AnalysisBackend {
         readonly onProgress?: ProgressCallback;
       },
   ): Promise<ConvertResult>;
+  /**
+   * The Text view's blocks (PRD-35) of `pages` (0-based; default all), from the same layout
+   * pass as `convert`. Chunk a long document by passing page ranges: running headers and
+   * footers are found within the pages of one call, so give each chunk at least two pages.
+   */
+  textBlocks(
+    source: ConvertSource,
+    options?: EngineCallOptions & {
+      readonly pages?: readonly number[];
+      readonly onProgress?: ProgressCallback;
+    },
+  ): Promise<readonly TextViewPage[]>;
   /** Releases the Comlink proxy and terminates the worker. */
   dispose(): void;
 }
@@ -186,6 +199,15 @@ export function createAnalysisProxy(worker: Worker): AnalysisProxy {
     ...backend,
     compare: (a, b, options) => compareDocuments(backend, a, b, options),
     convert: (source, options) => convertDocument(backend, source, options),
+    textBlocks: async (source, options) =>
+      (
+        await convertDocument(backend, source, {
+          ...options,
+          format: 'text',
+          images: false,
+          textBlocks: true,
+        })
+      ).textView ?? [],
     dispose() {
       if (terminated) return;
       terminated = true;

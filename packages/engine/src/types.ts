@@ -2573,6 +2573,8 @@ export interface ConvertOptions {
   readonly headerComment?: boolean;
   /** Base name of the document-scope file (default `document`). */
   readonly baseName?: string;
+  /** Also return the structured block model of every page (`ConvertResult.textView`, PRD-35). */
+  readonly textBlocks?: boolean;
 }
 
 export type ConvertBlockKind = 'heading' | 'paragraph' | 'list-item' | 'image';
@@ -2627,6 +2629,54 @@ export interface ConvertResult {
   /** A ZIP of `files` when there is more than one file; absent otherwise. */
   readonly zip?: Uint8Array;
   readonly report: ConvertReport;
+  /** The structured blocks per converted page, in page order; only with `textBlocks`. */
+  readonly textView?: readonly TextViewPage[];
+}
+
+/** A block's id (`p<page>-<n>`, page 1-based) and where it came from, for position and Find. */
+export interface TextViewSource {
+  readonly id: string;
+  /** 0-based page index. */
+  readonly page: number;
+  /** Source box in the page's display space (points, top-left origin, y down, rotated). */
+  readonly bbox: Rect;
+}
+
+export interface TextViewListItem {
+  readonly text: string;
+  readonly bbox: Rect;
+  /** Nesting depth from 0, by marker indentation. */
+  readonly depth: number;
+}
+
+/**
+ * One block of the Text view (PRD-35), in reading order. There is no `table` kind: the
+ * converter only counts suspected tables (`ConvertReport.suspectedTables`), their text
+ * follows in reading order as paragraphs. Images carry no alt text (PDFs rarely do and
+ * the converter does not read it).
+ */
+export type TextViewBlock = TextViewSource &
+  (
+    | { readonly kind: 'heading'; readonly level: number; readonly text: string }
+    | { readonly kind: 'paragraph'; readonly text: string }
+    | {
+        readonly kind: 'list';
+        readonly ordered: boolean;
+        readonly items: readonly TextViewListItem[];
+      }
+    | { readonly kind: 'image' }
+  );
+
+export interface TextViewPage {
+  /** 0-based page index. */
+  readonly page: number;
+  /** Anchor of the page in the Text view (`page-<n>`, 1-based): the reading position key. */
+  readonly pageAnchor: string;
+  /** Display size in points. */
+  readonly size: { readonly width: number; readonly height: number };
+  /** The page has no extractable text (a scan): run OCR first, `blocks` hold only images. */
+  readonly needsOcr: boolean;
+  readonly blocks: readonly TextViewBlock[];
 }
 
 // ---------------------------------------------------------------------------

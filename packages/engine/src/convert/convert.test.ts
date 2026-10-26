@@ -405,3 +405,114 @@ describe('ZIP timestamps', () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Text view blocks (PRD-35)
+// ---------------------------------------------------------------------------
+
+describe('text view blocks', () => {
+  test('the fixture: headings, a list, an image and the two-column page, with page anchors', async () => {
+    const result = await convertFixture({ textBlocks: true, format: 'text', images: false });
+    const pages = result.textView!;
+    expect(pages.map((p) => [p.page, p.pageAnchor, p.needsOcr])).toEqual([
+      [0, 'page-1', false],
+      [1, 'page-2', false],
+    ]);
+    const kinds = pages.map((p) => p.blocks.map((b) => b.kind));
+    expect(kinds[0]).toContain('heading');
+    expect(kinds[0]).toContain('list');
+    expect(kinds[0]).toContain('image');
+    expect(kinds.flat()).not.toContain('table');
+    for (const p of pages)
+      for (const b of p.blocks) {
+        expect(b.page).toBe(p.page);
+        expect(b.id.startsWith(`p${p.page + 1}-`)).toBe(true);
+        expect(b.bbox.width).toBeGreaterThan(0);
+      }
+    // Same order as the Markdown headings.
+    const headings = pages.flatMap((p) =>
+      p.blocks.flatMap((b) => (b.kind === 'heading' ? [b] : [])),
+    );
+    expect(headings.map((h) => [h.page, h.level, h.text])).toEqual(
+      result.report.headingList.map((h) => [h.page, h.level, h.text]),
+    );
+    // Two columns: the left column is read before the right one.
+    const texts = pages[1]!.blocks.flatMap((b) => ('text' in b ? [b.text] : []));
+    expect(texts[0]).toBe('Two columns');
+    expect(texts[1]).toMatch(/^The left column/);
+    expect(texts[2]).toMatch(/^The right column/);
+    const list = pages[0]!.blocks.find((b) => b.kind === 'list');
+    expect(list?.kind === 'list' && list.items.map((i) => i.text)).toContain(
+      'Known text in a known place',
+    );
+  });
+
+  test('a page range returns only those pages, and the Markdown does not change', async () => {
+    const only = await convertFixture({ textBlocks: true, pages: [1] });
+    expect(only.textView!.map((p) => p.page)).toEqual([1]);
+    const plain = await convertFixture({ pages: [1] });
+    expect(plain.textView).toBeUndefined();
+    expect(only.text).toBe(plain.text);
+  });
+
+  test('lists nest by indent and keep ordered and unordered lists apart', async () => {
+    const { textView } = await convertPages(
+      [
+        page([
+          run('Body text that is long enough to be the body size.', 72, 740),
+          run('• First item', 72, 700),
+          run('◦ Nested item', 90, 686),
+          run('• Back out', 72, 672),
+          run('1. One', 72, 630),
+          run('2. Two', 72, 616),
+        ]),
+      ],
+      { textBlocks: true },
+    );
+    const blocks = textView![0]!.blocks;
+    expect(blocks.map((b) => b.kind)).toEqual(['paragraph', 'list', 'list']);
+    const [bullets, numbers] = [blocks[1], blocks[2]];
+    expect(
+      bullets?.kind === 'list' && [bullets.ordered, bullets.items.map((i) => i.depth)],
+    ).toEqual([false, [0, 1, 0]]);
+    expect(numbers?.kind === 'list' && numbers.ordered).toBe(true);
+  });
+
+  test('a page without text is flagged for OCR and has no text blocks', async () => {
+    const { textView } = await convertPages(
+      [page([run('Some text on page one, long enough.', 72, 700)]), page([])],
+      { textBlocks: true },
+    );
+    expect(textView![1]).toMatchObject({
+      page: 1,
+      pageAnchor: 'page-2',
+      needsOcr: true,
+      blocks: [],
+    });
+    expect(textView![0]!.needsOcr).toBe(false);
+  });
+
+  test('AnalysisProxy.textBlocks goes through convertDocument with the page range', async () => {
+    const id = sid(`tv-${++fixtureCounter}`);
+    const opened = await h.adapter.open(id, await (await fetch(markdownUrl)).arrayBuffer());
+    const engine = {
+      getPageText: h.adapter.getPageText.bind(h.adapter),
+      listAnnotations: h.adapter.listAnnotations.bind(h.adapter),
+      locateImages: h.editor.locateImages.bind(h.editor),
+      extractImage: h.editor.extractImage.bind(h.editor),
+    };
+    try {
+      const result = await convertDocument(
+        createLocalAnalysisBackend(),
+        pdfiumConvertSource(engine, id, opened),
+        { pages: [0], format: 'text', images: false, textBlocks: true },
+      );
+      const blocks = result.textView![0]!.blocks;
+      // Image placements are located without extracting pixels.
+      expect(blocks.some((b) => b.kind === 'image')).toBe(true);
+      expect(result.files.map((f) => f.path)).toEqual(['document.txt']);
+    } finally {
+      await h.adapter.close(id);
+    }
+  });
+});

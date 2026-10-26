@@ -28,6 +28,8 @@ export interface ConvertSource {
   text(index: number, options: EngineCallOptions): Promise<readonly TextRun[]>;
   links?(index: number, options: EngineCallOptions): Promise<readonly ConvertLinkInput[]>;
   images?(index: number, options: EngineCallOptions): Promise<readonly ConvertImageInput[]>;
+  /** Image placements without pixels: the Text view needs only where an image sits. */
+  imageRects?(index: number, options: EngineCallOptions): Promise<readonly ConvertImageInput[]>;
 }
 
 type EngineLike = Pick<PdfRenderer, 'getPageText'> &
@@ -56,6 +58,14 @@ export function pdfiumConvertSource(
       };
     },
     text: (index, callOptions) => engine.getPageText(id, index, callOptions),
+    ...(locateImages
+      ? {
+          async imageRects(index: number, callOptions: EngineCallOptions) {
+            const located = await locateImages.call(engine, id, index, callOptions);
+            return located.map((image) => ({ rect: image.bounds }));
+          },
+        }
+      : {}),
     async links(index, callOptions) {
       const annotations = await engine.listAnnotations(id, index, callOptions);
       return annotations.flatMap((a) =>
@@ -112,7 +122,9 @@ export async function convertDocument(
         source.links?.(index, call) ?? Promise.resolve([]),
         convertOptions.format !== 'text' && convertOptions.images !== false && source.images
           ? source.images(index, call)
-          : Promise.resolve([]),
+          : convertOptions.textBlocks && source.imageRects
+            ? source.imageRects(index, call)
+            : Promise.resolve([]),
       ]);
       throwIfAborted(signal, 'convert');
       await backend.convertAddPage(job, index, { ...source.geometry(index), runs, links, images });
