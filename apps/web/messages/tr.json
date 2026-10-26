@@ -995,6 +995,8 @@
   "paragraph_resize": "Paragrafı yeniden boyutlandır",
   "paragraph_move_grip": "Taşımak için sürükle",
   "paragraph_width_handle": "Genişliği değiştirmek için sürükle",
+  "paragraph_move_refused": "Bu paragraf taşınamıyor: {reason}",
+  "paragraph_resize_refused": "Genişlik sabit: {reason}",
   "paragraph_outlines_setting": "Metni düzenle’de paragraf çerçevelerini göster",
   "labs_paragraph_frame": "Paragrafları taşı ve boyutlandır",
   "labs_paragraph_outlines": "Paragraf çerçeveleri",

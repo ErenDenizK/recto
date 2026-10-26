@@ -47,6 +47,7 @@ import type {
   LayoutEdit,
   LayoutEditSpan,
   ParagraphEditRefusal,
+  ParagraphFrameChange,
   ParagraphLayout,
   ParagraphLayoutAnalysis,
   ParagraphStyleInfo,
@@ -54,6 +55,7 @@ import type {
 import { BUNDLED_FACES, faceFamilyName } from '@pdf-editor/engine/fonts';
 import {
   type ClipboardEvent as ReactClipboardEvent,
+  type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   useCallback,
@@ -79,7 +81,21 @@ import type { PageFrame } from '../viewer/geometry';
 import { useCanChangeActive } from '../viewer/input-state';
 import { pageFrame } from '../viewer/page-frame';
 import { useToolStore } from '../viewer/tool-store';
-import { commitParagraphEdit, type ParagraphCommit } from './actions';
+import { commitParagraphEdit, paragraphFrameRefusalLabel, type ParagraphCommit } from './actions';
+import {
+  BAND_PX,
+  cssDelta,
+  type FrameDraft,
+  frameChanged,
+  frameChangeOf,
+  framedRect,
+  initialFrame,
+  moveBy,
+  pastSlop,
+  snapAnchors,
+  textDelta,
+  widthBy,
+} from './frame-drag';
 import {
   apply,
   buildScene,
@@ -90,16 +106,19 @@ import {
   type GlyphCache,
   invert,
   scale,
+  type Scene,
   sceneBounds,
   type TextRect,
   translate,
   userFromText,
 } from './glyph-canvas';
 import { blockerLabel, failureMessage } from './model';
+import { paragraphFrameEnabled } from './paragraph-frame-flag';
 import {
   caretLines,
   deleteBackward,
   deleteForward,
+  drawnWhole,
   initialState,
   insertText,
   type LayoutFunctions,
@@ -188,6 +207,23 @@ function draftPayload(draft: { readonly text: string; readonly edit: LayoutEdit 
     ...(edit.spans === undefined ? {} : { spans: edit.spans }),
   };
 }
+/** A frame drag under way (TXT-24): where the press began and the frame it began from. */
+interface FrameDrag {
+  readonly kind: 'move' | 'left' | 'right';
+  readonly pointerId: number;
+  readonly pointerType: string;
+  readonly x: number;
+  readonly y: number;
+  readonly base: FrameDraft;
+  started: boolean;
+  /** Left edges the move snaps to (CSS px), read when the press began. */
+  anchors: readonly number[];
+}
+
+/** The grip's and the side bars' touch targets, CSS px (quality bar Q-9). */
+const GRIP_PX = 44;
+const TARGET_PX = 44;
+
 /** Room kept around the drawn area on the canvas, CSS pixels. */
 const CANVAS_PAD = 4;
 /** Characters whose outlines are asked for at open besides the paragraph's own. */
@@ -467,10 +503,18 @@ export function ParagraphEditor({
   const [plate, setPlate] = useState<PlateImage | null>(null);
   const preview = useTextEditStore((s) => s.paragraphPreview);
   const keepEditingRef = useRef<HTMLButtonElement>(null);
+  // The frame controls (TXT-24, behind the Labs toggle): what the user did to the frame, and
+  // the snap guide while a drag lasts. The ref is the latest value for handlers and the commit.
+  const framed = paragraphFrameEnabled();
+  const [moveDraft, setMoveDraft] = useState<FrameDraft | null>(null);
+  const [guide, setGuide] = useState<number | null>(null);
+  const moveRef = useRef<FrameDraft | null>(null);
+  const dragRef = useRef<FrameDrag | null>(null);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const inkRef = useRef<HTMLCanvasElement>(null);
   const previewRef = useRef<HTMLCanvasElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const stateRef = useRef<ParagraphState | null>(null);
@@ -638,17 +682,28 @@ export function ParagraphEditor({
   }, [value, text, cache, block.text, block.ref.source, block.ref.pageIndex]);
 
   // Per keystroke: the layout, its caret geometry and the scene (pure arithmetic).
+  const widthChanged =
+    moveDraft !== null &&
+    (Math.abs(moveDraft.left - block.measure.left) > 1e-6 ||
+      Math.abs(moveDraft.right - block.measure.right) > 1e-6);
+  const measureLeft = widthChanged ? moveDraft.left : undefined;
+  const measureRight = widthChanged ? moveDraft.right : undefined;
   const laid = useMemo(() => {
     if (!value || !state) return null;
-    const result = relayout(value.fns, value.setup, state);
+    const measure =
+      measureLeft === undefined || measureRight === undefined
+        ? undefined
+        : { left: measureLeft, right: measureRight };
+    const result = relayout(value.fns, value.setup, state, measure);
     const lines = caretLines(value.setup, state, result.layout);
     return { result, lines };
-  }, [value, state]);
+  }, [value, state, measureLeft, measureRight]);
 
   // The draft follows the text only (caret moves keep it, and its preview).
   const stateText = state?.text;
   const stateStyles = state?.styles;
   const stateOrigins = state?.origins;
+  const moving = moveDraft !== null && frameChanged(moveDraft, block);
   const draft = useMemo(() => {
     if (!value || stateText === undefined || !stateStyles) return null;
     const edit = paragraphEdit(
@@ -662,10 +717,27 @@ export function ParagraphEditor({
       },
       originalStylesOf(value.setup.input),
     );
-    return edit ? { text: stateText, edit } : null;
-  }, [value, stateText, stateStyles, stateOrigins]);
+    // A moved or resized paragraph is a draft with no text change; a new object for every
+    // change of the frame, so the settled preview of the old frame is dropped (TXT-24).
+    const framedNow = moveDraft !== null && frameChanged(moveDraft, block);
+    if (edit) return framedNow ? { text: stateText, edit: { ...edit } } : { text: stateText, edit };
+    return framedNow ? { text: stateText, edit: { start: 0, end: 0, text: '' } } : null;
+  }, [value, stateText, stateStyles, stateOrigins, moveDraft, block]);
   const draftRef = useRef(draft);
   const layoutRef = useRef(laid);
+  /**
+   * What a dry run or the commit carries besides the text (TXT-24): the frame change and the
+   * layout the user saw, laid out in the paragraph's own place (the engine translates it), so a
+   * move never wraps the lines again.
+   */
+  const frameEditOf = (
+    layout = layoutRef.current?.result.layout,
+  ): { frame?: ParagraphFrameChange; layout?: ParagraphLayout } => {
+    const moved = moveRef.current;
+    const change = moved && frameChanged(moved, block) ? frameChangeOf(moved, block) : undefined;
+    return { ...(change ? { frame: change } : {}), ...(layout ? { layout } : {}) };
+  };
+  const frameEditRef = useRef(frameEditOf);
 
   // Publish the draft (what leaving commits) and drop a preview of older text.
   useEffect(() => {
@@ -689,11 +761,7 @@ export function ParagraphEditor({
         .renderParagraphPreview(
           block.ref.source,
           block.ref.pageIndex,
-          {
-            ref: block.ref,
-            ...draftPayload(draft),
-            ...(layoutRef.current ? { layout: layoutRef.current.result.layout } : {}),
-          },
+          { ref: block.ref, ...draftPayload(draft), ...frameEditRef.current() },
           frame.scale * dpr,
           { signal: controller.signal },
         )
@@ -725,16 +793,33 @@ export function ParagraphEditor({
   const textToUser = useMemo(() => userFromText(block.direction), [block.direction]);
   const scene = useMemo(() => {
     if (!value || !state || !laid) return null;
+    // A moved or resized paragraph is drawn whole from its glyphs (TXT-24).
+    const shown = moving
+      ? drawnWhole(laid.result, laid.lines)
+      : { result: laid.result, lines: laid.lines };
     return buildScene({
       setup: value.setup,
       state,
-      relayout: laid.result,
-      lines: laid.lines,
+      relayout: shown.result,
+      lines: shown.lines,
       styles: drawStyles,
       focused,
       ...(composition ? { composition } : {}),
     });
-  }, [value, state, laid, drawStyles, focused, composition]);
+  }, [value, state, laid, drawStyles, focused, composition, moving]);
+  // While it moves, the plates that hide the original lines stay where they were, on their
+  // own canvas; the glyphs, selection and caret are on the one that follows the move.
+  const hideScene = useMemo(() => {
+    if (!moving || !value || !state || !laid) return null;
+    return buildScene({
+      setup: value.setup,
+      state,
+      relayout: { ...laid.result, layout: { ...laid.result.layout, lines: [] } },
+      lines: [],
+      styles: drawStyles,
+      focused: false,
+    });
+  }, [moving, value, state, laid, drawStyles]);
 
   /** The paragraph's own extent in text space (the canvas never shrinks below it). */
   const extent: TextRect = useMemo(() => {
@@ -766,6 +851,45 @@ export function ParagraphEditor({
     return { left, top, width: right - left, height: bottom - top };
   }, [scene, extent, cssOfText]);
   const paragraphBox = rectToCss(frame, block.box);
+  const shift = useMemo(
+    () => (moveDraft ? cssDelta(frame, moveDraft) : { x: 0, y: 0 }),
+    [frame, moveDraft],
+  );
+  const measureNow = moveDraft ?? block.measure;
+  const lastBaselineShift =
+    (laid?.lines[laid.lines.length - 1]?.baseline ?? 0) -
+    (block.lines[block.lines.length - 1]?.baseline ?? 0);
+  /** The frame's rectangle, text space: the ink, with the width and height of the layout shown. */
+  const frameText = useMemo(() => {
+    const back = invert(textToUser);
+    const corners = [
+      { x: block.box.x, y: block.box.y },
+      { x: block.box.x + block.box.width, y: block.box.y + block.box.height },
+    ].map((p) => apply(back, p));
+    const ink: TextRect = {
+      x0: Math.min(...corners.map((c) => c.x)),
+      x1: Math.max(...corners.map((c) => c.x)),
+      y0: Math.min(...corners.map((c) => c.y)),
+      y1: Math.max(...corners.map((c) => c.y)),
+    };
+    return framedRect(ink, measureNow, widthChanged ? lastBaselineShift : 0);
+  }, [block, textToUser, measureNow, widthChanged, lastBaselineShift]);
+  /** Where the frame's hairline, band and grip are, CSS px (the paragraph, before the move). */
+  const frameBox = useMemo(() => {
+    if (!framed) return paragraphBox;
+    const corners = [
+      apply(cssOfText, { x: frameText.x0, y: frameText.y0 }),
+      apply(cssOfText, { x: frameText.x1, y: frameText.y1 }),
+    ];
+    const left = Math.min(...corners.map((c) => c.x));
+    const top = Math.min(...corners.map((c) => c.y));
+    return {
+      left,
+      top,
+      width: Math.max(...corners.map((c) => c.x)) - left,
+      height: Math.max(...corners.map((c) => c.y)) - top,
+    };
+  }, [framed, paragraphBox, frameText, cssOfText]);
   /** On-screen angle of the writing direction (clockwise degrees): the canvas turns with it. */
   const screenAngle =
     ((Math.round((Math.atan2(cssOfText[1], cssOfText[0]) * 180) / Math.PI) % 360) + 360) % 360;
@@ -786,36 +910,56 @@ export function ParagraphEditor({
     };
   }, [plate, frame, box]);
 
-  // Draw (each keystroke, caret move, focus change, glyph arrival).
+  // Draw (each keystroke, caret move, focus change, glyph arrival). A moving paragraph is drawn
+  // on two canvases (TXT-24): the plates that hide the original on this one, the glyphs on the
+  // one that follows the move.
   useLayoutEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !scene) return;
     const dpr = window.devicePixelRatio || 1;
-    const width = Math.max(1, Math.round(box.width * dpr));
-    const height = Math.max(1, Math.round(box.height * dpr));
-    if (canvas.width !== width) canvas.width = width;
-    if (canvas.height !== height) canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
     const userToDevice = compose(
       compose(cssFromUser(frame), translate(-box.left, -box.top)),
       scale(dpr),
     );
     const root = rootRef.current;
-    drawScene(ctx, { width, height }, scene, cache, textToUser, userToDevice, {
-      colors: {
-        plate: '#ffffff',
-        // The page's selection blue (language.md §1.5): a mark on the page, not chrome.
-        selection: readVar(root, '--select-wash', 'rgb(78 97 237 / 0.25)'),
-        caret: readVar(root, '--select', '#4e61ed'),
-        overlap: 'rgba(220, 38, 38, 0.22)',
-      },
-      dpr,
-      ...(showPreview && preview ? { preview: preview.clip } : {}),
-      ...(plateImage ? { plateImage } : {}),
-    });
+    const paint = (canvas: HTMLCanvasElement | null, drawn: Scene | null, plated: boolean) => {
+      if (!canvas || !drawn) return;
+      const width = Math.max(1, Math.round(box.width * dpr));
+      const height = Math.max(1, Math.round(box.height * dpr));
+      if (canvas.width !== width) canvas.width = width;
+      if (canvas.height !== height) canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      drawScene(ctx, { width, height }, drawn, cache, textToUser, userToDevice, {
+        colors: {
+          plate: '#ffffff',
+          // The page's selection blue (language.md §1.5): a mark on the page, not chrome.
+          selection: readVar(root, '--select-wash', 'rgb(78 97 237 / 0.25)'),
+          caret: readVar(root, '--select', '#4e61ed'),
+          overlap: 'rgba(220, 38, 38, 0.22)',
+        },
+        dpr,
+        ...(showPreview && preview ? { preview: preview.clip } : {}),
+        ...(plated && plateImage ? { plateImage } : {}),
+      });
+    };
+    if (hideScene && scene) {
+      paint(canvasRef.current, hideScene, true);
+      paint(inkRef.current, { ...scene, plates: [] }, false);
+    } else {
+      paint(canvasRef.current, scene, true);
+    }
     // `glyphVersion`: outlines arrived, draw them.
-  }, [scene, box, frame, cache, textToUser, showPreview, preview, glyphVersion, plateImage]);
+  }, [
+    scene,
+    hideScene,
+    box,
+    frame,
+    cache,
+    textToUser,
+    showPreview,
+    preview,
+    glyphVersion,
+    plateImage,
+  ]);
 
   // The settled preview: the dry run's bitmap at its clip.
   const previewBox =
@@ -1037,7 +1181,7 @@ export function ParagraphEditor({
     target,
     block,
     ...draftPayload(pending),
-    ...(layout ? { layout } : {}),
+    ...frameEditRef.current(layout),
     ...(honestyRef.current ? { honesty: honestyRef.current } : {}),
   });
   const commitRef = useRef(commitOf);
@@ -1193,6 +1337,114 @@ export function ParagraphEditor({
     },
     [session],
   );
+
+  // ---- Frame (TXT-24) -----------------------------------------------------------------
+  // The border band and the grip drag the paragraph, the side bars change its width. Nothing
+  // goes to the engine while dragging: the draft joins the open session and leaving commits it
+  // with the text (one history entry); the settled preview, 300 ms after the last change,
+  // shows what will be saved.
+
+  const frameRefusal = value?.analysis.frameRefusal;
+  const canMove =
+    framed &&
+    value !== null &&
+    !busy &&
+    frameRefusal !== 'move-shared-object' &&
+    frameRefusal !== 'move-form-field';
+  const canResize = canMove && frameRefusal !== 'resize-direction';
+  const setFrameDraft = (next: FrameDraft | null) => {
+    const kept = next !== null && frameChanged(next, block) ? next : null;
+    moveRef.current = kept;
+    setMoveDraft(kept);
+  };
+  /** Ends a drag; `cancel` puts the frame back as it was when the press began. */
+  const endDrag = (cancel: boolean) => {
+    const drag = dragRef.current;
+    dragRef.current = null;
+    setGuide(null);
+    if (drag && cancel) setFrameDraft(drag.base);
+  };
+  const endDragRef = useRef(endDrag);
+
+  const onFrameDown = (event: ReactPointerEvent<HTMLElement>) => {
+    const kind = event.currentTarget.dataset.frameControl as FrameDrag['kind'];
+    if (event.button !== 0 || !canMove || dragRef.current) return;
+    event.preventDefault();
+    event.stopPropagation();
+    mirrorRef.current?.focus({ preventScroll: true });
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const drag: FrameDrag = {
+      kind,
+      pointerId: event.pointerId,
+      pointerType: event.pointerType,
+      x: event.clientX,
+      y: event.clientY,
+      base: moveRef.current ?? initialFrame(block),
+      started: false,
+      anchors: [],
+    };
+    dragRef.current = drag;
+    if (kind === 'move') {
+      pageParagraphs(block.ref.source, block.ref.pageIndex).then(
+        (blocks) => {
+          drag.anchors = snapAnchors(frame, block, blocks);
+        },
+        () => undefined,
+      );
+    }
+  };
+  const onFrameMove = (event: ReactPointerEvent<HTMLElement>) => {
+    const drag = dragRef.current;
+    if (drag?.pointerId !== event.pointerId || !value) return;
+    const cssDx = event.clientX - drag.x;
+    const cssDy = event.clientY - drag.y;
+    if (!drag.started) {
+      if (!pastSlop(cssDx, cssDy, drag.pointerType)) return;
+      drag.started = true;
+    }
+    if (drag.kind === 'move') {
+      const moved = moveBy({
+        frame,
+        box: block.box,
+        base: drag.base,
+        start: { x: drag.x, y: drag.y },
+        now: { x: event.clientX, y: event.clientY },
+        anchors: drag.anchors,
+        alt: event.altKey,
+      });
+      setFrameDraft({ ...drag.base, dx: moved.dx, dy: moved.dy });
+      setGuide(moved.guide ?? null);
+      return;
+    }
+    const measure = widthBy({
+      side: drag.kind,
+      base: drag.base,
+      original: block.measure,
+      along: textDelta(cssOfText, cssDx, cssDy).dx,
+      roomLeft: value.analysis.roomLeft ?? 0,
+      roomRight: value.analysis.roomRight ?? 0,
+      size: block.size,
+    });
+    setFrameDraft({ ...drag.base, ...measure });
+  };
+  const onFrameUp = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.pointerId === dragRef.current?.pointerId) {
+      endDrag(event.type === 'pointercancel');
+    }
+  };
+
+  // A second finger (or any press elsewhere) during a drag cancels it, and is not a press
+  // outside the editor: this listener is added before the one that leaves (below).
+  useEffect(() => {
+    const onPointerDown = (event: PointerEvent) => {
+      const drag = dragRef.current;
+      if (!drag || event.pointerId === drag.pointerId) return;
+      event.stopImmediatePropagation();
+      endDragRef.current(true);
+    };
+    window.addEventListener('pointerdown', onPointerDown, { capture: true });
+    return () => window.removeEventListener('pointerdown', onPointerDown, { capture: true });
+  }, []);
 
   // A press outside the editor leaves it.
   useEffect(() => {
@@ -1369,10 +1621,11 @@ export function ParagraphEditor({
     const header = headerRef.current;
     const root = rootRef.current;
     if (!header || !root) return;
-    const textLeft = Math.min(paragraphBox.left, box.left);
-    const textRight = Math.max(paragraphBox.left + paragraphBox.width, box.left + box.width);
-    const textTop = Math.min(paragraphBox.top, box.top);
-    const textBottom = Math.max(paragraphBox.top + paragraphBox.height, box.top + box.height);
+    // A moved or resized paragraph (TXT-24): the header keeps clear of the frame where it is.
+    const textLeft = Math.min(frameBox.left, box.left) + shift.x;
+    const textRight = Math.max(frameBox.left + frameBox.width, box.left + box.width) + shift.x;
+    const textTop = Math.min(frameBox.top, box.top) + shift.y;
+    const textBottom = Math.max(frameBox.top + frameBox.height, box.top + box.height) + shift.y;
     const layer = root.getBoundingClientRect();
     const frameStyle = getComputedStyle(root.ownerDocument.documentElement);
     const inset = (side: string) =>
@@ -1387,7 +1640,10 @@ export function ParagraphEditor({
     // The spaces above and below are measured along the paragraph's own lines: they hold on
     // screen only while those run left to right, unrotated.
     const upright =
-      frame.rotation === 0 && block.direction.x === 1 && Math.abs(block.direction.y) < 1e-6;
+      !moving &&
+      frame.rotation === 0 &&
+      block.direction.x === 1 &&
+      Math.abs(block.direction.y) < 1e-6;
     const points = frame.scale * (frame.stretchY ?? 1);
     const contentTop = paragraphBox.top - (gapAbove ?? 0) * points;
     const contentBottom = paragraphBox.top + paragraphBox.height + (gapBelow ?? 0) * points;
@@ -1419,6 +1675,13 @@ export function ParagraphEditor({
     paragraphBox.top,
     paragraphBox.width,
     paragraphBox.height,
+    frameBox.left,
+    frameBox.top,
+    frameBox.width,
+    frameBox.height,
+    shift.x,
+    shift.y,
+    moving,
     box,
     gapAbove,
     gapBelow,
@@ -1517,10 +1780,57 @@ export function ParagraphEditor({
     layoutRef.current = laid;
     leaveRef.current = leave;
     commitRef.current = commitOf;
+    frameEditRef.current = frameEditOf;
+    endDragRef.current = endDrag;
     finishRef.current = finishWith;
     holdRef.current = holdOver;
     honestyRef.current = honestyFacts;
     pageRef.current = target.position;
+  });
+
+  // The frame controls' places, CSS px in the layer (TXT-24): the band round the ink, and a
+  // touch target for each side bar just outside the frame, on the measure's edge at mid height.
+  const frameNote = (() => {
+    if (!framed || !frameRefusal) return null;
+    const reason = paragraphFrameRefusalLabel(frameRefusal) ?? '';
+    return frameRefusal === 'resize-direction'
+      ? m.paragraph_resize_refused({ reason })
+      : m.paragraph_move_refused({ reason });
+  })();
+  const { left: fl, top: ft, width: fw, height: fh } = frameBox;
+  const bands = [
+    {
+      name: 'top',
+      style: { left: fl - BAND_PX, top: ft - BAND_PX, width: fw + 2 * BAND_PX, height: BAND_PX },
+    },
+    {
+      name: 'bottom',
+      style: { left: fl - BAND_PX, top: ft + fh, width: fw + 2 * BAND_PX, height: BAND_PX },
+    },
+    { name: 'left', style: { left: fl - BAND_PX, top: ft, width: BAND_PX, height: fh } },
+    { name: 'right', style: { left: fl + fw, top: ft, width: BAND_PX, height: fh } },
+  ];
+  const alongLength = Math.hypot(cssOfText[0], cssOfText[1]) || 1;
+  const sideBars = (['left', 'right'] as const).map((side) => {
+    const sign = side === 'left' ? -1 : 1;
+    const edge = apply(cssOfText, {
+      x: side === 'left' ? measureNow.left : measureNow.right,
+      y: (frameText.y0 + frameText.y1) / 2,
+    });
+    const outX = (sign * cssOfText[0]) / alongLength;
+    const outY = (sign * cssOfText[1]) / alongLength;
+    const reach = 3 + TARGET_PX / 2;
+    return {
+      side,
+      axis: screenAngle % 180 === 0 ? 'x' : 'y',
+      style: {
+        left: edge.x + outX * reach - TARGET_PX / 2,
+        top: edge.y + outY * reach - TARGET_PX / 2,
+        '--bar-x': `${-outX * (reach - 3)}px`,
+        '--bar-y': `${-outY * (reach - 3)}px`,
+        '--bar-turn': `${screenAngle}deg`,
+      } as CSSProperties,
+    };
   });
 
   return (
@@ -1533,19 +1843,6 @@ export function ParagraphEditor({
       data-preview={showPreview ? '' : undefined}
       data-angle={screenAngle}
     >
-      <div
-        ref={frameRef}
-        className={styles.frame}
-        data-paragraph-frame=""
-        aria-hidden="true"
-        // 3 px out from the paragraph on every side.
-        style={{
-          left: paragraphBox.left - 3,
-          top: paragraphBox.top - 3,
-          width: paragraphBox.width + 6,
-          height: paragraphBox.height + 6,
-        }}
-      />
       {previewBox ? (
         <canvas
           ref={previewRef}
@@ -1562,52 +1859,143 @@ export function ParagraphEditor({
         aria-hidden="true"
         style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
       />
-      {/*
-       * The hidden mirror: keys, IME, clipboard and assistive technology. It lies over the
-       * canvas, on the canvas's box, with its text in the drawn lines (`mirror-dom.ts`): a
-       * point the browser resolves (iOS's keyboard trackpad, a tap) finds the mirror's text
-       * there, not the canvas. Presses on it place the caret from the drawn lines.
-       */}
+      {/* The frame controls' parts follow the move (TXT-24); off, this wrapper has no box. */}
       <div
-        ref={mirrorRef}
-        className={styles.mirror}
-        role="textbox"
-        aria-multiline="true"
-        aria-label={m.paragraph_editor_label({ page: target.position })}
-        aria-describedby={describedBy}
-        aria-busy={busy || undefined}
-        aria-readonly={value === null || busy || undefined}
-        contentEditable={value !== null && !busy}
-        suppressContentEditableWarning
-        spellCheck={false}
-        tabIndex={0}
-        data-paragraph-mirror=""
-        style={{
-          left: box.left,
-          top: box.top,
-          width: Math.max(box.width, 1),
-          height: Math.max(box.height, 1),
-          fontSize: mirrorPx,
-        }}
-        onPointerDown={onPressDown}
-        onPointerMove={onPressMove}
-        onPointerUp={onPressUp}
-        onPointerCancel={onPressUp}
-        onKeyDown={onKeyDown}
-        onCopy={(event) => onClipboard(event, false)}
-        onCut={(event) => onClipboard(event, true)}
-        onFocus={() => setFocused(true)}
-        onBlur={(event) => {
-          setFocused(false);
-          // Focus leaving the editor (Tab, another control) leaves it.
-          const next = event.relatedTarget;
-          if (next instanceof Element && next.closest('[data-paragraph-editor]')) return;
-          if (next !== null) void leave();
-        }}
-        onCompositionStart={onCompositionStart}
-        onCompositionUpdate={(event) => compose_(event.data, false)}
-        onCompositionEnd={(event) => compose_(event.data, true)}
-      />
+        className={framed ? styles.moving : styles.still}
+        data-testid={framed ? 'paragraph-moving' : undefined}
+        style={
+          framed && moving ? { transform: `translate(${shift.x}px, ${shift.y}px)` } : undefined
+        }
+      >
+        <div
+          ref={frameRef}
+          className={styles.frame}
+          data-paragraph-frame=""
+          aria-hidden="true"
+          // 3 px out from the paragraph on every side.
+          style={{
+            left: frameBox.left - 3,
+            top: frameBox.top - 3,
+            width: frameBox.width + 6,
+            height: frameBox.height + 6,
+          }}
+        />
+        {hideScene && !showPreview ? (
+          <canvas
+            ref={inkRef}
+            className={styles.ink}
+            data-testid="paragraph-ink"
+            aria-hidden="true"
+            style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
+          />
+        ) : null}
+        {/*
+         * The hidden mirror: keys, IME, clipboard and assistive technology. It lies over the
+         * canvas, on the canvas's box, with its text in the drawn lines (`mirror-dom.ts`): a
+         * point the browser resolves (iOS's keyboard trackpad, a tap) finds the mirror's text
+         * there, not the canvas. Presses on it place the caret from the drawn lines.
+         */}
+        <div
+          ref={mirrorRef}
+          className={styles.mirror}
+          role="textbox"
+          aria-multiline="true"
+          aria-label={m.paragraph_editor_label({ page: target.position })}
+          aria-describedby={describedBy}
+          aria-busy={busy || undefined}
+          aria-readonly={value === null || busy || undefined}
+          contentEditable={value !== null && !busy}
+          suppressContentEditableWarning
+          spellCheck={false}
+          tabIndex={0}
+          data-paragraph-mirror=""
+          style={{
+            left: box.left,
+            top: box.top,
+            width: Math.max(box.width, 1),
+            height: Math.max(box.height, 1),
+            fontSize: mirrorPx,
+          }}
+          onPointerDown={onPressDown}
+          onPointerMove={onPressMove}
+          onPointerUp={onPressUp}
+          onPointerCancel={onPressUp}
+          onKeyDown={onKeyDown}
+          onCopy={(event) => onClipboard(event, false)}
+          onCut={(event) => onClipboard(event, true)}
+          onFocus={() => setFocused(true)}
+          onBlur={(event) => {
+            setFocused(false);
+            // Focus leaving the editor (Tab, another control) leaves it.
+            const next = event.relatedTarget;
+            if (next instanceof Element && next.closest('[data-paragraph-editor]')) return;
+            if (next !== null) void leave();
+          }}
+          onCompositionStart={onCompositionStart}
+          onCompositionUpdate={(event) => compose_(event.data, false)}
+          onCompositionEnd={(event) => compose_(event.data, true)}
+        />
+        {canMove ? (
+          <>
+            {bands.map((edge) => (
+              <div
+                key={edge.name}
+                className={styles.band}
+                data-frame-control="move"
+                aria-hidden="true"
+                style={edge.style}
+                onPointerDown={onFrameDown}
+                onPointerMove={onFrameMove}
+                onPointerUp={onFrameUp}
+                onPointerCancel={onFrameUp}
+              />
+            ))}
+            <div
+              role="button"
+              tabIndex={-1}
+              className={styles.grip}
+              data-testid="paragraph-grip"
+              data-frame-control="move"
+              aria-label={m.paragraph_move_grip()}
+              style={{
+                left: frameBox.left + frameBox.width / 2 - GRIP_PX / 2,
+                top: frameBox.top - 3 - GRIP_PX,
+              }}
+              onPointerDown={onFrameDown}
+              onPointerMove={onFrameMove}
+              onPointerUp={onFrameUp}
+              onPointerCancel={onFrameUp}
+            />
+            {canResize
+              ? sideBars.map((bar) => (
+                  <div
+                    key={bar.side}
+                    role="button"
+                    tabIndex={-1}
+                    className={styles.bar}
+                    data-testid={`paragraph-width-${bar.side}`}
+                    data-frame-control={bar.side}
+                    data-axis={bar.axis}
+                    aria-label={m.paragraph_width_handle()}
+                    style={bar.style}
+                    onPointerDown={onFrameDown}
+                    onPointerMove={onFrameMove}
+                    onPointerUp={onFrameUp}
+                    onPointerCancel={onFrameUp}
+                  />
+                ))
+              : null}
+          </>
+        ) : null}
+      </div>
+      {guide !== null ? (
+        <div
+          className={styles.guide}
+          data-testid="paragraph-guide"
+          aria-hidden="true"
+          style={{ left: guide }}
+        />
+      ) : null}
       <div
         ref={headerRef}
         id={describedBy}
@@ -1638,6 +2026,7 @@ export function ParagraphEditor({
             </p>
           ) : null}
           {ragged ? <p className={styles.note}>{m.paragraph_ragged()}</p> : null}
+          {frameNote ? <p className={styles.note}>{frameNote}</p> : null}
           {shownError ? (
             <p className={styles.error} role="alert" data-testid="paragraph-error">
               {shownError}

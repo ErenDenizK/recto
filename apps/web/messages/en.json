@@ -1336,6 +1336,8 @@
   "paragraph_resize": "Resize paragraph",
   "paragraph_move_grip": "Drag to move",
   "paragraph_width_handle": "Drag to change width",
+  "paragraph_move_refused": "This paragraph cannot be moved: {reason}",
+  "paragraph_resize_refused": "Width is fixed: {reason}",
   "paragraph_outlines_setting": "Show paragraph outlines in Edit text",
   "labs_paragraph_frame": "Move and resize paragraphs",
   "labs_paragraph_outlines": "Paragraph outlines",

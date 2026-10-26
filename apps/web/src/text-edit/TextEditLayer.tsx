@@ -54,6 +54,7 @@ import { pageFrame } from '../viewer/page-frame';
 import { useToolStore } from '../viewer/tool-store';
 import { blockerLabel, blockerOfRun, caretOffset, focusReturnRun, runKey, wordAt } from './model';
 import { openRunEditor } from './paragraph-open';
+import { nudgeParagraph } from './paragraph-nudge';
 import {
   prefetchParagraph,
   textPrecomputeEnabled,
@@ -333,6 +334,14 @@ export function TextEditLayer(props: PageOverlayProps) {
                 block={item.target.block}
                 frame={frame}
                 onOpen={() => openParagraph(item.target)}
+                onKeyDown={(event) => {
+                  if (
+                    nudgeParagraph(event, { target, block: item.target.block, revision, frame })
+                  ) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }
+                }}
               />
             ) : (
               <RunTarget
@@ -360,11 +369,13 @@ function ParagraphTargetButton({
   block,
   frame,
   onOpen,
+  onKeyDown,
 }: {
   readonly index: number;
   readonly block: ParagraphBlock;
   readonly frame: PageFrame;
   readonly onOpen: () => void;
+  readonly onKeyDown: (event: ReactKeyboardEvent<HTMLButtonElement>) => void;
 }) {
   const box = rectToCss(frame, block.box);
   const width = Math.max(box.width + 2 * HIT_PADDING, MIN_TARGET_PX);
@@ -381,6 +392,7 @@ function ParagraphTargetButton({
         height,
       }}
       onClick={onOpen}
+      onKeyDown={onKeyDown}
     />
   );
 }
