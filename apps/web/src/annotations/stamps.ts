@@ -174,7 +174,7 @@ export async function drawnSignature(
 
 /**
  * The /Rect (user space) of a stamp placed by a click `at` a point (centred, at its natural
- * size) or by a `drag` (its width decides, the aspect stays). `natural` is the size the viewer
+ * size) or by a `drag` (its width decides, the aspect stays, at the box's top as seen). `natural` is the size the viewer
  * sees: the engine draws a stamp upright to the viewer on a page with /Rotate (DSN-81), so a
  * quarter turn swaps the /Rect's sides. The app's own view rotation is not countered.
  */
@@ -191,7 +191,14 @@ export function placedStampRect(
     const shown = Math.max(12, odd ? r.height : r.width);
     const width = odd ? shown * ratio : shown;
     const height = odd ? shown : shown * ratio;
-    return { x: r.x, y: r.y + r.height - height, width, height };
+    // Anchored at the viewer's top edge of the box: the largest user y on 0°, the smallest on
+    // 180°, the smallest user x on 90° and the largest on 270°.
+    return {
+      x: rotation === 270 ? r.x + r.width - width : r.x,
+      y: rotation === 180 ? r.y : r.y + r.height - height,
+      width,
+      height,
+    };
   }
   const width = odd ? natural.height : natural.width;
   const height = odd ? natural.width : natural.height;

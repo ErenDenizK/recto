@@ -28,21 +28,18 @@ describe('placedStampRect (DSN-81)', () => {
     });
   });
 
-  it('takes the width the viewer dragged, keeping the aspect', () => {
-    const drag = { x: 100, y: 100, width: 90, height: 90 };
-    // Unrotated: the dragged width runs along user x.
-    expect(placedStampRect(natural, 0, { drag })).toEqual({
-      x: 100,
-      y: 160,
-      width: 90,
-      height: 30,
-    });
-    // A quarter turn: along user y, so the /Rect is 30 wide and 90 tall.
-    expect(placedStampRect(natural, 90, { drag })).toEqual({
-      x: 100,
-      y: 100,
-      width: 30,
-      height: 90,
-    });
-  });
+  it.each([
+    // The dragged width runs along user x (0°, 180°) or user y (90°, 270°); the stamp sits at
+    // the viewer's top of the box: user top on 0°, user bottom on 180°, left on 90°, right on 270°.
+    [0, { x: 100, y: 160, width: 90, height: 30 }],
+    [90, { x: 100, y: 100, width: 30, height: 90 }],
+    [180, { x: 100, y: 100, width: 90, height: 30 }],
+    [270, { x: 160, y: 100, width: 30, height: 90 }],
+  ] as const)(
+    'takes the width the viewer dragged, at the box top as seen, on %i°',
+    (rotation, rect) => {
+      const drag = { x: 100, y: 100, width: 90, height: 90 };
+      expect(placedStampRect(natural, rotation, { drag })).toEqual(rect);
+    },
+  );
 });
