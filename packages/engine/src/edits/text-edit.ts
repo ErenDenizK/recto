@@ -275,7 +275,6 @@ export function readParagraphEditPayload(payload: unknown): TextEditParagraphPay
     throw invalidParagraph('layout must be a layout of the text');
   }
   if (tier !== undefined && tier !== 1 && tier !== 2) throw invalidParagraph('tier must be 1 or 2');
-  const readFrame = frame === undefined ? undefined : readFrameChange(frame);
   return {
     paragraph: { index: paragraph.index as number, runs: paragraph.runs.map(readRun) },
     text,
@@ -284,32 +283,22 @@ export function readParagraphEditPayload(payload: unknown): TextEditParagraphPay
     ...(readSpans === undefined ? {} : { spans: readSpans }),
     ...(layout === undefined ? {} : { layout: layout as unknown as ParagraphLayout }),
     ...(tier === undefined ? {} : { tier }),
-    ...(readFrame === undefined ? {} : { frame: readFrame }),
+    ...(frame !== undefined && { frame: readFrameChange(frame) }),
   };
 }
 
-/** The recorded frame change: finite offsets and, when present, an ordered measure. */
+/** A recorded frame change, checked: finite offsets and, when present, a measure left < right. */
 function readFrameChange(frame: unknown): ParagraphFrameChange {
-  if (!isObject(frame) || !Number.isFinite(frame.dx) || !Number.isFinite(frame.dy)) {
-    throw invalidParagraph('frame needs finite dx and dy');
-  }
-  const { measure } = frame;
+  const m = isObject(frame) ? frame.measure : 0;
   if (
-    measure !== undefined &&
-    (!isObject(measure) ||
-      !Number.isFinite(measure.left) ||
-      !Number.isFinite(measure.right) ||
-      (measure.left as number) >= (measure.right as number))
+    !isObject(frame) ||
+    !Number.isFinite(frame.dx) ||
+    !Number.isFinite(frame.dy) ||
+    (m !== undefined && !(isObject(m) && (m.left as number) < (m.right as number)))
   ) {
-    throw invalidParagraph('frame.measure needs finite left < right');
+    throw invalidParagraph('bad frame');
   }
-  return {
-    dx: frame.dx as number,
-    dy: frame.dy as number,
-    ...(measure === undefined
-      ? {}
-      : { measure: { left: measure.left as number, right: measure.right as number } }),
-  };
+  return frame as unknown as ParagraphFrameChange;
 }
 
 /** The recorded style spans: sorted, non-empty stretches with a style and an optional source. */
@@ -362,7 +351,7 @@ export function paragraphEditOf(
     ...(payload.style === undefined ? {} : { style: payload.style }),
     ...(payload.spans === undefined ? {} : { spans: payload.spans }),
     ...(payload.layout === undefined ? {} : { layout: payload.layout }),
-    ...(payload.frame === undefined ? {} : { frame: payload.frame }),
+    ...(payload.frame && { frame: payload.frame }),
   };
 }
 
@@ -391,15 +380,7 @@ export function paragraphEditPayloadOf(
     ...(edit.spans === undefined ? {} : { spans: edit.spans.map((span) => ({ ...span })) }),
     ...(layout === undefined ? {} : { layout }),
     ...(result ? { tier: result.tier } : {}),
-    ...(edit.frame === undefined
-      ? {}
-      : {
-          frame: {
-            dx: edit.frame.dx,
-            dy: edit.frame.dy,
-            ...(edit.frame.measure === undefined ? {} : { measure: { ...edit.frame.measure } }),
-          },
-        }),
+    ...(edit.frame && { frame: edit.frame }),
   };
 }
 
