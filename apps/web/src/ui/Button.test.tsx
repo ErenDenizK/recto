@@ -80,7 +80,7 @@ describe('Button (09-primitives §3)', () => {
     expect(bg(prominent)).toBe('rgb(200, 251, 61)');
     expect(bg(standard)).toBe('rgba(255, 255, 255, 0.08)');
     expect(bg(quiet)).toBe('rgba(0, 0, 0, 0)');
-    expect(getComputedStyle(danger).color).toBe('rgb(253, 114, 115)');
+    expect(getComputedStyle(danger).color).toBe('rgb(255, 154, 154)');
 
     // Hover: one step (where the page can hover).
     for (const [el, want] of [
@@ -99,7 +99,7 @@ describe('Button (09-primitives §3)', () => {
     if (canHover()) {
       const off = await forceState(danger, ['hover']);
       expect(bg(danger)).toBe('rgba(255, 255, 255, 0.08)');
-      expect(getComputedStyle(danger).boxShadow).toContain('rgb(253, 114, 115)');
+      expect(getComputedStyle(danger).boxShadow).toContain('rgb(255, 154, 154)');
       await off();
     }
 

@@ -70,7 +70,7 @@ describe('Checkbox (09-primitives §8)', () => {
     const box = screen.getByRole('checkbox', { name: 'Remove metadata' });
     expect(box).toHaveAttribute('aria-invalid', 'true');
     expect(box).toHaveAccessibleDescription('Choose at least one');
-    expect(getComputedStyle(box).boxShadow).toContain('rgb(253, 114, 115)');
+    expect(getComputedStyle(box).boxShadow).toContain('rgb(255, 154, 154)');
   });
 
   it('a parent box is mixed while some children are checked, and checks them all', async () => {
