@@ -12,6 +12,7 @@ import {
   type ConvertImageInput,
   type ConvertOptions,
   type ConvertPageInput,
+  type ConvertHeading,
   type ConvertReport,
   type ConvertResult,
   EngineError,
@@ -185,11 +186,13 @@ export class ConvertSession {
     } as const;
     const counts = { headings: 0, paragraphs: 0, listItems: 0, images: 0, links: 0 };
     const pageTexts: string[] = [];
+    const headingList: ConvertHeading[] = [];
     for (const page of pageBlocks) {
       const rendered = renderPage(page, style, renderOptions);
       for (const key of Object.keys(counts) as (keyof typeof counts)[])
         counts[key] += rendered.counts[key];
       pageTexts.push(rendered.text);
+      for (const heading of rendered.headings) headingList.push({ page: page.page, ...heading });
       await slicer.tick('convert: render');
     }
     const ext = format === 'markdown' ? 'md' : 'txt';
@@ -244,6 +247,7 @@ export class ConvertSession {
       pages: ordered.length,
       pagesWithoutText: ordered.filter((p) => !p.hasText).map((p) => p.index),
       headings: counts.headings,
+      headingList,
       paragraphs: counts.paragraphs,
       listItems: counts.listItems,
       images: counts.images,

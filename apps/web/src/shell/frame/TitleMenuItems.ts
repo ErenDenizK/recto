@@ -150,6 +150,8 @@ const HOMED_ELSEWHERE = new Set([
   'document.signatures',
   // The sidebar's Contents group has Add bookmark as its icon button (DSN-26).
   'outline.addBookmark',
+  // The empty Contents panel's action button (PRD-33, DSN-46).
+  'outline.fromHeadings',
 ]);
 
 /**

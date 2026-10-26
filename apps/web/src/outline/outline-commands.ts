@@ -8,7 +8,13 @@ import { countDeadOutlineLinks, getActiveDocument } from '@pdf-editor/document-m
 import type { CommandRegistry } from '../commands/registry';
 import { m } from '../i18n';
 import { useWorkspaceStore } from '../state/workspace-store';
-import { addBookmark, removeDeadLinks, showOutlinePanel } from './outline-actions';
+import {
+  addBookmark,
+  addBookmarksFromHeadings,
+  removeDeadLinks,
+  showOutlinePanel,
+  useHeadingsRunStore,
+} from './outline-actions';
 
 const activeDocument = () => getActiveDocument(useWorkspaceStore.getState().workspace);
 
@@ -26,6 +32,34 @@ export function registerOutlineCommands(registry: CommandRegistry): () => void {
         if (!doc) return;
         showOutlinePanel();
         addBookmark(doc.id);
+      },
+    }),
+    registry.register({
+      id: 'outline.fromHeadings',
+      title: m.cmd_outline_from_headings(),
+      group: m.group_document(),
+      act: 'document',
+      keywords: [
+        'bookmark',
+        'outline',
+        'toc',
+        'contents',
+        'headings',
+        'titles',
+        'generate',
+        'auto',
+      ],
+      when: () => {
+        const doc = activeDocument();
+        if (doc === undefined || doc.pages.length === 0 || doc.outline.length > 0) return false;
+        const run = useHeadingsRunStore.getState();
+        return !run.running[doc.id] && !run.none[doc.id];
+      },
+      run: () => {
+        const doc = activeDocument();
+        if (!doc) return;
+        showOutlinePanel();
+        void addBookmarksFromHeadings(doc.id);
       },
     }),
     registry.register({
