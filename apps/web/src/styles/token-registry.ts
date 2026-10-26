@@ -163,6 +163,8 @@ export const CONTROL_TOKENS: readonly string[] = [
   '--scroll-groove',
   '--scroll-groove-rim',
   '--lens-hover',
+  '--lens-selected',
+  '--lens-selected-lift',
   '--lens-pressed',
   '--lens-rim',
   '--lens-rim-flat',

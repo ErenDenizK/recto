@@ -334,8 +334,8 @@
   position: absolute;
   inset: var(--tab-fill-inset);
   border-radius: inherit;
-  background: rgb(var(--white-rgb) / 0.1);
-  box-shadow: var(--lens-rim);
+  background: var(--lens-selected);
+  box-shadow: var(--lens-rim), var(--lens-selected-lift);
   opacity: 0;
   pointer-events: none;
   /* The slide scales it along x about its leading edge (tab-motion.ts, MOT-15). */
@@ -344,13 +344,6 @@
 
 .tabWrap[data-selected] > .tabFill {
   opacity: 1;
-}
-
-:global(:root[data-theme='light']) .tabFill {
-  background: rgb(var(--white-rgb) / 0.92);
-  box-shadow:
-    var(--lens-rim),
-    0 1px 3px -1px rgb(var(--ink-rgb) / 0.2);
 }
 
 /* The active tab's menu open (F5): the fill a step deeper, as a pressed trigger (G6). */
