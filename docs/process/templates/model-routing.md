@@ -6,17 +6,17 @@ implementer, reviewer; copy them from Recto and change the repo-specific lines).
 
 ## The rule
 
-Opus decides the "what", judges taste and gives the final review; Sonnet does the "how" from a
-settled spec; Haiku reads and reports. Effort `medium`; never `xhigh` or `max`.
+The judge decides the "what", settles taste and gives the final review; the builder does the "how" from a
+settled spec; the reader reads and reports. Effort `medium`; never `xhigh` or `max`.
 
-| Work | Model | Agent | This project's examples |
+| Work | Role | Agent | This project's examples |
 |---|---|---|---|
-| Lead: plans, briefs, merges, final say | Opus 5.5 | main session | |
-| Research, concepts, taste, design language | Opus 5.5 | general-purpose with `model: "opus"` | |
-| Bugs with an unknown cause, profiling, risky cross-module change | Opus 5.5 | general-purpose with `model: "opus"` | |
-| Building a settled spec; refactors, tests, docs, copy; CI fixes with a known cause | Sonnet 5.5 | `implementer` | |
-| Review before a risky or multi-file PR | Opus 5.5 | `reviewer` | |
-| Search, inventories, CI and test logs, doc checks | Haiku 5.5 | `Explore`, `log-reader` | |
+| Lead: plans, briefs, merges, final say | judge | main session | |
+| Research, concepts, taste, design language | judge | general-purpose on the judge model | |
+| Bugs with an unknown cause, profiling, risky cross-module change | judge | general-purpose on the judge model | |
+| Building a settled spec; refactors, tests, docs, copy; CI fixes with a known cause | builder | `implementer` | |
+| Review before a risky or multi-file PR | judge | `reviewer` | |
+| Search, inventories, CI and test logs, doc checks | reader | `Explore`, `log-reader` | |
 
 ## Guards
 
@@ -24,7 +24,7 @@ settled spec; Haiku reads and reports. Effort `medium`; never `xhigh` or `max`.
   `git diff --stat` against it before the PR and sends stray edits back.
 - Stop rule: an implementer that meets an unsettled decision stops and asks; it does not guess.
 - Briefs: objective, decisions to read, files in and out of scope, checks, output, done condition.
-- Haiku: read-only, prompts under 100K tokens, no code edits.
+- Reader: read-only, prompts under 100K tokens, no code edits.
 - No mid-run model or effort switches.
 
 ## Measurement

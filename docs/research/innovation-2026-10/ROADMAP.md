@@ -1,3 +1,5 @@
+> **Superseded by [`docs/company/roadmap.md`](../../company/roadmap.md)** and the rows of [`docs/process/decisions.md`](../../process/decisions.md). Kept in place because the decisions index cites it as a source (R12).
+
 # Recto R12: innovation roadmap
 
 Date: 2026-10-09. Status: **final proposal for the owner's review.** Nothing here is decided until

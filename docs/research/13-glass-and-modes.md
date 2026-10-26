@@ -4,6 +4,8 @@ date: 2026-10-03
 status: snapshot
 ---
 
+> **Snapshot.** Superseded by the glass decisions GLS-20 and GLS-21 in [`docs/process/decisions.md`](../process/decisions.md) and ADR-0024; read it as the record of what was known then.
+
 > Research snapshot gathered on 2026-10-03. Apple's guidance was read from the JSON data behind
 > the Human Interface Guidelines (`developer.apple.com/tutorials/data/…`); Microsoft's from the
 > `MicrosoftDocs/windows-dev-docs` and `microsoft/microsoft-ui-xaml` sources on GitHub; browser

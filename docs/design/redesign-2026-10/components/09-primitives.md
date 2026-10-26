@@ -6,7 +6,7 @@ status: proposed
 
 > Wave 2 component spec. Binding inputs: [`flows.md`](../flows.md) (cited F§) and
 > [`language.md`](../language.md) (cited L§), with its ten §13.2 amendments applied. Evidence:
-> [`inventory.md`](../inventory.md) (family 15.2, rows 15.2.1–15.2.11, 8.21, INV ids), research
+> [`inventory.md`](../../../archive/design/redesign-2026-10/inventory.md) (family 15.2, rows 15.2.1–15.2.11, 8.21, INV ids), research
 > 16–22 (G, AU, MO, MP, M, T, I, X, A ids) and the sibling specs 01–05 (cited as 01§ … 05§). Code
 > facts are from `develop`: `apps/web/src/ui/*`, `styles/tokens.css`, `global.css`, `fonts.css`,
 > `tokens.test.ts`, `state/appearance-store.ts`, `playwright.config.ts`, `vitest.config.ts`,

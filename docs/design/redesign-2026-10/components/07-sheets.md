@@ -6,7 +6,7 @@ status: proposed
 
 > Wave 2 component spec. Binding inputs: [`flows.md`](../flows.md) (cited F§) and
 > [`language.md`](../language.md) (cited L§) with its §13.2 amendments applied. Evidence:
-> [`inventory.md`](../inventory.md) family 12 (rows 12.1–12.27), 13.2, 14.7, 15.1.1, 15.1.3, 15.1.4,
+> [`inventory.md`](../../../archive/design/redesign-2026-10/inventory.md) family 12 (rows 12.1–12.27), 13.2, 14.7, 15.1.1, 15.1.3, 15.1.4,
 > INV-1, INV-6, INV-12, INV-18, INV-20; baseline frames `21-shortcuts`, `22-export-*`, `23-combine-*`,
 > `24-document-info`, `25-page-numbers`, `26-signature`, `27-about`; research 15, 16, 18, 19, 22
 > (RA, G, MC, M, A ids). Code read on `develop`: `export/ExportDialog.tsx`, `export/deliver.ts`,

@@ -7,10 +7,10 @@ nothing is tagged until the owner says "beta v1") ·
 
 **Inputs:** the owner's brief of 2026-10-04 (in translation; §1.1); research 15–22
 (`docs/research/15-reference-apps.md` to `22-accessible-expressive-ui.md`); the visual baseline
-and today's flows ([`baseline/README.md`](../design/redesign-2026-10/baseline/README.md),
-[`inventory.md`](../design/redesign-2026-10/inventory.md),
-[`current-flows.md`](../design/redesign-2026-10/current-flows.md)); proposals A, B and C
-([`proposals/`](../design/redesign-2026-10/proposals/A-markup-toggle.md)) and the three judges'
+and today's flows (`baseline/README.md` (deleted, see [the archive](../archive/README.md)),
+[`inventory.md`](../archive/design/redesign-2026-10/inventory.md),
+[`current-flows.md`](../archive/design/redesign-2026-10/current-flows.md)); proposals A, B and C
+([`proposals/`](../archive/design/redesign-2026-10/proposals/A-markup-toggle.md)) and the three judges'
 verdicts summarised in `flows.md`'s header; the chosen model
 [`flows.md`](../design/redesign-2026-10/flows.md); the language
 [`language.md`](../design/redesign-2026-10/language.md); the nine component specs
@@ -20,7 +20,7 @@ verdicts summarised in `flows.md`'s header; the chosen model
 [`quality-bar.md`](../design/redesign-2026-10/quality-bar.md); ADR-0022 to ADR-0033 (accepted
 2026-10-04); the brand plan [`docs/brand/README.md`](../brand/README.md); the issues
 the nine component authors and the ADR author raised for the lead (§6); `docs/DESIGN.md`;
-[`craft.md`](craft.md) (M8) and [`experience-redesign.md`](experience-redesign.md) (M6).
+[`craft.md`](craft.md) (M8) and [`experience-redesign.md`](../archive/specs/experience-redesign.md) (M6).
 
 M8 made every feature work; the owner's verdict was that nothing feels native yet, and the
 brief of 2026-10-04 asks for the whole interface to be rethought. This spec is the build plan:
