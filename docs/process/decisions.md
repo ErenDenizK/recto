@@ -170,6 +170,7 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-74](decisions/design.md) | Turkish copy rules: *siz* in sentences, bare imperatives on controls, past passives in history; *karart* means redaction only (Dim pages is "Sayfa parlaklığını azalt"); ’ before suffixes on names and abbreviations | In force | 2026-10-23 |
 | [DSN-80](decisions/design.md) | Colour spot fixes: `--sign-hint` at 0.75, Review glyph darkened in light, Dim pages disabled state already exposed | In force | 2026-10-25 |
 | [DSN-76](decisions/design.md) | A visible Tools entry on the dock (no flag): Redact, OCR, Compare, Combine, Split, Compress as doorways to the title menu's own commands (DSN-46) | In force (owner board yes, 25 Oct) | 2026-10-24 |
+| [DSN-81](decisions/design.md) | Stamps and signatures are upright to the viewer on rotated pages: content counter-rotated by /Rotate in the appearance (IM-19) | In force | 2026-10-26 |
 | [DSN-77](decisions/design.md) | A success toast clears that action's earlier errors (same key); Use signature shows a placement hint; the phone's Delete pill keeps off form fields | In force | 2026-10-25 |
 | [DSN-75](decisions/design.md) | Fill & sign gets its own short bar (field stepping, Signature, Date, Done) (no flag), replacing the shared palette on that door | In force (owner board yes, 25 Oct) | 2026-10-24 |
 | [DSN-79](decisions/design.md) | Dark text ladder lifted for APCA: dark n9/n10/n11 and danger step up, light n10 darker, APCA floor test (colour audit 25 Oct 2026) | In force | 2026-10-25 |
