@@ -406,7 +406,7 @@ const EN: SampleCopy = {
       phone: [
         'Pinch any page smaller to see them all. Tap a page to go back into it.',
         'Press and hold a page, then drag it to move it. Select lets you rotate, delete or share pages; Add brings in pages from another file.',
-        'Your changes stay on this device. When you are done, choose Save a copy or Share a copy in the More menu.',
+        'Your changes stay on this device. When you are done, choose Save a copy or Share a copy in the menu.',
         'The scanned letter, the invoice and every other tool are in the sample on a computer or tablet.',
       ],
     },
@@ -678,7 +678,7 @@ const TR: SampleCopy = {
       phone: [
         'Bütün sayfaları görmek için bir sayfayı iki parmağınızla küçültün; geri dönmek için bir sayfaya dokunun.',
         'Bir sayfayı taşımak için basılı tutup sürükleyin. Seç ile sayfaları döndürebilir, silebilir ya da paylaşabilirsiniz; Ekle, başka bir dosyadan sayfa getirir.',
-        'Değişiklikleriniz bu cihazda kalır. Bitince Diğer menüsünden Kopya kaydet’i ya da Kopyasını paylaş’ı seçin.',
+        'Değişiklikleriniz bu cihazda kalır. Bitince menüden Kopya kaydet’i ya da Kopyasını paylaş’ı seçin.',
         'Taranmış mektup, fatura ve diğer bütün araçlar bilgisayar ve tabletteki örnek belgede.',
       ],
     },

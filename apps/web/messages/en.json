@@ -1324,6 +1324,7 @@
   "paragraph_info_label": "About paragraph editing",
   "paragraph_info_text": "Recto rewraps the text inside this paragraph using the paragraph's own font, size, colour and spacing. Lines you did not change keep their exact spacing, and move up or down only if the paragraph gains or loses a line. Recto never moves other content on the page and never moves text to another page: a PDF stores finished pages, not a flowing document. If you type a character that the font in this file does not contain, Recto shows it in a different font and tells you which one.",
   "paragraph_hint": "Esc or click outside to apply",
+  "paragraph_hint_touch": "Tap outside to apply",
   "paragraph_loading": "Preparing the paragraph…",
   "paragraph_refused": "Paragraph editing is not available here: {reason}",
   "paragraph_reason_drop_cap": "a large initial letter spans several lines",
@@ -5199,7 +5200,16 @@
   "scan_mode": "Capture mode",
   "scan_mode_auto": "Auto",
   "scan_mode_manual": "Manual",
-  "scan_stack": "Review {count} pages",
+  "scan_stack": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Review {count} page",
+        "countPlural=*": "Review {count} pages"
+      }
+    }
+  ],
   "scan_done": "Done",
   "scan_done_busy": "Making the PDF…",
   "scan_another": "Scan another page",

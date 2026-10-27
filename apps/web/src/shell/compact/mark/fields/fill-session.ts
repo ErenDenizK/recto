@@ -97,12 +97,16 @@ const reading = () => !useCompactStore.getState().editing;
 function offerUndo(base: number): void {
   void whenIdle().then(() => {
     if (session !== null || !reading() || historyLength() <= base) return;
-    lastToast = toast.undo(m.compact_fill_done(), {
-      key: TOAST_KEY,
-      testId: 'compact-fill-toast',
-    });
+    showUndo();
   });
 }
+
+function showUndo(): void {
+  lastToast = toast.undo(m.compact_fill_done(), { key: TOAST_KEY, testId: 'compact-fill-toast' });
+}
+
+/** Tests: raise the Undo toast as a finished fill does. */
+export const showFillUndoForTests = showUndo;
 
 /** May fills happen? A toast says why not. */
 function mayFill(field: FormField): boolean {
@@ -337,6 +341,15 @@ useFormStore.subscribe((state, previous) => {
 // Leaving the reader or the document ends the flow.
 useCompactStore.subscribe((state, previous) => {
   if (state.place !== previous.place && state.place !== 'reader') end();
+  // The tool drawer or the edit island opening takes the fill toast away: it would sit over the
+  // drawer's first row, as other toasts step aside for scrim sheets (DSN-56).
+  if (
+    lastToast !== null &&
+    ((state.drawerOpen && !previous.drawerOpen) || (state.editing && !previous.editing))
+  ) {
+    toast.dismiss(lastToast);
+    lastToast = null;
+  }
 });
 useWorkspaceStore.subscribe((state, previous) => {
   if (state.workspace.activeDocument !== previous.workspace.activeDocument) end();

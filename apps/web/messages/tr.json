@@ -983,6 +983,7 @@
   "paragraph_info_label": "Paragraf düzenleme hakkında",
   "paragraph_info_text": "Recto bu paragraftaki metni, paragrafın kendi yazı tipi, boyutu, rengi ve aralıklarıyla yeniden satırlara yerleştirir. Değiştirmediğiniz satırlar aralıklarını tam olarak korur ve yalnızca paragraf bir satır kazanır ya da kaybederse yukarı veya aşağı kayar. Recto sayfadaki başka içeriği asla taşımaz ve metni asla başka bir sayfaya aktarmaz: PDF akan bir belge değil, bitmiş sayfalar saklar. Bu dosyadaki yazı tipinde bulunmayan bir karakter yazarsanız Recto onu başka bir yazı tipiyle gösterir ve hangisi olduğunu söyler.",
   "paragraph_hint": "Uygulamak için Esc tuşuna basın ya da dışarı tıklayın",
+  "paragraph_hint_touch": "Uygulamak için dışarı dokunun",
   "paragraph_loading": "Paragraf hazırlanıyor…",
   "paragraph_refused": "Burada paragraf düzenleme kullanılamıyor: {reason}",
   "paragraph_reason_drop_cap": "büyük bir baş harf birkaç satıra yayılıyor",
