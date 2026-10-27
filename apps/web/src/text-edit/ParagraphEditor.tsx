@@ -152,6 +152,7 @@ import {
   paragraphLayoutAnalysis,
   useTextEditStore,
 } from './text-edit-store';
+import { readPointerCapabilities } from '../shell/frame/input-modality';
 import { gripEdge, type HeaderPlace, placeHeader } from './header-place';
 
 /**
@@ -168,7 +169,16 @@ export interface ParagraphEditorEdition {
   readonly hint: () => string;
 }
 
-const DESKTOP_EDITION: ParagraphEditorEdition = { minMirrorPx: 0, hint: () => m.paragraph_hint() };
+/** Touch-only devices (no mouse or trackpad beside the screen) have no Esc and no click. */
+const touchOnly = (): boolean => {
+  const { anyCoarse, anyFine } = readPointerCapabilities();
+  return anyCoarse && !anyFine;
+};
+
+const DESKTOP_EDITION: ParagraphEditorEdition = {
+  minMirrorPx: 0,
+  hint: () => (touchOnly() ? m.paragraph_hint_touch() : m.paragraph_hint()),
+};
 let edition = DESKTOP_EDITION;
 
 /** Sets what the edition changes (unset fields keep the desktop's); returns the previous. */

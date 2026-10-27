@@ -1,14 +1,17 @@
 /** The flag registry's resolution order and the Labs state's persistence (DSN-82). */
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { hasToast } from '../ui/Toast/toast';
 import { decideHomeFlag, HOME_SEARCH_FLAG } from '../home/home-flags';
 import { decidePaletteVariant } from '../markup/palette-variant';
 import { anyFlagOnByAddress, LABS_FLAGS, resolveFlag } from './flags';
 import {
   createRevealTap,
+  dismissLabsToast,
   labsState,
   resetLabs,
   resetLabsStoreForTests,
+  revealLabs,
   setLabsFlag,
 } from './store';
 import { LABS_KEY, labsStored, readLabs } from './stored';
@@ -133,5 +136,14 @@ describe('createRevealTap', () => {
       tap();
     }
     expect(labsState().shown).toBe(true);
+  });
+});
+
+describe('the Labs on toast', () => {
+  it('goes when Settings closes', () => {
+    revealLabs();
+    expect(hasToast('labs-on')).toBe(true);
+    dismissLabsToast();
+    expect(hasToast('labs-on')).toBe(false);
   });
 });

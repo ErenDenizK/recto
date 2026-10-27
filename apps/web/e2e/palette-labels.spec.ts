@@ -38,8 +38,10 @@ async function bloomAndSettle(page: Page, name: string, lang = 'en'): Promise<vo
     await page.screenshot({ path: `${shots}/bloomed-${name}.png` });
   }
   await expect(bloom).toHaveCount(0, { timeout: 8000 });
-  await page.waitForTimeout(800);
-  if (shots) await page.screenshot({ path: `${shots}/settled-${name}.png` });
+  if (shots) {
+    await page.waitForTimeout(800); // review shots only: the frame wanted is a point in the fade
+    await page.screenshot({ path: `${shots}/settled-${name}.png` });
+  }
 }
 
 test.describe('labels that bloom', () => {
