@@ -5245,6 +5245,7 @@
   "labs_edition_all": "All editions.",
   "labs_by_address": "Set by the address.",
   "labs_reload": "Reload to apply.",
+  "labs_reload_now": "Reload now",
   "labs_reset_label": "Reset all",
   "labs_reset_hint": "Every feature goes back to its default.",
   "labs_reset": "Reset all",

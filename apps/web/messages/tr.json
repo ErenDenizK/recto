@@ -3560,6 +3560,7 @@
   "labs_edition_all": "Tüm sürümler.",
   "labs_by_address": "Adres çubuğundaki ayar geçerli.",
   "labs_reload": "Uygulamak için sayfayı yenile.",
+  "labs_reload_now": "Şimdi yenile",
   "labs_reset_label": "Tümünü sıfırla",
   "labs_reset_hint": "Tüm özellikler varsayılana döner.",
   "labs_reset": "Tümünü sıfırla",
