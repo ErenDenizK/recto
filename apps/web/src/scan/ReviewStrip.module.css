@@ -1,0 +1,107 @@
+/* The review (plan bm-scan-plan §3): the page, its actions, the strip of pages. */
+.review {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  gap: var(--space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+.stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.page {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.pending {
+  color: var(--text-secondary);
+}
+
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.actions,
+.move {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* A small segmented control: the preview, not the filters, leads. */
+.filter {
+  width: 300px;
+  max-width: 100%;
+}
+
+.strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.thumbs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-1) 0;
+  overflow-x: auto;
+  list-style: none;
+}
+
+.thumb {
+  composes: focus-gap from global;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 72px;
+  padding: 0;
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.thumb[aria-current='true'] {
+  border-color: var(--accent);
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.number {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  min-width: 18px;
+  padding: 0 4px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font-size: var(--type-caption);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}

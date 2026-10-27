@@ -9,8 +9,7 @@
  * - **Switch** flags are `'1'` (on) or `'0'` (off) in Labs and in `legacy`; the address turns
  *   one on with its `on` word (`?home=search`) and off with `0`.
  * - **Choice** flags keep the value itself.
- * - `scan` has no reader on this branch (`scan/scan-flag.ts` lands with its own change); its
- *   row waits here and the reader gets the same one-line `labsStored` call.
+ * - `scan`'s reader is `scan/scan-flag.ts`.
  */
 import type { LabsState } from './stored';
 

@@ -101,6 +101,12 @@
   --surface-active: rgb(var(--white-rgb) / 0.075);
   /* Dim only, never a blur (G-31). */
   --scrim: rgb(5 6 8 / 0.5);
+  /* The scan's camera stage (big move 1): black behind the video, white ink and a dark wash for
+     the hint over it, and the white flash. The picture is the camera's, so these do not change
+     with the theme. */
+  --camera-stage: #000;
+  --camera-ink: #fff;
+  --camera-wash: rgb(0 0 0 / 0.6);
 
   /* Layer 2: borders. One hairline alpha (0.10) for dividers, surfaces, glass, keycaps and the
      page; one stronger step (0.16) for outlines that need to be found; the swatch ring
@@ -478,6 +484,9 @@
   --surface-active: rgb(var(--ink-rgb) / 0.07);
   /* Dim only, never a blur (G-31). */
   --scrim: rgb(var(--ink-rgb) / 0.28);
+  --camera-stage: #000; /* the camera stage keeps its colours in the light theme */
+  --camera-ink: #fff;
+  --camera-wash: rgb(0 0 0 / 0.6);
 
   /* Layer 2: borders, in ink. The glass border is the hairline too: light glass draws its shape
      with a dark edge outside and a white rim inside (language.md §2.4). */
@@ -785,6 +794,9 @@
     --surface-active: rgb(var(--ink-rgb) / 0.07);
     /* Dim only, never a blur (G-31). */
     --scrim: rgb(var(--ink-rgb) / 0.28);
+    --camera-stage: #000; /* the camera stage keeps its colours in the light theme */
+    --camera-ink: #fff;
+    --camera-wash: rgb(0 0 0 / 0.6);
 
     /* Layer 2: borders, in ink. The glass border is the hairline too: light glass draws its shape
        with a dark edge outside and a white rim inside (language.md §2.4). */
