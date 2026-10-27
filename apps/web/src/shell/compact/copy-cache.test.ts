@@ -8,12 +8,11 @@ import type { VirtualDocument, Workspace } from '@pdf-editor/document-model';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { useToastStore } from '../../ui/Toast/toast-store';
-
 import simpleUrl from '../../../../../test/fixtures/simple-text.pdf?url';
 import { createAnnotations } from '../../annotations/actions';
 import { undoStep } from '../../history/actions';
 import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
+import { useToastStore } from '../../ui/Toast/toast-store';
 import { fixtureFile } from '../../../test/store-harness';
 import {
   copyKey,

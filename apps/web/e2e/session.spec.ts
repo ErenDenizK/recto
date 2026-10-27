@@ -188,7 +188,13 @@ test('a stamp and an image signature survive a reload; Undo across them; export 
   await expect(stamps).toHaveCount(1, { timeout: 10_000 });
 
   // An image signature drawn on the pad (today's signature tool), placed on the page.
-  await bar.getByRole('button', { name: 'Sign', exact: true }).click();
+  await bar.getByRole('button', { name: 'Done', exact: true }).click();
+  await expect(bar).toBeHidden();
+  await page.locator('[data-dock-item="sign"]').click();
+  await page
+    .getByRole('toolbar', { name: 'Fill & sign', exact: true })
+    .getByRole('button', { name: 'Sign', exact: true })
+    .click();
   const pad = page.getByLabel('Signature pad: draw with the mouse, pen or finger');
   await expect(pad).toBeVisible();
   // The sheet grows out of Sign (MOT-9): read the pad's box once it has come to rest.

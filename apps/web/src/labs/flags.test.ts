@@ -27,15 +27,15 @@ beforeEach(() => {
 
 describe('resolveFlag', () => {
   it('goes address, then Labs toggle, then the flag’s own value, then the default', () => {
-    const fillbar = flag('fillbar');
-    expect(resolveFlag(fillbar, '', {}, null)).toEqual({ value: '0', source: 'default' });
-    expect(resolveFlag(fillbar, '', {}, '1')).toEqual({ value: '1', source: 'own' });
-    expect(resolveFlag(fillbar, '', { fillbar: '0' }, '1')).toEqual({ value: '0', source: 'labs' });
-    expect(resolveFlag(fillbar, '?fillbar=1', { fillbar: '0' }, null)).toEqual({
+    const margin = flag('margin');
+    expect(resolveFlag(margin, '', {}, null)).toEqual({ value: '0', source: 'default' });
+    expect(resolveFlag(margin, '', {}, '1')).toEqual({ value: '1', source: 'own' });
+    expect(resolveFlag(margin, '', { margin: '0' }, '1')).toEqual({ value: '0', source: 'labs' });
+    expect(resolveFlag(margin, '?margin=1', { margin: '0' }, null)).toEqual({
       value: '1',
       source: 'url',
     });
-    expect(resolveFlag(fillbar, '?fillbar=0', { fillbar: '1' }, '1').value).toBe('0');
+    expect(resolveFlag(margin, '?margin=0', { margin: '1' }, '1').value).toBe('0');
   });
 
   it('turns a shared parameter on only with its own word', () => {
@@ -78,8 +78,8 @@ describe('resolveFlag', () => {
 describe('anyFlagOnByAddress', () => {
   it('is true only when the address moves a flag off its default', () => {
     expect(anyFlagOnByAddress('')).toBe(false);
-    expect(anyFlagOnByAddress('?tools=0&top=split')).toBe(false);
-    expect(anyFlagOnByAddress('?tools=1')).toBe(true);
+    expect(anyFlagOnByAddress('?margin=0&top=split')).toBe(false);
+    expect(anyFlagOnByAddress('?margin=1')).toBe(true);
     expect(anyFlagOnByAddress('?top=capsule')).toBe(true);
     expect(anyFlagOnByAddress('?phonebar=1')).toBe(true);
     expect(anyFlagOnByAddress('?phonebar=0')).toBe(false);

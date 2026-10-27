@@ -5,7 +5,7 @@
  */
 import { expect, test } from '@playwright/test';
 
-import { openFixtures, useFileInputPicker } from './helpers';
+import { enterEdit, openFixtures, useFileInputPicker } from './helpers';
 
 test.skip(
   ({ browserName }) => browserName !== 'chromium',
@@ -21,6 +21,7 @@ test('undo of a close reopens the parked document with its edits', async ({ page
 
   // One rectangle on page 1, so there is an engine edit to replay.
   const layer = page.locator('[data-annotation-layer="0"]');
+  await enterEdit(page);
   await page.locator('body').press('r');
   const box = await layer.boundingBox();
   if (!box) throw new Error('page not rendered');

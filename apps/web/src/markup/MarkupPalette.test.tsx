@@ -16,6 +16,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { page, userEvent } from 'vitest/browser';
 
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
+import { settled } from '../../test/settled';
 import { fixtureFile } from '../../test/store-harness';
 import {
   type PageTarget,
@@ -102,7 +103,7 @@ async function openMarkup(door: 'Markup' | 'Fill & sign' = 'Markup'): Promise<vo
     }),
   );
   await waitFor(() => expect(isMarkupOpenActive()).toBe(true));
-  await screen.findByRole('toolbar', { name: 'Markup' });
+  await screen.findByRole('toolbar', { name: door === 'Markup' ? 'Markup' : 'Fill & sign' });
 }
 
 function press(layer: HTMLElement, at: [number, number], pointerType = 'mouse'): () => void {
@@ -425,22 +426,26 @@ describe('Markup palette', () => {
     expect(useAnnotationStore.getState().selection).toBeNull();
   });
 
-  it('the Fill & sign door shows saved signatures as chips; a chip arms it', async () => {
+  const bar = () => document.querySelector<HTMLElement>('[data-fill-bar]') as HTMLElement;
+  it('the Fill & sign door bar shows saved signatures as chips; a chip arms it (DSN-75)', async () => {
     await page.viewport(1440, 900);
     await saveSignature({ kind: 'typed', text: 'Ada Lindqvist' });
     await mount();
     await openMarkup('Fill & sign');
     const chips = await waitFor(() => {
-      const found = palette().querySelectorAll<HTMLElement>('[data-saved-signature]');
+      const found = bar().querySelectorAll<HTMLElement>('[data-saved-signature]');
       if (found.length === 0) throw new Error('no chips');
       return found;
     });
     expect(chips).toHaveLength(1);
+    await settled(bar());
     await userEvent.click(chips[0] as HTMLElement);
-    await waitFor(() => expect(useToolStore.getState().mode).toBe('signature'));
+    // Arming renders the typed signature to a stamp first (`stampOfSignature`: its face loads),
+    // which takes longer than waitFor's default second on a slow CI runner.
+    await waitFor(() => expect(useToolStore.getState().mode).toBe('signature'), { timeout: 5000 });
     expect(chips[0]).toHaveAttribute('aria-pressed', 'true');
-    // One pressed control across the palette.
-    expect(palette().querySelectorAll('[aria-pressed="true"]')).toHaveLength(1);
+    // One pressed control across the bar.
+    expect(bar().querySelectorAll('[aria-pressed="true"]')).toHaveLength(1);
   });
 });
 

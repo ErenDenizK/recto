@@ -1,6 +1,6 @@
 /**
  * The flag registry (DSN-82): one list of every feature flag in the app, for the Labs panel in
- * Settings. The readers stay where they are (`tools-flag.ts`, `office/flag.ts`, …); each passes
+ * Settings. The readers stay where they are (`office/flag.ts`, `margin-map-flag.ts`, …); each passes
  * its Labs toggle in as its stored value (`labsStored`), so the order is the address, the Labs
  * toggle, what the flag kept itself (`legacy`), then the default. No default is changed here.
  *
@@ -9,14 +9,11 @@
  * - **Switch** flags are `'1'` (on) or `'0'` (off) in Labs and in `legacy`; the address turns
  *   one on with its `on` word (`?home=search`) and off with `0`.
  * - **Choice** flags keep the value itself.
- * - `scan` has no reader on this branch (`scan/scan-flag.ts` lands with its own change); its
- *   row waits here and the reader gets the same one-line `labsStored` call.
+ * - `scan`'s reader is `scan/scan-flag.ts`.
  */
 import type { LabsState } from './stored';
 
 export type LabsKey =
-  | 'tools'
-  | 'fillbar'
   | 'margin'
   | 'strip'
   | 'palette'
@@ -97,8 +94,6 @@ const local = (key: string) => ({ area: 'local', key }) as const;
 const session = (key: string) => ({ area: 'session', key }) as const;
 
 export const LABS_FLAGS: readonly LabsFlag[] = [
-  sw('tools', 'tools', 'full', 'prototype'),
-  sw('fillbar', 'fillbar', 'full', 'prototype', local('pdf-editor:fillbar:v1')),
   sw('margin', 'margin', 'full', 'prototype', local('pdf-editor:margin:v1')),
   sw('strip', 'strip', 'all', 'prototype', local('pdf-editor:strip:v1')),
   choice('palette', 'palette', ['row', 'groups', 'labels'], 'full', local('pdf-editor:palette:v1')),

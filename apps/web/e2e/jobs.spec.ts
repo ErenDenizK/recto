@@ -468,7 +468,7 @@ test.describe('core jobs', () => {
     test.setTimeout(180_000);
     await startJob(page);
     const job = new Job('V1-F4', 'Fill and sign', page, info);
-    const palette = page.getByRole('toolbar', { name: 'Markup', exact: true });
+    const palette = page.getByRole('toolbar', { name: 'Fill & sign', exact: true });
     const layer = page.locator('[data-annotation-layer="0"]');
     const stamps = layer.locator('[data-annotation-kind="stamp"]');
     await job.act(

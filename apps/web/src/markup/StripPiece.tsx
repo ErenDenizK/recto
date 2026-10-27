@@ -33,11 +33,7 @@ import { duration, EASE } from '../motion/tokens';
 import { snapToWholePixels } from '../ui/whole-pixels';
 import { InkStrip, type StripKind } from './InkStrip';
 import { paletteEscape } from './palette-escape';
-import { SignatureChips } from './SignGroup';
 import styles from './StripPiece.module.css';
-
-/** What the piece holds: an armed tool's ink strip, or the Fill & sign door's chips. */
-export type StripContent = StripKind | 'chips';
 
 /**
  * How the piece comes in and goes (*tier rise*, language.md §7.3; G6): from 8 px lower and
@@ -48,7 +44,7 @@ const AWAY = [0, 8, 0.98, 0.98] as const;
 const HOME = [0, 0, 1, 1] as const;
 
 interface Seen {
-  readonly shown: StripContent | null;
+  readonly shown: StripKind | null;
   readonly leaving: boolean;
 }
 
@@ -57,13 +53,13 @@ export function StripPiece({
   stroking = false,
 }: {
   /** What to show, or null to let the piece go. */
-  readonly content: StripContent | null;
+  readonly content: StripKind | null;
   readonly stroking?: boolean | undefined;
 }): ReactNode {
   const ref = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   // The content drawn: the one asked for, or, while the piece goes, the one it had.
-  const [shown, setShown] = useState<StripContent | null>(content);
+  const [shown, setShown] = useState<StripKind | null>(content);
   if (content !== null && content !== shown) setShown(content);
   const leaving = content === null && shown !== null;
   const present = shown !== null;
@@ -198,7 +194,7 @@ export function StripPiece({
       onKeyDownCapture={paletteEscape}
     >
       <div ref={innerRef} className={styles.content}>
-        {shown === 'chips' ? <SignatureChips /> : <InkStrip kind={shown} />}
+        <InkStrip kind={shown} />
       </div>
     </div>
   );
