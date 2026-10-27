@@ -13,7 +13,7 @@ roadmap stay proposals until the owner marks a row.
 the row it names. *Open*: asked, not yet answered. Do not act on an open row; keep its safe
 default.
 
-**Ids.** Rows carry a log id (PRD, DSN, MOT, GLS, INK, EDN, PRC, TXT, MOB, PF, RED) so they never clash with the
+**Ids.** Rows carry a log id (PRD, DSN, MOT, GLS, INK, EDN, PRC, TXT, MOB, PF, RED, ART) so they never clash with the
 sources' own ids (R12's D-1 to D-5, PLAN's P-1 to P-8, the feedback's F and G items), which each
 row quotes.
 
@@ -355,6 +355,14 @@ Full rows: [`decisions/redaction.md`](decisions/redaction.md).
 | Id | Decision | Status | Date |
 |---|---|---|---|
 | [RED-1](decisions/redaction.md) | A mark drawn over a redaction after it was applied does not stop the copy (unless flattened: refused, explained) | In force | 2026-10-22 |
+
+## Reference research
+
+Full rows: [`decisions/reference-research.md`](decisions/reference-research.md).
+
+| Id | Decision | Status | Date |
+|---|---|---|---|
+| [ART-1](decisions/reference-research.md) | Reference research learns ideas from open code and public docs; no reverse engineering, no copying (owner) | In force | 2026-10-26 |
 
 ## Process
 
