@@ -250,7 +250,8 @@
   touch-action: none;
 }
 
-/* The grip: a notch above the frame's top edge in a 44 px touch target (Q-9). */
+/* The grip: a notch above the frame's top edge in a 44 px touch target (Q-9); below its
+   bottom edge when the top would lie on another paragraph (TXT-26). */
 .grip {
   position: absolute;
   z-index: 5;
@@ -264,6 +265,11 @@
   pointer-events: auto;
   cursor: move;
   touch-action: none;
+}
+
+.grip[data-edge='bottom'] {
+  align-items: flex-start;
+  padding-block: var(--space-1) 0;
 }
 
 .grip::after {

@@ -152,7 +152,7 @@ import {
   paragraphLayoutAnalysis,
   useTextEditStore,
 } from './text-edit-store';
-import { type HeaderPlace, placeHeader } from './header-place';
+import { gripEdge, type HeaderPlace, placeHeader } from './header-place';
 
 /**
  * What an edition changes in the editor (the phone, `shell/compact/mark/edit-text-layer.tsx`):
@@ -223,6 +223,8 @@ interface FrameDrag {
 
 /** The grip's and the side bars' touch targets, CSS px (quality bar Q-9). */
 const GRIP_PX = 44;
+/** The grip's drawn notch (`.grip::after`, --space-6 wide) and how far it stands out. */
+const GRIP_NOTCH = { width: 24, reach: 12 };
 const TARGET_PX = 44;
 
 /** Room kept around the drawn area on the canvas, CSS pixels. */
@@ -512,10 +514,12 @@ export function ParagraphEditor({
   const moveRef = useRef<FrameDraft | null>(null);
   const dragRef = useRef<FrameDrag | null>(null);
   const movedOverRef = useRef(false);
-  /** The page's other paragraphs: where a move snaps to and what it must not land on. */
+  /**
+   * The page's other paragraphs: where a move snaps to, what it must not land on, and what
+   * the header and the grip keep off (TXT-26). Detected already for the layer (cached).
+   */
   const [others, setOthers] = useState<readonly ParagraphBlock[]>([]);
   useEffect(() => {
-    if (!framed) return;
     let live = true;
     pageParagraphs(block.ref.source, block.ref.pageIndex).then(
       (blocks) => {
@@ -526,7 +530,7 @@ export function ParagraphEditor({
     return () => {
       live = false;
     };
-  }, [framed, block.ref.source, block.ref.pageIndex, block.ref.index]);
+  }, [block.ref.source, block.ref.pageIndex, block.ref.index]);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
@@ -927,6 +931,28 @@ export function ParagraphEditor({
       height: Math.max(...corners.map((c) => c.y)) - top,
     };
   }, [framed, paragraphBox, frameText, cssOfText]);
+  /** The other paragraphs' boxes in the layer's CSS pixels (TXT-26). */
+  const othersCss = useMemo(
+    () =>
+      others.map((o) => {
+        const r = rectToCss(frame, o.box);
+        return { left: r.left, top: r.top, right: r.left + r.width, bottom: r.top + r.height };
+      }),
+    [others, frame],
+  );
+  /** The grip goes under the frame when its notch would lie on a paragraph above (TXT-26). */
+  const gripBelow =
+    gripEdge(
+      {
+        left: frameBox.left,
+        top: frameBox.top,
+        right: frameBox.left + frameBox.width,
+        bottom: frameBox.top + frameBox.height,
+      },
+      othersCss,
+      GRIP_NOTCH.width,
+      GRIP_NOTCH.reach,
+    ) === 'bottom';
   /** On-screen angle of the writing direction (clockwise degrees): the canvas turns with it. */
   const screenAngle =
     ((Math.round((Math.atan2(cssOfText[1], cssOfText[0]) * 180) / Math.PI) % 360) + 360) % 360;
@@ -1703,6 +1729,7 @@ export function ParagraphEditor({
       header: size,
       above: upright && gapAbove !== undefined ? textTop - contentTop : undefined,
       below: upright && gapBelow !== undefined ? contentBottom - textBottom : undefined,
+      others: othersCss,
     });
     setPlace((prev) =>
       prev.side === next.side &&
@@ -1730,6 +1757,7 @@ export function ParagraphEditor({
     box,
     gapAbove,
     gapBelow,
+    othersCss,
     headerKey,
     scrolled,
     choice,
@@ -2000,12 +2028,13 @@ export function ParagraphEditor({
             <div
               className={styles.grip}
               data-testid="paragraph-grip"
+              data-edge={gripBelow ? 'bottom' : 'top'}
               data-frame-control="move"
               aria-hidden="true"
               title={m.paragraph_move_grip()}
               style={{
                 left: frameBox.left + frameBox.width / 2 - GRIP_PX / 2,
-                top: frameBox.top - 3 - GRIP_PX,
+                top: gripBelow ? frameBox.top + frameBox.height + 3 : frameBox.top - 3 - GRIP_PX,
               }}
               onPointerDown={onFrameDown}
               onPointerMove={onFrameMove}
