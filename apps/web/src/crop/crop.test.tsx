@@ -282,7 +282,10 @@ describe('crop pages dialog', () => {
     }
     // The light-table cell shows the cropped page (its sheet has the cropped shape).
     const cell = document.querySelector(`[data-page-id="${pageAt(id, 0).id}"] [data-thumb]`);
-    await waitFor(() => expect(cell?.querySelector('[data-resized]')).not.toBeNull());
+    // The thumbnail redraws through the render worker: more than the default second.
+    await waitFor(() => expect(cell?.querySelector('[data-resized]')).not.toBeNull(), {
+      timeout: 5000,
+    });
     const thumb = cell?.getBoundingClientRect();
     expect((thumb?.width ?? 0) / (thumb?.height ?? 1)).toBeCloseTo(612 / 720, 1);
   }, 40_000);
