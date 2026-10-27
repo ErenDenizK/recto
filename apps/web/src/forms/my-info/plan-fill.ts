@@ -179,16 +179,23 @@ export function planFill(
     }
     if (match.token !== 'email' && wantsCapitals(label)) value = value.toLocaleUpperCase('tr');
 
+    // An ID number goes only where an 11-digit number fits, on a high match.
+    if (match.token === 'national-id') {
+      const max = field.maxLength;
+      if (match.confidence !== 'high') continue;
+      if (max !== undefined && max < 11) continue;
+      if (field.comb === true && max !== 11) continue;
+    }
     let confidence = match.confidence;
     let reason: FillReason = 'ready';
     if (field.kind === 'combobox' && (field.options?.length ?? 0) > 0) {
       const wanted = fold(value);
       const at = (field.options ?? []).findIndex((o) => fold(o) === wanted);
       if (at >= 0) value = field.exportValues?.[at] ?? field.options?.[at] ?? value;
-      else {
+      else if (field.editable === true) {
         confidence = 'low';
         reason = 'no-option';
-      }
+      } else continue;
     } else if (field.kind === 'combobox' && field.editable !== true) {
       continue;
     } else if (field.maxLength !== undefined && value.length > field.maxLength) {
@@ -201,12 +208,16 @@ export function planFill(
 
     const current = currentOf(field);
     const repeat = seenTokens.has(match.token);
-    seenTokens.add(match.token);
     if (current !== '') reason = 'filled';
     else if (reason === 'ready') {
       if (repeat) reason = 'duplicate';
       else if (confidence === 'low') reason = 'low-confidence';
     }
+    // An ID number is never ticked from the field name alone.
+    if (reason === 'ready' && match.token === 'national-id' && match.from === 'name') {
+      reason = 'low-confidence';
+    }
+    if (reason === 'ready') seenTokens.add(match.token);
     rows.push({
       stop,
       token: match.token,

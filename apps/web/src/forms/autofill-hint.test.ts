@@ -155,10 +155,10 @@ describe('matchField (BM-4, PRD-32 amended)', () => {
     ['DOB', undefined, 'bday', H],
     ['Birthday', undefined, 'bday', H],
     ['Job title', undefined, 'job-title', H],
-    ['Title', undefined, 'job-title', H],
+    ['Title', undefined, 'job-title', L],
     ['Unvan', undefined, 'job-title', H],
-    ['Görev', undefined, 'job-title', H],
-    ['Company title', undefined, 'job-title', M],
+    ['Görev', undefined, 'job-title', L],
+    ['Company title', undefined, 'job-title', L],
     ['T.C. Kimlik No', undefined, 'national-id', H],
     ['TC Kimlik No', undefined, 'national-id', H],
     ['TCKN', undefined, 'national-id', H],
@@ -171,6 +171,9 @@ describe('matchField (BM-4, PRD-32 amended)', () => {
     ['email', 'Contact', 'email', M],
     ['tel', 'Contact', 'tel', M],
     ['Text5', 'Doğum tarihi (gg.aa.yyyy)', 'bday', H],
+    ['Text6', 'Unvan', 'job-title', H],
+    ['Görev Yeri', undefined, 'job-title', L],
+    ['Title (Mr/Ms)', undefined, 'job-title', L],
   ];
 
   it('has a corpus of at least 60 labels', () => {
@@ -209,6 +212,19 @@ describe('matchField (BM-4, PRD-32 amended)', () => {
     'Invoice number',
     'Text1',
     'ID number',
+    'Vergi Kimlik No',
+    'VKN',
+    'Tax ID',
+    'Şirket Kimlik No',
+    'Ana Adı',
+    'Babasının Adı',
+    'Annesinin Adı',
+    'Eşinin adı',
+    'Çocuğunun adı',
+    'Nüfusa kayıtlı olduğu il',
+    'Doğum yeri (İl/İlçe)',
+    'Veli adı soyadı',
+    'Vasi adı',
   ])('%s matches nothing', (name) => {
     expect(match(name)).toBeNull();
   });

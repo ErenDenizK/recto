@@ -139,6 +139,49 @@ describe('planFill (BM-4)', () => {
     expect(one('İl')).toMatchObject({ confidence: 'low', ticked: false });
   });
 
+  describe('adversarial Turkish labels (review)', () => {
+    it.each([
+      'Vergi Kimlik No',
+      'Ana Adı',
+      'Babasının Adı',
+      'Nüfusa kayıtlı olduğu il',
+      'Doğum yeri (İl/İlçe)',
+    ])('%s gets no row', (name) => {
+      expect(one(name)).toBeUndefined();
+    });
+
+    it('never ticks an ID number from the name alone', () => {
+      expect(one('TCKN')).toMatchObject({ token: 'national-id', ticked: false });
+      expect(one('Text1', { tooltip: 'T.C. Kimlik No' })).toMatchObject({ ticked: true });
+    });
+
+    it('offers an ID number only where 11 digits fit', () => {
+      expect(one('Text1', { tooltip: 'TC Kimlik No', maxLength: 10 })).toBeUndefined();
+      expect(one('Text1', { tooltip: 'TC Kimlik No', maxLength: 11, comb: true })).toMatchObject({
+        ticked: true,
+      });
+      expect(one('Text1', { tooltip: 'TC Kimlik No', maxLength: 12, comb: true })).toBeUndefined();
+      expect(one('Text1', { tooltip: 'TC Kimlik No', comb: true })).toBeUndefined();
+    });
+
+    it('ticks Unvan but not a bare title or a workplace', () => {
+      expect(one('Unvan')).toMatchObject({ ticked: true });
+      for (const name of ['Title (Mr/Ms)', 'Görev Yeri', 'Name / Title', 'Görev']) {
+        expect(one(name)?.ticked ?? false).toBe(false);
+      }
+    });
+
+    it('does not let an overflowing or filled field make a later fitting one a duplicate', () => {
+      const rows = plan([
+        stop('Email', { maxLength: 5 }),
+        stop('E-posta', { value: 'x@y.z' }),
+        stop('Email address'),
+      ]);
+      expect(rows.map((r) => r.reason)).toEqual(['overflow', 'filled', 'ready']);
+      expect(rows[2]?.ticked).toBe(true);
+    });
+  });
+
   describe('dates', () => {
     it.each([
       ['Doğum tarihi (gg.aa.yyyy)', '07.03.1990'],
@@ -223,7 +266,11 @@ describe('planFill (BM-4)', () => {
   });
 
   describe('combo boxes', () => {
-    const country = { kind: 'combobox' as const, options: ['Canada', 'Türkiye', 'Turkey (TR)'] };
+    const country = {
+      kind: 'combobox' as const,
+      editable: true,
+      options: ['Canada', 'Türkiye', 'Turkey (TR)'],
+    };
     it('gives the export value of the folded matching option', () => {
       expect(
         one('Country', { ...country, exportValues: ['CA', 'TR', 'TRX'] }, { country: 'turkıye' }),
@@ -236,6 +283,9 @@ describe('planFill (BM-4)', () => {
         ticked: false,
         reason: 'no-option',
       });
+    });
+    it('offers no row for a fixed combo box with no matching option', () => {
+      expect(one('Country', { kind: 'combobox', options: ['Canada', 'Japan'] })).toBeUndefined();
     });
     it('offers a free-text combo box without options, and no fixed one', () => {
       expect(one('Country', { kind: 'combobox', editable: true })).toMatchObject({ ticked: true });
@@ -291,7 +341,7 @@ describe('planFill on the form fixtures', () => {
     });
     const rows = planFill(cleared, INFO, { locale: 'en' });
     const country = rows.find((r) => r.stop.name === 'country');
-    expect(country).toMatchObject({ value: 'Turkey', reason: 'no-option', ticked: false });
+    expect(country).toBeUndefined();
     expect(rows.find((r) => r.stop.name === 'name')?.ticked).toBe(true);
     expect(rows.find((r) => r.stop.name === 'address.city')?.ticked).toBe(true);
   });

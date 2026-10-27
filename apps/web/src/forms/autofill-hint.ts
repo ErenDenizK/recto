@@ -130,6 +130,30 @@ const MY_INFO_RULES: Rules = [
   ],
 ];
 
+/**
+ * Words that keep a field out of My info only (the browser hints are untouched): another kind
+ * of ID number (tax, company) and Turkish inflected or alternative forms of the people and
+ * places `ELSEWHERE` covers (mother, father, spouse, child, place of birth, guardian).
+ */
+const MY_INFO_ELSEWHERE = [
+  'vergi',
+  'vkn',
+  'tax',
+  'sirket kimlik',
+  'company kimlik',
+  'ana adi',
+  'baba adi',
+  'babasinin adi',
+  'annesinin adi',
+  'anne adi',
+  'esinin',
+  'cocugunun',
+  'nufusa kayitli',
+  'dogum yeri',
+  'veli',
+  'vasi',
+];
+
 export type MatchConfidence = 'high' | 'medium' | 'low';
 
 export interface FieldMatch {
@@ -155,10 +179,16 @@ export function matchField(
   const byTip = tip === '' ? undefined : scan(tip, [...MY_INFO_RULES, ...RULES]);
   const byName = scan(field.name, [...MY_INFO_RULES, ...RULES]);
   if (byTip === 'else' || byName === 'else') return null;
+  const words = normalise(`${tip} ${field.name}`);
+  if (MY_INFO_ELSEWHERE.some((w) => words.includes(` ${w} `))) return null;
   const from = byTip !== undefined ? 'tooltip' : 'name';
   const hit = byTip ?? byName;
   if (hit === undefined) return null;
   let confidence: MatchConfidence = hit.exact || hit.phrase.includes(' ') ? 'high' : 'medium';
+  // A bare "title" or "görev" is also a courtesy title or a workplace: never ticked.
+  if (hit.token === 'job-title' && (hit.phrase === 'title' || hit.phrase === 'gorev')) {
+    confidence = 'low';
+  }
   if (from === 'name') {
     const letters = hit.phrase.length;
     if (tip !== '' && confidence === 'high') confidence = 'medium';
