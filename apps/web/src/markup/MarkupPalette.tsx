@@ -68,9 +68,8 @@ import { useCoarsePointer } from '../ui/Slider';
 import { isShapeMode, SHAPE_MODES, type ToolMode, useToolStore } from '../viewer/tool-store';
 import { abovePalette } from './anchor';
 import { ChoiceTool } from './ChoiceTool';
-import { fillBarShows } from './fill-bar-flag';
 import { DoneButton, FillSignBar } from './FillSignBar';
-import { useStripKind } from './InkStrip';
+import { type StripKind, useStripKind } from './InkStrip';
 import { MoreTools } from './MoreTools';
 import { paletteEscape, usePageEscape } from './palette-escape';
 import { foldPalette, type FoldResult, type FoldStep } from './palette-fold';
@@ -97,7 +96,6 @@ import {
   useFieldStops,
   useSignatures,
 } from './SignGroup';
-import type { StripContent } from './StripPiece';
 import { strokeInProgress, useStrokeInProgress } from './stroke-fade';
 import {
   armedName,
@@ -482,36 +480,24 @@ function useRowState(door: 'draw' | 'sign'): {
 
 /**
  * What the palette's floating strip holds (`StripPiece.tsx`; owner feedback F3): the armed
- * tool's ink strip; else, with the Fill & sign door, Select or Sign armed and no room for the
- * saved-signature chips in the row, those chips (03.7); else nothing.
+ * tool's ink strip, else nothing. The Fill & sign bar (DSN-75) carries the saved signatures
+ * itself, so that door has no strip.
  */
-export function usePaletteStrip(): StripContent | null {
+export function usePaletteStrip(): StripKind | null {
   const door = usePaletteDoor();
-  const mode = useToolStore((s) => s.mode);
   const kind = useStripKind();
-  const signatures = useSignatures();
-  const { state } = useRowState(door);
-  // The Fill & sign bar (DSN-75) carries the saved signatures itself.
-  if (fillBarShows(door)) return null;
-  if (kind !== null) return kind;
-  const chips =
-    door === 'sign' &&
-    signatures.length > 0 &&
-    state.folded.includes('chips') &&
-    (mode === 'select' || mode === 'signature');
-  return chips ? 'chips' : null;
+  return door === 'sign' ? null : kind;
 }
 
 /** The labels that bloom (DSN-71): its code loads only with `?labels=1`, for the larger frames. */
 const PaletteBloom = lazy(() => import('./PaletteBloom'));
 
 /**
- * What the capsule's palette slot holds: the shared palette's row, or, with `?fillbar=1` on the
- * Fill & sign door, the Fill & sign bar (`FillSignBar.tsx`, DSN-75).
+ * What the capsule's palette slot holds: the shared palette's row, or, on the Fill & sign door, the Fill & sign bar (`FillSignBar.tsx`, DSN-75).
  */
 export function MarkupPaletteContent() {
   const door = usePaletteDoor();
-  return fillBarShows(door) ? <FillSignBar /> : <PaletteRowContent />;
+  return door === 'sign' ? <FillSignBar /> : <PaletteRowContent />;
 }
 
 /** The palette's row: what the capsule's content slot holds (module header). */

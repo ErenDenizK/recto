@@ -1,5 +1,5 @@
 /**
- * The dock's Tools entry (DSN-76, flag `?tools=1`): open Tools, pick Compare and see the
+ * The dock's Tools entry (DSN-76): open Tools, pick Compare and see the
  * Compare place open, the same command the title menu runs. Port 4133.
  */
 import { expect, type Page, test } from '@playwright/test';
@@ -9,9 +9,9 @@ import { openFixtures, useFileInputPicker } from './helpers';
 test.skip(({ browserName }) => browserName !== 'chromium', 'Verified on Chromium');
 test.use({ viewport: { width: 1440, height: 900 } });
 
-async function setUp(page: Page, query: string): Promise<void> {
+async function setUp(page: Page): Promise<void> {
   await useFileInputPicker(page);
-  await page.goto(`./${query}`);
+  await page.goto('./');
   await expect(page.getByTestId('app-shell')).toBeVisible();
   await openFixtures(page, ['compare-a.pdf', 'compare-b.pdf']);
   await page.keyboard.press('1');
@@ -35,14 +35,8 @@ async function settled(page: Page): Promise<void> {
 
 const dock = (page: Page) => page.getByRole('toolbar', { name: 'Document tools', exact: true });
 
-test('Tools is absent without the flag', async ({ page }) => {
-  await setUp(page, '');
-  await expect(dock(page).getByRole('button', { name: 'Markup', exact: true })).toBeVisible();
-  await expect(dock(page).getByRole('button', { name: 'Tools', exact: true })).toHaveCount(0);
-});
-
-test('with ?tools=1, Tools → Compare opens the Compare setup', async ({ page }) => {
-  await setUp(page, '?tools=1');
+test('Tools → Compare opens the Compare setup', async ({ page }) => {
+  await setUp(page);
   await dock(page).getByRole('button', { name: 'Tools', exact: true }).click();
   const menu = page.getByRole('menu', { name: 'Tools' });
   await expect(menu).toBeVisible();
