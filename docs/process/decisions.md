@@ -168,13 +168,13 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-64](decisions/design.md) | Opening in light: no Read page is ever bare white (cached bitmap, else a soft quarter-scale render, else paper tone); behind `?open=light` a card's sheet grows on `glide` and the light pulses once per session | In force; flag | 2026-10-23 |
 | [DSN-67](decisions/design.md) | The save receipt: Save a copy's sizes show at once (approximate, then exact); behind `?receipt=1` the changed pages, size bars, the page's flight to the tab and the "never left this device" toast | Size fix in force; receipt behind `?receipt=1` | 2026-10-23 |
 | [DSN-74](decisions/design.md) | Turkish copy rules: *siz* in sentences, bare imperatives on controls, past passives in history; *karart* means redaction only (Dim pages is "Sayfa parlaklığını azalt"); ’ before suffixes on names and abbreviations | In force | 2026-10-23 |
-| [DSN-76](decisions/design.md) | A visible Tools entry on the dock behind `?tools=1`: Redact, OCR, Compare, Combine, Split, Compress as doorways to the title menu's own commands (DSN-46) | Prototype (flag) | 2026-10-24 |
 | [DSN-80](decisions/design.md) | Colour spot fixes: `--sign-hint` at 0.75, Review glyph darkened in light, Dim pages disabled state already exposed | In force | 2026-10-25 |
+| [DSN-76](decisions/design.md) | A visible Tools entry on the dock (no flag): Redact, OCR, Compare, Combine, Split, Compress as doorways to the title menu's own commands (DSN-46) | In force (owner board yes, 25 Oct) | 2026-10-24 |
+| [DSN-77](decisions/design.md) | A success toast clears that action's earlier errors (same key); Use signature shows a placement hint; the phone's Delete pill keeps off form fields | In force | 2026-10-25 |
+| [DSN-75](decisions/design.md) | Fill & sign gets its own short bar (field stepping, Signature, Date, Done) (no flag), replacing the shared palette on that door | In force (owner board yes, 25 Oct) | 2026-10-24 |
 | [DSN-79](decisions/design.md) | Dark text ladder lifted for APCA: dark n9/n10/n11 and danger step up, light n10 darker, APCA floor test (colour audit 25 Oct 2026) | In force | 2026-10-25 |
 | [DSN-83](decisions/design.md) | Light theme: lime is a fill with ink on it and a lime-800 edge; accent text is lime-900; amends ADR-0023 §2.3 | In force | 2026-10-26 |
-| [DSN-77](decisions/design.md) | A success toast clears that action's earlier errors (same key); Use signature shows a placement hint; the phone's Delete pill keeps off form fields | In force | 2026-10-25 |
 | [DSN-78](decisions/design.md) | Scan lives as a Library launcher button and ⌘K "Scan document…" (one home, not Tools); one overlay sheet holds camera, review and corner editor | Prototype behind `?scan=1`; owner taste open | 2026-10-25 |
-| [DSN-75](decisions/design.md) | Fill & sign gets its own short bar (field stepping, Signature, Date, Done) behind `?fillbar=1`, replacing the shared palette on that door when on | Prototype; owner taste open | 2026-10-24 |
 | [DSN-82](decisions/design.md) | A Labs panel in Settings (revealed by five taps on the version) toggles every feature flag; address, then Labs toggle, then the flag's own value, then default | In force | 2026-10-26 |
 
 ## Motion

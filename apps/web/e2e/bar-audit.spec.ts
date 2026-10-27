@@ -308,7 +308,7 @@ for (const palette of PALETTES) {
       const run = collector(page);
       await openFull(page, 'simple-text.pdf');
       await page.locator('[data-dock-item="sign"]').click();
-      const bar = page.getByRole('toolbar', { name: 'Markup', exact: true });
+      const bar = page.getByRole('toolbar', { name: 'Fill & sign', exact: true });
       await bar.getByRole('button', { name: 'Sign', exact: true }).click();
       const sheet = page.getByRole('dialog', { name: 'New signature' });
       await expect(sheet).toBeVisible();
