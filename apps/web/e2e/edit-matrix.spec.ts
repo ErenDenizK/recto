@@ -149,6 +149,23 @@ test('word export: a word typed into a kerned TJ line survives reopen and export
   await expect(hits).toHaveCount(1, { timeout: 20_000 });
 });
 
+test('a press in the ring round a paragraph opens it with the caret at the nearest character (TXT-28)', async ({
+  page,
+}) => {
+  await openCorpus(page, 'word-export.pdf');
+  const target = page.getByRole('button', { name: /^Edit paragraph “Thanks/ }).first();
+  await expect(target).toBeVisible({ timeout: 20_000 });
+  const box = await target.boundingBox();
+  if (!box) throw new Error('paragraph not laid out');
+  // 2 px inside the target's left edge: 4 px left of the ink, past the runs' own 2 px.
+  await page.mouse.click(box.x + 2, box.y + 6 + 6);
+  const editor = page.getByRole('textbox', { name: 'Paragraph on page 1' });
+  await expect(editor).toBeFocused({ timeout: 20_000 });
+  await page.keyboard.type('Bright ');
+  await expect(editor).toHaveText(/^Bright Thanks are due/);
+  await page.keyboard.press('Escape');
+});
+
 test('word export: Backspace at a line start joins two words of a Tw-justified paragraph', async ({
   page,
 }) => {

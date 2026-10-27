@@ -260,4 +260,51 @@ describe('the Edit text layer by keyboard (mounted)', () => {
     await waitFor(() => expect(document.activeElement).toBe(ferry), { timeout: 10_000 });
     expect(useToolStore.getState().mode).toBe('edit-text');
   });
+
+  it("a press in a paragraph's padding opens it with the caret at the nearest character (TXT-28)", async () => {
+    const { container } = await mount();
+    useToolStore.getState().setMode('edit-text');
+    const layer = await waitFor(
+      () => {
+        const l = container.querySelector<HTMLElement>('[data-text-edit-layer="0"]');
+        if (!l?.querySelector('[data-text-halo]')) throw new Error('no paragraph targets');
+        return l;
+      },
+      { timeout: 20_000 },
+    );
+    const ferry = [...layer.querySelectorAll<HTMLElement>('[data-text-paragraph]')].find((t) =>
+      t.getAttribute('aria-label')?.includes('The ferry'),
+    );
+    if (!ferry) throw new Error('no ferry paragraph');
+    const box = ferry.getBoundingClientRect();
+    const halo = [...layer.querySelectorAll<HTMLElement>('[data-text-halo]')].find((h) => {
+      const r = h.getBoundingClientRect();
+      return Math.abs(r.left - box.left) < 0.5 && Math.abs(r.top - box.top) < 0.5;
+    });
+    if (!halo) throw new Error('no halo over the ferry paragraph');
+    expect(getComputedStyle(halo).pointerEvents).toBe('auto');
+    // The first line's leftmost run: its box is the ink and 2 px.
+    const inside = [...layer.querySelectorAll<HTMLElement>('[data-text-run][data-editable]')]
+      .map((r) => r.getBoundingClientRect())
+      .filter((r) => r.left >= box.left && r.right <= box.right && r.top >= box.top);
+    const top = Math.min(...inside.map((r) => r.top));
+    const first = inside
+      .filter((r) => Math.abs(r.top - top) < 3)
+      .sort((a, b) => a.left - b.left)[0];
+    if (!first) throw new Error('no run in the ferry paragraph');
+    // 4 px left of the ink (past the run's 2 px), level with the first line.
+    const x = first.left + 2 - 4 - box.left;
+    expect(x).toBeGreaterThan(0);
+    await userEvent.click(halo, { position: { x, y: first.top + first.height / 2 - box.top } });
+    const mirror = await waitFor(
+      () => {
+        const field = container.querySelector<HTMLElement>('[data-paragraph-mirror]');
+        if (!field?.textContent) throw new Error('no paragraph editor');
+        return field;
+      },
+      { timeout: 20_000 },
+    );
+    expect(mirror.textContent).toMatch(/^The ferry left the quay/);
+    await waitFor(() => expect(window.getSelection()?.anchorOffset).toBe(0));
+  });
 });

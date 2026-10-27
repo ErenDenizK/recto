@@ -65,6 +65,14 @@
   transition: background-color var(--duration-fast) var(--ease-out);
 }
 
+.halo {
+  position: absolute;
+  border-radius: var(--radius-page);
+  cursor: text;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
 .paragraph:focus-visible {
   background: var(--select-muted);
 }

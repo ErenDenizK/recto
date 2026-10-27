@@ -349,6 +349,7 @@ Full rows: [`decisions/text-editing.md`](decisions/text-editing.md).
 | [TXT-25](decisions/text-editing.md) | Edit text shows every paragraph's outline (cap 250 per page, off on phones, a setting); behind Labs `paragraphOutlines` | In force behind Labs | 2026-10-26 |
 | [TXT-26](decisions/text-editing.md) | The paragraph editor's header and move grip keep off the page's other paragraphs: margin past a neighbouring column, else above or below | In force | 2026-10-26 |
 | [TXT-27](decisions/text-editing.md) | A left-aligned paragraph's wrap measure never passes where its own soft-wrapped lines' next words would have fitted | In force | 2026-10-26 |
+| [TXT-28](decisions/text-editing.md) | A press in the padding round a paragraph (inside its focus ring, outside the ink) opens it as a press on its nearest run does | In force | 2026-10-27 |
 
 ## Redaction
 
