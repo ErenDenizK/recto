@@ -7,9 +7,9 @@
  *
  * Pages is no sheet any more: it is the page overview (MOB-2, `overview-host.tsx`). The four
  * are rarely used and load on demand (`CompactMoreSheets`; phone code audit 2026-10 §4a, the
- * bundle gate PRC-11). Their module is fetched once the browser is idle after the reader
- * opens, and at the latest when ⋯ opens or one of them is asked for, and stays mounted from
- * then on, so each later opening rises at once.
+ * bundle gate PRC-11). Their module is fetched on intent (EDN-25, never on idle): at the pointerdown on
+ * the page number or the Library's gear, and at the latest when ⋯ opens or one of them is asked
+ * for. It stays mounted from then on, so each later opening rises at once.
  */
 import type { VirtualDocument } from '@pdf-editor/document-model';
 import { type ComponentType, useEffect, useState } from 'react';
@@ -23,12 +23,16 @@ let moreSheets: Promise<MoreSheets> | undefined;
 
 /** Fetches the on-demand sheets' module once; later calls share the same promise. */
 export function loadMoreSheets(): Promise<MoreSheets> {
-  moreSheets ??= import('./CompactMoreSheets').then((module) => module.default);
+  moreSheets ??= import('./CompactMoreSheets').then(
+    (module) => module.default,
+    (error: unknown) => {
+      // Offline without the chunk (it is precached, PF-17): asking again retries.
+      moreSheets = undefined;
+      throw error;
+    },
+  );
   return moreSheets;
 }
-
-/** How long the idle prefetch may wait for an idle moment, ms. */
-const PREFETCH_TIMEOUT_MS = 3000;
 
 /** `doc` is the reader's document; the Library, with none, gets Settings alone (DSN-51). */
 export function CompactSheets({ doc }: { readonly doc?: VirtualDocument | undefined }) {
@@ -36,34 +40,17 @@ export function CompactSheets({ doc }: { readonly doc?: VirtualDocument | undefi
   const wanted = usePasswordStore((s) => s.queue.length > 0) || asked;
   const [More, setMore] = useState<MoreSheets | null>(null);
 
-  // Fetched when the browser is idle after the reader opens, or at once when asked for.
+  // Fetched when asked for (EDN-25): ⋯, a sheet or a password prompt.
   useEffect(() => {
-    if (More) return;
+    if (More || !wanted) return;
     let live = true;
-    const load = () => {
-      loadMoreSheets()
-        .then((component) => {
-          if (live) setMore(() => component);
-        })
-        .catch(() => {
-          // Offline without the chunk (it is precached, PF-17): asking again retries.
-          moreSheets = undefined;
-        });
-    };
-    if (wanted) {
-      load();
-      return () => {
-        live = false;
-      };
-    }
-    const idle = typeof window.requestIdleCallback === 'function';
-    const handle = idle
-      ? window.requestIdleCallback(load, { timeout: PREFETCH_TIMEOUT_MS })
-      : window.setTimeout(load, PREFETCH_TIMEOUT_MS);
+    loadMoreSheets()
+      .then((component) => {
+        if (live) setMore(() => component);
+      })
+      .catch(() => undefined);
     return () => {
       live = false;
-      if (idle) window.cancelIdleCallback(handle);
-      else window.clearTimeout(handle);
     };
   }, [More, wanted]);
 

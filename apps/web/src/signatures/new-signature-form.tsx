@@ -135,10 +135,22 @@ export function useNewSignatureForm({
   const focusRef = useRef<HTMLElement | null>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const imageHintId = useId();
+  // Set when a tab is chosen, so the effect below can focus its field once the panel shows.
+  const chosenTab = useRef(false);
 
   useEffect(() => {
     void loadSavedSignatures();
   }, []);
+
+  // Choosing Type puts the caret in "Your name" (keyboard and pointer), so typing lands at once
+  // (07 §2.6); the name starts as the comment author's (`typed`), the only known name.
+  useEffect(() => {
+    if (!chosenTab.current) return;
+    chosenTab.current = false;
+    if (draft.tab === 'type') {
+      bodyRef.current?.querySelector<HTMLElement>('[role="tabpanel"]:not([hidden]) input')?.focus();
+    }
+  }, [draft.tab]);
 
   const update = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
   const typed = (draft.typed ?? author).slice(0, TYPED_MAX);
@@ -242,7 +254,10 @@ export function useNewSignatureForm({
           semantics="tabs"
           label={m.signature_modes()}
           value={draft.tab}
-          onValueChange={(tab) => update({ tab })}
+          onValueChange={(tab) => {
+            chosenTab.current = true;
+            update({ tab });
+          }}
           options={[
             { value: 'draw', label: m.signature_draw() },
             { value: 'type', label: m.signature_type() },

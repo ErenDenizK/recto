@@ -31,6 +31,8 @@ import { Menu } from '@base-ui/react/menu';
 import type { VirtualDocument } from '@pdf-editor/document-model';
 import {
   type KeyboardEvent,
+  lazy,
+  Suspense,
   type SyntheticEvent,
   useEffect,
   useLayoutEffect,
@@ -85,8 +87,15 @@ import {
   stripEnabled,
   stripPreview,
 } from '../frame/strip/strip-hold';
+import { loadMoreSheets } from './CompactSheets';
 import { CompactTopSplit } from './CompactTopSplit';
+import { phoneCapsule } from './phone-capsule-flag';
 import { topVariant } from './top-variant';
+
+/** The single capsule (EDN-24) loads only when its Labs switch is on, outside the read session (PF-23). */
+const PhoneCapsule = lazy(() =>
+  import('./PhoneCapsule').then((mod) => ({ default: mod.PhoneCapsule })),
+);
 
 /** The container transform's popup class (`ui/container-transform.ts`, not imported here). */
 const CONTAINER_POPUP = 'ct-popup';
@@ -498,7 +507,21 @@ function FindBar({
   );
 }
 
+/**
+ * The bottom capsule: the single capsule (EDN-24, `?phonebar=1`) is its own host, read once per
+ * page so the branch never changes under the reader; otherwise the shipped one, unchanged.
+ */
 export function CompactCapsule({ doc }: { readonly doc: VirtualDocument }) {
+  return phoneCapsule() ? (
+    <Suspense fallback={null}>
+      <PhoneCapsule doc={doc} />
+    </Suspense>
+  ) : (
+    <ShippedCapsule doc={doc} />
+  );
+}
+
+function ShippedCapsule({ doc }: { readonly doc: VirtualDocument }) {
   const away = useCompactStore(capsuleAway);
   const editing = useCompactStore((s) => s.editing);
   const mark = useMark();
@@ -580,7 +603,10 @@ function ReadingCapsule({ doc }: { readonly doc: VirtualDocument }) {
         aria-label={m.compact_page_button({ current: current + 1, total })}
         data-testid="compact-page-number"
         data-strip={stripEnabled() ? '' : undefined}
-        onPointerDown={(e) => holdForStrip(e, 'y')}
+        onPointerDown={(e) => {
+          void loadMoreSheets().catch(() => undefined);
+          holdForStrip(e, 'y');
+        }}
         onKeyDown={(e) => keyForStrip(e, 'y')}
         onClick={() => {
           if (!consumeStripClick()) openSheet('goto');

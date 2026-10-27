@@ -65,6 +65,8 @@
 
 /* The armed signature: the tool-active fill, as the drawer's armed tile. */
 .tile[aria-pressed='true'] {
+  --shadow-own: inset 0 0 0 1px var(--accent-edge);
+  box-shadow: var(--shadow-own);
   background: var(--tool-active-fill);
   color: var(--tool-active-ink);
 }
@@ -85,6 +87,85 @@
   color: var(--text-secondary);
   font-size: var(--type-footnote);
   line-height: var(--type-footnote-lh);
+}
+
+/* Sign's tray in the single capsule (SignTray, EDN-24): the saved plates scroll sideways in the
+   room the pinned "+" leaves, so the tray keeps its width; every target is 44 px high. */
+.tray {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  /* The tray's own row sets `flex: none` on its test-id children, so the width is named here:
+     the plates then scroll in what the pinned "+" leaves instead of widening the row. */
+  width: 100%;
+  min-width: 0;
+}
+
+.trayPlates {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  touch-action: pan-x;
+  --scroll-bar: none;
+}
+
+.trayPlates::-webkit-scrollbar {
+  display: none;
+}
+
+.tile.trayTile {
+  min-width: 64px;
+  height: 44px;
+  padding: 0 var(--space-1);
+}
+
+.trayPlate {
+  width: 56px;
+  height: 28px;
+}
+
+.trayRule {
+  flex: none;
+  width: 1px;
+  height: 24px;
+  background: var(--border-hairline);
+}
+
+.tile.trayNew {
+  min-width: 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+}
+
+/* No signature kept: the one text button, centred in the tray. */
+.trayEmpty {
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.tile.trayNewText {
+  gap: var(--space-1);
+  min-width: 44px;
+  height: 44px;
+  padding: 0 var(--space-3);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: var(--type-body);
+  white-space: nowrap;
+}
+
+.trayNewText svg,
+.trayNew svg {
+  flex: none;
+  width: var(--icon-md);
+  height: var(--icon-md);
 }
 
 /* New signature in the phone sheet (new-signature.tsx): the form on the body's inset, then the

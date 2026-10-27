@@ -13,7 +13,7 @@ roadmap stay proposals until the owner marks a row.
 the row it names. *Open*: asked, not yet answered. Do not act on an open row; keep its safe
 default.
 
-**Ids.** Rows carry a log id (PRD, DSN, MOT, GLS, INK, EDN, PRC, TXT, MOB, PF, RED) so they never clash with the
+**Ids.** Rows carry a log id (PRD, DSN, MOT, GLS, INK, EDN, PRC, TXT, MOB, PF, RED, ART) so they never clash with the
 sources' own ids (R12's D-1 to D-5, PLAN's P-1 to P-8, the feedback's F and G items), which each
 row quotes.
 
@@ -80,6 +80,7 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PRD-31](decisions/product.md) | "Open with" from the OS: manifest `file_handlers` plus a feature-detected `launchQueue` consumer into the drop path; installed Chromium only, not core | In force | 2026-10-25 |
 | [PRD-32](decisions/product.md) | Browser autofill hints: text-field editors set `autocomplete` from the tooltip/name (EN and TR, small tested matcher); unmatched, other-person and password fields stay `off`; Recto stores nothing | In force | 2026-10-25 |
 | [PRD-33](decisions/product.md) | Add bookmarks from headings: the Markdown export's heading detection builds a nested outline for a document without one; one undo step; home is the empty Contents panel and ⌘K (DSN-46) | In force | 2026-10-25 |
+| [PRD-34](decisions/product.md) | Camera scan to PDF: live outline, steady-outline auto capture, review (corners, rotate, filter, retake, reorder), Done makes one new unsaved "Scan <date>" document | Prototype behind `?scan=1`; owner taste open | 2026-10-25 |
 | [PRD-14](decisions/product.md) | W0-q findings are assigned to waves: signed fixture opens locked and saves byte-identical (W1-a/W1-b), truncated.pdf… | In force; W1-b and W1-g merged | 2026-10-09 |
 | [PF-18](decisions/product.md) | A closed document's source is parked; the engine worker ends when none is open | In force | 2026-10-22 |
 | [PF-19](decisions/product.md) | Read mode's whole-page bitmap is capped at 4 MP on every edition; tiles keep the visible page 1:1 | In force | 2026-10-22 |
@@ -167,11 +168,15 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-64](decisions/design.md) | Opening in light: no Read page is ever bare white (cached bitmap, else a soft quarter-scale render, else paper tone); behind `?open=light` a card's sheet grows on `glide` and the light pulses once per session | In force; flag | 2026-10-23 |
 | [DSN-67](decisions/design.md) | The save receipt: Save a copy's sizes show at once (approximate, then exact); behind `?receipt=1` the changed pages, size bars, the page's flight to the tab and the "never left this device" toast | Size fix in force; receipt behind `?receipt=1` | 2026-10-23 |
 | [DSN-74](decisions/design.md) | Turkish copy rules: *siz* in sentences, bare imperatives on controls, past passives in history; *karart* means redaction only (Dim pages is "Sayfa parlaklığını azalt"); ’ before suffixes on names and abbreviations | In force | 2026-10-23 |
-| [DSN-76](decisions/design.md) | A visible Tools entry on the dock behind `?tools=1`: Redact, OCR, Compare, Combine, Split, Compress as doorways to the title menu's own commands (DSN-46) | Prototype (flag) | 2026-10-24 |
 | [DSN-80](decisions/design.md) | Colour spot fixes: `--sign-hint` at 0.75, Review glyph darkened in light, Dim pages disabled state already exposed | In force | 2026-10-25 |
+| [DSN-76](decisions/design.md) | A visible Tools entry on the dock (no flag): Redact, OCR, Compare, Combine, Split, Compress as doorways to the title menu's own commands (DSN-46) | In force (owner board yes, 25 Oct) | 2026-10-24 |
 | [DSN-81](decisions/design.md) | Stamps and signatures are upright to the viewer on rotated pages: content counter-rotated by /Rotate in the appearance (IM-19) | In force | 2026-10-26 |
 | [DSN-77](decisions/design.md) | A success toast clears that action's earlier errors (same key); Use signature shows a placement hint; the phone's Delete pill keeps off form fields | In force | 2026-10-25 |
-| [DSN-75](decisions/design.md) | Fill & sign gets its own short bar (field stepping, Signature, Date, Done) behind `?fillbar=1`, replacing the shared palette on that door when on | Prototype; owner taste open | 2026-10-24 |
+| [DSN-75](decisions/design.md) | Fill & sign gets its own short bar (field stepping, Signature, Date, Done) (no flag), replacing the shared palette on that door | In force (owner board yes, 25 Oct) | 2026-10-24 |
+| [DSN-79](decisions/design.md) | Dark text ladder lifted for APCA: dark n9/n10/n11 and danger step up, light n10 darker, APCA floor test (colour audit 25 Oct 2026) | In force | 2026-10-25 |
+| [DSN-83](decisions/design.md) | Light theme: lime is a fill with ink on it and a lime-800 edge; accent text is lime-900; amends ADR-0023 §2.3 | In force | 2026-10-26 |
+| [DSN-78](decisions/design.md) | Scan lives as a Library launcher button and ⌘K "Scan document…" (one home, not Tools); one overlay sheet holds camera, review and corner editor | Prototype behind `?scan=1`; owner taste open | 2026-10-25 |
+| [DSN-82](decisions/design.md) | A Labs panel in Settings (revealed by five taps on the version) toggles every feature flag; address, then Labs toggle, then the flag's own value, then default | In force | 2026-10-26 |
 
 ## Motion
 
@@ -268,7 +273,7 @@ Full rows: [`decisions/editions.md`](decisions/editions.md).
 | [EDN-7](decisions/editions.md) | The phone edition becomes editable, radically simple | In force; supersedes EDN-4's read-only rule once it ships | 2026-10-11 |
 | [EDN-8](decisions/editions.md) | Phone editing takes architecture A, with a designed drawer | In force | 2026-10-11 |
 | [EDN-9](decisions/editions.md) | The sample PDF is rewritten for phones | In force | 2026-10-11 |
-| [EDN-10](decisions/editions.md) | The phone's rarely used sheets load on demand | In force; amended by EDN-21 for editing code | 2026-10-11 |
+| [EDN-10](decisions/editions.md) | The phone's rarely used sheets load on demand | In force; amended by EDN-21 for editing code and EDN-25 for the sheets | 2026-10-11 |
 | [EDN-11](decisions/editions.md) | Phone editing's foundation (WP1) works through the full edition's gate and presets | In force | 2026-10-11 |
 | [EDN-12](decisions/editions.md) | Adding text on phones (WP4): the island steps away while typing and a small Done rides on the keyboard | In force | 2026-10-11 |
 | [EDN-13](decisions/editions.md) | Phone ink and highlight (lane B) | In force | 2026-10-11 |
@@ -280,6 +285,10 @@ Full rows: [`decisions/editions.md`](decisions/editions.md).
 | [EDN-19](decisions/editions.md) | Office conversion is for desktop and tablet; the phone gets guidance, never the download | In force | 2026-10-19 |
 | [EDN-20](decisions/editions.md) | iPad is claimed for Office conversion only after the owner's device check | In force; the check is the owner's | 2026-10-21 |
 | [EDN-21](decisions/editions.md) | Phone editing code loads on intent (✎, first selection, form fields), never on idle; amends EDN-10 | In force | 2026-10-24 |
+| [EDN-22](decisions/editions.md) | Scan is desktop and tablet in lane L3; the phone's scan is lane L4 | Prototype behind `?scan=1` | 2026-10-25 |
+| [EDN-25](decisions/editions.md) | The phone's on-demand sheets load on intent (page number, gear, ⋯), never on idle; amends EDN-10 | In force | 2026-10-26 |
+| [EDN-24](decisions/editions.md) | The phone's single capsule (reading icons, editing tools, a tray), behind Labs `phone-capsule` | In force behind Labs | 2026-10-26 |
+| [EDN-28](decisions/editions.md) | The first phone stroke after picking Pen or Highlight draws; phone Save a copy shows the success toast | In force; amends EDN-18 | 2026-10-26 |
 
 ## Phone work
 
@@ -337,6 +346,8 @@ Full rows: [`decisions/text-editing.md`](decisions/text-editing.md).
 | [TXT-21](decisions/text-editing.md) | Plain letters stand down after a double-click selection until a press or Esc (owner, console r25-dblclick-edit) | In force | 2026-10-23 |
 | [TXT-22](decisions/text-editing.md) | The page in view analyses its paragraphs ahead of a click, behind `?textpre=1` | In force behind the flag | 2026-10-23 |
 | [TXT-23](decisions/text-editing.md) | A new text box's default colour reads on the page under it (ink black on light, white on dark); a picked colour wins | In force | 2026-10-24 |
+| [TXT-24](decisions/text-editing.md) | A paragraph can be moved and given another width: the writer translates, never writes the lines again; one undo step; behind Labs `paragraphFrame` | In force behind Labs | 2026-10-26 |
+| [TXT-25](decisions/text-editing.md) | Edit text shows every paragraph's outline (cap 250 per page, off on phones, a setting); behind Labs `paragraphOutlines` | In force behind Labs | 2026-10-26 |
 
 ## Redaction
 
@@ -345,6 +356,14 @@ Full rows: [`decisions/redaction.md`](decisions/redaction.md).
 | Id | Decision | Status | Date |
 |---|---|---|---|
 | [RED-1](decisions/redaction.md) | A mark drawn over a redaction after it was applied does not stop the copy (unless flattened: refused, explained) | In force | 2026-10-22 |
+
+## Reference research
+
+Full rows: [`decisions/reference-research.md`](decisions/reference-research.md).
+
+| Id | Decision | Status | Date |
+|---|---|---|---|
+| [ART-1](decisions/reference-research.md) | Reference research learns ideas from open code and public docs; no reverse engineering, no copying (owner) | In force | 2026-10-26 |
 
 ## Process
 
@@ -386,6 +405,7 @@ Full rows: [`decisions/process.md`](decisions/process.md).
 | [PRC-31](decisions/process.md) | Deploys are the CEO's: dispatched whenever develop is green and ahead of live, result checked within the hour | In force | 2026-10-25 |
 | [PRC-32](decisions/process.md) | Pace x2 this week: up to 10 agents at once, a deep cycle hires 4 build and 2 research lanes | In force | 2026-10-25 |
 | [PRC-33](decisions/process.md) | Deep cycles research big companies' moves; the console keeps two ranked lists (improvements, big moves); briefs carry visuals and live in an expandable HQ | In force | 2026-10-25 |
+| [PRC-34](decisions/process.md) | Workflow skills from our own lessons: repo-gates, decision-rows, merge-queue, hq-report; no external skill adopted | In force | 2026-10-26 |
 
 ## Foundations (ADR titles)
 

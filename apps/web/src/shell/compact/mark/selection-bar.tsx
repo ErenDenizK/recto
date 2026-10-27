@@ -102,8 +102,12 @@ function selectionBoxes(): { all: Box; first: Box } | null {
   return { all, first };
 }
 
-/** The room between the top bar and the capsule, inside the side gutters. */
-function chromeLimits(): Box {
+/**
+ * The room between the top bar and the capsule, inside the side gutters. The single capsule's
+ * tray and Redo chip (`[data-compact-above-capsule]`, EDN-24) stand above the capsule: the
+ * limit is the top of the highest of them.
+ */
+export function chromeLimits(): Box {
   const visible = (el: Element | null) => {
     if (!(el instanceof HTMLElement) || el.dataset.hidden !== undefined) return null;
     const r = el.getBoundingClientRect();
@@ -113,7 +117,13 @@ function chromeLimits(): Box {
   const capsule = visible(document.querySelector('[data-testid="compact-capsule"]'));
   return {
     top: (top?.bottom ?? 0) + GAP,
-    bottom: (capsule?.top ?? window.innerHeight) - GAP,
+    bottom:
+      Math.min(
+        capsule?.top ?? window.innerHeight,
+        ...[...document.querySelectorAll('[data-compact-above-capsule]')].map(
+          (el) => visible(el)?.top ?? window.innerHeight,
+        ),
+      ) - GAP,
     left: GUTTER,
     right: window.innerWidth - GUTTER,
   };

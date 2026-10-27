@@ -12,8 +12,16 @@ import simpleUrl from '../../../../../test/fixtures/simple-text.pdf?url';
 import { createAnnotations } from '../../annotations/actions';
 import { undoStep } from '../../history/actions';
 import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
+import { useToastStore } from '../../ui/Toast/toast-store';
 import { fixtureFile } from '../../../test/store-harness';
-import { copyKey, openDocument, openPdf, prepareCopy, sameCopy } from './compact-actions';
+import {
+  copyKey,
+  openDocument,
+  openPdf,
+  prepareCopy,
+  sameCopy,
+  shareOrDownload,
+} from './compact-actions';
 import { resetCompactStore } from './compact-store';
 
 /** The /Annots entries of a copy's first page. */
@@ -86,5 +94,20 @@ describe('prepareCopy', () => {
     const undone = prepareCopy(doc);
     expect(undone).not.toBe(edited);
     await expect(undone).resolves.toBeInstanceOf(File);
+  });
+});
+
+describe('Save a copy', () => {
+  beforeEach(async () => {
+    resetWorkspace();
+    resetCompactStore();
+    expect(await openPdf(await fixtureFile(simpleUrl, 'simple-text.pdf'))).toBe(true);
+  });
+
+  it("says the copy was downloaded, in the full edition's words and toast key", async () => {
+    URL.createObjectURL = () => 'blob:copy';
+    await shareOrDownload('download');
+    const saved = useToastStore.getState().shown.find((t) => t.testId === 'save-copy-toast');
+    expect(saved?.text).toMatch(/^Downloaded simple-text\.pdf · /);
   });
 });

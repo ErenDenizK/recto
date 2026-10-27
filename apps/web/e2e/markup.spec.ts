@@ -35,6 +35,11 @@ function layer(page: Page): Locator {
   return page.locator('[data-annotation-layer="0"]');
 }
 
+/** The Fill & sign bar the dock's Fill & sign door opens (DSN-75). */
+function fillSignBar(page: Page): Locator {
+  return page.getByRole('toolbar', { name: 'Fill & sign', exact: true });
+}
+
 function palette(page: Page): Locator {
   return page.getByRole('toolbar', { name: 'Markup', exact: true });
 }
@@ -150,7 +155,7 @@ for (const [size, variant] of (['large', 'tablet'] as const).flatMap((size) =>
       const stamps = layer(page).locator('[data-annotation-kind="stamp"]');
       const first = presses();
       await first.click(page.locator('[data-dock-item="sign"]'));
-      await first.click(palette(page).getByRole('button', { name: 'Sign', exact: true }));
+      await first.click(fillSignBar(page).getByRole('button', { name: 'Sign', exact: true }));
       const sheet = page.getByRole('dialog', { name: 'New signature' });
       await expect(sheet).toBeVisible();
       const pad = sheet.getByRole('img', {
@@ -181,8 +186,8 @@ for (const [size, variant] of (['large', 'tablet'] as const).flatMap((size) =>
       await expect(layer(page)).toHaveAttribute('data-tool', 'select');
 
       // From viewing again: Fill & sign · the chip · the page.
-      await palette(page).getByRole('button', { name: 'Done' }).click();
-      await expect(palette(page)).toHaveCount(0);
+      await fillSignBar(page).getByRole('button', { name: 'Done' }).click();
+      await expect(fillSignBar(page)).toHaveCount(0);
       const again = presses();
       await again.click(page.locator('[data-dock-item="sign"]'));
       const chip = page.locator('[data-saved-signature]').first();

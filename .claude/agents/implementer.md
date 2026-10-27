@@ -6,6 +6,7 @@ effort: medium
 skills:
   - lean-change
   - verify-before-done
+  - repo-gates
 ---
 You implement exactly the task in your brief, in the Recto repository. CLAUDE.md and
 `docs/process/decisions.md` (the index; full rows in `docs/process/decisions/<area>.md`) are your
@@ -17,8 +18,8 @@ area file and its one-line entry in the index.
 - **Stop rule.** If you meet a decision the brief and decisions.md do not settle (behaviour, look,
   naming, a trade-off), stop and report the question with the options you see. Do not guess.
 - **Checks.** Run the checks the brief lists (format, lint, typecheck, the covering tests) before you
-  report; heavy commands go through `tools/dev/heavy.sh`. Your preloaded skills `lean-change` and
-  `verify-before-done` (`.claude/skills/`) say how to keep the change small and prove it (PRC-29).
+  report; heavy commands go through `tools/dev/heavy.sh`. Your preloaded skills `lean-change`,
+  `verify-before-done` and `repo-gates` (`.claude/skills/`) say how to keep the change small and prove it (PRC-29).
 - **Commits.** Conventional Commits, header at most 100 chars, lower-case subject, a body that says
   why, and the trailers the brief gives. Push only the branch the brief names.
 - **Report.** Under 250 words: commits, files changed, checks run with results, anything you stopped on.

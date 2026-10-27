@@ -106,6 +106,12 @@ describe('New signature', () => {
     expect(within(dialog).getByRole('checkbox', { name: 'Save for next time' })).toBeChecked();
   });
 
+  it('focuses the name field when the Type tab is chosen', async () => {
+    await openSheet();
+    await userEvent.click(page.getByRole('tab', { name: 'Type' }));
+    await expect.element(page.getByRole('textbox', { name: 'Your name' })).toHaveFocus();
+  });
+
   it('keeps one size across Draw, Type and Image; the empty Image well picks the image', async () => {
     const dialog = await openSheet();
     const height = () => dialog.getBoundingClientRect().height;
