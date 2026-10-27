@@ -5200,7 +5200,16 @@
   "scan_mode": "Capture mode",
   "scan_mode_auto": "Auto",
   "scan_mode_manual": "Manual",
-  "scan_stack": "Review {count} pages",
+  "scan_stack": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Review {count} page",
+        "countPlural=*": "Review {count} pages"
+      }
+    }
+  ],
   "scan_done": "Done",
   "scan_done_busy": "Making the PDF…",
   "scan_another": "Scan another page",
