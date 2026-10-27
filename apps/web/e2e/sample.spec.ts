@@ -105,14 +105,12 @@ test('the cover’s lines open their pages (links)', async ({ page }) => {
   await expect(pill).toHaveText(new RegExp(`^${target} / ${FULL.pageCount} · `));
 });
 
-test('the feature page’s try slip is true: Edit text, then a paragraph, opens it at the point', async ({
-  page,
-}, testInfo) => {
-  // TXT-20: the slip promised a double-click, which in viewing selects a word (ADR-0029 §2.3),
-  // so the reader's next letters ran as tool keys. It names the door that works.
-  const touch = testInfo.project.use.hasTouch === true;
-  const start = FULL.edit.p1?.start;
-  if (!start) throw new Error('no first paragraph in the manifest');
+/**
+ * Opens the sample's feature page, arms Edit text (E with a keyboard, the dock's More with a
+ * finger) and opens the paragraph that starts `start` at the start of its first line. Returns
+ * the paragraph editor's textbox, focused.
+ */
+async function openFeatureParagraph(page: Page, start: string, touch: boolean) {
   await trackEngine(page);
   await page.goto('./?sample');
   await expect(page.getByRole('tab', { name: 'Recto sample', selected: true })).toBeVisible({
@@ -130,7 +128,6 @@ test('the feature page’s try slip is true: Edit text, then a paragraph, opens 
   await expect(slip).toContainText('Choose Edit text (E), then any paragraph', { timeout: 20_000 });
   await expect(slip).not.toContainText(/double-click/i);
 
-  // Choose Edit text: E with a keyboard, the dock's More with a finger.
   if (touch) {
     await page.locator('[data-dock-item="more"]').tap();
     await page.getByRole('menuitem', { name: 'Edit text' }).tap();
@@ -142,7 +139,7 @@ test('the feature page’s try slip is true: Edit text, then a paragraph, opens 
     'aria-pressed',
     'true',
   );
-  // Then the paragraph: at the start of its first line, so the caret lands before "Up".
+  // At the start of its first line, so the caret lands before its first word.
   const run = feature.locator(`[data-text-edit-layer] [data-text-run^="${start}"]`).first();
   await expect(run).toBeVisible({ timeout: 20_000 });
   const box = await run.boundingBox();
@@ -154,8 +151,58 @@ test('the feature page’s try slip is true: Edit text, then a paragraph, opens 
   // Typed once the page has handled the press's lift, as a person types after it
   // (`paragraph-mirror.spec.ts`).
   await quiet(page);
+  return { editor, feature };
+}
+
+test('the feature page’s try slip is true: Edit text, then a paragraph, opens it at the point', async ({
+  page,
+}, testInfo) => {
+  // TXT-20: the slip promised a double-click, which in viewing selects a word (ADR-0029 §2.3),
+  // so the reader's next letters ran as tool keys. It names the door that works.
+  const start = FULL.edit.p1?.start;
+  if (!start) throw new Error('no first paragraph in the manifest');
+  const { editor } = await openFeatureParagraph(
+    page,
+    start,
+    testInfo.project.use.hasTouch === true,
+  );
   await page.keyboard.type('So ');
   await expect(editor).toHaveText(new RegExp(`^So ${start}`));
+});
+
+test('the feature page’s try slip is true: a sentence at the end of column 1 reflows', async ({
+  page,
+}, testInfo) => {
+  // The slip's reflow demo (sample design §4 page 3, P4): free lines under the last paragraph
+  // of column 1, so an added sentence grows into them, with no overflow line or choice. The
+  // paragraphs above it are set solid and run over by design (P2), which the slips no longer
+  // leave open (the phone's named no place).
+  const start = FULL.edit.p4?.start;
+  if (!start) throw new Error('no fourth paragraph in the manifest');
+  const { editor, feature } = await openFeatureParagraph(
+    page,
+    start,
+    testInfo.project.use.hasTouch === true,
+  );
+  const before = (await editor.boundingBox())?.height ?? 0;
+  const sentence = ' She has not missed an evening since the box arrived in March.';
+  await page.keyboard.press('ControlOrMeta+End');
+  await page.keyboard.type(sentence);
+  await expect(editor).toHaveText(new RegExp(`${sentence.trim()}$`));
+  // It grows by a line at least, and nothing says it runs into what is below.
+  await expect
+    .poll(async () => (await editor.boundingBox())?.height ?? 0)
+    .toBeGreaterThan(before + 8);
+  await expect(
+    page.locator('[data-testid="paragraph-overflow"][data-kind="overflow"]'),
+  ).toHaveCount(0);
+  // Leaving commits it at once: no overlap choice, the page reads the sentence.
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('paragraph-choice')).toHaveCount(0);
+  await expect(editor).toHaveCount(0, { timeout: 20_000 });
+  await expect(feature.getByTestId('text-layer')).toContainText('since the box arrived in March', {
+    timeout: 20_000,
+  });
 });
 
 test('the palette’s Try the sample opens a fresh copy each time', async ({ page }) => {

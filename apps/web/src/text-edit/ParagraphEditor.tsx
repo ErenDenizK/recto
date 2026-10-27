@@ -1827,6 +1827,9 @@ export function ParagraphEditor({
         : decision?.kind === 'overflow'
           ? m.paragraph_overflow()
           : null;
+  // The overlap choice says the overflow line in its own sentence (craft §4.6), so the line
+  // steps aside while the choice shows: the header never says it twice.
+  const overflowChoice = choice && decision?.kind === 'overflow' && !decision.offPage;
   const ragged = laid?.result.layout.ragged === true;
   const loadError = current && 'error' in current ? current.error : null;
   const shownError =
@@ -2090,7 +2093,7 @@ export function ParagraphEditor({
               {line}
             </p>
           ))}
-          {overflowLine ? (
+          {overflowLine && !overflowChoice ? (
             <p
               className={styles.overflow}
               data-kind={decision?.kind}
@@ -2154,7 +2157,7 @@ export function ParagraphEditor({
             </div>
           </div>
         ) : null}
-        {choice && decision?.kind === 'overflow' && !decision.offPage ? (
+        {overflowChoice ? (
           <div
             className={styles.choice}
             role="group"

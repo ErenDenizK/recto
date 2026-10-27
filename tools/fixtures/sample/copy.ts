@@ -261,7 +261,7 @@ const EN: SampleCopy = {
     tryLine: {
       full: 'Choose Edit text (E), then any paragraph, to change its words. Put your name in the byline, or add a sentence to the end of the first column and watch it reflow.',
       phone:
-        'Tap Edit, then Edit text, then a paragraph. Put your name in the byline, or add a sentence and watch it reflow.',
+        'Tap Edit, Edit text, then a paragraph. Put your name in the byline, or end column 1 with a sentence and watch it reflow.',
     },
   },
   contact: {
@@ -533,7 +533,7 @@ const TR: SampleCopy = {
     tryLine: {
       full: 'Metni düzenle’yi (E), ardından bir paragrafı seçip sözcüklerini değiştirin. Künyeye kendi adınızı yazın ya da ilk sütunun sonuna bir cümle ekleyip metnin yeniden dizilişini izleyin.',
       phone:
-        'Düzenle’de Metni düzenle’yi seçip bir paragrafa dokunun. Künyeye adınızı yazın ya da cümle ekleyip akışı izleyin.',
+        'Düzenle’de Metni düzenle’yi seçip bir paragrafa dokunun. Künyeye adınızı yazın ya da 1. sütunun sonuna cümle ekleyip akışı izleyin.',
     },
   },
   contact: {
