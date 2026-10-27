@@ -61,6 +61,11 @@ export interface HeaderPlaceInput {
   readonly below?: number | undefined;
   /** The page's other paragraphs, which a header beside this one passes (TXT-26). */
   readonly others?: readonly Edges[] | undefined;
+  /**
+   * The page's images (TXT-28): passed beside the paragraph like the other paragraphs, and a
+   * header above or below is never put over one (the gaps above and below may not count them).
+   */
+  readonly images?: readonly Edges[] | undefined;
 }
 
 /** `clamp` with the floor winning when `max` is below `min` (no room left). */
@@ -80,7 +85,7 @@ export function placeHeader(input: HeaderPlaceInput): HeaderPlace {
     free.bottom - HEADER_GAP - height,
   );
   // The paragraphs level with the header, wholly to one side of this one.
-  const level = (input.others ?? []).filter(
+  const level = [...(input.others ?? []), ...(input.images ?? [])].filter(
     (o) => o.top < besideTop + height + HEADER_GAP && besideTop - HEADER_GAP < o.bottom,
   );
   const beside = (passOthers: boolean): HeaderPlace | undefined => {
@@ -118,14 +123,24 @@ export function placeHeader(input: HeaderPlaceInput): HeaderPlace {
   const start = clamp(text.left, free.left + HEADER_GAP, free.right - HEADER_GAP - width);
   const need = height + 2 * HEADER_GAP;
   const aboveTop = text.top - HEADER_GAP - height;
-  if (input.above !== undefined && input.above >= need && aboveTop >= free.top + HEADER_GAP) {
+  const clearOf = (top: number) => {
+    const box = { left: start, top, right: start + width, bottom: top + height };
+    return !(input.images ?? []).some((o) => overlaps(o, box));
+  };
+  if (
+    input.above !== undefined &&
+    input.above >= need &&
+    aboveTop >= free.top + HEADER_GAP &&
+    clearOf(aboveTop)
+  ) {
     return { side: 'above', left: start, top: aboveTop };
   }
   const belowTop = text.bottom + HEADER_GAP;
   if (
     input.below !== undefined &&
     input.below >= need &&
-    belowTop + height <= free.bottom - HEADER_GAP
+    belowTop + height <= free.bottom - HEADER_GAP &&
+    clearOf(belowTop)
   ) {
     return { side: 'below', left: start, top: belowTop };
   }

@@ -47,6 +47,7 @@ import type { Rect } from '@pdf-editor/document-model';
 import type {
   LayoutEdit,
   LayoutEditSpan,
+  LocatedImage,
   ParagraphBlock,
   ParagraphEditRefusal,
   ParagraphFrameChange,
@@ -152,6 +153,7 @@ import {
   paragraphLayoutAnalysis,
   useTextEditStore,
 } from './text-edit-store';
+import { locatedImages } from '../image-objects/images';
 import { gripEdge, type HeaderPlace, placeHeader } from './header-place';
 
 /**
@@ -531,6 +533,25 @@ export function ParagraphEditor({
       live = false;
     };
   }, [block.ref.source, block.ref.pageIndex, block.ref.index]);
+
+  /**
+   * The page's images, which the header and grip keep off too (TXT-28). Located on the first
+   * open on a page, cached per page revision (`locatedImages`); until they arrive the header
+   * is placed without them and placed again then. Opening never waits for them.
+   */
+  const [images, setImages] = useState<readonly LocatedImage[]>([]);
+  useEffect(() => {
+    let live = true;
+    locatedImages(block.ref.source, block.ref.pageIndex).then(
+      (located) => {
+        if (live) setImages(located);
+      },
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [block.ref.source, block.ref.pageIndex]);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
@@ -940,6 +961,15 @@ export function ParagraphEditor({
       }),
     [others, frame],
   );
+  /** The page's images in the layer's CSS pixels (TXT-28). */
+  const imagesCss = useMemo(
+    () =>
+      images.map((i) => {
+        const r = rectToCss(frame, i.bounds);
+        return { left: r.left, top: r.top, right: r.left + r.width, bottom: r.top + r.height };
+      }),
+    [images, frame],
+  );
   /** The grip goes under the frame when its notch would lie on a paragraph above (TXT-26). */
   const gripBelow =
     gripEdge(
@@ -949,7 +979,7 @@ export function ParagraphEditor({
         right: frameBox.left + frameBox.width,
         bottom: frameBox.top + frameBox.height,
       },
-      othersCss,
+      [...othersCss, ...imagesCss],
       GRIP_NOTCH.width,
       GRIP_NOTCH.reach,
     ) === 'bottom';
@@ -1730,6 +1760,7 @@ export function ParagraphEditor({
       above: upright && gapAbove !== undefined ? textTop - contentTop : undefined,
       below: upright && gapBelow !== undefined ? contentBottom - textBottom : undefined,
       others: othersCss,
+      images: imagesCss,
     });
     setPlace((prev) =>
       prev.side === next.side &&
@@ -1758,6 +1789,7 @@ export function ParagraphEditor({
     gapAbove,
     gapBelow,
     othersCss,
+    imagesCss,
     headerKey,
     scrolled,
     choice,
