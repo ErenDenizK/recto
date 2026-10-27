@@ -25,7 +25,7 @@
   touch-action: none;
 }
 
-/* EDN-18: the armed tool's next step is a tap on the page, so a press outside goes on to it
+/* EDN-18, EDN-28: the armed tool's next step is a touch on the page (a stroke or a tap), so a press outside goes on to it
    (and closes the drawer, drawer-close.ts) rather than stopping here. */
 .scrim[data-through] {
   pointer-events: none;

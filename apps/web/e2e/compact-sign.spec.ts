@@ -338,6 +338,8 @@ test.describe('phone saving (M10 WP7)', () => {
     await page.getByRole('menuitem', { name: 'Save a copy' }).click();
     const download = await downloading;
     expect(await annotsInCopy(await download.path())).toBeGreaterThanOrEqual(1);
+    // The download says so (EDN-28), as the full edition does.
+    await expect(page.getByTestId('save-copy-toast')).toContainText('Downloaded');
   });
 });
 
