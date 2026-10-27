@@ -81,6 +81,8 @@ export type MyInfoErrorCode =
   | 'not-locked'
   | 'already-locked'
   | 'empty-passphrase'
+  | 'busy'
+  | 'forgotten'
   | 'unavailable';
 
 export class MyInfoError extends Error {
@@ -216,6 +218,27 @@ function transactionDone(tx: IDBTransaction): Promise<void> {
   });
 }
 
+/** The database could not be opened: this window keeps nothing (as opposed to one failed write). */
+export class StorageUnavailable extends Error {
+  constructor(cause?: unknown) {
+    super('storage-unavailable', { cause });
+    this.name = 'StorageUnavailable';
+  }
+}
+
+/** Deletes a database by name; resolves when it is gone, rejects when the delete fails. */
+export function deleteMyInfoDatabase(
+  factory: IDBFactory = indexedDB,
+  name: string = MY_INFO_DB,
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const del = factory.deleteDatabase(name);
+    del.onsuccess = () => resolve();
+    del.onerror = () => reject(del.error ?? new Error('IndexedDB delete failed'));
+    // Blocked by another tab: its versionchange handler closes the connection and this goes on.
+  });
+}
+
 /** The IndexedDB backend; the connection reopens after another tab or Forget closes it. */
 export function indexedDbMyInfoBackend(
   factory: IDBFactory = indexedDB,
@@ -224,7 +247,13 @@ export function indexedDbMyInfoBackend(
   let connection: Promise<IDBDatabase> | undefined;
   const db = (): Promise<IDBDatabase> => {
     connection ??= new Promise<IDBDatabase>((resolve, reject) => {
-      const open = factory.open(name, DB_VERSION);
+      let open: IDBOpenDBRequest;
+      try {
+        open = factory.open(name, DB_VERSION);
+      } catch (error) {
+        reject(new StorageUnavailable(error));
+        return;
+      }
       open.onupgradeneeded = () => {
         if (!open.result.objectStoreNames.contains(STORE)) open.result.createObjectStore(STORE);
       };
@@ -239,11 +268,11 @@ export function indexedDbMyInfoBackend(
         };
         resolve(result);
       };
-      open.onerror = () => reject(open.error ?? new Error('IndexedDB open failed'));
-      open.onblocked = () => reject(new Error('IndexedDB open blocked'));
+      open.onerror = () => reject(new StorageUnavailable(open.error));
+      open.onblocked = () => reject(new StorageUnavailable(new Error('IndexedDB open blocked')));
     }).catch((error: unknown) => {
       connection = undefined;
-      throw error;
+      throw error instanceof StorageUnavailable ? error : new StorageUnavailable(error);
     });
     return connection;
   };
@@ -268,12 +297,7 @@ export function indexedDbMyInfoBackend(
           // It never opened; there is nothing to close.
         }
       }
-      await new Promise<void>((resolve, reject) => {
-        const del = factory.deleteDatabase(name);
-        del.onsuccess = () => resolve();
-        del.onerror = () => reject(del.error ?? new Error('IndexedDB delete failed'));
-        // Another tab still holds it: its versionchange handler closes it and the delete goes on.
-      });
+      await deleteMyInfoDatabase(factory, name);
     },
   };
 }
@@ -291,9 +315,16 @@ interface MyInfoState {
   readonly status: MyInfoStatus;
   /** The lock is on (sealed on disk), whether or not it is open now. */
   readonly lockEnabled: boolean;
+  /** The last write failed (storage is still there); cleared by the next one that succeeds. */
+  readonly writeError: boolean;
 }
 
-const INITIAL: MyInfoState = { profile: EMPTY_PROFILE, status: 'loading', lockEnabled: false };
+const INITIAL: MyInfoState = {
+  profile: EMPTY_PROFILE,
+  status: 'loading',
+  lockEnabled: false,
+  writeError: false,
+};
 
 export const useMyInfo = create<MyInfoState>(() => INITIAL);
 
@@ -332,23 +363,36 @@ function refuse(): void {
   useMyInfo.setState({ status: 'refused' });
 }
 
-function enqueue(run: (target: MyInfoBackend) => Promise<void>): Promise<boolean> {
+/**
+ * Runs a storage job after the ones before it. The job returns false when it chose not to write
+ * (the world changed since it was queued). A failed open refuses storage; a failed write only
+ * says so (`writeError`) and keeps the backend for the next try.
+ */
+function enqueue(run: (target: MyInfoBackend) => Promise<boolean | undefined>): Promise<boolean> {
   let ok = true;
   queue = queue
-    .then(() => {
+    .then(async () => {
       const target = store();
       if (!target) {
         ok = false;
         return;
       }
-      return run(target);
+      if ((await run(target)) === false) {
+        ok = false;
+      } else if (useMyInfo.getState().writeError) {
+        useMyInfo.setState({ writeError: false });
+      }
     })
-    .catch(() => {
+    .catch((error: unknown) => {
       ok = false;
-      refuse();
+      if (error instanceof StorageUnavailable) refuse();
+      else useMyInfo.setState({ writeError: true });
     });
   return queue.then(() => ok);
 }
+
+/** Changes whenever Forget or a backend change makes earlier work stale. */
+export const myInfoGeneration = (): number => generation;
 
 /** Uses `next` for storage from now on and forgets what was loaded (tests). */
 export function setMyInfoBackend(next: MyInfoBackend | null | undefined): void {
@@ -372,16 +416,28 @@ function plainRecord(profile: MyInfoProfile): unknown {
 export const serializeMyInfo = (profile: MyInfoProfile): string =>
   JSON.stringify(plainRecord(profile));
 
-/** Writes the current profile, sealed when the lock is open. */
+/**
+ * Writes the profile as it is now, sealed when the lock is open. What to write and how is fixed
+ * when this is called; if Forget ran, the lock closed or the sealer changed before the job gets
+ * its turn, it writes nothing (a stale job must never overwrite or recreate the record).
+ */
 function persist(): Promise<boolean> {
+  const queued = generation;
+  const { profile } = useMyInfo.getState();
+  const seal = sealer;
   return enqueue(async (target) => {
-    const { profile } = useMyInfo.getState();
-    if (sealer) {
-      sealed = await sealer.seal(serializeMyInfo(profile));
-      await target.put(sealed);
+    if (queued !== generation || seal !== sealer || useMyInfo.getState().status === 'locked') {
+      return false;
+    }
+    if (seal) {
+      const record = await seal.seal(serializeMyInfo(profile));
+      if (queued !== generation || seal !== sealer) return false;
+      await target.put(record);
+      sealed = record;
     } else {
       await target.put(plainRecord(profile));
     }
+    return true;
   });
 }
 
@@ -431,7 +487,9 @@ export async function saveMyInfo(input: {
   readonly fields: Readonly<Record<string, unknown>>;
   readonly keepNationalId?: boolean;
 }): Promise<MyInfoProfile | null> {
+  const started = generation;
   await loadMyInfo();
+  if (generation !== started) return null;
   const { status } = useMyInfo.getState();
   if (status === 'locked') throw new MyInfoError('locked');
   const keepNationalId = input.keepNationalId === true;
@@ -463,7 +521,12 @@ export async function forgetMyInfo(): Promise<boolean> {
   loading = Promise.resolve();
   let ok = true;
   queue = queue
-    .then(() => store()?.destroy())
+    .then(async () => {
+      const target = store();
+      if (target) await target.destroy();
+      // A refused window has no backend left, but the database may still exist: delete it.
+      else if (typeof indexedDB !== 'undefined') await deleteMyInfoDatabase();
+    })
     .catch(() => {
       ok = false;
     });

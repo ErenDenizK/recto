@@ -10,6 +10,7 @@ import {
   closeLock,
   MyInfoError,
   type MyInfoProfile,
+  myInfoGeneration,
   parseMyInfo,
   type Sealer,
   sealedRecord,
@@ -31,7 +32,7 @@ export interface LockRecord {
 }
 
 /** The held key and the salt it came from; null while locked or when no lock is on. */
-let held: { readonly key: CryptoKey; readonly salt: Uint8Array<ArrayBuffer> } | null = null;
+let held: { key: CryptoKey | null; readonly salt: Uint8Array<ArrayBuffer> } | null = null;
 
 function toBase64(bytes: Uint8Array): string {
   let binary = '';
@@ -135,11 +136,15 @@ async function open(
 }
 
 function sealerFor(key: CryptoKey, salt: Uint8Array<ArrayBuffer>): Sealer {
-  const mine = { key, salt };
+  const mine: { key: CryptoKey | null; readonly salt: Uint8Array<ArrayBuffer> } = { key, salt };
   held = mine;
   return {
-    seal: (plain) => encrypt(mine.key, mine.salt, plain),
+    seal: (plain) => {
+      if (!mine.key) throw new MyInfoError('locked');
+      return encrypt(mine.key, mine.salt, plain);
+    },
     drop: () => {
+      mine.key = null;
       if (held === mine) held = null;
     },
   };
@@ -148,28 +153,59 @@ function sealerFor(key: CryptoKey, salt: Uint8Array<ArrayBuffer>): Sealer {
 /** Whether the key is held now (the lock is on and open). */
 export const isUnlocked = (): boolean => held !== null;
 
-/** Turns the lock on: the profile is sealed with a key from `passphrase`. */
-export async function lock(passphrase: string): Promise<void> {
-  if (passphrase.length === 0) throw new MyInfoError('empty-passphrase');
-  const state = useMyInfo.getState();
-  if (state.lockEnabled) throw new MyInfoError('already-locked');
-  if (state.status !== 'ready')
-    throw new MyInfoError(state.status === 'locked' ? 'locked' : 'refused');
-  const salt = random(SALT_BYTES);
-  const key = await deriveKey(passphrase, salt);
-  if (!(await setSealer(sealerFor(key, salt)))) {
-    await setSealer(null);
-    throw new MyInfoError('refused');
+/** One lock operation at a time: a second one, started during the first's key derivation, is refused. */
+let busy = false;
+
+async function exclusive<T>(run: () => Promise<T>): Promise<T> {
+  if (busy) throw new MyInfoError('busy');
+  busy = true;
+  try {
+    return await run();
+  } finally {
+    busy = false;
   }
 }
 
+/** Throws `forgotten` when Forget (or a backend change) ran since `started`. */
+function assertCurrent(started: number): void {
+  if (myInfoGeneration() !== started) throw new MyInfoError('forgotten');
+}
+
+/** Turns the lock on: the profile is sealed with a key from `passphrase`. */
+export function lock(passphrase: string): Promise<void> {
+  return exclusive(async () => {
+    if (passphrase.length === 0) throw new MyInfoError('empty-passphrase');
+    const state = useMyInfo.getState();
+    if (state.lockEnabled) throw new MyInfoError('already-locked');
+    if (state.status !== 'ready') {
+      throw new MyInfoError(state.status === 'locked' ? 'locked' : 'refused');
+    }
+    const started = myInfoGeneration();
+    const salt = random(SALT_BYTES);
+    const key = await deriveKey(passphrase, salt);
+    assertCurrent(started);
+    if (useMyInfo.getState().status !== 'ready') throw new MyInfoError('refused');
+    if (!(await setSealer(sealerFor(key, salt)))) {
+      // Forget during the write must not be undone by a roll-back write.
+      assertCurrent(started);
+      await setSealer(null);
+      throw new MyInfoError('refused');
+    }
+  });
+}
+
 /** Opens a locked store. A wrong passphrase rejects and keeps the data. */
-export async function unlock(passphrase: string): Promise<void> {
-  if (useMyInfo.getState().status !== 'locked') throw new MyInfoError('not-locked');
-  const record = sealedRecord();
-  if (!isLockRecord(record)) throw new MyInfoError('wrong-passphrase');
-  const { key, salt, profile } = await open(record, passphrase);
-  adoptProfile(profile, sealerFor(key, salt));
+export function unlock(passphrase: string): Promise<void> {
+  return exclusive(async () => {
+    if (useMyInfo.getState().status !== 'locked') throw new MyInfoError('not-locked');
+    const record = sealedRecord();
+    if (!isLockRecord(record)) throw new MyInfoError('wrong-passphrase');
+    const started = myInfoGeneration();
+    const { key, salt, profile } = await open(record, passphrase);
+    assertCurrent(started);
+    if (useMyInfo.getState().status !== 'locked') throw new MyInfoError('not-locked');
+    adoptProfile(profile, sealerFor(key, salt));
+  });
 }
 
 /** Closes an open lock now: the key and the profile leave memory. */
@@ -178,12 +214,18 @@ export function lockNow(): void {
 }
 
 /** Turns the lock off, after checking the passphrase; the record is stored plain again. */
-export async function removeLock(passphrase: string): Promise<void> {
-  const state = useMyInfo.getState();
-  if (!state.lockEnabled) throw new MyInfoError('not-locked');
-  const record = sealedRecord();
-  if (!isLockRecord(record)) throw new MyInfoError('wrong-passphrase');
-  const { profile } = await open(record, passphrase);
-  adoptProfile(profile, null);
-  if (!(await setSealer(null))) throw new MyInfoError('refused');
+export function removeLock(passphrase: string): Promise<void> {
+  return exclusive(async () => {
+    if (!useMyInfo.getState().lockEnabled) throw new MyInfoError('not-locked');
+    const record = sealedRecord();
+    if (!isLockRecord(record)) throw new MyInfoError('wrong-passphrase');
+    const started = myInfoGeneration();
+    const { profile } = await open(record, passphrase);
+    assertCurrent(started);
+    adoptProfile(profile, null);
+    if (!(await setSealer(null))) {
+      assertCurrent(started);
+      throw new MyInfoError('refused');
+    }
+  });
 }

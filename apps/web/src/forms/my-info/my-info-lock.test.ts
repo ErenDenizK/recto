@@ -5,6 +5,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { indexedDbMyInfoBackend } from './my-info';
 import { isLockRecord, isUnlocked, lock, lockNow, removeLock, unlock } from './my-info-lock';
 import {
   forgetMyInfo,
@@ -144,5 +145,121 @@ describe('forget and network', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(open).not.toHaveBeenCalled();
     expect(send).not.toHaveBeenCalled();
+  });
+});
+
+/** A backend whose puts wait for `release()`, to hold a write in flight. */
+function gatedBackend() {
+  const inner = memoryMyInfoBackend();
+  let release!: () => void;
+  let gate = Promise.resolve();
+  let started!: () => void;
+  let putStarted = new Promise<void>((resolve) => {
+    started = resolve;
+  });
+  const backend: MyInfoBackend = {
+    ...inner,
+    put: async (record) => {
+      started();
+      await gate;
+      await inner.put(record);
+    },
+  };
+  return {
+    backend,
+    inner,
+    hold() {
+      gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+    },
+    release: () => release(),
+    firstPut: () => putStarted,
+    reset() {
+      putStarted = new Promise<void>((resolve) => {
+        started = resolve;
+      });
+    },
+  };
+}
+
+describe('races', () => {
+  it('lockNow while a write is queued never writes the profile in plain', async () => {
+    const g = gatedBackend();
+    setMyInfoBackend(g.backend);
+    await saveMyInfo({ fields: { givenName: 'Ayşe' } });
+    await lock('pw');
+    g.hold();
+    g.reset();
+    const first = saveMyInfo({ fields: { givenName: 'Ayşe', city: 'A' } });
+    await g.firstPut();
+    const second = saveMyInfo({ fields: { givenName: 'Ayşe', city: 'B' } });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    lockNow();
+    g.release();
+    await first;
+    expect(await second).toBeNull();
+    const record = await g.inner.get();
+    expect(isLockRecord(record)).toBe(true);
+    expect(JSON.stringify(record)).not.toContain('Ayşe');
+    await unlock('pw');
+    expect(useMyInfo.getState().profile.fields.city).toBe('A');
+  });
+
+  it('Forget during unlock does not bring the data back', async () => {
+    await lock('pw');
+    lockNow();
+    const opening = unlock('pw');
+    const forgetting = forgetMyInfo();
+    await expect(opening).rejects.toMatchObject({ code: 'forgotten' });
+    await forgetting;
+    expect(useMyInfo.getState()).toMatchObject({ status: 'ready', lockEnabled: false });
+    expect(useMyInfo.getState().profile.fields).toEqual({});
+    expect(isUnlocked()).toBe(false);
+    expect(await backend.get()).toBeUndefined();
+  });
+
+  it('Forget during lock does not recreate the record', async () => {
+    const locking = lock('pw');
+    const forgetting = forgetMyInfo();
+    await expect(locking).rejects.toMatchObject({ code: 'forgotten' });
+    await forgetting;
+    expect(isUnlocked()).toBe(false);
+    expect(useMyInfo.getState().lockEnabled).toBe(false);
+    expect(await backend.get()).toBeUndefined();
+  });
+
+  it('refuses a second lock operation while one is in flight', async () => {
+    const first = lock('pw');
+    await expect(lock('pw')).rejects.toMatchObject({ code: 'busy' });
+    await first;
+    expect(useMyInfo.getState().lockEnabled).toBe(true);
+  });
+});
+
+describe('IndexedDB', () => {
+  it('seals, reopens and rejects a wrong passphrase through the real database', async () => {
+    const name = `pdf-editor:my-info:test-lock-${Math.random().toString(36).slice(2)}`;
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const xhr = vi.spyOn(XMLHttpRequest.prototype, 'send');
+    const real = indexedDbMyInfoBackend(indexedDB, name);
+    setMyInfoBackend(real);
+    await saveMyInfo({ fields: { givenName: 'Ayşe' } });
+    await lock('correct horse');
+    const record = (await real.get()) as Record<string, unknown>;
+    expect(isLockRecord(record)).toBe(true);
+    expect(JSON.stringify(record)).not.toContain('Ayşe');
+
+    setMyInfoBackend(indexedDbMyInfoBackend(indexedDB, name));
+    await loadMyInfo();
+    expect(useMyInfo.getState().status).toBe('locked');
+    await expect(unlock('wrong')).rejects.toMatchObject({ code: 'wrong-passphrase' });
+    expect(await real.get()).toEqual(record);
+    await unlock('correct horse');
+    expect(useMyInfo.getState().profile.fields.givenName).toBe('Ayşe');
+    expect(await forgetMyInfo()).toBe(true);
+    expect((await indexedDB.databases()).map((d) => d.name)).not.toContain(name);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(xhr).not.toHaveBeenCalled();
   });
 });

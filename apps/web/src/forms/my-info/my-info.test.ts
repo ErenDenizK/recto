@@ -12,6 +12,7 @@ import {
   indexedDbMyInfoBackend,
   isValidNationalId,
   loadMyInfo,
+  MY_INFO_DB,
   MY_INFO_FIELDS,
   MY_INFO_LIMITS,
   type MyInfoBackend,
@@ -164,9 +165,18 @@ describe('store', () => {
     await loadMyInfo();
     expect(useMyInfo.getState().status).toBe('refused');
 
-    setMyInfoBackend({ ...memoryMyInfoBackend(), put: () => Promise.reject(new Error('full')) });
+    // A failed write is not a refused store: the backend stays and the next write can succeed.
+    let failing_put = true;
+    const flaky = memoryMyInfoBackend();
+    setMyInfoBackend({
+      ...flaky,
+      put: (record) => (failing_put ? Promise.reject(new Error('full')) : flaky.put(record)),
+    });
     expect(await saveMyInfo({ fields: { city: 'Bursa' } })).toBeNull();
-    expect(useMyInfo.getState().status).toBe('refused');
+    expect(useMyInfo.getState()).toMatchObject({ status: 'ready', writeError: true });
+    failing_put = false;
+    expect(await saveMyInfo({ fields: { city: 'Bursa' } })).not.toBeNull();
+    expect(useMyInfo.getState()).toMatchObject({ status: 'ready', writeError: false });
   });
 
   it('refuses to save while locked', async () => {
@@ -188,10 +198,73 @@ describe('store', () => {
   });
 });
 
+/** A factory whose open fails in the given way. */
+function brokenFactory(how: 'throws' | 'error' | 'blocked'): IDBFactory {
+  return {
+    open: () => {
+      if (how === 'throws') throw new Error('denied');
+      const req = { error: null } as unknown as IDBOpenDBRequest;
+      queueMicrotask(() => {
+        if (how === 'error') req.onerror?.(new Event('error'));
+        else req.onblocked?.(new Event('blocked') as IDBVersionChangeEvent);
+      });
+      return req;
+    },
+    deleteDatabase: () => {
+      throw new Error('denied');
+    },
+  } as unknown as IDBFactory;
+}
+
+describe('refused storage', () => {
+  it.each(['throws', 'error', 'blocked'] as const)('reports refused when open %s', async (how) => {
+    setMyInfoBackend(indexedDbMyInfoBackend(brokenFactory(how)));
+    await loadMyInfo();
+    expect(useMyInfo.getState().status).toBe('refused');
+    expect(await saveMyInfo({ fields: { city: 'x' } })).toBeNull();
+  });
+
+  it('Forget still tries to delete the database after storage was refused', async () => {
+    setMyInfoBackend(indexedDbMyInfoBackend(brokenFactory('throws')));
+    await loadMyInfo();
+    expect(useMyInfo.getState().status).toBe('refused');
+    const del = vi.spyOn(indexedDB, 'deleteDatabase');
+    expect(await forgetMyInfo()).toBe(true);
+    expect(del).toHaveBeenCalledWith(MY_INFO_DB);
+  });
+
+  it('Forget reports a failed delete honestly', async () => {
+    setMyInfoBackend(indexedDbMyInfoBackend(brokenFactory('throws')));
+    expect(await forgetMyInfo()).toBe(false);
+  });
+});
+
+describe('races', () => {
+  it('a save begun before Forget writes nothing after it', async () => {
+    const inner = memoryMyInfoBackend();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    setMyInfoBackend({ ...inner, get: async () => (await gate, inner.get()) });
+    const saving = saveMyInfo({ fields: { givenName: 'Ayşe' } });
+    await forgetMyInfo();
+    release();
+    expect(await saving).toBeNull();
+    await queueMicrotaskFlush();
+    expect(await inner.get()).toBeUndefined();
+    expect(useMyInfo.getState().profile.fields).toEqual({});
+  });
+});
+
+const queueMicrotaskFlush = () => new Promise<void>((resolve) => setTimeout(resolve, 20));
+
 describe('IndexedDB', () => {
   const name = `pdf-editor:my-info:test-${Math.random().toString(36).slice(2)}`;
 
-  it('round trips a record and Forget deletes the database', async () => {
+  it('round trips a record and Forget deletes the database, without the network', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const xhr = vi.spyOn(XMLHttpRequest.prototype, 'open');
     const backend = indexedDbMyInfoBackend(indexedDB, name);
     expect(await backend.get()).toBeUndefined();
     await backend.put({ v: 1, keepNationalId: false, fields: { givenName: 'Ayşe' } });
@@ -205,6 +278,8 @@ describe('IndexedDB', () => {
     expect(names).not.toContain(name);
     expect(await backend.get()).toBeUndefined();
     await backend.destroy();
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(xhr).not.toHaveBeenCalled();
   });
 
   it('survives a save, a reload and Forget through the real store', async () => {
