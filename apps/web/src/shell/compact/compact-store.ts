@@ -87,6 +87,11 @@ export interface CompactState {
   /** The tool drawer is open over the island (README §3). */
   readonly drawerOpen: boolean;
   /**
+   * The single capsule's tray is open above it (EDN-24, behind Labs `phone-capsule`). Only the
+   * new capsule reads it; begin and end of editing and the Library close it, typing leaves it.
+   */
+  readonly trayOpen: boolean;
+  /**
    * A text box is open for typing: the island steps away and the keyboard's Done takes its
    * place (README §4; `mark/TextLayer.tsx`).
    */
@@ -124,6 +129,7 @@ const INITIAL: CompactState = {
   tool: null,
   lastTool: 'pen',
   drawerOpen: false,
+  trayOpen: false,
   typing: false,
   findOverTop: false,
   zoomRequest: null,
@@ -167,6 +173,7 @@ export function showLibrary(): void {
     editing: false,
     tool: null,
     drawerOpen: false,
+    trayOpen: false,
     typing: false,
     findOverTop: false,
     overview: 'closed',
@@ -247,6 +254,7 @@ export function beginEditing(tool: CompactTool | null): void {
     tool,
     ...(tool === null ? {} : { lastTool: tool }),
     drawerOpen: false,
+    trayOpen: false,
     findOpen: false,
     sheet: null,
     menuOpen: false,
@@ -256,7 +264,7 @@ export function beginEditing(tool: CompactTool | null): void {
 
 /** Back to reading; the last tool is kept for the next entry. */
 export function endEditing(): void {
-  set({ editing: false, tool: null, drawerOpen: false, typing: false });
+  set({ editing: false, tool: null, drawerOpen: false, trayOpen: false, typing: false });
 }
 
 /** The armed tool (null: the chip is off); a tool is remembered for the next entry. */
@@ -266,6 +274,11 @@ export function setCompactTool(tool: CompactTool | null): void {
 
 export function setDrawerOpen(drawerOpen: boolean): void {
   if (useCompactStore.getState().drawerOpen !== drawerOpen) set({ drawerOpen });
+}
+
+/** Opens or closes the single capsule's tray (EDN-24). */
+export function setTrayOpen(trayOpen: boolean): void {
+  if (useCompactStore.getState().trayOpen !== trayOpen) set({ trayOpen });
 }
 
 /** A text box opened or closed for typing; the drawer closes for it. */

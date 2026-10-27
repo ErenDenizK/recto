@@ -5,6 +5,8 @@
  *   (`pdf-editor:fillbar:v1`), as the margin map's is. Off by default: the Fill & sign door
  *   then opens the shared Markup palette on its Sign set, as before.
  */
+import { labsStored } from '../labs/stored';
+
 const QUERY_PARAM = 'fillbar';
 export const FILL_BAR_KEY = 'pdf-editor:fillbar:v1';
 
@@ -28,7 +30,7 @@ export function fillBarEnabled(): boolean {
   } catch {
     // Storage blocked: the address alone decides.
   }
-  enabled = decideFillBar(location.search, stored);
+  enabled = decideFillBar(location.search, labsStored('fillbar', stored));
   return enabled;
 }
 

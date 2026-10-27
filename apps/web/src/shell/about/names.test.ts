@@ -116,6 +116,8 @@ describe('names kept by ADR-0015 §3', () => {
       // The labelled palette flag, ?labels=1|0, and its session count (markup/palette-labels.ts, DSN-71).
       'pdf-editor:labels-sessions:v1',
       'pdf-editor:labels:v1',
+      // The Labs panel's reveal and toggles, one JSON value (labs/stored.ts, DSN-82).
+      'pdf-editor:labs:v1',
       'pdf-editor:locale:v1',
       // The margin map flag, ?margin=1|0 (shell/frame/margin/margin-map-flag.ts, DSN-72).
       'pdf-editor:margin:v1',

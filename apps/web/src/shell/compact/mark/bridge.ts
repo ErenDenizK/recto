@@ -111,6 +111,9 @@ export function armTool(tool: CompactTool): void {
 /** The tool the Eraser goes back to when it is turned off. */
 let beforeEraser: CompactTool = 'pen';
 
+/** The tool the Eraser took over from (the capsule's pressed tool while it is on, EDN-24). */
+export const eraserFrom = (): CompactTool => beforeEraser;
+
 /** The quiet row's Eraser: on, or back to the tool it took over from. */
 export function toggleEraser(): void {
   const { tool, lastTool } = useCompactStore.getState();
@@ -200,6 +203,7 @@ function removeDeselect(): void {
 /** Tests: forget the floors and the document. */
 export function resetBridge(): void {
   editingDoc = undefined;
+  beforeEraser = 'pen';
   floors.clear();
   removeDeselect();
 }

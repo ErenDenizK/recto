@@ -7,7 +7,7 @@
  */
 import type { PDFOperator } from '@cantoo/pdf-lib';
 import { setLineWidth, setStrokingRgbColor, stroke, rectangle } from '@cantoo/pdf-lib';
-import { LAMP_OFF, TAB_INSET, TAB_W, coverOf, groundAt, lightAt, nightOf } from '../light.ts';
+import { LAMP_OFF, coverOf, lightAt } from '../light.ts';
 import { type PageCtx, furniture, kicker, slipTop, trySlip } from '../context.ts';
 import { cut } from '../copy.ts';
 import {
@@ -77,16 +77,6 @@ export function flatplanPage(ctx: PageCtx): void {
         ...miniature(id, x, y, tileW, tileH, 'type'),
       );
     } else ops.push(...miniature(id, x, y, tileW, tileH));
-    // Each page's lamp tab (B4): the tab's ground, at least 1.5 pt wide, inside the tile's edge,
-    // and in it the hour's light.
-    const f = nightOf(id);
-    const yc = 772 - f * 660;
-    const tw = Math.max(1.5, TAB_W * sc);
-    const tx = x + tileW - TAB_INSET * sc - tw;
-    ops.push(
-      ...roundRect(tx, y + (yc - 32) * sc, tw, 64 * sc, tw / 2, groundAt(id)),
-      ...rect(tx + tw / 2 - 0.3, y + (yc - 20) * sc, 0.6, 40 * sc, lightAt(id)),
-    );
   });
   w.figure(figure, ...ops);
   ctx.ids.forEach((id, i) => {

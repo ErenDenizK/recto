@@ -10,8 +10,12 @@
  */
 import { useSyncExternalStore } from 'react';
 
+import { labsStored } from '../labs/stored';
+
+/** On by `?scan=1`, off by `?scan=0`; with no address word, the Labs toggle decides (DSN-82). */
 export function scanEnabled(): boolean {
-  return new URLSearchParams(location.search).get('scan') === '1';
+  const asked = new URLSearchParams(location.search).get('scan');
+  return asked === null ? labsStored('scan', null) === '1' : asked === '1';
 }
 
 let open = false;
