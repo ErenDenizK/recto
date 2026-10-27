@@ -12,7 +12,7 @@ import '../styles/global.css';
 import { Menu } from '@base-ui/react/menu';
 import { render, screen, waitFor } from '@testing-library/react';
 import { useState } from 'react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
 import { EXIT_TIMEOUT, settled } from '../../test/settled';
@@ -135,16 +135,36 @@ describe('a menu (the container transform)', () => {
 
   it('under reduced motion only fades, within 150 ms', async () => {
     document.documentElement.dataset.motion = 'reduced';
+    // The fade is short enough to end before a slow runner's first look, and a finished
+    // animation leaves `getAnimations()`: keep every animation the menu starts instead.
+    const made: Animation[] = [];
+    const animate = Element.prototype.animate;
+    const spy = vi.spyOn(Element.prototype, 'animate').mockImplementation(function (
+      this: Element,
+      ...args: Parameters<Element['animate']>
+    ) {
+      const animation = animate.apply(this, args);
+      made.push(animation);
+      return animation;
+    });
     try {
       render(<DocumentMenu />);
       await userEvent.click(screen.getByRole('button', { name: 'Document' }));
       const menu = await screen.findByRole('menu');
-      await waitFor(() => expect(menu.getAnimations().length).toBeGreaterThan(0));
-      expect([...props(menu)]).toEqual(['opacity']);
-      for (const a of menu.getAnimations()) {
+      const ofMenu = () => made.filter((a) => (a.effect as KeyframeEffect).target === menu);
+      await waitFor(() => expect(ofMenu().length).toBeGreaterThan(0));
+      const keys = new Set(
+        ofMenu()
+          .flatMap((a) => (a.effect as KeyframeEffect).getKeyframes())
+          .flatMap((k) => Object.keys(k))
+          .filter((k) => !['offset', 'computedOffset', 'easing', 'composite'].includes(k)),
+      );
+      expect([...keys]).toEqual(['opacity']);
+      for (const a of ofMenu()) {
         expect(Number(a.effect?.getTiming().duration)).toBeLessThanOrEqual(150);
       }
     } finally {
+      spy.mockRestore();
       delete document.documentElement.dataset.motion;
     }
   });
