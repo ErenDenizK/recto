@@ -438,10 +438,11 @@ describe('Markup palette', () => {
       return found;
     });
     expect(chips).toHaveLength(1);
-    // The bar enters in motion; a click before it rests can land beside the chip.
     await settled(bar());
     await userEvent.click(chips[0] as HTMLElement);
-    await waitFor(() => expect(useToolStore.getState().mode).toBe('signature'));
+    // Arming renders the typed signature to a stamp first (`stampOfSignature`: its face loads),
+    // which takes longer than waitFor's default second on a slow CI runner.
+    await waitFor(() => expect(useToolStore.getState().mode).toBe('signature'), { timeout: 5000 });
     expect(chips[0]).toHaveAttribute('aria-pressed', 'true');
     // One pressed control across the bar.
     expect(bar().querySelectorAll('[aria-pressed="true"]')).toHaveLength(1);
