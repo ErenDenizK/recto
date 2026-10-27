@@ -119,6 +119,8 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:locale:v1',
       // The margin map flag, ?margin=1|0 (shell/frame/margin/margin-map-flag.ts, DSN-72).
       'pdf-editor:margin:v1',
+      // My info, kept only on this device (IndexedDB, forms/my-info/my-info.ts, PRD-37).
+      'pdf-editor:my-info:v1',
       // The one reload into cross-origin isolation (sessionStorage, office/flag.ts, ADR-0035 §4).
       'pdf-editor:office-reload:v1',
       // The Office conversion flag, ?office=1|0 (office/flag.ts, ADR-0035 §6).
