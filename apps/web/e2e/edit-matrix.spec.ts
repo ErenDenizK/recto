@@ -74,10 +74,13 @@ async function reopenParagraph(page: Page, prefix: string): Promise<Locator> {
     .getByRole('button', { name: new RegExp(`^Edit paragraph “${prefix}`) })
     .first();
   await expect(target).toBeVisible({ timeout: 20_000 });
-  // The paragraph's runs lie over its target: click its first glyph, as a user would.
+  // The paragraph's runs lie over its target, which takes no pointer: click its first glyph,
+  // as a user would, past the target's padding round the ink (TextEditLayer's
+  // PARAGRAPH_PADDING, 6 px).
   const box = await target.boundingBox();
   if (!box) throw new Error(`paragraph "${prefix}" not laid out`);
-  await page.mouse.click(box.x + 2, box.y + Math.min(box.height / 2, 8));
+  const inset = 6 + 2;
+  await page.mouse.click(box.x + inset, box.y + Math.min(box.height / 2, inset + 2));
   const editor = page.getByRole('textbox', { name: 'Paragraph on page 1' });
   await expect(editor).toBeFocused({ timeout: 20_000 });
   return editor;
