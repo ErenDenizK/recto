@@ -138,12 +138,13 @@ describe('a menu (the container transform)', () => {
     // The fade is short enough to end before a slow runner's first look, and a finished
     // animation leaves `getAnimations()`: keep every animation the menu starts instead.
     const made: Animation[] = [];
-    const animate = Element.prototype.animate;
+    const animate = Object.getOwnPropertyDescriptor(Element.prototype, 'animate')
+      ?.value as Element['animate'];
     const spy = vi.spyOn(Element.prototype, 'animate').mockImplementation(function (
       this: Element,
       ...args: Parameters<Element['animate']>
     ) {
-      const animation = animate.apply(this, args);
+      const animation = Reflect.apply(animate, this, args);
       made.push(animation);
       return animation;
     });
