@@ -107,6 +107,29 @@ function distanceToBox(
   return Math.hypot(dx, dy);
 }
 
+/**
+ * The paragraph a press at a CSS point in `item`'s padding opens (TXT-28): the one whose ink is
+ * nearest among `item` and the paragraphs whose padding holds the point.
+ */
+export function haloOwner(
+  frame: PageFrame,
+  item: ParagraphTarget,
+  all: readonly ParagraphTarget[],
+  point: { readonly x: number; readonly y: number },
+): ParagraphTarget {
+  let owner = item;
+  let ownerDistance = Infinity;
+  for (const other of all) {
+    const distance = distanceToBox(rectToCss(frame, other.block.box), point);
+    if (other !== item && distance > PARAGRAPH_PADDING) continue;
+    if (distance < ownerDistance) {
+      owner = other;
+      ownerDistance = distance;
+    }
+  }
+  return owner;
+}
+
 /** The smallest side of a paragraph's keyboard target, CSS pixels (DESIGN §5). */
 export const MIN_TARGET_PX = 24;
 /** Characters of a paragraph's text its target's name quotes. */
@@ -248,7 +271,9 @@ export function TextEditLayer(props: PageOverlayProps) {
   );
   const isOpen = (block: ParagraphBlock) => openBlock === block.ref.index;
   const paragraphItems = plan
-    ? plan.items.flatMap((item) => (item.kind === 'paragraph' ? [item.target] : []))
+    ? plan.items.flatMap((item) =>
+        item.kind === 'paragraph' && !isOpen(item.target.block) ? [item.target] : [],
+      )
     : [];
   const shown = session !== null && editable;
 
@@ -448,18 +473,7 @@ function ParagraphHalo({
     const layer = element.parentElement?.getBoundingClientRect();
     if (!layer) return null;
     const point = { x: at.clientX - layer.left, y: at.clientY - layer.top };
-    // The nearest ink among the paragraphs whose padding holds the point.
-    let owner = item;
-    let ownerDistance = Infinity;
-    for (const other of all) {
-      const ink = rectToCss(frame, other.block.box);
-      const distance = distanceToBox(ink, point);
-      if (other !== item && distance > PARAGRAPH_PADDING) continue;
-      if (distance < ownerDistance) {
-        owner = other;
-        ownerDistance = distance;
-      }
-    }
+    const owner = haloOwner(frame, item, all, point);
     const run = nearestRun(frame, owner.runs, point);
     return run ? { run, caret: caretOffset(run, cssPointToUser(frame, point)) } : null;
   };

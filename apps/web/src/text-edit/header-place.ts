@@ -125,7 +125,9 @@ export function placeHeader(input: HeaderPlaceInput): HeaderPlace {
   const aboveTop = text.top - HEADER_GAP - height;
   const clearOf = (top: number) => {
     const box = { left: start, top, right: start + width, bottom: top + height };
-    return !(input.images ?? []).some((o) => overlaps(o, box));
+    // An image under the paragraph itself (a letterhead, a scan's page) is its background,
+    // not something beside it: it never rules a place out.
+    return !(input.images ?? []).some((o) => !overlaps(o, text) && overlaps(o, box));
   };
   if (
     input.above !== undefined &&

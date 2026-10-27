@@ -155,6 +155,14 @@ describe('page images as obstacles (TXT-28)', () => {
     expect(placeHeader(input({ images: [] }))).toEqual(placeHeader(input({})));
   });
 
+  it('ignores an image under the paragraph itself, such as a full-bleed background', () => {
+    const wide = { left: 100, top: 300, right: 1340, bottom: 420 };
+    const page = { left: 0, top: 0, right: 1440, bottom: 900 };
+    expect(placeHeader(input({ text: wide, above: 200, below: 200, images: [page] })).side).toBe(
+      'above',
+    );
+  });
+
   it('puts the grip under the frame when an image lies over its top edge', () => {
     const frame = { left: 100, top: 300, right: 500, bottom: 420 };
     expect(gripEdge(frame, [{ left: 90, top: 250, right: 520, bottom: 298 }], 40, 12)).toBe(

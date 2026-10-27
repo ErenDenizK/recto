@@ -163,6 +163,20 @@ test('a press in the ring round a paragraph opens it with the caret at the neare
   await expect(editor).toBeFocused({ timeout: 20_000 });
   await page.keyboard.type('Bright ');
   await expect(editor).toHaveText(/^Bright Thanks are due/);
+  await commit(page, editor);
+
+  // 4 px right of the line's end: the caret goes to the end, not the start.
+  const again = page.getByRole('button', { name: /^Edit paragraph “Bright/ }).first();
+  await expect(again).toBeVisible({ timeout: 20_000 });
+  const runs = page.locator('[data-text-edit-layer="0"] [data-text-run]');
+  const last = await runs.last().boundingBox();
+  const area = await again.boundingBox();
+  if (!last || !area) throw new Error('paragraph not laid out');
+  await page.mouse.click(last.x + last.width + 2, area.y + area.height / 2);
+  const second = page.getByRole('textbox', { name: 'Paragraph on page 1' });
+  await expect(second).toBeFocused({ timeout: 20_000 });
+  await page.keyboard.type('Z');
+  await expect(second).toHaveText(/their time\.Z$/);
   await page.keyboard.press('Escape');
 });
 

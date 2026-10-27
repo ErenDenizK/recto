@@ -971,7 +971,7 @@ export function ParagraphEditor({
     [images, frame],
   );
   /** The grip goes under the frame when its notch would lie on a paragraph above (TXT-26). */
-  const gripBelow =
+  const gripFits =
     gripEdge(
       {
         left: frameBox.left,
@@ -983,6 +983,9 @@ export function ParagraphEditor({
       GRIP_NOTCH.width,
       GRIP_NOTCH.reach,
     ) === 'bottom';
+  /** The grip keeps its side once a pointer is on it, whatever arrives later (TXT-28). */
+  const [gripLock, setGripLock] = useState<'top' | 'bottom' | null>(null);
+  const gripBelow = gripLock === null ? gripFits : gripLock === 'bottom';
   /** On-screen angle of the writing direction (clockwise degrees): the canvas turns with it. */
   const screenAngle =
     ((Math.round((Math.atan2(cssOfText[1], cssOfText[0]) * 180) / Math.PI) % 360) + 360) % 360;
@@ -2068,7 +2071,11 @@ export function ParagraphEditor({
                 left: frameBox.left + frameBox.width / 2 - GRIP_PX / 2,
                 top: gripBelow ? frameBox.top + frameBox.height + 3 : frameBox.top - 3 - GRIP_PX,
               }}
-              onPointerDown={onFrameDown}
+              onPointerEnter={() => setGripLock(gripBelow ? 'bottom' : 'top')}
+              onPointerDown={(event) => {
+                setGripLock(gripBelow ? 'bottom' : 'top');
+                onFrameDown(event);
+              }}
               onPointerMove={onFrameMove}
               onPointerUp={onFrameUp}
               onPointerCancel={onFrameUp}
