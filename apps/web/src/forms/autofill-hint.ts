@@ -83,11 +83,88 @@ function normalise(text: string): string {
   return ` ${folded.replace(/[^a-z0-9]+/g, ' ').trim()} `;
 }
 
-function tokenFor(text: string | undefined): string | undefined {
+interface Hit {
+  readonly token: string;
+  readonly phrase: string;
+  /** The whole label is the phrase (nothing else in it). */
+  readonly exact: boolean;
+}
+
+type Rules = readonly (readonly [token: string, phrases: readonly string[]])[];
+
+/** The first rule with a phrase in the text, and its longest phrase there. `else` = ELSEWHERE. */
+function scan(text: string | undefined, rules: Rules = RULES): Hit | 'else' | undefined {
   if (text === undefined) return undefined;
   const words = normalise(text);
-  if (ELSEWHERE.some((w) => words.includes(` ${w} `))) return 'off';
-  return RULES.find(([, phrases]) => phrases.some((p) => words.includes(` ${p} `)))?.[0];
+  if (ELSEWHERE.some((w) => words.includes(` ${w} `))) return 'else';
+  for (const [token, phrases] of rules) {
+    const found = phrases.filter((p) => words.includes(` ${p} `));
+    const phrase = found.reduce((a, b) => (b.length > a.length ? b : a), '');
+    if (phrase !== '') return { token, phrase, exact: words.trim() === phrase };
+  }
+  return undefined;
+}
+
+function tokenFor(text: string | undefined): string | undefined {
+  const hit = scan(text);
+  return hit === 'else' ? 'off' : hit?.token;
+}
+
+/**
+ * Tokens only My info fills (BM-4, PRD-32 amended); `autofillToken` never returns them. They
+ * go before the shared rules: "company title" is a job title, not a company.
+ */
+const MY_INFO_RULES: Rules = [
+  ['job-title', ['job title', 'title', 'unvan', 'gorev']],
+  [
+    'national-id',
+    [
+      'tc kimlik no',
+      't c kimlik no',
+      'tc kimlik',
+      't c kimlik',
+      'kimlik no',
+      'tckn',
+      'national id',
+    ],
+  ],
+];
+
+export type MatchConfidence = 'high' | 'medium' | 'low';
+
+export interface FieldMatch {
+  readonly token: string;
+  readonly from: 'tooltip' | 'name';
+  readonly phrase: string;
+  readonly confidence: MatchConfidence;
+}
+
+/**
+ * What a field asks for, for My info (BM-4): the same rules and ELSEWHERE guard as
+ * `autofillToken`, plus `job-title` and `national-id`, with a confidence. High: a multi-word
+ * phrase, or the whole label. Medium: one word inside a longer label, or a name match where a
+ * tooltip exists. Low: a one or two letter name alone, or a three letter phrase inside a longer
+ * name. A tooltip decides first, then the name; ELSEWHERE words in either, and passwords, match
+ * nothing. The street token is returned as `street-address` whatever the field's lines.
+ */
+export function matchField(
+  field: Pick<FormField, 'name'> & Partial<Pick<FormField, 'tooltip' | 'password'>>,
+): FieldMatch | null {
+  if (field.password) return null;
+  const tip = field.tooltip?.trim() ?? '';
+  const byTip = tip === '' ? undefined : scan(tip, [...MY_INFO_RULES, ...RULES]);
+  const byName = scan(field.name, [...MY_INFO_RULES, ...RULES]);
+  if (byTip === 'else' || byName === 'else') return null;
+  const from = byTip !== undefined ? 'tooltip' : 'name';
+  const hit = byTip ?? byName;
+  if (hit === undefined) return null;
+  let confidence: MatchConfidence = hit.exact || hit.phrase.includes(' ') ? 'high' : 'medium';
+  if (from === 'name') {
+    const letters = hit.phrase.length;
+    if (tip !== '' && confidence === 'high') confidence = 'medium';
+    if (letters <= 2 || (letters === 3 && !hit.exact)) confidence = 'low';
+  }
+  return { token: hit.token, from, phrase: hit.phrase, confidence };
 }
 
 /**
