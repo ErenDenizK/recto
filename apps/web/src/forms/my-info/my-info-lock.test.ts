@@ -194,7 +194,8 @@ describe('races', () => {
     const first = saveMyInfo({ fields: { givenName: 'Ayşe', city: 'A' } });
     await g.firstPut();
     const second = saveMyInfo({ fields: { givenName: 'Ayşe', city: 'B' } });
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    // The second save has set its profile and queued its write behind the held one.
+    await vi.waitFor(() => expect(useMyInfo.getState().profile.fields.city).toBe('B'));
     lockNow();
     g.release();
     await first;

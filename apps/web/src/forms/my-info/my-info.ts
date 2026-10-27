@@ -527,8 +527,9 @@ export async function forgetMyInfo(): Promise<boolean> {
       // A refused window has no backend left, but the database may still exist: delete it.
       else if (typeof indexedDB !== 'undefined') await deleteMyInfoDatabase();
     })
-    .catch(() => {
-      ok = false;
+    .catch((error: unknown) => {
+      // A window that may not use IndexedDB at all never kept anything: nothing is left to delete.
+      ok = error instanceof DOMException && error.name === 'SecurityError';
     });
   await queue;
   return ok;

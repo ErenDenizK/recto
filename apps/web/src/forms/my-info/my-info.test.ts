@@ -199,10 +199,13 @@ describe('store', () => {
 });
 
 /** A factory whose open fails in the given way. */
-function brokenFactory(how: 'throws' | 'error' | 'blocked'): IDBFactory {
+function brokenFactory(
+  how: 'throws' | 'error' | 'blocked',
+  deleteError: Error = new DOMException('denied', 'SecurityError'),
+): IDBFactory {
   return {
     open: () => {
-      if (how === 'throws') throw new Error('denied');
+      if (how === 'throws') throw new DOMException('denied', 'SecurityError');
       const req = { error: null } as unknown as IDBOpenDBRequest;
       queueMicrotask(() => {
         if (how === 'error') req.onerror?.(new Event('error'));
@@ -211,7 +214,7 @@ function brokenFactory(how: 'throws' | 'error' | 'blocked'): IDBFactory {
       return req;
     },
     deleteDatabase: () => {
-      throw new Error('denied');
+      throw deleteError;
     },
   } as unknown as IDBFactory;
 }
@@ -233,8 +236,14 @@ describe('refused storage', () => {
     expect(del).toHaveBeenCalledWith(MY_INFO_DB);
   });
 
-  it('Forget reports a failed delete honestly', async () => {
+  it('Forget reports success when IndexedDB was never usable (SecurityError)', async () => {
     setMyInfoBackend(indexedDbMyInfoBackend(brokenFactory('throws')));
+    await loadMyInfo();
+    expect(await forgetMyInfo()).toBe(true);
+  });
+
+  it('Forget reports a failed delete honestly', async () => {
+    setMyInfoBackend(indexedDbMyInfoBackend(brokenFactory('throws', new Error('disk'))));
     expect(await forgetMyInfo()).toBe(false);
   });
 });
@@ -251,13 +260,10 @@ describe('races', () => {
     await forgetMyInfo();
     release();
     expect(await saving).toBeNull();
-    await queueMicrotaskFlush();
     expect(await inner.get()).toBeUndefined();
     expect(useMyInfo.getState().profile.fields).toEqual({});
   });
 });
-
-const queueMicrotaskFlush = () => new Promise<void>((resolve) => setTimeout(resolve, 20));
 
 describe('IndexedDB', () => {
   const name = `pdf-editor:my-info:test-${Math.random().toString(36).slice(2)}`;
