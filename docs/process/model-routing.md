@@ -28,6 +28,19 @@ the per-call value wins over frontmatter, which wins over the main model. Taste-
 also build (a new look, a new motion) stay with the judge; when the look is settled in a decision row, the
 build can go to the builder.
 
+## Effort and floor (PRC-35, owner, 2026-10-31)
+
+No model below the builder tier: the reader role is filled by the builder model at medium effort, so log reading moves off the smallest model (the `Explore` and `log-reader` agents' `model:` follows). The lead chooses effort per task:
+
+| Work | Role | Effort |
+|---|---|---|
+| Specs, taste, adversarial review of risky logic, orchestration | judge | high |
+| Routine reviews | judge | medium |
+| Subtle fixes and root causes | builder | high |
+| Settled builds, merges, clerical work, log reads | builder | medium |
+
+The ledger (`agent-metrics.md`, `lessons.md`) measures this; a kind of work moves to the builder where the measurements show no loss. This amends the effort line above ("medium everywhere"): `xhigh` and `max` stay out.
+
 ## Guards
 
 - **Scope.** The builder was measured writing outside its folder more often than the judge. Every
@@ -49,6 +62,8 @@ build can go to the builder.
   re-briefed, not escalated inside the same agent.
 
 ## Measurement
+
+Every past, present and future lane is kept as data (owner, 2026-10-31): the lead adds the day's rows to `agent-metrics.md` and mirrors them to the HQ console's metrics doc. Failures become rows in `lessons.md` the same day, and the standing rules in `brief-template.md` carry the prevention.
 
 `agent-metrics.md` keeps one row per agent: lane, model, effort, tokens, minutes, whether the PR's
 first CI run was green, the number of fix rounds, stray files found by the scope check, and the

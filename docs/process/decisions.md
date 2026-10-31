@@ -414,6 +414,7 @@ Full rows: [`decisions/process.md`](decisions/process.md).
 | [PRC-32](decisions/process.md) | Pace x2 this week: up to 10 agents at once, a deep cycle hires 4 build and 2 research lanes | In force | 2026-10-25 |
 | [PRC-33](decisions/process.md) | Deep cycles research big companies' moves; the console keeps two ranked lists (improvements, big moves); briefs carry visuals and live in an expandable HQ | In force | 2026-10-25 |
 | [PRC-34](decisions/process.md) | Workflow skills from our own lessons: repo-gates, decision-rows, merge-queue, hq-report; no external skill adopted | In force | 2026-10-26 |
+| [PRC-35](decisions/process.md) | Every lane measured, every failure a lesson row; no model below the builder tier; effort chosen per task | In force | 2026-10-31 |
 
 ## Foundations (ADR titles)
 
