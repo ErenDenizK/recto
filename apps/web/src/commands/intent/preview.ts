@@ -430,6 +430,21 @@ export function previewOf(
       nearest = { commandId: unavailable.nearest, title };
     }
   }
+  // A split cuts at pages an earlier delete removes: every/parts cut points count as well as
+  // "at" ones, so the preview says so instead of Enter refusing (§2.9).
+  const deleted = new Set<number>();
+  for (const [k, step] of reading.steps.entries()) {
+    if (reason !== undefined) break;
+    if (step.action === 'delete') for (const page of step.pages.pages) deleted.add(page);
+    if (step.action !== 'split' || step.how === 'choose') continue;
+    const gone = splitParts(ctx.pageCount, step.how)
+      .slice(1)
+      .map(([first]) => first)
+      .find((first) => deleted.has(first));
+    if (gone !== undefined) {
+      reason = shiftedText({ kind: 'shifted', step: k, page: gone }, reading);
+    }
+  }
   // Furniture over a list with gaps cannot be one range: the parser says so; this keeps a hand-made
   // reading from reaching the runner.
   for (const step of reading.steps) {

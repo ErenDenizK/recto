@@ -152,6 +152,29 @@ describe('the reasons', () => {
     expect(preview.reason).toBe('Splitting ends the document; put it last');
   });
 
+  it('refuses a split whose every-N cut lands on a page an earlier delete removes', () => {
+    setLocale('en');
+    const del = parseIntent('delete 11', ctx);
+    const split = parseIntent('split every 10', ctx);
+    if (del.kind !== 'readings' || split.kind !== 'readings') throw new Error('no reading');
+    const joined: Reading = {
+      ...del.readings[0],
+      steps: [...del.readings[0].steps, ...split.readings[0].steps],
+      problem: null,
+    };
+    const preview = previewOf(joined, ctx, 1, 'delete 11 and split every 10');
+    expect(preview.runnable).toBe(false);
+    expect(preview.reason).toContain('11');
+    // The same cut with the delete elsewhere is fine.
+    const other = parseIntent('delete 12', ctx);
+    if (other.kind !== 'readings') throw new Error('no reading');
+    const fine: Reading = {
+      ...joined,
+      steps: [...other.readings[0].steps, ...split.readings[0].steps],
+    };
+    expect(previewOf(fine, ctx, 1, 'delete 12 and split every 10').runnable).toBe(true);
+  });
+
   it('shows a corrected word as the lexicon spells it', () => {
     setLocale('tr');
     const typo = reasonOf('döndr 3');

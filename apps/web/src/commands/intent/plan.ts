@@ -164,7 +164,7 @@ export function pageIdsOf(step: Step, doc: VirtualDocument | undefined): PageId[
   const positions =
     step.action === 'signPlace'
       ? [step.page]
-      : step.action === 'extract' || step.action === 'exportImages'
+      : step.action === 'extract' || step.action === 'exportImages' || step.action === 'delete'
         ? step.pages.pages
         : [];
   if (positions.length === 0) return [];
@@ -198,6 +198,18 @@ export function relocateStep(
     return { ...step, pages: { ...step.pages, pages: [...at].sort((a, b) => a - b) } };
   }
   return step;
+}
+
+/** The ids of the pages the delete steps among `steps` remove, found in `doc` (as previewed). */
+export function deletedIdsOf(doc: VirtualDocument, steps: readonly Step[]): Set<PageId> {
+  const gone = new Set<PageId>();
+  for (const step of steps) {
+    if (step.action !== 'delete') continue;
+    const ids =
+      step.pages.named === 'all' ? doc.pages.map((page) => page.id) : (pageIdsOf(step, doc) ?? []);
+    for (const id of ids) gone.add(id);
+  }
+  return gone;
 }
 
 /** Whether a split is followed by a finishing step: the finishing step would open on part 1. */

@@ -240,7 +240,7 @@ describe('a finishing step after a chain', () => {
     expect(extracted).toHaveLength(401);
   });
 
-  it('refuses when the page the finishing step named is gone', async () => {
+  it('does not open the finishing step when its page is gone after the commit', async () => {
     const text = 'delete 1 and extract 3';
     const { reading, key } = read(text);
     // The preview is true, but the page is deleted before the finishing step looks for it.
@@ -256,11 +256,43 @@ describe('a finishing step after a chain', () => {
         ),
     });
     try {
-      expect(await runReading(reading, key, text)).toBe('refused');
+      // The document steps did commit, so this is 'ran'; the extract just has no page to open on.
+      expect(await runReading(reading, key, text)).toBe('ran');
     } finally {
       useWorkspaceStore.setState({ applyOperation: original });
     }
     expect(extracted).toBeUndefined();
+  });
+
+  it('refuses before the commit when the sentence deletes the page the finishing step names', async () => {
+    const del = parseIntent('delete 1', gatherIntentContext());
+    const extract = parseIntent('extract 1', gatherIntentContext());
+    if (del.kind !== 'readings' || extract.kind !== 'readings') throw new Error('no reading');
+    // A hand-made reading the parser would have flagged: the page is deleted, then extracted.
+    const reading: Reading = {
+      ...del.readings[0],
+      steps: [...del.readings[0].steps, ...extract.readings[0].steps],
+      problem: null,
+    };
+    const text = 'delete 1 and extract 1';
+    const key = previewOf(reading, gatherIntentContext(), workspaceVersion(), text).key;
+    const before = doc().pages.length;
+    const depth = useWorkspaceStore.getState().history.past.length;
+    expect(await runReading(reading, key, text)).toBe('refused');
+    expect(doc().pages.length).toBe(before);
+    expect(useWorkspaceStore.getState().history.past.length).toBe(depth);
+    expect(extracted).toBeUndefined();
+  });
+
+  it('finds the pages again after a move: "move 5 to start and save pages 5-6 as png"', async () => {
+    const text = 'move 5 to start and save pages 5-6 as png';
+    const { reading, key } = read(text);
+    expect(await runReading(reading, key, text)).toBe('ran');
+    expect(saveCopyRequestOf(useSheetStore.getState().open)).toEqual({
+      kind: 'images',
+      type: 'png',
+      range: '1, 6',
+    });
   });
 });
 

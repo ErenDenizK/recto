@@ -28,6 +28,7 @@ import { commandRegistry } from '../registry';
 import { gatherIntentContext, workspaceVersion } from './context';
 import {
   composeSteps,
+  deletedIdsOf,
   documentStepsOf,
   finishesAfterSplit,
   finishingStepOf,
@@ -180,10 +181,17 @@ export async function runReading(
   const doc = getActiveDocument(useWorkspaceStore.getState().workspace);
   // The finishing step names pages as previewed; the commit moves them, so find them by id first
   // and look the ids up again once the document steps have run.
+  const documentSteps = documentStepsOf(reading);
   const last = finishingStepOf(reading) ?? reading.steps.find(isNavigateStep);
   const lastIds = last === undefined ? [] : pageIdsOf(last, doc);
   if (lastIds === null) return 'refused';
-  const documentSteps = documentStepsOf(reading);
+  // A page the finishing step names that the document steps delete is gone by then: say no
+  // before the commit, not after its Undo toast.
+  if (doc !== undefined && last !== undefined && lastIds.length > 0) {
+    const named = stepPages(last)?.named;
+    const gone = deletedIdsOf(doc, documentSteps);
+    if (named !== 'all' && lastIds.some((id) => gone.has(id))) return 'refused';
+  }
   if (documentSteps.length > 0) {
     if (!doc) return 'refused';
     const hasSplit = documentSteps.some((step) => step.action === 'split');
@@ -215,7 +223,8 @@ export async function runReading(
       lastIds,
       getActiveDocument(useWorkspaceStore.getState().workspace),
     );
-    if (located === null) return 'refused';
+    // Checked before the commit already; if a page is still gone the steps did run, so say so.
+    if (located === null) return 'ran';
     await runLast(located);
   }
   return 'ran';

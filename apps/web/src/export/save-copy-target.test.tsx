@@ -8,7 +8,7 @@ import '../styles/reset.css';
 import '../styles/global.css';
 
 import { render, screen, waitFor, within } from '@testing-library/react';
-import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
 import markdownUrl from '../../../../test/fixtures/markdown-source.pdf?url';
@@ -23,6 +23,23 @@ import { SaveCopyHost } from './SaveCopyHost';
 import { SizeSection } from './SaveCopySections';
 
 import './SaveCopySheet';
+
+// The size analysis waits on this until the test releases it, so the estimates always arrive
+// after the person's pick.
+const gate = vi.hoisted(() => ({
+  held: Promise.resolve(),
+  release: (): void => undefined,
+}));
+vi.mock(import('../tools/compress-client'), async (importOriginal) => {
+  const original = await importOriginal();
+  return {
+    ...original,
+    getCompressor: async () => {
+      await gate.held;
+      return original.getCompressor();
+    },
+  };
+});
 
 const MB = 1024 * 1024;
 const estimate = (after: number) => ({
@@ -90,11 +107,16 @@ describe('a size picked before the estimates arrive', () => {
       .openFiles([await fixtureFile(markdownUrl, 'markdown-source.pdf')]);
     const id = report.opened[0]?.documentId;
     if (!id) throw new Error('did not open');
+    gate.held = new Promise<void>((resolve) => {
+      gate.release = resolve;
+    });
     render(<SaveCopyHost />);
     // One byte is out of reach, so the target would pick Smallest once the estimates arrive.
     openSaveCopy(id, { kind: 'size', targetBytes: 1 });
     const sheet = await screen.findByTestId('save-copy-sheet', {}, { timeout: 15_000 });
     await userEvent.click(within(sheet).getByRole('radio', { name: /^Same/ }));
+    expect(within(sheet).queryByTestId('save-copy-target')).toBeNull();
+    gate.release();
     await waitFor(() => expect(within(sheet).getByTestId('save-copy-target')).toBeVisible(), {
       timeout: 20_000,
     });
