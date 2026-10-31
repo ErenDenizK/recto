@@ -71,6 +71,16 @@ describe('LabsSection', () => {
     expect(labsState().flags).toEqual({ palette: 'groups' });
   });
 
+  it('lists the text view for the phone, with its hint, and keeps its toggle', async () => {
+    launchAs('compact');
+    render(<LabsSection />);
+    const view = screen.getByRole('switch', { name: 'Text view' });
+    const row = view.closest('[data-row]') as HTMLElement;
+    expect(row).toHaveTextContent('Nothing leaves this device.');
+    await userEvent.click(view);
+    expect(readLabs().flags).toEqual({ 'text-view': '1' });
+  });
+
   it('is reachable by keyboard', async () => {
     render(<LabsSection />);
     const first = screen.getAllByRole('switch')[0] as HTMLElement;

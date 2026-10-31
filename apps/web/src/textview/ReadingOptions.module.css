@@ -1,0 +1,50 @@
+/*
+ * The Aa popover's rows (DSN-84): a label and its control on one line, each a 44 px row. The
+ * material, shape and motion are the popover recipe's (`ui/Popover.module.css`); this only lays
+ * out the rows. A long Turkish label wraps under its control's room rather than clipping.
+ */
+.popup {
+  display: grid;
+  gap: var(--space-1);
+  width: min(360px, calc(100vw - 16px));
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--hit-min);
+}
+
+.label {
+  color: var(--text-primary);
+  font-size: var(--type-body);
+  line-height: var(--type-body-lh);
+  overflow-wrap: anywhere;
+}
+
+.control {
+  justify-self: end;
+  min-width: 0;
+  width: 100%;
+  max-width: 240px;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  justify-self: end;
+  width: 100%;
+  max-width: 240px;
+}
+
+.value {
+  min-width: var(--space-10);
+  color: var(--text-primary);
+  font-size: var(--type-body);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--type-body-lh);
+  text-align: center;
+}

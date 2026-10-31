@@ -111,6 +111,12 @@ export interface CompactState {
   readonly overviewColumns: OverviewColumns | null;
   /** The page the overview's morph is anchored on: the page read when it opened. */
   readonly overviewAnchor: number;
+  /**
+   * The Text view shows over the reader (PRD-36, EDN-26, behind Labs `text-view`): the reader is
+   * hidden and inert and the view has its own bar in the capsule's place. Set only once the
+   * view's chunk and data are here (`textview-host.tsx`).
+   */
+  readonly textView: boolean;
 }
 
 const INITIAL: CompactState = {
@@ -136,6 +142,7 @@ const INITIAL: CompactState = {
   overview: 'closed',
   overviewColumns: null,
   overviewAnchor: 0,
+  textView: false,
 };
 
 export const useCompactStore = create<CompactState>()(() => INITIAL);
@@ -153,10 +160,16 @@ export const topBarAway = (s: CompactState): boolean =>
  * it sits under the sheet's lower half, where its dark pill would show through the sheet's
  * glass while the sheet rises (XD-3). While a text box takes typing it steps away for the
  * keyboard's Done. The toast stack follows it (`CompactApp`). Both step away while the page overview
- * shows or moves (MOB-2): it has its own bar.
+ * shows or moves (MOB-2): it has its own bar. The capsule also steps away under the Text view
+ * (PRD-36), which has its own bar; the top stays.
  */
 export const capsuleAway = (s: CompactState): boolean =>
-  s.chromeHidden || s.findOpen || s.sheet !== null || s.typing || s.overview !== 'closed';
+  s.chromeHidden ||
+  s.findOpen ||
+  s.sheet !== null ||
+  s.typing ||
+  s.overview !== 'closed' ||
+  s.textView;
 
 /** A tool takes the page's presses: a stroke or a placement, never a tap (README §5). */
 export const toolTakesPage = (s: CompactState): boolean => s.editing && s.tool !== null;
@@ -177,6 +190,7 @@ export function showLibrary(): void {
     typing: false,
     findOverTop: false,
     overview: 'closed',
+    textView: false,
   });
 }
 
@@ -296,6 +310,11 @@ export function requestZoom(request: ZoomRequest): void {
 /** The overview's phase, and the page its morph is anchored on when one is given. */
 export function setOverview(overview: OverviewPhase, anchor?: number): void {
   set(anchor === undefined ? { overview } : { overview, overviewAnchor: anchor });
+}
+
+/** The Text view shows (its data is here) or is gone (PRD-36). */
+export function setTextView(textView: boolean): void {
+  if (useCompactStore.getState().textView !== textView) set({ textView });
 }
 
 export function setOverviewColumns(overviewColumns: OverviewColumns): void {

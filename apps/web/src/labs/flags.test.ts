@@ -73,6 +73,15 @@ describe('resolveFlag', () => {
     expect(resolveFlag(capsule, '?phonebar=0', { 'phone-capsule': '1' }, null).value).toBe('0');
   });
 
+  it('resolves the text view: the address, then Labs, off by default, on the phone', () => {
+    const view = flag('text-view');
+    expect(view.edition).toBe('compact');
+    expect(resolveFlag(view, '', {}, null)).toEqual({ value: '0', source: 'default' });
+    expect(resolveFlag(view, '?textview=1', {}, null)).toEqual({ value: '1', source: 'url' });
+    expect(resolveFlag(view, '', { 'text-view': '1' }, null).source).toBe('labs');
+    expect(resolveFlag(view, '?textview=0', { 'text-view': '1' }, null).value).toBe('0');
+  });
+
   it('lists every parameter once per key', () => {
     expect(new Set(LABS_FLAGS.map((f) => f.key)).size).toBe(LABS_FLAGS.length);
   });

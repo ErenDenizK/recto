@@ -127,11 +127,12 @@ export function CompactApp() {
  * the reader's capsule or the Library's Open PDF dock (the same 56 px piece in the same place,
  * DSN-31), or above the home indicator when the capsule is away. The page overview's bar is the
  * capsule's piece in the capsule's place (MOB-3), so its toasts (Undo) stand above it too.
+ * The text view's own bar takes the capsule's place (PRD-36), so its toasts stand above it.
  * While a scrim sheet is open the stack steps aside (DSN-56).
  */
 function CompactToasts() {
   const away = useCompactStore(
-    (s) => s.place === 'reader' && capsuleAway(s) && s.overview === 'closed',
+    (s) => s.place === 'reader' && capsuleAway(s) && s.overview === 'closed' && !s.textView,
   );
   const covered = useCompactStore((s) => s.scrimSheets > 0);
   return <ToastRegion edition="compact" band={away ? 'away' : 'shown'} covered={covered} />;

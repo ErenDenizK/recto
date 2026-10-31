@@ -183,7 +183,7 @@ export function groupHitsByPage(hits: readonly DocumentHit[]): HitGroup[] {
  * does not fold (the "ﬁ" ligature against "fi", the dotless ı against "I") finds no match here and
  * falls back to the whole snippet, unemphasised; the engine's offsets are used when it has them.
  */
-function fold(text: string): string {
+export function fold(text: string): string {
   let out = '';
   for (const ch of text) {
     const lower = ch === 'İ' ? 'i' : ch.toLowerCase();
