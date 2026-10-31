@@ -913,6 +913,9 @@ describe('leaving safely', () => {
     );
     await userEvent.keyboard('{Escape}');
     const choice = await screen.findByTestId('paragraph-choice');
+    // The choice says the overflow in its own sentence; the header says it once.
+    expect(screen.queryByTestId('paragraph-overflow')).toBeNull();
+    expect(screen.getAllByText(/runs into the content below/)).toHaveLength(1);
     expect(commits.calls).toHaveLength(0);
     expect(useTextEditStore.getState().paragraph).toBe(session);
     await waitFor(() => expect(screen.getByTestId('paragraph-keep-editing')).toHaveFocus());
@@ -923,6 +926,7 @@ describe('leaving safely', () => {
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(choice).not.toBeInTheDocument());
     await waitFor(() => expect(mirror).toHaveFocus());
+    expect(screen.getByTestId('paragraph-overflow')).toHaveAttribute('data-kind', 'overflow');
     // A press outside asks again; "Let it overlap" commits the layout as shown.
     await userEvent.keyboard('{Escape}');
     await userEvent.click(await screen.findByTestId('paragraph-overlap'));

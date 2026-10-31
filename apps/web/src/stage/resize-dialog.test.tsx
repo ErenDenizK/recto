@@ -167,7 +167,10 @@ describe('resize pages dialog', () => {
     // Stored unrotated: A4 portrait, the displayed top-left is the unrotated bottom-left.
     expect(resized).toMatchObject({ mode: 'fit', anchor: 'bottom-left' });
     const cell = document.querySelector(`[data-page-id="${second.id}"] [data-thumb]`);
-    await waitFor(() => expect(cell?.querySelector('[data-resized]')).not.toBeNull());
+    // The thumbnail redraws through the render worker: more than the default second.
+    await waitFor(() => expect(cell?.querySelector('[data-resized]')).not.toBeNull(), {
+      timeout: 5000,
+    });
     const thumb = cell?.getBoundingClientRect();
     expect((thumb?.width ?? 0) / (thumb?.height ?? 1)).toBeCloseTo(792 / 612, 1);
 

@@ -130,8 +130,8 @@
           "align": "left"
         }
       },
-      "bytes": 69174,
-      "sha256": "0b23e9e4b71832b04dfb8276b13d0876d235e9fd117619072225dc04359ba5fd"
+      "bytes": 69183,
+      "sha256": "133fcc9415c0684ae26c4c9c58815baeb53e4c15f0e1aa920a97ec31f5b3fc7e"
     },
     {
       "file": "recto-sample-tr.pdf",
@@ -262,8 +262,8 @@
           "align": "left"
         }
       },
-      "bytes": 69311,
-      "sha256": "5cc4093c0d3b560806aa18000fd1a668492129b47533da1b06a7734d38ede13b"
+      "bytes": 69130,
+      "sha256": "5e2c4b027f156224d921c1884a97d08c563eaf67d918e110618b502fa20bd48b"
     }
   ]
 }

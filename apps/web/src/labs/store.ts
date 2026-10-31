@@ -67,7 +67,15 @@ export function resetLabs(): void {
 /** Shows the panel for good. */
 export function revealLabs(): void {
   write({ ...labsState(), shown: true });
-  toast.info(m.labs_on());
+  revealToast = toast.info(m.labs_on(), { key: 'labs-on' });
+}
+
+let revealToast: string | null = null;
+
+/** Takes the "Labs on" toast away; Settings calls it as it closes, so it does not linger. */
+export function dismissLabsToast(): void {
+  if (revealToast !== null) toast.dismiss(revealToast);
+  revealToast = null;
 }
 
 /** Tests: forget what this page read (the storage is the test's to clear). */

@@ -81,6 +81,8 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PRD-32](decisions/product.md) | Browser autofill hints: text-field editors set `autocomplete` from the tooltip/name (EN and TR, small tested matcher); unmatched, other-person and password fields stay `off`; Recto stores nothing | In force | 2026-10-25 |
 | [PRD-33](decisions/product.md) | Add bookmarks from headings: the Markdown export's heading detection builds a nested outline for a document without one; one undo step; home is the empty Contents panel and ⌘K (DSN-46) | In force | 2026-10-25 |
 | [PRD-34](decisions/product.md) | Camera scan to PDF: live outline, steady-outline auto capture, review (corners, rotate, filter, retake, reorder), Done makes one new unsaved "Scan <date>" document | Prototype behind `?scan=1`; owner taste open | 2026-10-25 |
+| [PRD-37](decisions/product.md) | My info keeps one local profile (14 fields, ID number off by default and checksummed) in IndexedDB `pdf-editor:my-info:v1`; never in snapshots, export or network; Forget is final; Labs `my-info` to come | In force behind Labs (UI pending the board) | 2026-10-27 |
+| [PRD-38](decisions/product.md) | My info optional lock: PBKDF2-SHA-256 600k + AES-GCM-256, fresh IV per write, key in memory only, wrong passphrase wipes nothing, no recovery | In force behind Labs (UI pending the board) | 2026-10-27 |
 | [PRD-14](decisions/product.md) | W0-q findings are assigned to waves: signed fixture opens locked and saves byte-identical (W1-a/W1-b), truncated.pdf… | In force; W1-b and W1-g merged | 2026-10-09 |
 | [PF-18](decisions/product.md) | A closed document's source is parked; the engine worker ends when none is open | In force | 2026-10-22 |
 | [PF-19](decisions/product.md) | Read mode's whole-page bitmap is capped at 4 MP on every edition; tiles keep the visible page 1:1 | In force | 2026-10-22 |
@@ -170,6 +172,7 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-74](decisions/design.md) | Turkish copy rules: *siz* in sentences, bare imperatives on controls, past passives in history; *karart* means redaction only (Dim pages is "Sayfa parlaklığını azalt"); ’ before suffixes on names and abbreviations | In force | 2026-10-23 |
 | [DSN-80](decisions/design.md) | Colour spot fixes: `--sign-hint` at 0.75, Review glyph darkened in light, Dim pages disabled state already exposed | In force | 2026-10-25 |
 | [DSN-76](decisions/design.md) | A visible Tools entry on the dock (no flag): Redact, OCR, Compare, Combine, Split, Compress as doorways to the title menu's own commands (DSN-46) | In force (owner board yes, 25 Oct) | 2026-10-24 |
+| [DSN-81](decisions/design.md) | Stamps and signatures are upright to the viewer on rotated pages: content counter-rotated by /Rotate in the appearance (IM-19) | In force | 2026-10-26 |
 | [DSN-77](decisions/design.md) | A success toast clears that action's earlier errors (same key); Use signature shows a placement hint; the phone's Delete pill keeps off form fields | In force | 2026-10-25 |
 | [DSN-75](decisions/design.md) | Fill & sign gets its own short bar (field stepping, Signature, Date, Done) (no flag), replacing the shared palette on that door | In force (owner board yes, 25 Oct) | 2026-10-24 |
 | [DSN-79](decisions/design.md) | Dark text ladder lifted for APCA: dark n9/n10/n11 and danger step up, light n10 darker, APCA floor test (colour audit 25 Oct 2026) | In force | 2026-10-25 |
@@ -350,6 +353,7 @@ Full rows: [`decisions/text-editing.md`](decisions/text-editing.md).
 | [TXT-26](decisions/text-editing.md) | The paragraph editor's header and move grip keep off the page's other paragraphs: margin past a neighbouring column, else above or below | In force | 2026-10-26 |
 | [TXT-27](decisions/text-editing.md) | A left-aligned paragraph's wrap measure never passes where its own soft-wrapped lines' next words would have fitted | In force | 2026-10-26 |
 | [TXT-28](decisions/text-editing.md) | A press in the padding round a paragraph (inside its focus ring, outside the ink) opens it as a press on its nearest run does | In force | 2026-10-27 |
+| [TXT-29](decisions/text-editing.md) | The sample's slips promise reflow only where page 3 has room; the overflow header says the run-over once | In force | 2026-10-27 |
 
 ## Redaction
 

@@ -154,6 +154,7 @@ import {
   useTextEditStore,
 } from './text-edit-store';
 import { locatedImages } from '../image-objects/images';
+import { readPointerCapabilities } from '../shell/frame/input-modality';
 import { gripEdge, type HeaderPlace, placeHeader } from './header-place';
 
 /**
@@ -170,7 +171,16 @@ export interface ParagraphEditorEdition {
   readonly hint: () => string;
 }
 
-const DESKTOP_EDITION: ParagraphEditorEdition = { minMirrorPx: 0, hint: () => m.paragraph_hint() };
+/** Touch-only devices (no mouse or trackpad beside the screen) have no Esc and no click. */
+const touchOnly = (): boolean => {
+  const { anyCoarse, anyFine } = readPointerCapabilities();
+  return anyCoarse && !anyFine;
+};
+
+const DESKTOP_EDITION: ParagraphEditorEdition = {
+  minMirrorPx: 0,
+  hint: () => (touchOnly() ? m.paragraph_hint_touch() : m.paragraph_hint()),
+};
 let edition = DESKTOP_EDITION;
 
 /** Sets what the edition changes (unset fields keep the desktop's); returns the previous. */
@@ -1862,6 +1872,9 @@ export function ParagraphEditor({
         : decision?.kind === 'overflow'
           ? m.paragraph_overflow()
           : null;
+  // The overlap choice says the overflow line in its own sentence (craft §4.6), so the line
+  // steps aside while the choice shows: the header never says it twice.
+  const overflowChoice = choice && decision?.kind === 'overflow' && !decision.offPage;
   const ragged = laid?.result.layout.ragged === true;
   const loadError = current && 'error' in current ? current.error : null;
   const shownError =
@@ -2129,7 +2142,7 @@ export function ParagraphEditor({
               {line}
             </p>
           ))}
-          {overflowLine ? (
+          {overflowLine && !overflowChoice ? (
             <p
               className={styles.overflow}
               data-kind={decision?.kind}
@@ -2193,7 +2206,7 @@ export function ParagraphEditor({
             </div>
           </div>
         ) : null}
-        {choice && decision?.kind === 'overflow' && !decision.offPage ? (
+        {overflowChoice ? (
           <div
             className={styles.choice}
             role="group"
