@@ -9,7 +9,7 @@ import '../../../styles/reset.css';
 import '../../../styles/global.css';
 
 import { render, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, type Mock, onTestFinished, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
 import { settled } from '../../../../test/settled';
@@ -125,20 +125,18 @@ describe('capture and the photo fallback', () => {
     canvas.height = 240;
     canvas.getContext('2d')?.fillRect(0, 0, 320, 240);
     camera.result = { ok: true, stream: canvas.captureStream() };
+    const room = document.createElement('style');
+    room.textContent =
+      '[data-testid="scan-sheet"] div:has(> [role="radiogroup"]) { min-width: 200px; }';
+    document.head.append(room);
+    onTestFinished(() => room.remove());
     const sheet = await openSheet();
     expect(within(sheet).queryByTestId('scan-done')).toBeNull();
-    // The mode control is a Segmented (09-primitives §6): a radiogroup while both labels fit the
-    // cell beside the shutter, a Select when they do not. That depends on the font the engine
-    // has, so the test takes whichever it renders.
-    const modeSelect = await within(sheet)
-      .findByRole('combobox', { name: 'Capture mode' }, { timeout: 500 })
-      .catch(() => null);
-    if (modeSelect) {
-      await userEvent.click(modeSelect);
-      await userEvent.click(await screen.findByRole('option', { name: 'Manual' }));
-    } else {
-      await userEvent.click(within(sheet).getByRole('radio', { name: 'Manual' }));
-    }
+    // The mode control is a Segmented (09-primitives §6): segments while both labels fit their
+    // cell, a Select when they do not (tested in Segmented.test.tsx). Which one a bare cell gives
+    // depends on the engine's font, so the test gives the control room and always gets segments.
+    await settled(within(sheet).getByRole('radiogroup', { name: 'Capture mode' }));
+    await userEvent.click(within(sheet).getByRole('radio', { name: 'Manual' }));
     const shutter = within(sheet).getByTestId<HTMLButtonElement>('scan-shutter');
     await waitFor(() => expect(shutter.disabled).toBe(false));
     await waitFor(() =>
