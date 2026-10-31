@@ -80,6 +80,7 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PRD-31](decisions/product.md) | "Open with" from the OS: manifest `file_handlers` plus a feature-detected `launchQueue` consumer into the drop path; installed Chromium only, not core | In force | 2026-10-25 |
 | [PRD-32](decisions/product.md) | Browser autofill hints: text-field editors set `autocomplete` from the tooltip/name (EN and TR, small tested matcher); unmatched, other-person and password fields stay `off`; Recto stores nothing | In force | 2026-10-25 |
 | [PRD-33](decisions/product.md) | Add bookmarks from headings: the Markdown export's heading detection builds a nested outline for a document without one; one undo step; home is the empty Contents panel and ⌘K (DSN-46) | In force | 2026-10-25 |
+| [PRD-35](decisions/product.md) | Text view (big move 2), engine block model (`ConvertOptions.textBlocks`, `AnalysisProxy.textBlocks(pages)`, `textStyle`); UI behind a flag later; owner's order: scan first, then Text view | In force | 2026-10-25 |
 | [PRD-34](decisions/product.md) | Camera scan to PDF: live outline, steady-outline auto capture, review (corners, rotate, filter, retake, reorder), Done makes one new unsaved "Scan <date>" document | Prototype behind `?scan=1`; owner taste open | 2026-10-25 |
 | [PRD-37](decisions/product.md) | My info keeps one local profile (14 fields, ID number off by default and checksummed) in IndexedDB `pdf-editor:my-info:v1`; never in snapshots, export or network; Forget is final; Labs `my-info` to come | In force behind Labs (UI pending the board) | 2026-10-27 |
 | [PRD-38](decisions/product.md) | My info optional lock: PBKDF2-SHA-256 600k + AES-GCM-256, fresh IV per write, key in memory only, wrong passphrase wipes nothing, no recovery | In force behind Labs (UI pending the board) | 2026-10-27 |
@@ -287,7 +288,8 @@ Full rows: [`decisions/editions.md`](decisions/editions.md).
 | [EDN-19](decisions/editions.md) | Office conversion is for desktop and tablet; the phone gets guidance, never the download | In force | 2026-10-19 |
 | [EDN-20](decisions/editions.md) | iPad is claimed for Office conversion only after the owner's device check | In force; the check is the owner's | 2026-10-21 |
 | [EDN-21](decisions/editions.md) | Phone editing code loads on intent (✎, first selection, form fields), never on idle; amends EDN-10 | In force | 2026-10-24 |
-| [EDN-22](decisions/editions.md) | Scan is desktop and tablet in lane L3; the phone's scan is lane L4 | Prototype behind `?scan=1` | 2026-10-25 |
+| [EDN-22](decisions/editions.md) | Scan is desktop and tablet in lane L3; the phone's scan is lane L4 | Phone built in EDN-23 | 2026-10-25 |
+| [EDN-23](decisions/editions.md) | The phone scans: Scan in the Library dock, a full-screen sheet on the scan core, 2,400 px pages, 40-page cap | Prototype behind `?scan=1` | 2026-10-26 |
 | [EDN-25](decisions/editions.md) | The phone's on-demand sheets load on intent (page number, gear, ⋯), never on idle; amends EDN-10 | In force | 2026-10-26 |
 | [EDN-24](decisions/editions.md) | The phone's single capsule (reading icons, editing tools, a tray), behind Labs `phone-capsule` | In force behind Labs | 2026-10-26 |
 | [EDN-28](decisions/editions.md) | The first phone stroke after picking Pen or Highlight draws; phone Save a copy shows the success toast | In force; amends EDN-18 | 2026-10-26 |
@@ -352,6 +354,7 @@ Full rows: [`decisions/text-editing.md`](decisions/text-editing.md).
 | [TXT-25](decisions/text-editing.md) | Edit text shows every paragraph's outline (cap 250 per page, off on phones, a setting); behind Labs `paragraphOutlines` | In force behind Labs | 2026-10-26 |
 | [TXT-26](decisions/text-editing.md) | The paragraph editor's header and move grip keep off the page's other paragraphs: margin past a neighbouring column, else above or below | In force | 2026-10-26 |
 | [TXT-27](decisions/text-editing.md) | A left-aligned paragraph's wrap measure never passes where its own soft-wrapped lines' next words would have fitted | In force | 2026-10-26 |
+| [TXT-28](decisions/text-editing.md) | A press in the padding round a paragraph (inside its focus ring, outside the ink) opens it as a press on its nearest run does | In force | 2026-10-27 |
 | [TXT-29](decisions/text-editing.md) | The sample's slips promise reflow only where page 3 has room; the overflow header says the run-over once | In force | 2026-10-27 |
 
 ## Redaction

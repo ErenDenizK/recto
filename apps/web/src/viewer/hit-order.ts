@@ -41,7 +41,7 @@ export const HIT_SELECTORS: Readonly<Record<HitKind, string>> = {
   'form-widget': '[data-field-name], [data-created-design]',
   link: '[data-link]',
   image: '[data-image-object], [data-testid="image-selection"]',
-  'text-run': '[data-text-run]',
+  'text-run': '[data-text-run], [data-text-halo]',
   'text-selection': `[${TEXT_LAYER_ATTR}] > span`,
 };
 

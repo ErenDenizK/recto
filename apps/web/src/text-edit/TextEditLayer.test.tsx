@@ -24,7 +24,8 @@ import { useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { resetToolStore, useToolStore } from '../viewer/tool-store';
-import { keyboardPlan, MIN_TARGET_PX, paragraphTargetLabel } from './TextEditLayer';
+import { mirrorOffset } from './mirror-dom';
+import { haloOwner, keyboardPlan, MIN_TARGET_PX, paragraphTargetLabel } from './TextEditLayer';
 import { pageParagraphs, useTextEditStore } from './text-edit-store';
 
 // ---------------------------------------------------------------------------
@@ -53,6 +54,35 @@ function block(index: number, runs: readonly LocatedRun[], refusal?: string): Pa
     ...(refusal ? { refusal } : {}),
   } as unknown as ParagraphBlock;
 }
+
+describe('haloOwner (TXT-28)', () => {
+  const frame = {
+    size: { width: 612, height: 792 },
+    originX: 0,
+    originY: 0,
+    rotation: 0,
+    scale: 1,
+  } as const;
+  const target = (index: number, y: number) => ({
+    block: {
+      ...block(index, [run(index, 'a')]),
+      box: { x: 100, y, width: 200, height: 50 },
+    } as unknown as ParagraphBlock,
+    runs: [run(index, 'a')],
+  });
+  // A's ink ends at css y 200, B's starts at 208: their paddings overlap.
+  const a = target(1, 592);
+  const b = target(2, 534);
+
+  it('the nearer ink takes a press where two paddings overlap', () => {
+    expect(haloOwner(frame, b, [a, b], { x: 150, y: 203 })).toBe(a);
+    expect(haloOwner(frame, a, [a, b], { x: 150, y: 205 })).toBe(b);
+  });
+
+  it('without the open paragraph among them, a press under it stays with the one it is in', () => {
+    expect(haloOwner(frame, b, [b], { x: 150, y: 203 })).toBe(b);
+  });
+});
 
 describe('keyboardPlan', () => {
   it('one target per paragraph; runs in no paragraph, or in a refused one, keep their own', () => {
@@ -259,5 +289,113 @@ describe('the Edit text layer by keyboard (mounted)', () => {
     await waitFor(() => expect(container.querySelector('[data-paragraph-mirror]')).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(ferry), { timeout: 10_000 });
     expect(useToolStore.getState().mode).toBe('edit-text');
+  });
+
+  it("a press in a paragraph's padding opens it with the caret at the nearest character (TXT-28)", async () => {
+    const { container, source } = await mount();
+    useToolStore.getState().setMode('edit-text');
+    const layer = await waitFor(
+      () => {
+        const l = container.querySelector<HTMLElement>('[data-text-edit-layer="0"]');
+        if (!l?.querySelector('[data-text-halo]')) throw new Error('no paragraph targets');
+        return l;
+      },
+      { timeout: 20_000 },
+    );
+    const ferryBlock = (await pageParagraphs(source, 0)).find((b) =>
+      b.text.startsWith('The ferry'),
+    );
+    if (!ferryBlock) throw new Error('no ferry block');
+    const second = ferryBlock.lines[1];
+    if (!second) throw new Error('the ferry paragraph has one line');
+    const ferry = [...layer.querySelectorAll<HTMLElement>('[data-text-paragraph]')].find((t) =>
+      t.getAttribute('aria-label')?.includes('The ferry'),
+    );
+    if (!ferry) throw new Error('no ferry paragraph');
+    const boxNow = () => {
+      const now = [...layer.querySelectorAll<HTMLElement>('[data-text-paragraph]')].find((t) =>
+        t.getAttribute('aria-label')?.includes('The ferry'),
+      );
+      return (now ?? ferry).getBoundingClientRect();
+    };
+    const haloOf = () =>
+      layer.querySelector<HTMLElement>(`[data-text-halo="${ferryBlock.ref.index}"]`) ?? undefined;
+    const halo = haloOf();
+    if (!halo) throw new Error('no halo over the ferry paragraph');
+    expect(getComputedStyle(halo).pointerEvents).toBe('auto');
+
+    // The run boxes (the ink and 2 px) of a line of the paragraph as laid out now, relative to
+    // its target (the page may have scrolled since the last press).
+    const lineAt = (n: number) => {
+      const at = boxNow();
+      const boxes = [...layer.querySelectorAll<HTMLElement>('[data-text-run][data-editable]')]
+        .map((r) => r.getBoundingClientRect())
+        .filter((r) => r.left >= at.left && r.right <= at.right && r.top >= at.top);
+      // Lines by the run boxes' vertical centres: a glyph's box varies with its height.
+      const centre = (r: DOMRect) => r.top + r.height / 2;
+      const centres = boxes.map(centre).sort((x, y) => x - y);
+      const rows: number[] = [];
+      for (const c of centres) if (rows.length === 0 || c - (rows.at(-1) ?? 0) > 8) rows.push(c);
+      const row = boxes
+        .filter((r) => Math.abs(centre(r) - (rows[n] ?? Infinity)) <= 8)
+        .sort((x, y) => x.left - y.left);
+      const first = row[0];
+      const last = row.at(-1);
+      if (!first || !last) throw new Error(`no line ${n}`);
+      const y = (rows[n] ?? 0) - at.top;
+      return { left: first.left - 2 - at.left, right: last.right + 2 - at.left, y };
+    };
+    const mirrorOf = async () =>
+      waitFor(
+        () => {
+          const field = container.querySelector<HTMLElement>('[data-paragraph-mirror]');
+          if (!field?.textContent) throw new Error('no paragraph editor');
+          return field;
+        },
+        { timeout: 20_000 },
+      );
+    const offsetOf = (mirror: HTMLElement) => {
+      const selection = window.getSelection();
+      return mirrorOffset(mirror, selection?.anchorNode ?? null, selection?.anchorOffset ?? 0);
+    };
+    const close = async () => {
+      await userEvent.keyboard('{Escape}');
+      await waitFor(() => expect(container.querySelector('[data-paragraph-mirror]')).toBeNull());
+      await waitFor(() => expect(haloOf()).toBeDefined());
+    };
+
+    // 4 px left of the first line's ink, past the runs' own 2 px: the caret at 0.
+    const head = lineAt(0);
+    await userEvent.click(halo, { position: { x: head.left, y: head.y } });
+    let mirror = await mirrorOf();
+    expect(mirror.textContent).toMatch(/^The ferry left the quay/);
+    await waitFor(() => expect(offsetOf(mirror)).toBe(0));
+    // No halo over the open paragraph: the editor's own controls take its presses.
+    expect(haloOf()).toBeUndefined();
+    await close();
+
+    // 4 px right of the first line's end: the caret at the line's end (before the space that
+    // wrapped), a non-zero offset only the press can have placed.
+    await userEvent.click(haloOf() as HTMLElement, {
+      position: { x: lineAt(0).right, y: lineAt(0).y },
+    });
+    mirror = await mirrorOf();
+    await waitFor(() => {
+      const at = offsetOf(mirror);
+      expect(at).toBeGreaterThan(0);
+      expect([second.start, second.start - 1]).toContain(at);
+    });
+    await close();
+
+    // A double press level with the second line, left of its ink, opens one editor with the
+    // caret at that line's start: as on a run, the paragraph editor takes only the caret
+    // (`openRunEditor`), the word is the editor's own double press.
+    const next = lineAt(1);
+    await userEvent.dblClick(haloOf() as HTMLElement, {
+      position: { x: next.left, y: next.y },
+    });
+    mirror = await mirrorOf();
+    await waitFor(() => expect(offsetOf(mirror)).toBe(second.start));
+    expect(container.querySelectorAll('[data-paragraph-mirror]')).toHaveLength(1);
   });
 });
