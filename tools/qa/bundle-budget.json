@@ -6,6 +6,7 @@
     "compact": 327680,
     "compactSession": 655360,
     "engineClient": 122880,
+    "intentBar": 20480,
     "pdfiumWorker": 1638400,
     "precache": 14680064
   },

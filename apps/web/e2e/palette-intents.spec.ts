@@ -77,7 +77,7 @@ test.describe('palette intents', () => {
     // One undo takes the half turn back: the next step down is opening the sample, not a
     // second half of the turn.
     const undo = page.getByTestId('undo-button');
-    await expect(page.getByText(/^Undo rotate 2 pages/)).toBeAttached();
+    await expect(page.getByText(/^Undo rotate pages 2–3 180°/i)).toBeAttached();
     await undo.click();
     await expect(page.getByText(/^Undo open Recto sample/)).toBeAttached();
     await expect(page.getByRole('button', { name: 'Redo', exact: true })).toBeEnabled();
@@ -88,7 +88,11 @@ test.describe('palette intents', () => {
     await type(page, 'go to Contributor agreement');
     const row = intentRow(page);
     await expect(row).toContainText('Go to ‘Contributor agreement’');
-    const detail = (await row.locator('[data-reason]').textContent()) ?? '';
+    const detail =
+      (await row
+        .getByText(/^Page \d+$/)
+        .first()
+        .textContent()) ?? '';
     const target = /\d+/.exec(detail)?.[0];
     expect(target).toBeDefined();
     await page.keyboard.press('Enter');

@@ -235,6 +235,37 @@
   }
 }
 
+/* A reading grows to the lines its steps need; its content sits at the top, and the Enter keycap
+   at the end (PRD-39, spec §3). */
+.option[data-reading-row] {
+  align-items: flex-start;
+  padding-block: var(--space-half);
+}
+
+.option[data-reading-row] > :last-child:not(:first-child) {
+  align-self: center;
+}
+
+/* Between two readings: a hairline, stacked, never collapsing one into the other (spec §3.3). */
+.or {
+  height: 1px;
+  margin: var(--space-1) var(--space-3);
+  background: var(--border-hairline);
+}
+
+/* A capability Recto lacks: a quiet fact above its nearest command, never focusable. */
+.info {
+  display: flex;
+  min-height: var(--control-h);
+  padding: 0 var(--space-2) 0 var(--space-3);
+  color: var(--text-secondary);
+}
+
+/* The nearest command lines up with the reading's text, past its glyph column. */
+.option[data-indented] {
+  padding-inline-start: calc(var(--space-3) + var(--icon-sm) + var(--space-2));
+}
+
 .option[aria-disabled='true'] {
   color: var(--text-disabled);
 }
@@ -304,4 +335,9 @@
   .footer {
     display: none;
   }
+}
+
+/* Enter does nothing on a row that cannot run: its keycap says so quietly. */
+.footerItem[data-dim] {
+  opacity: 0.4;
 }

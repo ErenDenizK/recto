@@ -13,6 +13,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   applyPreset,
+  applyRequest,
+  chooseForTarget,
   buildKey,
   copyName,
   DEFAULT_CUSTOM,
@@ -201,5 +203,83 @@ describe('progress', () => {
     expect(buildKey(id, { ...DEFAULT_DRAFT, size: 'smaller' }, 1)).not.toBe(
       buildKey(id, DEFAULT_DRAFT, 1),
     );
+  });
+});
+
+describe('palette requests (PRD-40)', () => {
+  it('a preset is applied as before', () => {
+    expect(applyRequest(DEFAULT_DRAFT, 'images')).toEqual(applyPreset(DEFAULT_DRAFT, 'images'));
+    expect(applyRequest(DEFAULT_DRAFT, null)).toBe(DEFAULT_DRAFT);
+  });
+
+  it('a size request opens on Size with Smaller, keeping a size already chosen', () => {
+    expect(applyRequest(DEFAULT_DRAFT, { kind: 'size', targetBytes: 1 })).toMatchObject({
+      format: 'pdf',
+      size: 'smaller',
+    });
+    const chosen = { ...DEFAULT_DRAFT, size: 'smallest' as const };
+    expect(applyRequest(chosen, { kind: 'size', targetBytes: 1 }).size).toBe('smallest');
+  });
+
+  it('an images request sets the type and the range and keeps the rest', () => {
+    const draft = applyRequest(DEFAULT_DRAFT, { kind: 'images', type: 'jpeg', range: '2-3' });
+    expect(draft.format).toBe('images');
+    expect(draft.images).toEqual({ ...DEFAULT_DRAFT.images, type: 'jpeg', range: '2-3' });
+  });
+
+  it('a text request sets the format', () => {
+    const draft = applyRequest(DEFAULT_DRAFT, { kind: 'text', format: 'text' });
+    expect(draft.format).toBe('text');
+    expect(draft.text.format).toBe('text');
+  });
+});
+
+describe('chooseForTarget (PRD-40)', () => {
+  const estimate = (after: number) =>
+    ({
+      before: 100,
+      after,
+      ratio: 0,
+      losslessSaved: 0,
+      imagesSaved: 0,
+      candidates: 0,
+      skipped: 0,
+      worthwhile: true,
+    }) as never;
+  const estimates = (same: number, smaller: number, smallest: number) => ({
+    same,
+    smaller: estimate(smaller),
+    smallest: estimate(smallest),
+    custom: estimate(smaller),
+  });
+
+  it('keeps Same when the copy is already under the target', () => {
+    expect(chooseForTarget(estimates(90, 60, 40), null, 100)).toEqual({
+      size: 'same',
+      meets: true,
+    });
+  });
+  it('takes Smaller when it meets the target and Same does not', () => {
+    expect(chooseForTarget(estimates(200, 90, 40), null, 100)).toEqual({
+      size: 'smaller',
+      meets: true,
+    });
+  });
+  it('takes Smallest when only it meets the target', () => {
+    expect(chooseForTarget(estimates(200, 150, 90), null, 100)).toEqual({
+      size: 'smallest',
+      meets: true,
+    });
+  });
+  it('shows Smallest and says so when none meets the target', () => {
+    expect(chooseForTarget(estimates(200, 150, 120), null, 100)).toEqual({
+      size: 'smallest',
+      meets: false,
+    });
+  });
+  it('before the estimates arrive: Same only if the quick size is under, else Smaller', () => {
+    expect(chooseForTarget(null, 50, 100)).toEqual({ size: 'same', meets: true });
+    expect(chooseForTarget(null, 500, 100)).toEqual({ size: 'smaller', meets: false });
+    expect(chooseForTarget(null, null, 100)).toEqual({ size: 'smaller', meets: false });
   });
 });

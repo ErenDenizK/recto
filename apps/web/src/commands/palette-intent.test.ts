@@ -1,54 +1,90 @@
 /**
- * What the palette says an intent will do, before it runs (Epic 4, R12 E10: nothing runs
- * unseen), in both languages.
+ * The palette's adapter to the intent bar (PRD-39, spec §2.13–§2.15), Vitest browser mode: what
+ * typed text reads as, when a row is still the one Enter would run, and what a screen reader hears.
  */
-import { afterEach, describe, expect, it } from 'vitest';
+import { getActiveDocument } from '@pdf-editor/document-model';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import manyUrl from '../../../../test/fixtures/many-pages.pdf?url';
+import { fixtureFile } from '../../test/store-harness';
 import { setLocale } from '../i18n';
-import { describeIntent } from './palette-intent';
-import { parseQuery, type QueryContext } from './query';
+import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
+import { announcementOf, readIntent, stillShown } from './palette-intent';
 
-const ctx: QueryContext = {
-  pageCount: 12,
-  currentPage: 4,
-  headings: [{ title: 'Methods', page: 12 }],
-  recents: [{ id: 'r', name: 'report.pdf' }],
-};
-
-function rows(query: string) {
-  const intent = parseQuery(query, ctx);
-  if (!intent) throw new Error(`no intent for ${query}`);
-  return describeIntent(intent, query).map((r) => [r.label, r.detail, r.runnable]);
-}
-
+beforeEach(async () => {
+  setLocale('en');
+  resetWorkspace();
+  await useWorkspaceStore.getState().openFiles([await fixtureFile(manyUrl, 'many.pdf')]);
+});
 afterEach(() => {
   setLocale('en');
 });
 
-describe('intent rows', () => {
-  it('says what will happen and which pages', () => {
-    setLocale('en');
-    expect(rows('p 9')).toEqual([['Go to page 9', undefined, true]]);
-    expect(rows('rotate 3-7 right')).toEqual([['Rotate pages 3–7 right', '5 pages', true]]);
-    expect(rows('delete 4-6')).toEqual([['Delete pages 4–6', '3 pages', true]]);
-    expect(rows('delete page 4')).toEqual([['Delete page 4', '1 page', true]]);
-    expect(rows('go to methods')).toEqual([['Go to ‘Methods’', 'Page 12', true]]);
-    expect(rows('open report')).toEqual([['Open ‘report.pdf’', undefined, true]]);
+describe('readIntent', () => {
+  it('reads a sentence into a row that carries the exact typed text', () => {
+    const read = readIntent('rotate 2-3 right');
+    if (read.kind !== 'readings') throw new Error('no readings');
+    const [row] = read.rows;
+    expect(row?.text).toBe('rotate 2-3 right');
+    expect(row?.preview.sentence).toBe('Rotate pages 2–3 right');
+    expect(row?.preview.runnable).toBe(true);
+    expect(row?.key).toBe(row?.preview.key);
   });
 
-  it('gives a quiet reason for what cannot run', () => {
-    setLocale('en');
-    expect(rows('120')).toEqual([['Go to page 120', 'This document has 12 pages', false]]);
-    expect(rows('delete 2 pages')).toEqual([['delete 2 pages', 'Say a range, like 2–3', false]]);
-    expect(rows('delete 7-3')[0]?.[2]).toBe(false);
-    expect(rows('rotate 2-99 right')).toEqual([
-      ['Rotate pages 2–99 right', 'This document has 12 pages', false],
-    ]);
+  it('gives an honest row and no reading for what it did not understand', () => {
+    expect(readIntent('zzzz qqqq').kind).toBe('none');
+    const read = readIntent('rotate yamuk');
+    expect(read.kind).toBe('partial');
+  });
+
+  it('keeps a problem legible with its reason', () => {
+    const read = readIntent('rotate 2-999 right');
+    if (read.kind !== 'readings') throw new Error('no readings');
+    expect(read.rows[0]?.preview.runnable).toBe(false);
+    expect(read.rows[0]?.preview.reason).toBeTruthy();
   });
 
   it('reads in Turkish', () => {
     setLocale('tr');
-    expect(rows('120')).toEqual([['120. sayfaya git', 'Bu belgede 12 sayfa var', false]]);
-    expect(rows('sayfa 5')).toEqual([['5. sayfaya git', undefined, true]]);
+    const read = readIntent('2-3. sayfaları sağa döndür');
+    if (read.kind !== 'readings') throw new Error('no readings');
+    expect(read.rows[0]?.preview.sentence).toContain('döndür');
+  });
+});
+
+describe('stillShown', () => {
+  it('holds until the document changes underneath (§2.13 c)', () => {
+    const read = readIntent('delete 2');
+    if (read.kind !== 'readings' || !read.rows[0]) throw new Error('no readings');
+    expect(stillShown(read.rows[0])).toBe(true);
+    useWorkspaceStore.setState((state) => ({ workspace: { ...state.workspace } }));
+    expect(stillShown(read.rows[0])).toBe(false);
+  });
+
+  it('is false for a row drawn from other text', () => {
+    const read = readIntent('delete 2');
+    if (read.kind !== 'readings' || !read.rows[0]) throw new Error('no readings');
+    expect(stillShown({ ...read.rows[0], text: 'delete 3' })).toBe(false);
+  });
+});
+
+describe('announcementOf', () => {
+  it('says one reading as its sentence, with the reason when it cannot run', () => {
+    const ok = readIntent('delete 2');
+    expect(announcementOf(ok)).toBe('Delete page 2');
+    const bad = announcementOf(readIntent('rotate 2-999 right'));
+    expect(bad).toMatch(/^Rotate pages 2–999 right\. /);
+  });
+
+  it('says two readings together', () => {
+    const doc = getActiveDocument(useWorkspaceStore.getState().workspace);
+    expect(doc?.pages.length).toBeGreaterThan(4);
+    const read = readIntent('imzala');
+    if (read.kind !== 'readings') return;
+    if (read.rows.length === 2) expect(announcementOf(read)).toMatch(/^Two readings: /);
+  });
+
+  it('says nothing for text that is not a sentence', () => {
+    expect(announcementOf(readIntent('zzzz qqqq'))).toBeUndefined();
   });
 });

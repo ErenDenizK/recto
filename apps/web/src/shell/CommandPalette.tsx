@@ -10,6 +10,7 @@
  */
 import { Dialog } from '@base-ui/react/dialog';
 import {
+  Fragment,
   type KeyboardEvent,
   useDeferredValue,
   type CSSProperties,
@@ -35,8 +36,10 @@ import { parseShortcut } from '../commands/shortcuts';
 import { useCommands } from '../commands/use-commands';
 import { loadRecents, type RecentEntry, useRecentsStore } from '../files/recents';
 import { openRecent } from '../home/home-actions';
+import type * as IntentRun from '../commands/intent/run';
 import type * as PaletteIntent from '../commands/palette-intent';
 import { m } from '../i18n';
+import { announce } from './announcer';
 import { animateStyle, type Motion } from '../motion/animate';
 import { useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
@@ -77,6 +80,16 @@ interface ListRow {
   readonly hint: string | undefined;
   readonly shortcut: Command['shortcuts'][number] | undefined;
   readonly command: Command | undefined;
+  /** A reading of the typed sentence, drawn by the intent chunk (PRD-39). */
+  readonly intent?: PaletteIntent.ReadingRow;
+  /** The option's name where it is not its text (a reading says its whole sentence). */
+  readonly ariaLabel?: string;
+  /** The quiet "or" before the second of two readings. */
+  readonly dividerBefore?: boolean;
+  /** A fact, not an option: it never takes focus (an unavailable capability). */
+  readonly info?: boolean;
+  /** Aligned with the reading rows' text, under their glyph column. */
+  readonly indented?: boolean;
   readonly run: () => void;
 }
 
@@ -280,7 +293,7 @@ export function CommandPalette() {
  */
 type IntentModule = Pick<
   typeof PaletteIntent,
-  'parseQuery' | 'gatherQueryContext' | 'describeIntent' | 'runIntent'
+  'readIntent' | 'stillShown' | 'announcementOf' | 'exampleLine' | 'IntentReading'
 >;
 let intentModule: IntentModule | null = null;
 let intentLoading: Promise<IntentModule> | null = null;
@@ -292,6 +305,18 @@ function loadIntents(): Promise<IntentModule> {
   return intentLoading;
 }
 
+/**
+ * The runner, its composer and the Save a copy plumbing are a second lazy chunk (spec §2.19):
+ * the bar prefetches it when a reading appears, so Enter finds it loaded and runs in its own task.
+ * It is imported here, not from the intent chunk, so that chunk carries no preload list for it.
+ */
+type Runner = typeof IntentRun;
+let runnerLoading: Promise<Runner> | null = null;
+function loadRunner(): Promise<Runner> {
+  runnerLoading ??= import('../commands/intent/run');
+  return runnerLoading;
+}
+
 function PalettePopup({ onClose }: { readonly onClose: () => void }) {
   const commands = useCommands();
   const recents = useUiStore((s) => s.recents);
@@ -300,7 +325,8 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
   const [query, setQuery] = useState('');
   const [intents, setIntents] = useState<IntentModule | null>(intentModule);
   // The selected pages scope the list until the chip is removed (PRD-29, 08-feedback §6).
-  const selectedPages = usePagesBarSelection().length;
+  const selection = usePagesBarSelection();
+  const selectedPages = selection.length;
   const [scopeOff, setScopeOff] = useState(false);
   const scopeCount = scopeOff ? 0 : selectedPages;
   // The chip stays mounted while its leave animation plays; the list is unscoped at once.
@@ -331,41 +357,138 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
   const emptyQuery = deferredQuery.trim() === '';
   const textless = useTextless(emptyQuery ? activeDoc : undefined);
 
+  // What the typed sentence reads as; recomputed when the document or the selection moves, so a
+  // preview never outlives the state it was drawn from (§2.13).
+  const selectionKey = selection.join(',');
+  const read = useMemo(
+    () => (emptyQuery || !intents ? null : intents.readIntent(deferredQuery)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `workspace` and `selectionKey` are the stores' state the read takes through `getState`.
+    [emptyQuery, intents, deferredQuery, workspace, selectionKey],
+  );
+  // Previews are runnable once painted: their keys join the set a frame after the commit.
+  const paintedKeys = useRef(new Set<string>());
+  const shownKeys = useMemo(
+    () => (read?.kind === 'readings' ? read.rows.map((row) => row.key) : []),
+    [read],
+  );
+  useLayoutEffect(() => {
+    if (shownKeys.length === 0) return;
+    const frame = requestAnimationFrame(() => {
+      for (const key of shownKeys) paintedKeys.current.add(key);
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+    };
+  }, [shownKeys]);
+  // The runner loads while the person reads the row, so Enter finds it ready.
+  useEffect(() => {
+    if (shownKeys.length === 0 || !intents) return;
+    const load = () => {
+      loadRunner().catch((error: unknown) => {
+        console.error('Intent runner failed to load', error);
+      });
+    };
+    if (typeof requestIdleCallback === 'function') {
+      const id = requestIdleCallback(load);
+      return () => {
+        cancelIdleCallback(id);
+      };
+    }
+    const timer = setTimeout(load, 200);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [shownKeys, intents]);
+  // The reading is said once the typing pauses (FB10, key `palette-args`).
+  useEffect(() => {
+    const said = read && intents?.announcementOf(read);
+    if (said) announce(said, { key: 'palette-args', debounceMs: 500 });
+  }, [read, intents]);
+
   const sections = useMemo<ListSection[]>(() => {
     const empty = emptyQuery;
     const result: ListSection[] = [];
-    // A query that reads as an intent (a page, a range, a heading, a file) shows it first, with
-    // what it will do; nothing runs unseen (Epic 4).
-    const intent =
-      empty || !intents ? null : intents.parseQuery(deferredQuery, intents.gatherQueryContext());
-    if (intent && intents) {
+    // A sentence the bar reads shows its reading first, with what it will do; nothing runs
+    // unseen (PRD-39, §2.13).
+    if (read?.kind === 'readings' && intents) {
+      const rows: ListRow[] = read.rows.map((reading, index) => ({
+        key: `intent-${index}`,
+        title: reading.preview.sentence,
+        ariaLabel: reading.preview.sentence,
+        positions: [],
+        enabled: reading.preview.runnable,
+        invalidIntent: !reading.preview.runnable,
+        focusable: true,
+        reason: undefined,
+        hint: undefined,
+        shortcut: undefined,
+        command: undefined,
+        intent: reading,
+        ...(index > 0 ? { dividerBefore: true } : {}),
+        ...(reading.preview.steps[0]?.family === 'unavailable'
+          ? { info: true, focusable: false }
+          : {}),
+        run: () => {
+          if (!reading.preview.runnable || !intents.stillShown(reading)) return;
+          onClose();
+          loadRunner()
+            .then((runner) => runner.runReading(reading.reading, reading.key, reading.text))
+            .catch((error: unknown) => {
+              console.error('Palette intent failed', error);
+            });
+        },
+      }));
+      // A capability Recto lacks: the nearest real command sits right under the honest row.
+      for (const { preview } of read.rows) {
+        const nearest = preview.nearest && commandRegistry.get(preview.nearest.commandId);
+        if (nearest) {
+          rows.push(
+            commandRow(
+              {
+                command: nearest,
+                positions: [],
+                enabled: commandRegistry.isEnabled(nearest),
+                reason: commandRegistry.disabledReason(nearest),
+              },
+              false,
+              pushRecent,
+              onClose,
+            ),
+          );
+          const last = rows.at(-1);
+          if (last) rows[rows.length - 1] = { ...last, indented: true };
+        }
+      }
+      result.push({
+        id: 'intent',
+        label: read.rows.length > 1 ? m.intent_bar_two_readings() : undefined,
+        ariaLabel: read.rows.length > 1 ? m.intent_bar_two_readings() : m.palette_intent_group(),
+        rows,
+      });
+    } else if (read?.kind === 'partial') {
       result.push({
         id: 'intent',
         label: undefined,
         ariaLabel: m.palette_intent_group(),
-        rows: intents.describeIntent(intent, deferredQuery).map((view, index) => ({
-          key: view.key,
-          title: view.label,
-          positions: [],
-          enabled: view.runnable,
-          invalidIntent: !view.runnable,
-          focusable: true,
-          reason: view.detail,
-          hint: undefined,
-          shortcut: undefined,
-          command: undefined,
-          run: () => {
-            if (!view.runnable) return;
-            onClose();
-            intents.runIntent(intent, index).catch((error: unknown) => {
-              console.error('Palette intent failed', error);
-            });
+        rows: [
+          {
+            key: 'intent-partial',
+            title: read.message,
+            positions: [],
+            enabled: false,
+            invalidIntent: true,
+            focusable: false,
+            reason: undefined,
+            hint: undefined,
+            shortcut: undefined,
+            command: undefined,
+            run: () => undefined,
           },
-        })),
+        ],
       });
     }
     const commandSections = buildSections(
-      deferredQuery,
+      read?.kind === 'partial' && read.rest.trim() !== '' ? read.rest : deferredQuery,
       empty ? commands.filter((c) => !HIDDEN_WHEN_EMPTY.has(c.id)) : commands,
       recents,
       (c) => commandRegistry.isEnabled(c),
@@ -480,6 +603,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
     pushRecent,
     onClose,
     intents,
+    read,
     scopeCount,
     workspace,
     activeDoc,
@@ -488,7 +612,9 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
   const rows = useMemo(() => sections.flatMap((s) => s.rows), [sections]);
   const matchedIndex = rows.findIndex((r) => r.key === activeId && r.focusable);
   const activeIndex = matchedIndex >= 0 ? matchedIndex : rows.findIndex((r) => r.focusable);
-  const active = activeIndex >= 0 ? rows[activeIndex] : undefined;
+  // A word it did not understand: no row is active until the person moves to one (§2.14).
+  const idle = read?.kind === 'partial' && activeId === null;
+  const active = activeIndex >= 0 && !idle ? rows[activeIndex] : undefined;
   const optionId = (key: string) => `${baseId}-option-${key}`;
   const activeOptionId = active ? optionId(active.key) : undefined;
 
@@ -498,9 +624,18 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
   }, [activeOptionId]);
   usePaletteFill(list, activeOptionId);
 
+  /** Runs a row; a reading only when its rows are the typed text's and have been painted. */
+  const runRow = (row: ListRow | undefined) => {
+    if (!row) return;
+    if (row.intent) {
+      if (query !== deferredQuery || !paintedKeys.current.has(row.intent.key)) return;
+    }
+    row.run();
+  };
+
   const move = (delta: 1 | -1) => {
     if (rows.length === 0) return;
-    let next = activeIndex;
+    let next = idle ? (delta === 1 ? -1 : 0) : activeIndex;
     let remaining = rows.length;
     do {
       next = (next + delta + rows.length) % rows.length;
@@ -519,7 +654,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
       move(-1);
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      active?.run();
+      runRow(active);
     } else if (event.key === 'Backspace' && query === '' && scopeCount > 0) {
       // Backspace in an empty input removes the scope chip: every command again (08-feedback §6).
       event.preventDefault();
@@ -576,7 +711,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
           aria-controls={listboxId}
           aria-autocomplete="list"
           aria-activedescendant={activeOptionId}
-          placeholder={m.search_commands_placeholder()}
+          placeholder={m.intent_bar_placeholder()}
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
@@ -599,6 +734,12 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
         {rows.length === 0 ? (
           <p className={styles.empty} role="presentation">
             {m.palette_no_match({ query: query.trim() })}
+            {intents ? (
+              <>
+                <br />
+                {intents.exampleLine()}
+              </>
+            ) : null}
           </p>
         ) : null}
         {sections.map((section, s) => {
@@ -627,56 +768,97 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
               {section.rows.map((row, i) => {
                 const selected = row === active;
                 const reasonId = row.reason ? `${optionId(row.key)}-reason` : undefined;
+                const reading = row.intent;
                 return (
-                  // Options are driven from the combobox input via aria-activedescendant
-                  // (APG); they take pointer input only and are never focused themselves.
-                  // eslint-disable-next-line jsx-a11y/click-events-have-key-events
-                  <div
-                    key={row.key}
-                    id={optionId(row.key)}
-                    role="option"
-                    tabIndex={-1}
-                    aria-selected={selected}
-                    aria-disabled={!row.enabled || undefined}
-                    aria-describedby={reasonId}
-                    data-intent-invalid={row.invalidIntent ? '' : undefined}
-                    className={styles.option}
-                    data-stagger=""
-                    style={staggerStyle(first + i)}
-                    onPointerMove={() => {
-                      if (row.focusable && !selected) setActiveId(row.key);
-                    }}
-                    onPointerDown={(event) => {
-                      event.preventDefault();
-                    }}
-                    onClick={row.run}
-                  >
-                    {selected ? (
-                      <span className={styles.fill} data-palette-fill="" aria-hidden="true" />
+                  <Fragment key={row.key}>
+                    {row.dividerBefore ? (
+                      <div className={styles.or} role="presentation" aria-hidden="true" />
                     ) : null}
-                    <span className={styles.title}>
-                      <Highlighted text={row.title} positions={row.positions} />
-                    </span>
-                    {row.hint ? (
-                      <span className={styles.groupHint} data-bar-group-hint="">
-                        {row.hint}
-                      </span>
-                    ) : null}
-                    {/* The reason takes the keycap's place (04-context §12.2); it is the
-                        option's description, not part of its name. */}
-                    {row.reason ? (
-                      <span
-                        id={reasonId}
-                        className={styles.reason}
-                        data-reason=""
-                        aria-hidden="true"
-                      >
-                        {row.reason}
-                      </span>
-                    ) : row.shortcut ? (
-                      <Keycaps shortcut={row.shortcut} />
-                    ) : null}
-                  </div>
+                    {row.info && reading && intents ? (
+                      // A capability Recto lacks: a fact, not an option; it never takes focus.
+                      <div className={styles.info} data-info="">
+                        <intents.IntentReading
+                          key={reading.key}
+                          row={reading}
+                          idBase={optionId(row.key)}
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        {/* Options are driven from the combobox input via aria-activedescendant
+                        (APG); they take pointer input only and are never focused themselves. */}
+                        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
+                        <div
+                          id={optionId(row.key)}
+                          role="option"
+                          tabIndex={-1}
+                          aria-selected={selected}
+                          aria-disabled={!row.enabled || undefined}
+                          aria-label={row.ariaLabel}
+                          aria-describedby={
+                            reading
+                              ? `${optionId(row.key)}-note ${optionId(row.key)}-reason`
+                              : reasonId
+                          }
+                          data-intent-invalid={row.invalidIntent ? '' : undefined}
+                          data-reading-row={reading ? '' : undefined}
+                          className={styles.option}
+                          data-indented={row.indented ? '' : undefined}
+                          // A reading does not rise in per key (A-10); its strip appears as it is.
+                          data-stagger={reading ? undefined : ''}
+                          style={staggerStyle(first + i)}
+                          onPointerMove={() => {
+                            if (row.focusable && !selected) setActiveId(row.key);
+                          }}
+                          onPointerDown={(event) => {
+                            event.preventDefault();
+                          }}
+                          onClick={() => {
+                            runRow(row);
+                          }}
+                        >
+                          {selected ? (
+                            <span className={styles.fill} data-palette-fill="" aria-hidden="true" />
+                          ) : null}
+                          {reading && intents ? (
+                            <intents.IntentReading
+                              key={reading.key}
+                              row={reading}
+                              idBase={optionId(row.key)}
+                            />
+                          ) : (
+                            <>
+                              <span className={styles.title}>
+                                <Highlighted text={row.title} positions={row.positions} />
+                              </span>
+                              {row.hint ? (
+                                <span className={styles.groupHint} data-bar-group-hint="">
+                                  {row.hint}
+                                </span>
+                              ) : null}
+                              {/* The reason takes the keycap's place (04-context §12.2); it is the
+                              option's description, not part of its name. */}
+                              {row.reason ? (
+                                <span
+                                  id={reasonId}
+                                  className={styles.reason}
+                                  data-reason=""
+                                  aria-hidden="true"
+                                >
+                                  {row.reason}
+                                </span>
+                              ) : row.shortcut ? (
+                                <Keycaps shortcut={row.shortcut} />
+                              ) : null}
+                            </>
+                          )}
+                          {reading && selected && row.enabled ? (
+                            <Keycaps shortcut={FOOTER_KEYS.run} />
+                          ) : null}
+                        </div>
+                      </>
+                    )}
+                  </Fragment>
                 );
               })}
             </div>
@@ -691,7 +873,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
           ))}
           {m.palette_navigate()}
         </span>
-        <span className={styles.footerItem}>
+        <span className={styles.footerItem} data-dim={active?.enabled === false ? '' : undefined}>
           <Keycaps shortcut={FOOTER_KEYS.run} />
           {m.palette_run()}
         </span>
