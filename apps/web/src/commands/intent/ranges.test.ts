@@ -121,7 +121,7 @@ describe('open ends, exceptions and pronouns', () => {
     ['5 onwards', run(5, 24)],
     ["5'ten sona", run(5, 24)],
     ['5. sayfadan itibaren', run(5, 24)],
-    ["5'ten sonrası", run(5, 24)],
+    ["5'ten sonrası", run(6, 24)],
     ['all except 3', [...run(1, 2), ...run(4, 24)]],
     ['all but 1-2', run(3, 24)],
     ['except 24', run(1, 23)],

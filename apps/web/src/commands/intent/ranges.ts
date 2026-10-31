@@ -206,11 +206,15 @@ const EXCEPT_EN = ['except', 'but', 'excluding', 'besides'];
 const exceptTr = (t: Tok): boolean => noun(t, 'haric') || full(t).startsWith('disinda');
 const PRONOUNS = ['it', 'them', 'onu', 'onlari', 'bunu', 'bunlari'];
 
-/** Words that, in a page expression, say "and everything after". */
+/** Words that, in a page expression, say "from here to the end", the page included. */
 const openEnd = (t: Tok | undefined): boolean =>
-  !!t &&
-  (is(t, 'onwards', 'itibaren', 'sona', 'sonuna') ||
-    (noun(t, 'sonra') && full(t).startsWith('sonrasi')));
+  !!t && is(t, 'onwards', 'itibaren', 'sona', 'sonuna');
+/**
+ * "sonrası" ("what comes after"): the pages after, not the page itself. Lead decision: "5'ten
+ * sonrası" is 6 to the end, like "5'ten sonra"; the spec's first reading (5 to the end) is out.
+ */
+const afterWord = (t: Tok | undefined): boolean =>
+  !!t && noun(t, 'sonra') && full(t).startsWith('sonrasi');
 
 /** Words this module reads as page expressions: the lexicon adds them to what it knows. */
 export const PAGE_VOCAB: readonly string[] = [
@@ -407,8 +411,11 @@ export function readPages(toks: readonly Tok[], ctx: IntentContext, navigate = f
           // "5'e kadar", "5. sayfaya kadar": up to and with 5.
           add(1, nm.n, 'edge');
           i = j;
-        } else if (mark === 'abl' && tail?.kind === 'conj' && tail.text === 'sonra') {
-          // "5'ten sonra", "5. sayfadan sonra": after 5, not 5 itself.
+        } else if (
+          afterWord(tail) ||
+          (mark === 'abl' && tail?.kind === 'conj' && tail.text === 'sonra')
+        ) {
+          // "5'ten sonra", "5. sayfadan sonra", "5'ten sonrasını": after 5, not 5 itself.
           if (nm.n < 1 || nm.n > count) add(nm.n, nm.n, 'edge');
           else if (nm.n === count) {
             explicit = true;

@@ -54,7 +54,7 @@ export const TR: Readonly<Record<string, readonly Row[]>> = {
     ['1-2 dışındaki sayfaları sil', 'delete 3-24'],
     ['3 hariç tüm sayfaları sil', 'delete 1,2,4…'],
     ["5'ten sona kadar sil", 'delete 5-24'],
-    ["5'ten sonrasını sil", 'delete 5-24'],
+    ["5'ten sonrasını sil", 'delete 6-24'], // lead decision: "sonrası" excludes the page
     ['5. sayfadan itibaren sil', 'delete 5-24'],
     ["sil 3'ten 5'e kadar", 'delete 3-5'],
     ['sil 3 ile 5 arası sayfaları', 'delete 3-5'],
@@ -337,6 +337,7 @@ export const TR: Readonly<Record<string, readonly Row[]>> = {
     ['3-5 arasını sil', 'delete 3-5'],
     ["5'ten sonra sil", 'delete 6-24'],
     ['5. sayfadan sonra sil', 'delete 6-24'],
+    ['5. sayfadan sonrasını sil', 'delete 6-24'],
     ['10. sayfadan sonra böl', 'split at 11 [1-10 11-24]'],
     ["10'dan sonra böl", 'split at 11 [1-10 11-24]'],
     ['böl 10 ve 20', 'split at 10,20 [1-9 10-19 20-24]'],
