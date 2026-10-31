@@ -9,11 +9,12 @@ import '../styles/reset.css';
 import '../styles/global.css';
 
 import { getActiveDocument } from '@pdf-editor/document-model';
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
 import manyUrl from '../../../../test/fixtures/many-pages.pdf?url';
+import { settled } from '../../test/settled';
 import { fixtureFile } from '../../test/store-harness';
 import { registerAppCommands } from '../commands/app-commands';
 import { registerArrangeCommands } from '../stage/arrange-commands';
@@ -81,9 +82,14 @@ describe('the intent bar in the palette', () => {
 
   it('keeps a problem legible, says why, and does nothing on Enter', async () => {
     await userEvent.keyboard('rotate 2-999 right');
-    const option = await screen.findByRole('option', { name: /^Rotate pages 2–999 right/ });
-    expect(option).toHaveAttribute('aria-disabled', 'true');
-    expect(option).toHaveAccessibleDescription(/This document has/);
+    const option = await settled(
+      await screen.findByRole('option', { name: /^Rotate pages 2–999 right/ }),
+    );
+    // The row is drawn once the preview chunk is here; its state settles on a later render.
+    await waitFor(() => {
+      expect(option).toHaveAttribute('aria-disabled', 'true');
+      expect(option).toHaveAccessibleDescription(/This document has/);
+    });
     await frame();
     await frame();
     await userEvent.keyboard('{Enter}');
@@ -116,8 +122,12 @@ describe('the intent bar in the palette', () => {
     const before = pages();
     await userEvent.keyboard('delete 2');
     await screen.findByRole('option', { name: 'Delete page 2' });
-    await userEvent.keyboard('0');
+    await frame();
+    await frame();
+    // The edit and Enter land in one act, before the deferred query re-previews: the painted row is
+    // for 'delete 2', not for the text now in the box.
     act(() => {
+      fireEvent.change(combobox(), { target: { value: 'delete 20' } });
       fireEvent.keyDown(combobox(), { key: 'Enter' });
     });
     await frame();

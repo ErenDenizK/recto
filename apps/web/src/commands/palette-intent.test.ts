@@ -9,9 +9,20 @@ import manyUrl from '../../../../test/fixtures/many-pages.pdf?url';
 import { fixtureFile } from '../../test/store-harness';
 import { setLocale } from '../i18n';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
-import { announcementOf, readIntent, stillShown } from './palette-intent';
+import {
+  announcementOf,
+  type Previews,
+  readIntent,
+  stillShown,
+  withPreviews,
+} from './palette-intent';
+
+// The palette loads the preview chunk when a reading appears and hands it in (spec §2.19).
+let previews: Previews;
+const read = (text: string) => withPreviews(readIntent(text), previews);
 
 beforeEach(async () => {
+  previews = await import('./intent/preview');
   setLocale('en');
   resetWorkspace();
   await useWorkspaceStore.getState().openFiles([await fixtureFile(manyUrl, 'many.pdf')]);
@@ -21,10 +32,17 @@ afterEach(() => {
 });
 
 describe('readIntent', () => {
+  it('parses a sentence into readings with no preview, so the preview chunk can wait', () => {
+    const parsed = readIntent('rotate 2-3 right');
+    if (parsed.kind !== 'readings') throw new Error('no readings');
+    expect(parsed.readings).toHaveLength(1);
+    expect('rows' in parsed).toBe(false);
+  });
+
   it('reads a sentence into a row that carries the exact typed text', () => {
-    const read = readIntent('rotate 2-3 right');
-    if (read.kind !== 'readings') throw new Error('no readings');
-    const [row] = read.rows;
+    const got = read('rotate 2-3 right');
+    if (got.kind !== 'readings') throw new Error('no readings');
+    const [row] = got.rows;
     expect(row?.text).toBe('rotate 2-3 right');
     expect(row?.preview.sentence).toBe('Rotate pages 2–3 right');
     expect(row?.preview.runnable).toBe(true);
@@ -33,58 +51,58 @@ describe('readIntent', () => {
 
   it('gives an honest row and no reading for what it did not understand', () => {
     expect(readIntent('zzzz qqqq').kind).toBe('none');
-    const read = readIntent('rotate yamuk');
-    expect(read.kind).toBe('partial');
+    const got = read('rotate yamuk');
+    expect(got.kind).toBe('partial');
   });
 
   it('keeps a problem legible with its reason', () => {
-    const read = readIntent('rotate 2-999 right');
-    if (read.kind !== 'readings') throw new Error('no readings');
-    expect(read.rows[0]?.preview.runnable).toBe(false);
-    expect(read.rows[0]?.preview.reason).toBeTruthy();
+    const got = read('rotate 2-999 right');
+    if (got.kind !== 'readings') throw new Error('no readings');
+    expect(got.rows[0]?.preview.runnable).toBe(false);
+    expect(got.rows[0]?.preview.reason).toBeTruthy();
   });
 
   it('reads in Turkish', () => {
     setLocale('tr');
-    const read = readIntent('2-3. sayfaları sağa döndür');
-    if (read.kind !== 'readings') throw new Error('no readings');
-    expect(read.rows[0]?.preview.sentence).toContain('döndür');
+    const got = read('2-3. sayfaları sağa döndür');
+    if (got.kind !== 'readings') throw new Error('no readings');
+    expect(got.rows[0]?.preview.sentence).toContain('döndür');
   });
 });
 
 describe('stillShown', () => {
   it('holds until the document changes underneath (§2.13 c)', () => {
-    const read = readIntent('delete 2');
-    if (read.kind !== 'readings' || !read.rows[0]) throw new Error('no readings');
-    expect(stillShown(read.rows[0])).toBe(true);
+    const got = read('delete 2');
+    if (got.kind !== 'readings' || !got.rows[0]) throw new Error('no readings');
+    expect(stillShown(got.rows[0], previews)).toBe(true);
     useWorkspaceStore.setState((state) => ({ workspace: { ...state.workspace } }));
-    expect(stillShown(read.rows[0])).toBe(false);
+    expect(stillShown(got.rows[0], previews)).toBe(false);
   });
 
   it('is false for a row drawn from other text', () => {
-    const read = readIntent('delete 2');
-    if (read.kind !== 'readings' || !read.rows[0]) throw new Error('no readings');
-    expect(stillShown({ ...read.rows[0], text: 'delete 3' })).toBe(false);
+    const got = read('delete 2');
+    if (got.kind !== 'readings' || !got.rows[0]) throw new Error('no readings');
+    expect(stillShown({ ...got.rows[0], text: 'delete 3' }, previews)).toBe(false);
   });
 });
 
 describe('announcementOf', () => {
   it('says one reading as its sentence, with the reason when it cannot run', () => {
-    const ok = readIntent('delete 2');
+    const ok = read('delete 2');
     expect(announcementOf(ok)).toBe('Delete page 2');
-    const bad = announcementOf(readIntent('rotate 2-999 right'));
+    const bad = announcementOf(read('rotate 2-999 right'));
     expect(bad).toMatch(/^Rotate pages 2–999 right\. /);
   });
 
   it('says two readings together', () => {
     const doc = getActiveDocument(useWorkspaceStore.getState().workspace);
     expect(doc?.pages.length).toBeGreaterThan(4);
-    const read = readIntent('imzala');
-    if (read.kind !== 'readings') return;
-    if (read.rows.length === 2) expect(announcementOf(read)).toMatch(/^Two readings: /);
+    const got = read('imzala');
+    if (got.kind !== 'readings') return;
+    if (got.rows.length === 2) expect(announcementOf(got)).toMatch(/^Two readings: /);
   });
 
   it('says nothing for text that is not a sentence', () => {
-    expect(announcementOf(readIntent('zzzz qqqq'))).toBeUndefined();
+    expect(announcementOf(read('zzzz qqqq'))).toBeUndefined();
   });
 });

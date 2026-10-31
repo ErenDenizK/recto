@@ -293,7 +293,7 @@ export function CommandPalette() {
  */
 type IntentModule = Pick<
   typeof PaletteIntent,
-  'readIntent' | 'stillShown' | 'announcementOf' | 'exampleLine' | 'IntentReading'
+  'readIntent' | 'withPreviews' | 'stillShown' | 'announcementOf' | 'exampleLine' | 'IntentReading'
 >;
 let intentModule: IntentModule | null = null;
 let intentLoading: Promise<IntentModule> | null = null;
@@ -303,6 +303,21 @@ function loadIntents(): Promise<IntentModule> {
     return loaded;
   });
   return intentLoading;
+}
+
+/**
+ * The preview is a chunk of its own (spec §2.19, the `intentPreview` gate): it loads when a
+ * reading appears, never when the palette opens, and the rows wait for it. Until it is here the
+ * commands rank as before.
+ */
+let previewsModule: PaletteIntent.Previews | null = null;
+let previewsLoading: Promise<PaletteIntent.Previews> | null = null;
+function loadPreviews(): Promise<PaletteIntent.Previews> {
+  previewsLoading ??= import('../commands/intent/preview').then((loaded) => {
+    previewsModule = loaded;
+    return loaded;
+  });
+  return previewsLoading;
 }
 
 /**
@@ -324,6 +339,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
   const recentFiles = useRecentsStore((s) => s.entries);
   const [query, setQuery] = useState('');
   const [intents, setIntents] = useState<IntentModule | null>(intentModule);
+  const [previews, setPreviews] = useState<PaletteIntent.Previews | null>(previewsModule);
   // The selected pages scope the list until the chip is removed (PRD-29, 08-feedback §6).
   const selection = usePagesBarSelection();
   const selectedPages = selection.length;
@@ -360,10 +376,29 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
   // What the typed sentence reads as; recomputed when the document or the selection moves, so a
   // preview never outlives the state it was drawn from (§2.13).
   const selectionKey = selection.join(',');
-  const read = useMemo(
+  const parsed = useMemo(
     () => (emptyQuery || !intents ? null : intents.readIntent(deferredQuery)),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `workspace` and `selectionKey` are the stores' state the read takes through `getState`.
     [emptyQuery, intents, deferredQuery, workspace, selectionKey],
+  );
+  // The first reading asks for the preview chunk; the rows show once it is here.
+  const readingAppeared = parsed?.kind === 'readings';
+  useEffect(() => {
+    if (!readingAppeared || previews) return;
+    loadPreviews()
+      .then(setPreviews)
+      .catch((error: unknown) => {
+        console.error('Intent preview failed to load', error);
+      });
+  }, [readingAppeared, previews]);
+  const read = useMemo(
+    () =>
+      parsed?.kind !== 'readings'
+        ? parsed
+        : intents && previews
+          ? intents.withPreviews(parsed, previews)
+          : null,
+    [parsed, intents, previews],
   );
   // Previews are runnable once painted: their keys join the set a frame after the commit.
   const paintedKeys = useRef(new Set<string>());
@@ -410,7 +445,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
     const result: ListSection[] = [];
     // A sentence the bar reads shows its reading first, with what it will do; nothing runs
     // unseen (PRD-39, §2.13).
-    if (read?.kind === 'readings' && intents) {
+    if (read?.kind === 'readings' && intents && previews) {
       const rows: ListRow[] = read.rows.map((reading, index) => ({
         key: `intent-${index}`,
         title: reading.preview.sentence,
@@ -429,7 +464,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
           ? { info: true, focusable: false }
           : {}),
         run: () => {
-          if (!reading.preview.runnable || !intents.stillShown(reading)) return;
+          if (!reading.preview.runnable || !intents.stillShown(reading, previews)) return;
           onClose();
           loadRunner()
             .then((runner) => runner.runReading(reading.reading, reading.key, reading.text))
@@ -603,6 +638,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
     pushRecent,
     onClose,
     intents,
+    previews,
     read,
     scopeCount,
     workspace,
