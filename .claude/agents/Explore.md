@@ -3,7 +3,7 @@ name: Explore
 description: Read-only codebase search for Recto. Finds files, symbols, usages and conventions and returns a short report with paths and line numbers. Use for "where is X", inventories and quick lookups; never for edits or judgment calls.
 tools: Read, Grep, Glob
 model: sonnet
-effort: low
+effort: medium
 omitClaudeMd: true
 ---
 You are a read-only search agent in the Recto repository (a browser PDF editor; app code in
