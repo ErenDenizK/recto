@@ -87,6 +87,14 @@ const MESSAGE_BARREL = /[\\/]i18n[\\/]paraglide[\\/]messages(?:\.js|[\\/]_index\
 const MESSAGE_MODULE = /[\\/]i18n[\\/]paraglide[\\/]messages[\\/](\w+)\.js$/;
 
 /**
+ * The modules of the `ui-shared` chunk group (`build.rolldownOptions`): Surface, Progress and
+ * Notice with what they pull in alone (the store Notice reads, Base UI's progress parts and the
+ * number helpers they share, and the messages of these pieces).
+ */
+const UI_SHARED =
+  /[\\/]src[\\/]ui[\\/](?:Surface\.tsx|(?:Progress|Notice)\.(?:tsx|module\.css))$|[\\/]src[\\/](?:signatures[\\/]signature-store|ocr[\\/]ocr-deps)\.ts$|[\\/]@base-ui[\\/](?:react[\\/]progress[\\/]|react[\\/]utils[\\/]valueToPercent\.mjs$|utils[\\/](?:formatNumber|stringifyLocale)\.mjs$)|[\\/]paraglide[\\/]messages[\\/](?:goto_title|notice_less|signature_version_file|signature_version_unavailable|progress_value_text)\.js$/;
+
+/**
  * The `codeSplitting` group name for a module (`build.rolldownOptions`, PRD-26), so each
  * edition's chunk is a facade of its module alone and no other chunk imports it:
  *
@@ -612,6 +620,19 @@ export default defineConfig({
               name: 'motion',
               test: /[\\/]src[\\/]motion[\\/](?!gesture[\\/]|container\.ts$|nav-push\.ts$|disclose\.ts$|lazy\.ts$)/,
               priority: 20,
+            },
+            // The small UI primitives the editor, the phone's lazy chunks and the Text view
+            // all import (EDN-26). Chunks split by who imports a module, so a new importer of
+            // one of them (Progress, Surface) splits it out of the chunk it shared with its
+            // neighbours, and each new file is one more entry in the preload list `main`
+            // carries into first paint (the first-paint gate counts it). Held together here, a
+            // new importer costs none. Not the sheet and Segmented's Base UI parts: one chunk
+            // for them would put the sheet into the phone's static closure.
+            {
+              name: 'ui-shared',
+              test: UI_SHARED,
+              priority: 15,
+              includeDependenciesRecursively: false,
             },
             // Each edition's chunk a facade of its module alone (PRD-26): see `editionGroups`.
             { name: editionGroups(), priority: 10, includeDependenciesRecursively: false },
