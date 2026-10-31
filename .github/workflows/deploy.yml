@@ -17,119 +17,55 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-# One deployment at a time; never cancel a deployment that is already running.
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
-jobs:
-  build:
-    name: Build
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: pnpm/action-setup@v6 # version read from "packageManager"
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-
-      - name: Install
-        run: pnpm install --frozen-lockfile
-
-      - uses: actions/configure-pages@v5
-
-      # The Office conversion package (ADR-0035, PRC-26): a hit verifies offline, a miss
-      # downloads, checks the sha512, patches and gzips it. It ships under convert/.
-      - name: Restore Office package
-        uses: actions/cache@v4
-        with:
-          path: packages/engine/office/vendor
-          key: office-vendor-${{ hashFiles('packages/engine/office/office.lock.json', 'packages/engine/office/fetch.ts') }}
-
-      - name: Fetch Office package
-        run: node --experimental-strip-types --no-warnings=ExperimentalWarning packages/engine/office/fetch.ts
-
-      # Project sites live under /<repository>/. With a custom domain (repository variable
-      # CUSTOM_DOMAIN), the site is served from the domain root instead.
-      - name: Build
-        run: pnpm build
-        env:
-          VITE_BASE_PATH: ${{ vars.CUSTOM_DOMAIN && '/' || format('/{0}/', github.event.repository.name) }}
-          # A deploy never ships without the package (assets.ts fails instead of skipping).
-          RECTO_OFFICE_REQUIRED: '1'
-
-      # Not the Pages artifact yet: the `pages` job adds media/ to it first.
-      - name: Upload site
-        uses: actions/upload-artifact@v7
-        with:
-          name: site
-          path: apps/web/dist
-          if-no-files-found: error
-          retention-days: 1
-
-  media:
-    name: Media
-    needs: build
-    # A plain runner, not the Playwright container (its ffmpeg is stripped).
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: pnpm/action-setup@v6
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-
-      - name: Install
-        run: pnpm install --frozen-lockfile
-
-      - name: Record media
-        uses: ./.github/actions/media
-
-      - name: Upload media
-        uses: actions/upload-artifact@v7
-        with:
-          name: media
-          path: tools/media/out/media
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Upload scene results
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: media-test-results
-          path: tools/media/out/test-results
-          retention-days: 14
-
   pages:
     name: Pages artifact
     needs: [build, media]
+    # Runs whether media succeeded, failed or timed out; only a failed build stops it.
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
+      # Only budgets.json, for the list of media files to carry over.
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: tools/media/budgets.json
+          sparse-checkout-cone-mode: false
+
       - name: Download site
         uses: actions/download-artifact@v8
         with:
           name: site
           path: site
 
-      # Served at <site>/media/<id>.gif; the README points at these URLs.
+      # Served at <site>/media/<id>.gif; the README points at these URLs. Absent when the
+      # media job failed or timed out; the next step then carries the published files over.
       - name: Download media
+        id: media
+        continue-on-error: true
         uses: actions/download-artifact@v8
         with:
           name: media
           path: site/media
+
+      # Fallback: copy every file in budgets.json from the live site, so the README and
+      # about-page media keep working. Missing files are warned about, never fatal.
+      - name: Carry over published media
+        if: ${{ steps.media.outcome != 'success' }}
+        env:
+          LIVE_URL: ${{ vars.CUSTOM_DOMAIN && format('https://{0}', vars.CUSTOM_DOMAIN) || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+        run: |
+          echo "::warning title=Media not refreshed::The media job failed or timed out, so this deploy carries the previously published media from $LIVE_URL/media/."
+          mkdir -p site/media
+          got=0
+          for f in $(jq -r '.files | keys[]' tools/media/budgets.json); do
+            if curl -fsSL --retry 3 --max-time 60 -o "site/media/$f" "$LIVE_URL/media/$f"; then
+              got=$((got + 1))
+            else
+              rm -f "site/media/$f"
+              echo "::warning title=Media file not carried over::$f is not on the live site."
+            fi
+          done
+          echo "Carried over $got media files."
 
       - uses: actions/upload-pages-artifact@v3
         with:

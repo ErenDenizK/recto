@@ -10,11 +10,37 @@ description: Build the app for the root path, record the media scenes, encode th
 runs:
   using: composite
   steps:
+    # Skips apt when the runner image already has what is needed, so a slow mirror cannot
+    # stall the job; otherwise apt retries and times out per request, and `timeout` bounds
+    # the whole step at 8 minutes (composite steps take no timeout-minutes).
     - name: Install Chromium and ffmpeg
       shell: bash
       run: |
-        pnpm exec playwright install --with-deps chromium
-        sudo apt-get install -y --no-install-recommends ffmpeg
+        timeout 480 bash -euo pipefail <<'EOF'
+        printf '%s\n' 'Acquire::Retries "3";' 'Acquire::http::Timeout "20";' \
+          'Acquire::https::Timeout "20";' | sudo tee /etc/apt/apt.conf.d/99recto-retries >/dev/null
+
+        pnpm exec playwright install chromium
+
+        missing=0
+        for bin in "$HOME"/.cache/ms-playwright/chromium*/*/chrome \
+          "$HOME"/.cache/ms-playwright/chromium*/*/headless_shell; do
+          [ -x "$bin" ] || continue
+          if ldd "$bin" | grep -q 'not found'; then missing=1; fi
+        done
+        if [ "$missing" = 1 ]; then
+          echo "Chromium system libraries missing; installing with apt"
+          pnpm exec playwright install-deps chromium
+        else
+          echo "Chromium system libraries already present; skipping apt"
+        fi
+
+        if command -v ffmpeg >/dev/null; then
+          echo "ffmpeg already installed: $(command -v ffmpeg)"
+        else
+          sudo apt-get install -y --no-install-recommends ffmpeg
+        fi
+        EOF
 
     # The media tool serves the build with `vite preview` at the server root
     # (tools/media/playwright.config.ts), so it records a build made for `/`. The Pages
