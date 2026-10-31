@@ -325,23 +325,50 @@ describe('fener.css (DSN-88)', () => {
         if (theme === 'light') expect(ring).toEqual(fill());
       });
 
-      it('draws the focus ring in the theme colour: one band ≥ 3:1 over each surface it meets', () => {
-        const bands = [colour(scoped, '--focus-light'), colour(scoped, '--focus-dark')];
+      it('draws the focus ring ink · theme colour · ink: every adjacent pair 3:1 or more, over every surface', () => {
+        const ink = colour(scoped, '--focus-dark');
+        const mid = colour(scoped, '--focus-light');
+        const onFill = colour(scoped, '--focus-on-fill');
+        expect(ink).toEqual([0x08, 0x09, 0x0c]);
+        // The theme colour: the fill in the light theme, the lighter ring colour in the dark.
+        expect(mid).toEqual(theme === 'light' ? fill() : colour(scoped, '--accent-ring'));
+        atLeast(contrast(ink, mid), AA_NON_TEXT, 'ink next to the theme colour');
+        // On a control the theme colour fills the middle band is white (near-white in the dark).
+        expect(onFill).toEqual(theme === 'light' ? WHITE : [0xf4, 0xf6, 0xff]);
+        atLeast(contrast(ink, onFill), AA_NON_TEXT, 'ink next to the middle band on a fill');
+        atLeast(contrast(ink, fill()), AA_NON_TEXT, 'the inner ink band beside a filled control');
         const surfaces: readonly (readonly [string, Rgb])[] = [
           ['white page', WHITE],
+          ['black page', BLACK],
           ['canvas', canvas()],
           ['frame', colour(scoped, '--n3')],
           ['raised', colour(scoped, '--n4')],
-          ['bar over the canvas', glass(scoped, 'bar', canvas())],
-          ['bar over the worst page', glass(scoped, 'bar', WORST[theme])],
+          ['yellow tint', [0xf3, 0xd9, 0x33]],
+          ['mid grey', [0x80, 0x80, 0x80]],
+          ...TIERS.flatMap((tier) =>
+            [WHITE, BLACK, canvas()].map(
+              (under, i) =>
+                [
+                  `${tier} over ${['white', 'black', 'the canvas'][i]}`,
+                  glass(scoped, tier, under),
+                ] as const,
+            ),
+          ),
         ];
-        for (const [name, backdrop] of surfaces) {
-          const best = Math.max(...bands.map((band) => contrast(band, backdrop)));
-          atLeast(best, AA_NON_TEXT, name);
+        for (const [name, surface] of surfaces) {
+          // The outer band meets the surface: ink or, on the dark ones, the theme colour's
+          // neighbour; either way one band of the ring clears 3:1 against it.
+          atLeast(
+            Math.max(contrast(ink, surface), contrast(mid, surface)),
+            AA_NON_TEXT,
+            `ring over ${name}`,
+          );
+          atLeast(
+            Math.max(contrast(ink, surface), contrast(onFill, surface)),
+            AA_NON_TEXT,
+            `ring on a fill over ${name}`,
+          );
         }
-        // The bands are the theme colour's light and dark pair: apart by 3:1 or more. (The 9:1 of
-        // the lime pair, tokens.test.ts, is not met; DSN-88 settles the measured values.)
-        atLeast(contrast(bands[0] as Rgb, bands[1] as Rgb), AA_NON_TEXT, 'bands apart');
       });
 
       it('keeps the green spark for "on": ink on it 10:1 (7:1 on hover and press), in both themes', () => {
@@ -418,6 +445,24 @@ describe('fener.css (DSN-88)', () => {
         expect(colour(scoped, '--aurora-teal')).toEqual(theme1);
       });
     });
+  });
+
+  it('draws the inset and field forms with the outer ink band too (ink 2 · theme 2 · ink 2)', () => {
+    expect(fener).toContain(
+      '--focus-shadow-inset: inset 0 0 0 4px var(--focus-dark), 0 0 0 2px var(--focus-dark);',
+    );
+    expect(block(fener, ":root[data-fener][data-theme='light']").get('--focus-field-shadow')).toBe(
+      'var(--focus-shadow-outset)',
+    );
+    expect(block(fener, ":root[data-fener][data-theme='dark']").get('--focus-field-shadow')).toBe(
+      'var(--focus-shadow-inset)',
+    );
+    expect(fener).toMatch(
+      /:root\[data-fener\] \.mat :focus-visible \{\s*box-shadow: var\(--focus-shadow-inset\), var\(--shadow-own, 0 0 #0000\);/,
+    );
+    expect(fener).toMatch(
+      /\.btn-prominent, \[data-markup-done\]\)[^{]*:focus-visible \{\s*--focus-light: var\(--focus-on-fill\);/,
+    );
   });
 
   it('lights the spark’s edge on the armed tool (the fill alone is 1.75:1 on light glass)', () => {

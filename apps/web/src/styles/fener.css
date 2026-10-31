@@ -64,6 +64,8 @@
   --accent-on-fill: #ffffff;
   --accent-edge: transparent;
   --primary-ink: #ffffff;
+  --focus-dark: #08090c;
+  --focus-on-fill: #ffffff;
 
   /* The spark: only "on" (armed tool, selected-page badge). */
   --check-badge-fill: #3fdd62;
@@ -101,8 +103,7 @@
   --accent-ring: #4650fb;
   --accent-subtle: rgb(70 80 251 / 0.08);
   --accent-muted: rgb(70 80 251 / 0.14);
-  --focus-light: #b0c1fe;
-  --focus-dark: #3d39f7;
+  --focus-light: #4650fb;
   --lime-300: #4650fb;
   --lime-800: #3d39f7;
   --lime-900: #3d39f7;
@@ -145,8 +146,7 @@
   --accent-ring: #844afb;
   --accent-subtle: rgb(132 74 251 / 0.08);
   --accent-muted: rgb(132 74 251 / 0.14);
-  --focus-light: #c5bafa;
-  --focus-dark: #7119e9;
+  --focus-light: #844afb;
   --lime-300: #844afb;
   --lime-800: #7119e9;
   --lime-900: #7119e9;
@@ -189,8 +189,7 @@
   --accent-ring: #0d77ca;
   --accent-subtle: rgb(13 119 202 / 0.08);
   --accent-muted: rgb(13 119 202 / 0.14);
-  --focus-light: #97c9fd;
-  --focus-dark: #0f66ac;
+  --focus-light: #0d77ca;
   --lime-300: #0d77ca;
   --lime-800: #0f66ac;
   --lime-900: #0f66ac;
@@ -241,6 +240,7 @@
   --accent-edge: transparent;
   --primary-ink: #ffffff;
   --focus-dark: #08090c;
+  --focus-on-fill: #f4f6ff;
 
   /* The spark: only "on" (armed tool, selected-page badge). */
   --tool-active-fill: #3fdd62;
@@ -448,6 +448,37 @@
 /* The spark: the armed tool is the one place green marks "on" (the fill is the token's). */
 :root[data-fener][data-theme] [data-size='bar'][data-tool][aria-pressed='true'] {
   --shadow-own: var(--fener-spark-edge);
+}
+
+/* ── §3b The focus ring: ink · theme colour · ink, 2 / 2 / 2 px (DSN-88) ────────────────────
+ * The ring's bands are the tokens of `focus.css`: --focus-dark is ink, --focus-light the theme
+ * colour (the fill in the light theme, the lighter ring colour in the dark). The outset form is
+ * ink 2 · theme 2 · ink 2 from the element out already; the inset form (and the field form in
+ * the dark theme) gains the outer ink band, so it is the same three bands drawn from the edge
+ * in. On a control the theme colour fills (the primary button, Done, the chosen swatch) the
+ * middle band is white, near-white in the dark theme, so the bands next to it differ by 3:1 or
+ * more over every surface, in both themes and all three presets (`fener.test.ts`). */
+:root[data-fener] {
+  --focus-shadow-inset: inset 0 0 0 4px var(--focus-dark), 0 0 0 2px var(--focus-dark);
+}
+
+:root[data-fener][data-theme='light'] {
+  --focus-field-shadow: var(--focus-shadow-outset);
+}
+
+:root[data-fener][data-theme='dark'] {
+  --focus-field-shadow: var(--focus-shadow-inset);
+}
+
+:root[data-fener] .focus-inset:focus-visible,
+:root[data-fener] [data-focus='inset']:focus-visible,
+:root[data-fener] .mat :focus-visible {
+  box-shadow: var(--focus-shadow-inset), var(--shadow-own, 0 0 #0000);
+}
+
+:root[data-fener]
+  :is(.btn-prominent, [data-markup-done]):not([aria-disabled='true']):focus-visible {
+  --focus-light: var(--focus-on-fill);
 }
 
 /* ── §4 Solid, more contrast, forced colours: opaque fill, no glow ─────────────────────────── */

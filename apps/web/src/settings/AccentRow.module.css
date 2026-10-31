@@ -37,6 +37,12 @@
   }
 }
 
+/* The chosen swatch is filled with the theme colour: its focus ring's middle band is white
+   (styles/fener.css §3b). */
+.swatch[data-checked]:focus-visible {
+  --focus-light: var(--focus-on-fill);
+}
+
 .swatch > .dot,
 .swatch > .ring {
   grid-area: 1 / 1;
