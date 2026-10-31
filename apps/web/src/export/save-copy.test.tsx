@@ -14,7 +14,7 @@ import { userEvent } from 'vitest/browser';
 
 import manifest from '../../../../test/fixtures/manifest.json';
 import markdownUrl from '../../../../test/fixtures/markdown-source.pdf?url';
-import { settled } from '../../test/settled';
+import { EXIT_TIMEOUT, settled } from '../../test/settled';
 import { fixtureFile } from '../../test/store-harness';
 import { getAnalysisWorkers } from '../engine/engine-service';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
@@ -54,7 +54,9 @@ describe('the sheet', () => {
     const id = await open();
     render(<SaveCopyHost />);
     openSaveCopy(id);
-    const sheet = await screen.findByTestId('save-copy-sheet', {}, { timeout: 15_000 });
+    const sheet = await settled(
+      await screen.findByTestId('save-copy-sheet', {}, { timeout: 15_000 }),
+    );
     expect(within(sheet).getByRole('heading', { name: 'Save a copy' })).toBeVisible();
     expect(within(sheet).getByRole('radio', { name: 'PDF' })).toHaveAttribute(
       'aria-checked',
@@ -94,14 +96,18 @@ describe('the sheet', () => {
     // when that has run, which a loaded runner can stretch past `waitFor`'s default (R23-9).
     expect(useSheetStore.getState().open).toBeNull();
     await settled(sheet);
-    await waitFor(() => expect(screen.queryByTestId('save-copy-sheet')).toBeNull());
+    await waitFor(() => expect(screen.queryByTestId('save-copy-sheet')).toBeNull(), {
+      timeout: EXIT_TIMEOUT,
+    });
   }, 30_000);
 
   it('previews the Markdown and its honesty notes, and names the ZIP it will save', async () => {
     const id = await open();
     render(<SaveCopyHost />);
     openSaveCopy(id, 'text');
-    const sheet = await screen.findByTestId('save-copy-sheet', {}, { timeout: 15_000 });
+    const sheet = await settled(
+      await screen.findByTestId('save-copy-sheet', {}, { timeout: 15_000 }),
+    );
     const preview = within(sheet).getByTestId('convert-preview');
     await waitFor(() => expect(preview).toHaveAttribute('data-state', 'ready'), {
       timeout: 30_000,

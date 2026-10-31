@@ -159,11 +159,12 @@ describe('the popover (F5 §6, §8)', () => {
     // The app items and the privacy line left the menu (DSN-46, DSN-47).
     expect(within(dialog).queryByText('Settings…')).toBeNull();
     expect(within(dialog).queryByText('On this device · nothing uploaded')).toBeNull();
+    // Base UI moves focus along a menu on the next frame: ask after it lands.
     await userEvent.keyboard('{ArrowDown}');
-    expect(within(menu).getAllByRole('menuitem')[1]).toHaveFocus();
+    await waitFor(() => expect(within(menu).getAllByRole('menuitem')[1]).toHaveFocus());
     await userEvent.keyboard('{End}');
     const rows = within(menu).getAllByRole('menuitem');
-    expect(rows[rows.length - 1]).toHaveFocus();
+    await waitFor(() => expect(rows[rows.length - 1]).toHaveFocus());
   });
 
   it('opens on the name for F2 and Rename…; Enter renames, Esc reverts', async () => {

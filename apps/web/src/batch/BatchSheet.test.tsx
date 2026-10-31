@@ -10,6 +10,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
+import { settled } from '../../test/settled';
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import imagesUrl from '../../../../test/fixtures/images.pdf?url';
 import { chooseOption } from '../../test/choose';
@@ -60,7 +61,7 @@ describe('S21 Batch', () => {
     vi.stubGlobal('showSaveFilePicker', savePicker);
 
     render(<BatchSheet />);
-    const dialog = await screen.findByTestId('batch-dialog');
+    const dialog = await settled(await screen.findByTestId('batch-dialog'));
     // Built-ins are listed; "Number pages" is selected by default.
     const recipe = await within(dialog).findByRole('button', { name: /Number pages/ });
     expect(recipe).toHaveAttribute('aria-pressed', 'true');
@@ -104,7 +105,7 @@ describe('S21 Batch', () => {
         <BatchSheet />
       </div>,
     );
-    const dialog = await screen.findByTestId('batch-dialog');
+    const dialog = await settled(await screen.findByTestId('batch-dialog'));
     const data = new DataTransfer();
     data.items.add(await fixtureFile(simpleUrl, 'simple-text.pdf'));
     data.items.add(new File(['x'], 'notes.txt', { type: 'text/plain' }));
@@ -147,7 +148,7 @@ describe('S21 Batch', () => {
     vi.stubGlobal('showSaveFilePicker', savePicker);
 
     render(<BatchSheet />);
-    const dialog = await screen.findByTestId('batch-dialog');
+    const dialog = await settled(await screen.findByTestId('batch-dialog'));
     await userEvent.click(within(dialog).getByRole('button', { name: 'New' }));
     const editor = await within(dialog).findByTestId('batch-editor');
     await userEvent.fill(within(editor).getByRole('textbox', { name: 'Name' }), 'Text notes');
@@ -213,7 +214,7 @@ describe('S21 Batch', () => {
     });
     try {
       render(<BatchSheet />);
-      const dialog = await screen.findByTestId('batch-dialog');
+      const dialog = await settled(await screen.findByTestId('batch-dialog'));
       await userEvent.click(within(dialog).getByRole('button', { name: 'New' }));
       const editor = await within(dialog).findByTestId('batch-editor');
       await userEvent.fill(within(editor).getByRole('textbox', { name: 'Name' }), 'Searchable');
@@ -246,7 +247,7 @@ describe('S21 Batch', () => {
 
   it('shows the reader’s error when a recipe cannot be saved', async () => {
     render(<BatchSheet />);
-    const dialog = await screen.findByTestId('batch-dialog');
+    const dialog = await settled(await screen.findByTestId('batch-dialog'));
     await userEvent.click(within(dialog).getByRole('button', { name: 'New' }));
     const editor = await within(dialog).findByTestId('batch-editor');
     await userEvent.fill(within(editor).getByRole('textbox', { name: 'Name' }), 'Trim');
@@ -292,7 +293,7 @@ describe('Batch command', () => {
 
   it('is a centred 720 dialog from expanded up (S21 §2)', async () => {
     render(<BatchSheet />);
-    const sheet = await screen.findByTestId('batch-dialog');
+    const sheet = await settled(await screen.findByTestId('batch-dialog'));
     expect(sheet).toHaveAttribute('data-presentation', 'dialog');
     expect(sheet).toHaveAttribute('data-kind', 'batch');
     // Polled: the entrance grows it from 96 % on the motion core.
