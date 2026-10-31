@@ -173,3 +173,104 @@ describe('invalid expressions', () => {
     expect(read('all', FIXTURES.NODOC)).toMatchObject({ problem: { kind: 'no-document' } });
   });
 });
+
+describe('number words and ordinals compose', () => {
+  it.each([
+    ['page twenty one', [21]],
+    ['page twenty-one', [21]],
+    ['twenty first page', [21]],
+    ['eleventh page', [11]],
+    ['sayfa on iki', [12]],
+    ['on ikinci sayfa', [12]],
+    ['yirmi birinci sayfa', [21]],
+    ['ilk on iki sayfa', run(1, 12)],
+    ['sayfa on', [10]],
+    ['on page 3', [3]],
+    ['from 5 on', run(5, 24)],
+  ])('reads %s', (text, pages) => {
+    expect(pagesOf(text)).toEqual(pages);
+  });
+
+  it.each(['page twenty twenty', 'sayfa bir iki', 'two', 'delete'])('does not read %s', (text) => {
+    expect(read(text).kind).not.toBe('ok');
+  });
+
+  it('keeps "on" a filler when no Turkish word makes it ten', () => {
+    expect(pagesOf('on page 3')).toEqual([3]);
+    expect(pagesOf('on one')).toEqual('unknown');
+  });
+});
+
+describe('counts, parity and "all" that would be misread', () => {
+  it.each([
+    'iki sayfayı',
+    'bir sayfa',
+    '3 sayfa',
+    'on iki sayfayı',
+    'two pages',
+    'one page',
+    '3 page',
+    'all 3',
+    'her ikinci sayfa',
+    'everything on page 3',
+  ])('refuses %s as ambiguous', (text) => {
+    expect(read(text)).toMatchObject({ problem: { kind: 'ambiguous-count' } });
+  });
+
+  it('reads a cardinal as a page for "go to" only', () => {
+    const toks = tokenise('7 sayfa').tokens;
+    expect(readPages(toks, CTX, true)).toMatchObject({ pages: [7], problem: null });
+    expect(readPages(toks, CTX)).toMatchObject({ problem: { kind: 'ambiguous-count' } });
+  });
+
+  it.each(['tek sayfayı', 'tek bir sayfa', 'çift sayfa', 'odd page', 'an even page'])(
+    'does not read %s as parity',
+    (text) => {
+      expect(read(text).kind).toBe('unknown');
+    },
+  );
+
+  it.each([
+    ['tek sayfaları', 12],
+    ['çift sayfalar', 12],
+    ['tek numaralı sayfa', 12],
+    ['odd pages', 12],
+    ['even', 12],
+  ])('reads %s as parity', (text, count) => {
+    expect(pagesOf(text)).toHaveLength(count);
+  });
+
+  it('takes "her" only as a whole word', () => {
+    expect(read('here').kind).toBe('unknown');
+    expect(pagesOf('her sayfa')).toHaveLength(24);
+  });
+});
+
+describe('range ends and edges counted from the end', () => {
+  it.each([
+    ["5'e kadar", run(1, 5)],
+    ['5. sayfaya kadar', run(1, 5)],
+    ['3 ve 5 arası', run(3, 5)],
+    ['3 ile 5 arasını', run(3, 5)],
+    ["5'ten sonra", run(6, 24)],
+    ['5. sayfadan sonra', run(6, 24)],
+    ["5'ten sona kadar", run(5, 24)],
+    ['sondan ikinci sayfa', [23]],
+    ['second to last page', [23]],
+    ['page 3 of 24', [3]],
+  ])('reads %s', (text, pages) => {
+    expect(pagesOf(text)).toEqual(pages);
+  });
+
+  it.each(['page 3 of 30', 'first to last', '3 to last', 'sondan iki sayfa', '3 arası'])(
+    'does not read %s',
+    (text) => {
+      expect(read(text).kind).toBe('unknown');
+    },
+  );
+
+  it('says there is nothing after the last page', () => {
+    expect(read("24'ten sonra")).toMatchObject({ problem: { kind: 'no-pages' } });
+    expect(read("25'ten sonra")).toMatchObject({ problem: { kind: 'out-of-range', page: 25 } });
+  });
+});

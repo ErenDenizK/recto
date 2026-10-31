@@ -133,6 +133,19 @@ export type Step =
       readonly nearest: string | null;
     };
 
+/**
+ * Why a reading cannot run (spec §2.9). A reading with a problem is shown, never run.
+ * - `out-of-range`: `problem.page` is a page the document does not have: a page named, a place
+ *   to move to, or a cut point of a split ("split at 30" on 24 pages).
+ * - `ambiguous-count`: the pages could be a count or a page number ("delete 2 pages", "iki
+ *   sayfayı sil") or "all" sits next to pages it would swallow ("all 3", "her ikinci sayfa").
+ * - `shifted`: a later step cannot find its pages. Without `problem.page`, furniture
+ *   (`numbers`, `watermark`) names pages that an earlier step moves. With `problem.page`, a step
+ *   names that page (extract, sign, duplicate, a move or cut point) after an earlier step in run
+ *   order deletes it. Handoffs run last, so "3'ü ayıkla ve sil" is a delete and then an extract
+ *   of a page that is gone: the message for this case says the extraction runs after the
+ *   deletion, and to extract first and delete in a second sentence.
+ */
 export type Problem =
   | 'no-document'
   | 'out-of-range'
@@ -160,8 +173,17 @@ export interface Reading {
   } | null;
   /** Original-text spans each step was read from (for a later input highlight). */
   readonly spans: readonly (readonly [number, number])[];
-  /** A typo was corrected: the word as typed and as read. */
-  readonly corrected?: readonly { readonly typed: string; readonly read: string }[];
+  /**
+   * A typo was corrected. `typed` is the word as typed. `read` is the folded form the parser
+   * matched (`dondur`): for matching and tests only, never for display. `display` is the
+   * lexicon's canonical, properly spelled form (`döndür`): what the preview shows ("döndr →
+   * döndür"). Both are the same for an English word.
+   */
+  readonly corrected?: readonly {
+    readonly typed: string;
+    readonly read: string;
+    readonly display: string;
+  }[];
 }
 
 export type ParseResult =

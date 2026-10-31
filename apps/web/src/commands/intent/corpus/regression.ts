@@ -107,7 +107,7 @@ export const REGRESSION: readonly Row[] = [
   ['ÇİFT SAYFALARI SİL', 'delete 2,4,6…'],
   ['CIFT SAYFALARI SIL', 'delete 2,4,6…'],
   ['cift sayfalari sil', 'delete 2,4,6…'],
-  ['çift sayfayı sil', 'delete 2,4,6…'],
+  ['çift sayfayı sil', 'none'], // PRD-39: one "even" page is not the even pages
   ['çift sayfaları kaldır', 'delete 2,4,6…'],
   ['tek sayfaları sil', 'delete 1,3,5…'],
   ['TEK SAYFALARI SİL', 'delete 1,3,5…'],

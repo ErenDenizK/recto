@@ -104,8 +104,8 @@ describe('chain problems', () => {
     ['add watermark DRAFT to 2 and 4', '! not-a-run watermark "DRAFT" 2,4'],
     ['delete 1-12 and delete 13-24', '! all-pages delete 1-12 ; delete 13-24'],
     ['delete 1-12 and 12-24', '! all-pages delete 1-24'],
-    ['delete 3 and duplicate 3', '! shifted delete 3 ; duplicate 3'],
-    ['extract 3-5 and delete 3', '! shifted delete 3 ; extract 3-5'],
+    ['delete 3 and duplicate 3', '! shifted 3 delete 3 ; duplicate 3'],
+    ['extract 3-5 and delete 3', '! shifted 3 delete 3 ; extract 3-5'],
     ['split every 30', '! single-part split every 30 [1-24]'],
     ['delete', '! needs-pages delete'],
     ['duplicate', '! needs-pages duplicate'],
@@ -165,7 +165,7 @@ describe('typos', () => {
   it('corrects a word of five letters or more, at a lower score, and says so', () => {
     const r = parseIntent('döndr 3', FIXTURES.DOC24);
     expect(r.kind === 'readings' && r.readings[0].corrected).toEqual([
-      { typed: 'döndr', read: 'dondur' },
+      { typed: 'döndr', read: 'dondur', display: 'döndür' },
     ]);
     const exact = parseIntent('döndür 3', FIXTURES.DOC24);
     const score = (x: typeof r): number => (x.kind === 'readings' ? x.readings[0].score : 0);
@@ -176,5 +176,36 @@ describe('typos', () => {
   it('leaves shorter words alone', () => {
     expect(read('delt 3')).toBe('none');
     expect(read('sill 3')).toBe('none');
+  });
+});
+
+describe('what the planner and the clause cutter must not misread', () => {
+  it.each([
+    ['rotate 3 and 5 delete 7', '? rotate 3,5 +1 ; delete 7 | rotate 3 +1 ; delete 5,7'],
+    ['rotate 3 and 5 and delete 7', 'rotate 3,5 +1 ; delete 7'],
+    ["3'ü sil ve 5'i döndür", 'delete 3 ; rotate 5 +1'],
+    ['delete 3 and sign page 3', '! shifted 3 delete 3 ; sign 3'],
+    ['delete 3 and move 4 before 3', '! shifted 3 delete 3 ; move 4 before 3'],
+    ['delete 3 and split at 3', '! shifted 3 delete 3 ; split at 3 [1-2 3-24]'],
+    ['move 5 before 0', '! out-of-range 0 move 5 before 0'],
+    ['move 5 after 30', '! out-of-range 30 move 5 after 30'],
+    ['move 5 before 5', 'none'],
+    ['move 5 before 6', 'none'],
+    ['move 3-5 after 4', 'none'],
+    ['split at 30', '! out-of-range 30 split at 30 [1-24]'],
+  ])('%s', (text, expected) => {
+    expect(read(text)).toBe(expected);
+  });
+
+  it('never corrects a typo into a destructive word', () => {
+    for (const text of ['remote 3', 'deleet page 3', 'splitt every 10', 'redat iban']) {
+      expect(read(text), text).toBe('none');
+    }
+  });
+
+  it('never takes a past tense or a plural for an order', () => {
+    for (const text of ['rotated page 3', 'turns page 3', '3. sayfa döndü', '3 sayfa kaldı']) {
+      expect(read(text), text).toBe('none');
+    }
   });
 });

@@ -347,10 +347,37 @@ export const LEXICON: readonly LexEntry[] = [
  * in `grammar.ts`.
  */
 export const FILLERS: ReadonlySet<string> = new Set(
-  'please lutfen nolur the only from in on of a an to for me benim bana sunu su can you could would i want like need hemen simdi now arasi kadar numarali numbered'.split(
+  'please lutfen nolur the only from in on of a an to for me benim bana sunu su can you could would i want like need hemen simdi now numarali numbered'.split(
     ' ',
   ),
 );
+
+// ------------------------------------------------------------------------------- display
+
+/**
+ * The properly spelled form of the Turkish action words a typo can be corrected to (the words
+ * are folded above: `dondur`). A word that spells the same folded and plain (English, `yazdir`'s
+ * neighbours like `kopyala`) is not listed. `Reading.corrected.display` is built from this.
+ */
+export const DISPLAY: Readonly<Record<string, string>> = {
+  dondur: 'döndür',
+  cevir: 'çevir',
+  cogalt: 'çoğalt',
+  sirala: 'sırala',
+  ayikla: 'ayıkla',
+  birlestir: 'birleştir',
+  taranmis: 'taranmış',
+  sifrele: 'şifrele',
+  sifre: 'şifre',
+  sikistir: 'sıkıştır',
+  kucult: 'küçült',
+  kucuk: 'küçük',
+  dusur: 'düşür',
+  donustur: 'dönüştür',
+  farkli: 'farklı',
+  yazdir: 'yazdır',
+  tercume: 'tercüme',
+};
 
 // --------------------------------------------------------------------------- compiled units
 

@@ -130,26 +130,64 @@ export function actionWords(toks: readonly Tok[]): { idx: Set<number>; negated: 
   return { idx, negated };
 }
 
-/** Cuts the tokens at conjunctions that have a verb on both sides (spec §2.8). */
-export function splitClauses(toks: readonly Tok[], verbs: ReadonlySet<number>): Tok[][] {
-  const clauses: Tok[][] = [];
-  let from = 0;
+const isPageItem = (t: Tok): boolean => t.kind === 'number' || t.kind === 'range';
+
+/**
+ * Cuts the tokens at conjunctions that have a verb on both sides (spec §2.8). Usually one way;
+ * when the segment after a cut opens with pages before its verb and also has pages after it
+ * ("rotate 3 and 5 delete 7"), the pages in front could end the first clause or open the second,
+ * so both cuts come back, the plain one first.
+ */
+export function splitClauseOptions(toks: readonly Tok[], verbs: ReadonlySet<number>): Tok[][][] {
   const hasVerb = (a: number, b: number): boolean => {
     for (let i = a; i < b; i++) if (verbs.has(i)) return true;
     return false;
   };
+  /** Each cut: where the conjunction is, and where the verb of the next clause is. */
+  const cuts: { at: number; verb: number; end: number; early: boolean }[] = [];
+  let from = 0;
   for (let i = 0; i < toks.length; i++) {
     if ((toks[i] as Tok).kind !== 'conj') continue;
     let next = i + 1;
     while (next < toks.length && (toks[next] as Tok).kind !== 'conj') next++;
     if (hasVerb(from, i) && hasVerb(i + 1, next)) {
-      clauses.push(toks.slice(from, i));
+      let verb = i + 1;
+      while (!verbs.has(verb)) verb++;
+      const lead = toks.slice(i + 1, verb);
+      const behind = toks.slice(verb + 1, next);
+      const before = toks
+        .slice(from, i)
+        .filter((t) => !(t.kind === 'word' && FILLERS.has(full(t))) && !isPageWord(t))
+        .at(-1);
+      const early =
+        lead.length > 0 &&
+        lead.some(isPageItem) &&
+        lead.every(
+          (t) => isPageItem(t) || isPageWord(t) || (t.kind === 'word' && FILLERS.has(full(t))),
+        ) &&
+        behind.some(isPageItem) &&
+        before !== undefined &&
+        isPageItem(before);
+      cuts.push({ at: i, verb, end: next, early });
       from = i + 1;
     }
   }
-  clauses.push(toks.slice(from));
-  return clauses.filter((c) => c.length > 0);
+  const build = (alt: boolean): Tok[][] => {
+    const clauses: Tok[][] = [];
+    let start = 0;
+    for (const cut of cuts) {
+      const stop = alt && cut.early ? cut.verb : cut.at;
+      clauses.push(toks.slice(start, stop));
+      start = alt && cut.early ? cut.verb : cut.at + 1;
+    }
+    clauses.push(toks.slice(start));
+    return clauses.filter((c) => c.length > 0);
+  };
+  return cuts.some((c) => c.early) ? [build(false), build(true)] : [build(false)];
 }
+
+export const splitClauses = (toks: readonly Tok[], verbs: ReadonlySet<number>): Tok[][] =>
+  splitClauseOptions(toks, verbs)[0] as Tok[][];
 
 const sortedUnique = (pages: readonly number[]): number[] =>
   [...new Set(pages)].sort((a, b) => a - b);
@@ -243,8 +281,9 @@ function readNavigation(
     case 'goto': {
       const wordCount = [...used].length;
       if (wordCount === 0) return null;
-      const read = readPages(kept, r.ctx);
-      if (read.kind !== 'ok' || !read.explicit) return null;
+      const read = readPages(kept, r.ctx, true);
+      if (read.kind !== 'ok' || !read.explicit || read.problem?.kind === 'ambiguous-count')
+        return null;
       const hasPageWord = kept.some(isPageWord);
       // "aç" opens files unless a page is named with its word ("7. sayfayı aç").
       if (r.clause.some((t) => /^ac(?:in|mak)?$/.test(full(t))) && !hasPageWord) return null;
@@ -550,9 +589,15 @@ function consume(
       case 'pageNumbers':
         built = { action: entry.action, pages };
         break;
-      case 'move':
+      case 'move': {
         built = to ? { action: 'move', pages, to } : null;
+        if (!to) break;
+        const target = typeof to === 'string' ? null : (Object.values(to)[0] as number);
+        if (target !== null && ctx.pageCount > 0 && (target < 1 || target > ctx.pageCount)) {
+          problem ??= { kind: 'out-of-range', page: target };
+        } else if (movesNowhere(pages.pages, to, ctx.pageCount)) return null;
         break;
+      }
       case 'split':
         built = { action: 'split', how: v.how };
         break;
@@ -595,6 +640,25 @@ function consume(
     });
   }
   return { senses: out };
+}
+
+/**
+ * A move that changes nothing, or puts pages next to themselves: "move 5 before 5", "move 5
+ * before 6", "move 1 to the start". Such a sentence is a misread, so it is not read at all.
+ */
+function movesNowhere(
+  pages: readonly number[],
+  to: Extract<Step, { action: 'move' }>['to'],
+  count: number,
+): boolean {
+  const first = pages[0];
+  const last = pages.at(-1);
+  if (first === undefined || last === undefined) return false;
+  const run = last - first + 1 === pages.length;
+  if (typeof to === 'string') return run && (to === 'start' ? first === 1 : last === count);
+  const target = Object.values(to)[0] as number;
+  if (target >= first && target <= last && pages.includes(target)) return true;
+  return run && ('before' in to ? target === last + 1 : target === first - 1);
 }
 
 function navProblem(step: Step, ctx: IntentContext): PageProblem | null {
@@ -755,6 +819,25 @@ const NO_DOCUMENT_OK: ReadonlySet<Action> = new Set([
 ]);
 const SHIFTS: ReadonlySet<Action> = new Set(['delete', 'duplicate', 'move', 'reverse']);
 
+/** The page numbers a step names, as the person typed them: a list, a spot to sign, a target. */
+function pagesCarried(step: Step): readonly number[] {
+  switch (step.action) {
+    case 'signPlace':
+      return [step.page];
+    case 'move':
+      return [
+        ...step.pages.pages,
+        ...(typeof step.to === 'string' ? [] : [Object.values(step.to)[0] as number]),
+      ];
+    case 'split':
+      return step.how !== 'choose' && 'at' in step.how ? step.how.at : [];
+    default:
+      return hasPages(step) && !['all', 'even', 'odd'].includes(step.pages.named)
+        ? step.pages.pages
+        : [];
+  }
+}
+
 export interface Planned {
   readonly steps: Step[];
   readonly spans: (readonly [number, number])[];
@@ -788,7 +871,12 @@ export function plan(ch: Chained, ctx: IntentContext): Planned | null {
     if (isFinishing(step) && ++finishing === 2) report('two-finishing', k);
     if (step.action === 'split') {
       split = true;
-      if (
+      const off =
+        step.how !== 'choose' && 'at' in step.how
+          ? step.how.at.find((p) => p < 1 || p > ctx.pageCount)
+          : undefined;
+      if (ctx.pageCount > 0 && off !== undefined) report('out-of-range', k, off);
+      else if (
         step.how !== 'choose' &&
         ctx.pageCount > 0 &&
         splitParts(ctx.pageCount, step.how).length < 2
@@ -803,14 +891,11 @@ export function plan(ch: Chained, ctx: IntentContext): Planned | null {
         report('not-a-run', k);
       if (!everyPage && shifts && sense.pagesFrom === 'text') report('shifted', k);
     }
-    // A step on pages an earlier step deletes: they would be gone by then.
-    if (
-      step.action !== 'delete' &&
-      hasPages(step) &&
-      !['all', 'even', 'odd'].includes(step.pages.named) &&
-      step.pages.pages.some((p) => deleted.has(p))
-    ) {
-      report('shifted', k);
+    // A step on pages an earlier step deletes: they would be gone by then. Every page a step
+    // carries counts, not only its page list: where it signs, where it moves to, where it cuts.
+    if (step.action !== 'delete') {
+      const gone = pagesCarried(step).find((p) => deleted.has(p));
+      if (gone !== undefined) report('shifted', k, gone);
     }
     if (step.action === 'delete') {
       for (const p of step.pages.pages) deleted.add(p);

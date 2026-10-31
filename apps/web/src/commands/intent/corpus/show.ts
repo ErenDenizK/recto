@@ -109,7 +109,7 @@ function showStep(step: Step, pageCount: number): string {
 
 function showReading(r: Reading, pageCount: number): string {
   const steps = r.steps.map((s) => showStep(s, pageCount).replace(/\s+/g, ' ').trim()).join(' ; ');
-  const fix = r.corrected?.map((c) => ` (${c.typed}→${c.read})`).join('') ?? '';
+  const fix = r.corrected?.map((c) => ` (${c.typed}→${c.display})`).join('') ?? '';
   const page = r.problem?.page === undefined ? '' : ` ${r.problem.page}`;
   return `${r.problem ? `! ${r.problem.kind}${page} ` : ''}${steps}${fix}`;
 }
