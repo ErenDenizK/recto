@@ -51,6 +51,7 @@ import {
   isSaveCopyPreset,
   SAVE_COPY_SHEET,
   type SaveCopyPreset,
+  saveCopyRequestOf,
   useSaveCopyResults,
 } from './export-store';
 import { exportFileName } from './filename';
@@ -76,8 +77,9 @@ import {
   useTextPreview,
 } from './save-copy-hooks';
 import {
-  applyPreset,
+  applyRequest,
   buildKey,
+  chooseForTarget,
   copyName,
   DEFAULT_DRAFT,
   defaultName,
@@ -140,12 +142,19 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
 
   // Each open applies its opener's preset (Compress… → Size: Smaller) and starts on its page.
   const [applied, setApplied] = useState<object | null>(null);
+  // A size target from the palette (PRD-40) and whether the estimates have chosen the Size yet.
+  const [target, setTarget] = useState<number | null>(null);
+  const [targetChosen, setTargetChosen] = useState(false);
   if (open && opening !== applied) {
     setApplied(opening);
     setAsking(false);
     const known: SaveCopyPreset | null = isSaveCopyPreset(preset) ? preset : null;
+    // A request that carries facts (PRD-40): the palette's type, range, format or size target.
+    const asked = saveCopyRequestOf(opening);
+    setTarget(asked?.kind === 'size' ? asked.targetBytes : null);
+    setTargetChosen(false);
     setPage(known === 'details' ? 'details' : 'form');
-    if (known !== null && known !== 'details') setDraft((d) => applyPreset(d, known));
+    if (known !== null && known !== 'details') setDraft((d) => applyRequest(d, asked ?? known));
   }
   // The passwords live only while the sheet is open.
   const [wasOpen, setWasOpen] = useState(open);
@@ -195,6 +204,12 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
   const compression = sizeSettings(draft.size, draft.custom, presetSettings);
   // Until the copy is assembled and read, an approximate size from the files and the edits.
   const quick = doc ? quickSize(ws, doc) : null;
+  // Once the estimates arrive the target picks the least lossy Size that meets it (until then
+  // the sheet shows Smaller, as the Compress preset does); the person's later choice stays.
+  if (target !== null && !targetChosen && estimates !== null && open) {
+    setTargetChosen(true);
+    patch({ size: chooseForTarget(estimates, quick, target).size });
+  }
 
   // Images.
   const imagePages = parsePageRange(draft.images.range, pageCount);
@@ -526,6 +541,7 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
                 analysis={analysis}
                 estimates={estimates}
                 quick={quick}
+                target={target}
                 groupRef={sizeRef}
                 onWhatSmaller={() => setPage('smaller')}
               />

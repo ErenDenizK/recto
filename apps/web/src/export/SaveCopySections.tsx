@@ -127,12 +127,36 @@ function estimateDetail(
   };
 }
 
+/**
+ * The line under Size when a sentence named a byte target (PRD-40): "Target: under 2 MB · Smaller
+ * ≈ 1.4 MB", or, when the lightest Size cannot reach it, that Smallest is about as big as it
+ * gets and the target can't be reached here (no dpi search, no silent over-compression).
+ */
+function targetText(size: SizeChoice, estimates: SizeEstimates, target: number): string {
+  const after = size === 'same' ? estimates.same : estimates[size].after;
+  if (size === 'smallest' && after > target) {
+    return m.save_copy_target_unmet({ size: formatSize(after) });
+  }
+  const label = {
+    same: m.save_copy_size_same(),
+    smaller: m.save_copy_size_smaller(),
+    smallest: m.save_copy_size_smallest(),
+    custom: m.save_copy_size_custom(),
+  }[size];
+  return m.save_copy_target({
+    target: formatSize(target),
+    size: label,
+    estimate: formatSize(after),
+  });
+}
+
 export function SizeSection({
   draft,
   patch,
   analysis,
   estimates,
   quick,
+  target = null,
   groupRef,
   onWhatSmaller,
 }: {
@@ -142,6 +166,8 @@ export function SizeSection({
   readonly estimates: SizeEstimates | null;
   /** The approximate size of the copy as it is (`quickSize`), shown until the exact one is known. */
   readonly quick: number | null;
+  /** The byte target a palette sentence named (PRD-40), or null. */
+  readonly target?: number | null;
   readonly groupRef: RefObject<HTMLDivElement | null>;
   readonly onWhatSmaller: () => void;
 }) {
@@ -177,6 +203,7 @@ export function SizeSection({
   };
   const setCustom = (next: Partial<CustomSize>) =>
     patch({ size: 'custom', custom: { ...draft.custom, ...next } });
+  const targetLine = target === null || !ready ? null : targetText(draft.size, estimates, target);
   return (
     <SheetGroup
       label={<span aria-hidden="true">{m.save_copy_size()}</span>}
@@ -196,6 +223,11 @@ export function SizeSection({
             ]}
           />
         </div>
+        {targetLine !== null ? (
+          <p className={styles.note} data-testid="save-copy-target">
+            {targetLine}
+          </p>
+        ) : null}
         {draft.size === 'custom' ? (
           <>
             <div className={styles.pair}>
