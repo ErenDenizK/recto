@@ -15,6 +15,7 @@ import {
   type ConvertHeading,
   type ConvertReport,
   type ConvertResult,
+  type TextViewPage,
   EngineError,
 } from '../types';
 import {
@@ -34,6 +35,7 @@ import {
 } from './layout';
 import { type PageBlocks, renderPage, styleModel } from './markdown';
 import { encodePng } from './png';
+import { textViewPage } from './text-view';
 
 export const CONVERT_NOTES: readonly string[] = [
   'Reading order and headings are reconstructed from positions and font sizes: columns, sidebars, footnotes, tables and rotated text may come out in the wrong order.',
@@ -54,6 +56,7 @@ interface StoredImage {
 
 interface StoredPage {
   readonly index: number;
+  readonly width: number;
   readonly height: number;
   readonly segments: Segment[];
   readonly images: StoredImage[];
@@ -114,6 +117,7 @@ export class ConvertSession {
     });
     this.pages.set(index, {
       index,
+      width: display.x1 - display.x0,
       height: display.y1 - display.y0,
       segments,
       images,
@@ -178,7 +182,7 @@ export class ConvertSession {
       pageBlocks.push({ page: page.index, blocks, links: page.links ?? [], imagePaths });
       await slicer.tick('convert: layout');
     }
-    const style = styleModel(pageBlocks);
+    const style = options.textBlocks && options.style ? options.style : styleModel(pageBlocks);
     const renderOptions = {
       format,
       joinHyphens: options.joinHyphens ?? true,
@@ -195,6 +199,18 @@ export class ConvertSession {
       for (const heading of rendered.headings) headingList.push({ page: page.page, ...heading });
       await slicer.tick('convert: render');
     }
+    const textView: TextViewPage[] = options.textBlocks
+      ? pageBlocks.map((pb, i) => {
+          const page = ordered[i] as StoredPage;
+          return textViewPage(
+            pb,
+            style,
+            page,
+            page.images.map((image) => image.box),
+            renderOptions.joinHyphens,
+          );
+        })
+      : [];
     const ext = format === 'markdown' ? 'md' : 'txt';
     const mime = format === 'markdown' ? 'text/markdown' : 'text/plain';
     const header = format === 'markdown' && options.headerComment ? `${HEADER_COMMENT}\n\n` : '';
@@ -264,6 +280,7 @@ export class ConvertSession {
       files,
       ...(zip ? { zip } : {}),
       report,
+      ...(options.textBlocks ? { textView, style } : {}),
     };
   }
 }
