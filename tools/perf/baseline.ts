@@ -4,7 +4,10 @@
  *
  * 1. First visit: first paint, Home visible and interactive, bytes by type, the service
  *    worker's share, time until the link is quiet (precache installed, wasm warmed).
- * 2. Repeat visit: the same, with the service worker in control.
+ * 2. Repeat visit: the same, with the service worker in control. On the desktop profile also
+ *    "Desk painted" (DSN-87, `masa.md` §4): `performance.mark('recto:desk-painted')` of the new
+ *    Home (`?desk=1`) on a first visit and, with the service worker in control, on a returning
+ *    desk with a stored cover. The 1 s target is for the repeat row.
  * 3. Opening the sample (warm) and a generated large PDF: time to the first page and to the
  *    mounted thumbnails (desktop sidebar) and the Pages grid.
  * 4. Scrolling the large PDF one step per frame: frame p50/p95, dropped frames, long tasks,
@@ -761,6 +764,48 @@ async function firstAndRepeat(browser: Browser, profile: Profile): Promise<Row> 
   }
   await settle(again);
   row['sample.KB'] = bytesOf(server.hits).totalKB;
+  await ctx.close();
+  return row;
+}
+
+/** `performance.mark` of the desk's first paint (`home/desk-painted.ts`), or null before it. */
+const DESK_MARK = `(performance.getEntriesByName('recto:desk-painted')[0] ?? null)`;
+
+/**
+ * "Desk painted" (DSN-87, `masa.md` §4): the mark's time from navigation start, on a first visit
+ * and on a repeat visit (service worker in control) of a returning desk that holds one cover.
+ * Desktop only; the phone's desk is its own lane.
+ */
+async function deskPainted(browser: Browser, profile: Profile): Promise<Row> {
+  const row: Row = {};
+  if (profile.touch) return row;
+  const markAt = async (page: Page) => {
+    await until(page, DESK_MARK, 60_000);
+    return page.evaluate(
+      () => performance.getEntriesByName('recto:desk-painted')[0]?.startTime ?? -1,
+    );
+  };
+  const { ctx, page } = await context(browser, profile);
+  server.reset();
+  await page.goto('./?lang=en&desk=1', { waitUntil: 'commit' });
+  row['first.deskPaintedMs'] = Math.round(await markAt(page));
+  await server.quiet(4000, profile.net ? 180_000 : 60_000);
+  // A returning desk: one small document opened and closed, so Recent holds a cover.
+  await openFile(page, profile, 'desk.pdf', largePdf(3, 4));
+  await until(page, FIRST_PAGE);
+  await page.keyboard.press('Control+w');
+  await until(page, `document.querySelector('[data-desk] img[data-cover]')`, 60_000);
+  await sleep(500);
+  await page.close();
+
+  const again = await ctx.newPage();
+  await throttle(again, profile);
+  server.reset();
+  await again.goto('./?lang=en&desk=1', { waitUntil: 'commit' });
+  row['repeat.deskPaintedMs'] = Math.round(await markAt(again));
+  row['repeat.deskCovers'] = await again.evaluate(
+    () => document.querySelectorAll('[data-desk] img[data-cover]').length,
+  );
   await ctx.close();
   return row;
 }
@@ -1537,6 +1582,7 @@ async function main(): Promise<void> {
         }
       };
       if (ONLY.has('first')) await step('first', () => firstAndRepeat(browser, profile));
+      if (ONLY.has('first')) await step('desk', () => deskPainted(browser, profile));
       server.net = null; // Opening local files and scrolling do not touch the network.
       if (ONLY.has('large')) await step('large', () => large(browser, profile, pdfs[0] as Buffer));
       if (ONLY.has('memory') && !profile.touch) {
