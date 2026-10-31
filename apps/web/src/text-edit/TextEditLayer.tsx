@@ -54,6 +54,7 @@ import { pageFrame } from '../viewer/page-frame';
 import { useToolStore } from '../viewer/tool-store';
 import { blockerLabel, blockerOfRun, caretOffset, focusReturnRun, runKey, wordAt } from './model';
 import { openRunEditor } from './paragraph-open';
+import { nudgeParagraph, openAfterNudge } from './paragraph-nudge';
 import {
   prefetchParagraph,
   textPrecomputeEnabled,
@@ -66,6 +67,11 @@ import { pageParagraphs, useTextEditStore } from './text-edit-store';
 
 /** Extra hit area around a line box, CSS pixels. */
 const HIT_PADDING = 2;
+/**
+ * Room around a paragraph's ink in its keyboard target, CSS pixels: the inset focus ring's
+ * 4 px (styles/focus.css, PageTarget) and a 2 px gap, so the ring sits outside the ink.
+ */
+const PARAGRAPH_PADDING = 6;
 /** The smallest side of a paragraph's keyboard target, CSS pixels (DESIGN §5). */
 export const MIN_TARGET_PX = 24;
 /** Characters of a paragraph's text its target's name quotes. */
@@ -274,6 +280,7 @@ export function TextEditLayer(props: PageOverlayProps) {
    * and the focus comes back to this target when the editor closes.
    */
   const openParagraph = ({ block, runs: inside }: ParagraphTarget) => {
+    if (openAfterNudge(target, block)) return;
     const first = inside[0];
     if (!first) return;
     useTextEditStore.getState().openParagraph({
@@ -333,6 +340,14 @@ export function TextEditLayer(props: PageOverlayProps) {
                 block={item.target.block}
                 frame={frame}
                 onOpen={() => openParagraph(item.target)}
+                onKeyDown={(event) => {
+                  if (
+                    nudgeParagraph(event, { target, block: item.target.block, revision, frame })
+                  ) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }
+                }}
               />
             ) : (
               <RunTarget
@@ -360,15 +375,17 @@ function ParagraphTargetButton({
   block,
   frame,
   onOpen,
+  onKeyDown,
 }: {
   readonly index: number;
   readonly block: ParagraphBlock;
   readonly frame: PageFrame;
   readonly onOpen: () => void;
+  readonly onKeyDown: (event: ReactKeyboardEvent<HTMLButtonElement>) => void;
 }) {
   const box = rectToCss(frame, block.box);
-  const width = Math.max(box.width + 2 * HIT_PADDING, MIN_TARGET_PX);
-  const height = Math.max(box.height + 2 * HIT_PADDING, MIN_TARGET_PX);
+  const width = Math.max(box.width + 2 * PARAGRAPH_PADDING, MIN_TARGET_PX);
+  const height = Math.max(box.height + 2 * PARAGRAPH_PADDING, MIN_TARGET_PX);
   return (
     <OnPage
       className={styles.paragraph}
@@ -381,6 +398,7 @@ function ParagraphTargetButton({
         height,
       }}
       onClick={onOpen}
+      onKeyDown={onKeyDown}
     />
   );
 }

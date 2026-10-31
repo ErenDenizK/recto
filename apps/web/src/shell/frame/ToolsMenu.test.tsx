@@ -1,5 +1,5 @@
 /**
- * The dock's Tools entry (DSN-76; Vitest browser mode): the `?tools=1` gate, each row's command
+ * The dock's Tools entry (DSN-76; Vitest browser mode): each row's command
  * id (a registered command the title menu or the dock's More already holds, DSN-46), and the
  * menu's keyboard (Esc closes, focus back on the entry, arrows move).
  */
@@ -22,7 +22,6 @@ import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
 import { Dock } from './Dock';
 import { TITLE_MENU_SECTIONS } from './TitleMenuItems';
 import { TOOL_ENTRIES } from './ToolsMenu';
-import { toolsEntryEnabled } from './tools-flag';
 
 const dock = () => screen.getByRole('toolbar', { name: 'Document tools' });
 const setSearch = (search: string) => history.replaceState(null, '', `/${search}`);
@@ -54,14 +53,7 @@ describe('Tools entry', () => {
     );
   }
 
-  it('shows only with ?tools=1', async () => {
-    setSearch('');
-    expect(toolsEntryEnabled()).toBe(false);
-    await mount();
-    expect(within(dock()).queryByRole('button', { name: 'Tools' })).toBeNull();
-    cleanup();
-    setSearch('?tools=1');
-    expect(toolsEntryEnabled()).toBe(true);
+  it('shows on the dock', async () => {
     await mount();
     expect(within(dock()).getByRole('button', { name: 'Tools' })).toBeVisible();
   });
@@ -80,7 +72,6 @@ describe('Tools entry', () => {
   });
 
   it('opens a list, moves with the arrows and closes on Esc with focus back on the entry', async () => {
-    setSearch('?tools=1');
     await mount();
     const entry = within(dock()).getByRole('button', { name: 'Tools' });
     entry.focus();
@@ -99,27 +90,15 @@ describe('Tools entry', () => {
     expect(document.activeElement).toBe(entry);
   });
 
-  it('keeps Redact out of More while Tools is shown (DSN-76, DSN-47), in More otherwise', async () => {
-    for (const [search, inMore] of [
-      ['', true],
-      ['?tools=1', false],
-    ] as const) {
-      setSearch(search);
-      await mount();
-      await userEvent.click(within(dock()).getByRole('button', { name: 'More' }));
-      const menu = await screen.findByRole('menu', { name: 'More' });
-      await settled(menu);
-      expect(within(menu).queryByRole('menuitem', { name: 'Redact' }) !== null, search).toBe(
-        inMore,
-      );
-      await userEvent.keyboard('{Escape}');
-      await vi.waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
-      cleanup();
-    }
+  it('keeps Redact out of More; Tools is its one home (DSN-76, DSN-47)', async () => {
+    await mount();
+    await userEvent.click(within(dock()).getByRole('button', { name: 'More' }));
+    const menu = await screen.findByRole('menu', { name: 'More' });
+    await settled(menu);
+    expect(within(menu).queryByRole('menuitem', { name: 'Redact' })).toBeNull();
   });
 
   it("wears the title menu's labels (DSN-52)", async () => {
-    setSearch('?tools=1');
     await mount();
     await userEvent.click(within(dock()).getByRole('button', { name: 'Tools' }));
     const menu = await screen.findByRole('menu', { name: 'Tools' });

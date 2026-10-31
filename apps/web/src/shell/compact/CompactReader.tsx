@@ -57,6 +57,7 @@ import { springChrome } from './chrome-spring';
 import { CompactPage } from './CompactPage';
 import styles from './CompactReader.module.css';
 import { CompactSheets } from './CompactSheets';
+import { phoneCapsule } from './phone-capsule-flag';
 import { openFind, setChromeHidden, setZoom, useCompactStore } from './compact-store';
 import type { PinchMorph } from './overview';
 import {
@@ -119,6 +120,11 @@ export const TOP_BAR_EDGE = 12;
 export const CAPSULE_HEIGHT = 56;
 /** The capsule's least distance from the bottom edge (01-frame F1 §2). */
 export const CAPSULE_OFFSET = 12;
+/**
+ * Extra room under the pages while the single capsule is on (EDN-24): its tray (56 px and the
+ * 8 px gap), constant so the pages never re-lay out when the tray toggles.
+ */
+const TRAY_ROOM = 64;
 /** Remember the reading position after it has settled this long (as Read mode). */
 const REMEMBER_DELAY_MS = 600;
 /** Mod+wheel: this many pixels of wheel double or halve the zoom (desktop compact). */
@@ -235,7 +241,11 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
     insetLeft: insets.left,
     insetRight: insets.right,
     padTop: TOP_BAR_HEIGHT + Math.max(insets.top, TOP_BAR_EDGE) + PAGE_GAP,
-    padBottom: CAPSULE_HEIGHT + Math.max(insets.bottom, CAPSULE_OFFSET) + PAGE_GAP,
+    padBottom:
+      CAPSULE_HEIGHT +
+      Math.max(insets.bottom, CAPSULE_OFFSET) +
+      PAGE_GAP +
+      (phoneCapsule() ? TRAY_ROOM : 0),
   };
   const layout = layoutPages(sizes, frame, zoom, dpr);
   const [ranges, setRanges] = useState<Ranges>(() => ({

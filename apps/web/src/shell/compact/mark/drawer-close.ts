@@ -6,11 +6,11 @@
  *
  * The press outside depends on where the armed tool's next step is:
  *
- * - **On the drawer's own options, or anywhere** (Pen, Highlight, the Eraser, Select, Sign
- *   before a signature is chosen): the press only closes. The transparent scrim takes it, so a
- *   tap meant to put the drawer away never leaves a dot of ink, erases or selects.
- * - **A tap on the page** (Text places a box, Edit text opens a paragraph, a chosen signature is
- *   placed): the press closes the drawer and goes on to the page, which acts on it in the same
+ * - **On the drawer's own options, or anywhere** (the Eraser, Select, Sign before a signature
+ *   is chosen): the press only closes. The transparent scrim takes it, so a tap meant to put
+ *   the drawer away never erases or selects.
+ * - **A touch on the page** (Pen and Highlight start their stroke, EDN-28; Text places a box,
+ *   Edit text opens a paragraph, a chosen signature is placed): the press closes the drawer and goes on to the page, which acts on it in the same
  *   tap. The scrim lets presses through (`pressGoesThrough`) and a window listener closes the
  *   drawer as the press starts (`closeOnOutsidePress`); the keyboard a text box or paragraph
  *   opens still rises within that tap (`TextLayer.tsx`, `keyboard-hold.ts`).
@@ -21,8 +21,17 @@
 import type { ToolMode } from '../../../viewer/tool-store';
 import { setDrawerOpen } from '../compact-store';
 
-/** The tool-store modes whose next step is a tap on the page. */
-const ON_PAGE: ReadonlySet<ToolMode> = new Set<ToolMode>(['text-box', 'edit-text', 'signature']);
+/**
+ * The tool-store modes whose next step is a touch on the page: a stroke (Pen, Highlight; EDN-28,
+ * else the scrim swallowed the first stroke after picking the tool) or a tap (the rest).
+ */
+const ON_PAGE: ReadonlySet<ToolMode> = new Set<ToolMode>([
+  'ink',
+  'highlight',
+  'text-box',
+  'edit-text',
+  'signature',
+]);
 
 /** Whether a press outside the open drawer goes on to the page under it (EDN-18). */
 export function pressGoesThrough(mode: ToolMode): boolean {

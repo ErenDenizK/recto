@@ -1,12 +1,15 @@
 /**
  * Where the paragraph editor's header goes (components/05-canvas.md §17.3): beside the
- * paragraph (trailing, then leading) when the room outside its text, up to the free
- * rectangle's edge, takes the header; else above the paragraph, in the empty space between it
+ * paragraph (trailing, then leading) when the room outside its text and the page's other
+ * paragraphs level with the header (a neighbouring column), up to the free rectangle's edge,
+ * takes the header, so it rests in the page's margin (TXT-26); else above the paragraph, in the empty space between it
  * and the content above (`ParagraphLayoutAnalysis.gapAbove`, which counts graphics such as a
  * heading's rule); else below it, in the empty space down to the content below (`gapBelow`);
  * else docked at the foot of the free rectangle, just above the capsule, where the dock band's
- * chrome already is (the top of the free rectangle when that would cover the paragraph). It is
- * never over the paragraph or within 8 px of it, and it rests inside the free rectangle.
+ * chrome already is (the top of the free rectangle when that would cover the paragraph); a
+ * header beside the paragraph over its neighbours comes before docking, as it did before
+ * TXT-26. It is never over the paragraph or within 8 px of it, and it rests inside the free
+ * rectangle.
  *
  * The header is the solid twin of M4 (`ParagraphEditor.module.css`), so where only the docked
  * place is left the text it covers never shows through it.
@@ -56,6 +59,8 @@ export interface HeaderPlaceInput {
    */
   readonly above?: number | undefined;
   readonly below?: number | undefined;
+  /** The page's other paragraphs, which a header beside this one passes (TXT-26). */
+  readonly others?: readonly Edges[] | undefined;
 }
 
 /** `clamp` with the floor winning when `max` is below `min` (no room left). */
@@ -74,24 +79,41 @@ export function placeHeader(input: HeaderPlaceInput): HeaderPlace {
     free.top + HEADER_GAP,
     free.bottom - HEADER_GAP - height,
   );
-  const right = free.right - text.right - 2 * HEADER_GAP;
-  if (right >= MIN_BESIDE_WIDTH) {
-    return {
-      side: 'right',
-      left: text.right + HEADER_GAP,
-      top: besideTop,
-      maxWidth: Math.min(MAX_HEADER_WIDTH, right),
-    };
-  }
-  const left = text.left - free.left - 2 * HEADER_GAP;
-  if (left >= MIN_BESIDE_WIDTH) {
-    return {
-      side: 'left',
-      left: text.left - HEADER_GAP,
-      top: besideTop,
-      maxWidth: Math.min(MAX_HEADER_WIDTH, left),
-    };
-  }
+  // The paragraphs level with the header, wholly to one side of this one.
+  const level = (input.others ?? []).filter(
+    (o) => o.top < besideTop + height + HEADER_GAP && besideTop - HEADER_GAP < o.bottom,
+  );
+  const beside = (passOthers: boolean): HeaderPlace | undefined => {
+    let end = text.right;
+    let start = text.left;
+    if (passOthers) {
+      for (const o of level) {
+        if (o.left >= text.right) end = Math.max(end, o.right);
+        else if (o.right <= text.left) start = Math.min(start, o.left);
+      }
+    }
+    const right = free.right - end - 2 * HEADER_GAP;
+    if (right >= MIN_BESIDE_WIDTH) {
+      return {
+        side: 'right',
+        left: end + HEADER_GAP,
+        top: besideTop,
+        maxWidth: Math.min(MAX_HEADER_WIDTH, right),
+      };
+    }
+    const left = start - free.left - 2 * HEADER_GAP;
+    if (left >= MIN_BESIDE_WIDTH) {
+      return {
+        side: 'left',
+        left: start - HEADER_GAP,
+        top: besideTop,
+        maxWidth: Math.min(MAX_HEADER_WIDTH, left),
+      };
+    }
+    return undefined;
+  };
+  const clearBeside = beside(true);
+  if (clearBeside) return clearBeside;
   // Above or below: aligned with the paragraph's start, kept inside the free rectangle.
   const start = clamp(text.left, free.left + HEADER_GAP, free.right - HEADER_GAP - width);
   const need = height + 2 * HEADER_GAP;
@@ -107,6 +129,8 @@ export function placeHeader(input: HeaderPlaceInput): HeaderPlace {
   ) {
     return { side: 'below', left: start, top: belowTop };
   }
+  const overBeside = level.length > 0 ? beside(false) : undefined;
+  if (overBeside) return overBeside;
   // Docked: centred in the free rectangle, at its foot (above the capsule), else its head.
   const centre = clamp(
     (free.left + free.right - width) / 2,
@@ -125,4 +149,26 @@ export function placeHeader(input: HeaderPlaceInput): HeaderPlace {
   }
   // A paragraph taller than the window: below it, where the reader is not typing.
   return { side: 'below', left: start, top: belowTop };
+}
+
+/**
+ * Which edge of the frame the move grip goes on (TXT-24, TXT-26): the top, unless the grip
+ * would lie on another paragraph there and the bottom is clear. `frame` and `others` in the
+ * layer's CSS pixels; `reach` is how far the grip's target stands out from the frame.
+ */
+export function gripEdge(
+  frame: Edges,
+  others: readonly Edges[],
+  width: number,
+  reach: number,
+): 'top' | 'bottom' {
+  const centre = (frame.left + frame.right) / 2;
+  const at = (top: number): Edges => ({
+    left: centre - width / 2,
+    top,
+    right: centre + width / 2,
+    bottom: top + reach,
+  });
+  const clear = (box: Edges) => !others.some((o) => overlaps(o, box));
+  return clear(at(frame.top - reach)) || !clear(at(frame.bottom)) ? 'top' : 'bottom';
 }

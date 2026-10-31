@@ -123,6 +123,9 @@
   border-radius: var(--radius-lg);
   color: var(--text-primary);
   font-size: var(--type-footnote);
+  /* The footnote's own leading: the body's 20 px spread a wrapped line on a phone's narrow
+     header (13 px type on 20 px lines) as Notice and Toast never do. */
+  line-height: var(--type-footnote-lh);
   pointer-events: auto;
   cursor: default;
   /* It emerges beside the opening paragraph (motion-2026-10 viewer.md §6): from --enter-scale
@@ -215,4 +218,121 @@
 :global(:root[data-edition='compact']) .actions > * {
   min-width: 44px;
   min-height: 44px;
+}
+
+/*
+ * The frame controls (TXT-24, behind the Labs toggle). `.moving` holds what follows a move of
+ * the paragraph (the hairline, the glyphs, the mirror, the controls): the editor sets its
+ * translation. Off, `.still` has no box and the parts lie in the layer as before.
+ */
+.moving {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.still {
+  display: contents;
+}
+
+/* The glyphs of a moving paragraph; the plates that hide the original stay on `.canvas`. */
+.ink {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  filter: var(--page-filter);
+}
+
+/* The 6 px band outside the ink drags the paragraph; a touch drags by the grip. */
+.band {
+  position: absolute;
+  z-index: 5;
+  pointer-events: auto;
+  cursor: move;
+  touch-action: none;
+}
+
+/* The grip: a notch above the frame's top edge in a 44 px touch target (Q-9); below its
+   bottom edge when the top would lie on another paragraph (TXT-26). */
+.grip {
+  position: absolute;
+  z-index: 5;
+  box-sizing: border-box;
+  inline-size: 44px;
+  block-size: 44px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-block-end: var(--space-1);
+  pointer-events: auto;
+  cursor: move;
+  touch-action: none;
+}
+
+.grip[data-edge='bottom'] {
+  align-items: flex-start;
+  padding-block: var(--space-1) 0;
+}
+
+.grip::after {
+  content: '';
+  inline-size: var(--space-6);
+  block-size: var(--space-1);
+  border-radius: var(--radius-capsule);
+  background: var(--select);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.grip:active {
+  cursor: grabbing;
+}
+
+/* A side bar: a 44 px target just outside the frame; the bar itself sits against the frame,
+   turned with the writing direction. */
+.bar {
+  position: absolute;
+  z-index: 6;
+  box-sizing: border-box;
+  inline-size: 44px;
+  block-size: 44px;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.bar[data-axis='y'] {
+  cursor: ns-resize;
+}
+
+.bar::after {
+  content: '';
+  inline-size: var(--space-1);
+  block-size: var(--space-6);
+  border-radius: var(--radius-capsule);
+  background: var(--select);
+  transform: translate(var(--bar-x), var(--bar-y)) rotate(var(--bar-turn));
+}
+
+.grip:focus-visible,
+.bar:focus-visible {
+  outline: 2px solid var(--focus-light);
+  outline-offset: var(--focus-offset-out);
+}
+
+/* The snap guide: a hairline of the page's selection blue over the page's height. */
+.guide {
+  position: absolute;
+  inset-block: 0;
+  z-index: 3;
+  inline-size: 1px;
+  background: var(--select);
+  pointer-events: none;
+}
+
+/* A moved frame that lands on another paragraph: the frame turns to the warning colour. */
+.frame[data-overlap] {
+  box-shadow: 0 0 0 1px var(--warning);
 }

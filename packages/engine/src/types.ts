@@ -3156,6 +3156,40 @@ export type ParagraphEditRefusal =
   | 'unsupported-chars'
   | 'off-page';
 
+/**
+ * Why a paragraph cannot be moved or resized (TXT-24; the rest of paragraph mode stays on;
+ * apart from `ParagraphEditRefusal`, which refuses the whole editor). A failed move or resize
+ * fails with `(paragraph:<ParagraphFrameRefusal>)` like the others:
+ * - `move-shared-object`: a text object of the paragraph also draws another paragraph, so
+ *   moving it would move that text too;
+ * - `move-form-field`: a form widget lies over the paragraph's words (the writer never moves
+ *   a field, and the words must not leave it);
+ * - `move-clipped`: the new place is outside a clip that holds the paragraph's text;
+ * - `resize-direction`: the text does not run along a multiple of 90° (it can be moved but
+ *   not given another width).
+ */
+export type ParagraphFrameRefusal =
+  | 'move-shared-object'
+  | 'move-form-field'
+  | 'move-clipped'
+  | 'resize-direction';
+
+/**
+ * Moving and resizing a paragraph (TXT-24): a translation of the whole block and, optionally,
+ * a new measure. The writer translates the paragraph's text objects and re-places only what
+ * the new width wraps differently; it never deletes and reinserts a moved line.
+ */
+export interface ParagraphFrameChange {
+  /** The translation, unrotated user space, points. */
+  readonly dx: number;
+  readonly dy: number;
+  /**
+   * The new measure (`ParagraphBlock.measure`'s frame: text-space x along the writing
+   * direction), before the translation. Omitted: the width stays.
+   */
+  readonly measure?: { readonly left: number; readonly right: number };
+}
+
 /** How a style of the paragraph is drawn (for the overlay) and its tier-1 substitute. */
 export interface ParagraphStyleInfo {
   /** The style's `FPDF_FONT` number on the page (`LocatedRun.fontId`). */
@@ -3213,6 +3247,15 @@ export interface ParagraphLayoutAnalysis {
    * Absent from analyses made before it existed.
    */
   readonly gapAbove?: number;
+  /**
+   * How far the measure can grow past its left and right edge before it meets another block
+   * or a graphic beside the paragraph (else the page's visible box), points: where a width
+   * handle stops (TXT-24). Absent from analyses made before it existed.
+   */
+  readonly roomLeft?: number;
+  readonly roomRight?: number;
+  /** Set when the paragraph cannot be moved (or, `resize-direction`, resized). */
+  readonly frameRefusal?: ParagraphFrameRefusal;
   /** Set when paragraph mode is refused; `input` then still describes the paragraph. */
   readonly refusal?: ParagraphEditRefusal;
 }
@@ -3252,6 +3295,12 @@ export interface ParagraphEdit {
    * the paragraph out and applies the overflow policy (`decideOverflow`).
    */
   readonly layout?: ParagraphLayout;
+  /**
+   * Moves the paragraph and/or gives it another width (TXT-24). With `layout` the layout is
+   * the one in the paragraph's original place and is translated by `dx`, `dy`; without it, a
+   * new `measure` lays the whole paragraph out again.
+   */
+  readonly frame?: ParagraphFrameChange;
 }
 
 export interface ParagraphEditOptions extends EngineCallOptions {
@@ -3306,6 +3355,8 @@ export interface ParagraphEditResult {
   readonly substitutions: readonly (LayoutSubstitution & { readonly family: string })[];
   /** Links, markup and widgets moved with their words. */
   readonly moved: readonly ParagraphMovedAnnotation[];
+  /** Set when the paragraph was translated (`ParagraphEdit.frame`), unrotated user space. */
+  readonly translated?: { readonly dx: number; readonly dy: number };
   /** Some glyphs are written in new objects in DeviceRGB while the original is not RGB. */
   readonly colorSpaceChanged?: boolean;
   readonly verification: ParagraphEditVerification;

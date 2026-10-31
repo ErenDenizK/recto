@@ -7,6 +7,11 @@
  * stays open (EDN-18): that tap closes it and places the signature (`drawer-close.ts`). The
  * armed one shows pressed. Where this window keeps nothing, one line says so beside New.
  *
+ * `SignTray` is the single capsule's tray for Sign (EDN-24): the same plates in a sideways
+ * scroller (`data-scrolls`), a hairline, and New pinned at the end as a 44 px "+", so the tray
+ * keeps its 324 px width however many signatures are kept. With none kept it is one text button,
+ * "+ New signature", and no hairline.
+ *
  * Its own chunk (README §7 "signatures are split again"), loaded as Sign arms (`sign.tsx`).
  */
 import { useEffect } from 'react';
@@ -33,7 +38,8 @@ export function loadSignatures(): Promise<void> {
   return loadSavedSignatures();
 }
 
-export default function SignOptions() {
+/** The kept signatures, the armed one and the arming press, shared by the drawer and the tray. */
+function useSignPlates() {
   const signatures = useSavedSignatures((s) => s.signatures);
   const status = useSavedSignatures((s) => s.status);
   const mode = useToolStore((s) => s.mode);
@@ -49,6 +55,11 @@ export default function SignOptions() {
     void armSavedSignature(id);
   };
 
+  return { signatures, status, armed, arm };
+}
+
+export default function SignOptions() {
+  const { signatures, status, armed, arm } = useSignPlates();
   return (
     <div className={styles.row} data-testid="compact-sign-options">
       <div className={styles.tiles} role="group" aria-label={m.compact_sign_saved()}>
@@ -76,6 +87,62 @@ export default function SignOptions() {
         ))}
       </div>
       {status === 'refused' ? <p className={styles.note}>{m.signature_not_kept()}</p> : null}
+    </div>
+  );
+}
+
+export function SignTray() {
+  const { signatures, status, armed, arm } = useSignPlates();
+  const openNew = () => void openNewSignatureSheet();
+  // Nothing kept: one clear "+ New signature", no scroller and no hairline for it to sit against.
+  if (signatures.length === 0) {
+    return (
+      <div className={`${styles.tray} ${styles.trayEmpty}`} data-testid="compact-sign-tray">
+        {status === 'refused' ? <p className={styles.note}>{m.signature_not_kept()}</p> : null}
+        <Button
+          variant="quiet"
+          className={`${styles.tile} ${styles.trayNewText}`}
+          data-testid="compact-sign-new"
+          onClick={openNew}
+        >
+          <Icon name="plus" />
+          {m.compact_sign_new_label()}
+        </Button>
+      </div>
+    );
+  }
+  return (
+    <div className={styles.tray} data-testid="compact-sign-tray">
+      <div
+        className={styles.trayPlates}
+        role="group"
+        aria-label={m.compact_sign_saved()}
+        data-scrolls=""
+      >
+        {signatures.map((signature) => (
+          <Button
+            key={signature.id}
+            variant="quiet"
+            className={`${styles.tile} ${styles.trayTile}`}
+            aria-label={signatureLabel(signature)}
+            aria-pressed={armed === signature.id}
+            data-saved-signature={signature.id}
+            onClick={(event) => arm(signature.id, event.currentTarget)}
+          >
+            <SignaturePlate ink={signature} className={styles.trayPlate} />
+          </Button>
+        ))}
+      </div>
+      <span className={styles.trayRule} aria-hidden="true" />
+      <Button
+        variant="quiet"
+        className={`${styles.tile} ${styles.trayNew}`}
+        aria-label={m.compact_sign_new_label()}
+        data-testid="compact-sign-new"
+        onClick={openNew}
+      >
+        <Icon name="plus" />
+      </Button>
     </div>
   );
 }

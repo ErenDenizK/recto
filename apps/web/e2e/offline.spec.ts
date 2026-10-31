@@ -194,7 +194,7 @@ test('every precached file and every split surface opens offline (PF-17)', async
   await dismiss(page, page.getByTestId('batch-dialog'));
 
   await page.locator('[data-dock-item="sign"]').click();
-  const markup = page.getByRole('toolbar', { name: 'Markup', exact: true });
+  const markup = page.getByRole('toolbar', { name: 'Fill & sign', exact: true });
   await markup.getByRole('button', { name: 'Sign', exact: true }).click();
   await dismiss(page, page.getByRole('dialog', { name: 'New signature' }));
   await markup.getByRole('button', { name: 'Done', exact: true }).click();

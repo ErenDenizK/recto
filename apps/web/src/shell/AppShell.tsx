@@ -43,6 +43,7 @@ import { officeEnabled } from '../office/flag';
 import { resumeOfficeAfterReload } from '../office/intake';
 import { isOfficeFile } from '../office/office-files';
 import { OfficeSheetHost } from '../office/OfficeSheetHost';
+import { ScanSheetHost } from '../scan/ScanSheetHost';
 import { ApplySheetHost } from '../redaction/ApplySheetHost';
 import { registerSettingsCommands } from '../settings/settings-commands';
 import { SettingsHost } from '../settings/SettingsHost';
@@ -271,6 +272,7 @@ export function AppShell() {
       <BatchSheetHost />
       <OcrSheetHost />
       <OfficeSheetHost />
+      <ScanSheetHost />
       <ApplySheetHost />
       <FurnitureHost />
       <ReplacePopover />

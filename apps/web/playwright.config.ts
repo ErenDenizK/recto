@@ -48,6 +48,8 @@ const COMPACT_FIND_MAP_SPEC = '**/compact-find-map.spec.ts';
 const COMPACT_GPU_GLASS_SPEC = '**/compact-gpu-glass.spec.ts';
 /** The page strip's rail on the phone (DSN-63). */
 const COMPACT_PAGE_STRIP_SPEC = '**/compact-page-strip.spec.ts';
+/** The phone's single capsule (EDN-24, `?phonebar=1`). */
+const COMPACT_CAPSULE_SPEC = '**/compact-capsule.spec.ts';
 /** What only the phones run. */
 const PHONE_SPECS = [
   COMPACT_GPU_GLASS_SPEC,
@@ -63,6 +65,7 @@ const PHONE_SPECS = [
   COMPACT_EDIT_TEXT_SPEC,
   COMPACT_FORMS_SPEC,
   COMPACT_PAGE_STRIP_SPEC,
+  COMPACT_CAPSULE_SPEC,
 ];
 /** Specs the desktop projects never run: every phone spec, portrait or on its side. */
 const PHONE_ONLY = [...PHONE_SPECS, COMPACT_OVERVIEW_SPEC];
@@ -218,6 +221,8 @@ export default defineConfig({
         OFFICE_SPEC,
         // The find map's ticks by touch: the card, the tap that jumps (R26, DSN-65).
         '**/find-map.spec.ts',
+        // `?phonebar=1` is the phone's: the tablet's dock stays (EDN-24).
+        '**/compact-capsule-tablet.spec.ts',
       ],
       use: touchDevice(TABLET, devices['Galaxy Tab S4'].userAgent, 2),
     },

@@ -930,7 +930,14 @@ test.describe('the compact edition', () => {
     const cdp = await page.context().newCDPSession(page);
     await pinch(cdp, centre, 80, 200);
     await expect.poll(() => zoomOf(page)).toBeGreaterThan(1.5);
-    await page.waitForTimeout(400);
+    // The release eases to rest: take the zoom once it holds across a few frames.
+    await expect
+      .poll(async () => {
+        const was = await zoomOf(page);
+        await frames(page, 3);
+        return (await zoomOf(page)) === was;
+      })
+      .toBe(true);
     const zoom = await zoomOf(page);
     // Page 4, 90 px into it.
     await pages(page).evaluate(async (el) => {

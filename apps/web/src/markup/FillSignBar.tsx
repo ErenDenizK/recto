@@ -1,6 +1,5 @@
 /**
- * The Fill & sign bar (`?fillbar=1`, `fill-bar-flag.ts`; R28 tools-visibility prototype,
- * DSN-75): the capsule's content for the Fill & sign door, in place of the shared Markup palette.
+ * The Fill & sign bar (R28 tools-visibility, DSN-75, in force): the capsule's content for the Fill & sign door, in place of the shared Markup palette.
  *
  * ```
  * ‹ 3/12 ›  │  ✑ Sign ▾  [saved signatures]  │  ▭ Date  │  ✓ Done

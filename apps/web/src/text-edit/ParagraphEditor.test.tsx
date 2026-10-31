@@ -13,7 +13,15 @@ import type {
   ParagraphPreview,
 } from '@pdf-editor/engine';
 import { faceFamilyName } from '@pdf-editor/engine/fonts';
-import { act, cleanup, render, renderHook, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
@@ -34,6 +42,7 @@ import {
 import { mirrorOffset, mirrorPosition } from './mirror-dom';
 import { type ParagraphSession, useParagraphBoxAt, useTextEditStore } from './text-edit-store';
 import { rectToCss } from '../annotations/geometry';
+import { setParagraphFrameForTests } from './paragraph-frame-flag';
 
 const commits = vi.hoisted(() => ({
   calls: [] as unknown[],
@@ -854,6 +863,9 @@ describe('leaving safely', () => {
     );
     await userEvent.keyboard('{Escape}');
     const choice = await screen.findByTestId('paragraph-choice');
+    // The choice says the overflow in its own sentence; the header says it once.
+    expect(screen.queryByTestId('paragraph-overflow')).toBeNull();
+    expect(screen.getAllByText(/runs into the content below/)).toHaveLength(1);
     expect(commits.calls).toHaveLength(0);
     expect(useTextEditStore.getState().paragraph).toBe(session);
     await waitFor(() => expect(screen.getByTestId('paragraph-keep-editing')).toHaveFocus());
@@ -864,6 +876,7 @@ describe('leaving safely', () => {
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(choice).not.toBeInTheDocument());
     await waitFor(() => expect(mirror).toHaveFocus());
+    expect(screen.getByTestId('paragraph-overflow')).toHaveAttribute('data-kind', 'overflow');
     // A press outside asks again; "Let it overlap" commits the layout as shown.
     await userEvent.keyboard('{Escape}');
     await userEvent.click(await screen.findByTestId('paragraph-overlap'));
@@ -1071,5 +1084,56 @@ describe('helpers', () => {
     expect(placed.left).toBe(Math.floor(css.left * 2) / 2);
     expect(placed.top).toBe(Math.floor(css.top * 2) / 2);
     expect(placed).toMatchObject({ width: 201, height: 51 });
+  });
+});
+
+describe('the frame controls (TXT-24)', () => {
+  beforeEach(() => {
+    commits.calls.length = 0;
+    commits.outcome = undefined;
+    useTextEditStore.getState().close();
+    setParagraphFrameForTests(true);
+  });
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    useTextEditStore.getState().close();
+    setParagraphFrameForTests(null);
+  });
+
+  it('Esc during a drag cancels the drag and commits nothing', async () => {
+    const { session } = setupEngine();
+    const { mirror } = renderEditor(session);
+    await ready(mirror);
+    const grip = await screen.findByTestId('paragraph-grip');
+    expect(grip).toHaveAttribute('aria-hidden', 'true');
+    const press = { pointerId: 7, pointerType: 'mouse', button: 0, clientX: 100, clientY: 100 };
+    fireEvent.pointerDown(grip, press);
+    fireEvent.pointerMove(grip, { ...press, clientX: 160, clientY: 140 });
+    await waitFor(() =>
+      expect(screen.getByTestId('paragraph-moving').style.transform).not.toBe(''),
+    );
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.getByTestId('paragraph-moving').style.transform).toBe(''));
+    expect(commits.calls).toHaveLength(0);
+    expect(useTextEditStore.getState().paragraph).toBe(session);
+    // The drag is over: Esc now leaves, and with no change nothing is committed.
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(useTextEditStore.getState().paragraph).toBeNull());
+    expect(commits.calls).toHaveLength(0);
+  });
+
+  it('a drag released keeps the move, and leaving commits it with its frame', async () => {
+    const { session } = setupEngine();
+    const { mirror } = renderEditor(session);
+    await ready(mirror);
+    const grip = await screen.findByTestId('paragraph-grip');
+    const press = { pointerId: 8, pointerType: 'mouse', button: 0, clientX: 100, clientY: 100 };
+    fireEvent.pointerDown(grip, press);
+    fireEvent.pointerMove(grip, { ...press, clientX: 160, clientY: 140 });
+    fireEvent.pointerUp(grip, { ...press, clientX: 160, clientY: 140 });
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(commits.calls).toHaveLength(1));
+    expect(commits.calls[0]).toMatchObject({ frame: { dx: 60, dy: -40 } });
   });
 });

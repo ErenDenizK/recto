@@ -26,6 +26,7 @@ import { type PendingStamp, useAnnotationStore } from '../annotations/annotation
 import { drawnSignature, typedSignature } from '../annotations/stamps';
 import { formatDay, m } from '../i18n';
 import { announce } from '../shell/announcer';
+import { readPointerCapabilities } from '../shell/frame/input-modality';
 import { useToolStore } from '../viewer/tool-store';
 
 /** The IndexedDB database (spec X26: the `pdf-editor` prefix, versioned). */
@@ -543,7 +544,8 @@ export function armSignatureStamp(stamp: PendingStamp): void {
   annotations.setPendingStamp(stamp);
   annotations.select(null);
   useToolStore.getState().setMode('signature');
-  announce(m.annot_place_signature());
+  const { anyCoarse, anyFine } = readPointerCapabilities();
+  announce(anyCoarse && !anyFine ? m.annot_place_signature_touch() : m.annot_place_signature());
 }
 
 /** Arms a saved signature: a click or drag on a page places it, then Select returns. */
