@@ -2,7 +2,7 @@
 name: Explore
 description: Read-only codebase search for Recto. Finds files, symbols, usages and conventions and returns a short report with paths and line numbers. Use for "where is X", inventories and quick lookups; never for edits or judgment calls.
 tools: Read, Grep, Glob
-model: haiku
+model: sonnet
 effort: low
 omitClaudeMd: true
 ---
