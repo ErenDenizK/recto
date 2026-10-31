@@ -20,6 +20,7 @@ import { useWorkspaceStore } from '../../state/workspace-store';
 import { fillFields } from '../actions';
 import { createdFillsStale, fillCreatedFields } from '../create/field-actions';
 import { markFieldOrigin } from './fill-origin';
+import { myInfoGeneration, useMyInfo } from './my-info';
 import type { FillRow } from './plan-fill';
 
 /** One planned write: the field, the text, and the text it held when planned. */
@@ -36,10 +37,16 @@ export interface FillPlan {
   /** Unique per plan, for the preview to match the result to its plan. */
   readonly id: string;
   readonly document: DocumentId;
+  /**
+   * The My info store when planned: Forget, a backend change, `lockNow` and any profile
+   * change make the plan stale (PRD-37, PRD-38).
+   */
+  readonly epoch: { readonly generation: number; readonly profile: object };
   readonly items: readonly PlannedFill[];
 }
 
-export type FillStatus = 'filled' | 'locked' | 'stale' | 'nothing' | 'no-document';
+/** `failed`: the write was planned but not committed (engine error, history moved, lock). */
+export type FillStatus = 'filled' | 'locked' | 'stale' | 'nothing' | 'no-document' | 'failed';
 
 export interface FillOutcome {
   readonly status: FillStatus;
@@ -70,7 +77,12 @@ export function createFillPlan(
       }),
     );
   if (items.length === 0) return undefined;
-  return { id: globalThis.crypto.randomUUID(), document: document.id, items };
+  return {
+    id: globalThis.crypto.randomUUID(),
+    document: document.id,
+    epoch: { generation: myInfoGeneration(), profile: useMyInfo.getState().profile },
+    items,
+  };
 }
 
 let fills = 0;
@@ -84,6 +96,11 @@ export async function applyFillPlan(plan: FillPlan): Promise<FillOutcome> {
   const doc = getActiveDocument(useWorkspaceStore.getState().workspace);
   if (doc?.id !== plan.document) return none(doc ? 'stale' : 'no-document');
   if (!canChange(doc.id, 'document')) return none('locked');
+  const info = useMyInfo.getState();
+  if (info.status === 'locked') return none('locked');
+  if (myInfoGeneration() !== plan.epoch.generation || info.profile !== plan.epoch.profile) {
+    return none('stale');
+  }
 
   const key = `forms-my-info-${++fills}`;
   const label = m.forms_fill_my_info_label();
@@ -98,17 +115,27 @@ export async function applyFillPlan(plan: FillPlan): Promise<FillOutcome> {
       : [{ id: item.fieldId, value: item.value, expected: item.current }],
   );
 
-  // Created fields are checked first (a model read), so a stale one stops the engine write.
-  if (createdFillsStale(doc.id, created)) return none('stale');
-  const fromEngine = await fillFields(engine, label, key);
+  // Created fields are checked inside the engine step (one step: checks and writes), and
+  // again when written; engine fields are checked there against what the plan saw.
+  const fromEngine = await fillFields(
+    engine,
+    label,
+    key,
+    () => !createdFillsStale(doc.id, created),
+  );
   if (fromEngine.stale) return none('stale');
+  if (fromEngine.failed) return none('failed');
   const fromModel = fillCreatedFields(
     doc.id,
     created,
     label,
     fromEngine.done.length > 0 ? key : undefined,
   );
-  if (fromModel.stale) return none('stale');
+  if (fromModel.stale) {
+    // A created field moved after the engine step: take the whole fill back.
+    if (fromEngine.done.length > 0) useWorkspaceStore.getState().undo();
+    return none('stale');
+  }
 
   markFieldOrigin(
     [

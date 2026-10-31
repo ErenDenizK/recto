@@ -89,7 +89,7 @@ export async function putDate(date: Date = new Date()): Promise<void> {
   if (field !== undefined) {
     // Close the editor: it holds '' and would overwrite the date when it next commits.
     useFormStore.getState().setActive(null);
-    await commitFieldValue(field, text);
+    await commitFieldValue(field, text, 'stamp');
     return;
   }
   const { blob, width, height } = await dateImage(text);

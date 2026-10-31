@@ -1,6 +1,6 @@
 /**
  * Who filled a field (BM-4, DSN-86): `my-info` for the Fill from My info action, `manual` for a
- * value typed or picked by hand. The "save to My info?" chip offers a hand-filled field only.
+ * value typed or picked by hand, `stamp` for a date stamp (the chip ignores it). The "save to My info?" chip offers a hand-filled field only.
  * Session memory keyed by field, never persisted; it holds no value and no profile data
  * (PRD-37). It says how a field was filled, not whether it still holds that text: callers
  * read the field's current value too (an undo empties it).
@@ -10,7 +10,7 @@ import { create } from 'zustand';
 
 import { useWorkspaceStore } from '../../state/workspace-store';
 
-export type FillOrigin = 'my-info' | 'manual';
+export type FillOrigin = 'my-info' | 'manual' | 'stamp';
 
 /** Identifies a field: a source field by source and name, a created one by its id. */
 export interface FieldRef {

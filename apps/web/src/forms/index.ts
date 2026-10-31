@@ -18,6 +18,7 @@ import { clearAllFields } from './actions';
 import { clearCreatedFields } from './create/field-actions';
 import { documentSources, useFormStore } from './form-store';
 import { CreatedFieldLayer, registerCreateFieldCommands } from './create';
+import { commitOpenFieldEditor } from './FieldEditors';
 import { FormLayer } from './FormLayer';
 import { applyFillPlan, type FillOutcome, type FillPlan } from './my-info/apply-fill';
 
@@ -72,6 +73,8 @@ export async function clearActiveForm(): Promise<number> {
  * document is locked or when the plan went stale.
  */
 export async function fillActiveFormFromMyInfo(plan: FillPlan): Promise<FillOutcome> {
+  // Typed text is committed first, never overwritten (as the date button does).
+  commitOpenFieldEditor();
   close();
   return applyFillPlan(plan);
 }

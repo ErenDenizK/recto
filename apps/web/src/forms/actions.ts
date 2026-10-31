@@ -65,13 +65,18 @@ export async function fillField(
  * Commits a value typed or picked in a field editor: created fields (forms/create) are
  * model operations, source fields engine edits. Resolves to whether a change was committed.
  */
-export async function commitFieldValue(here: ActiveField, value: FieldValue): Promise<boolean> {
+export async function commitFieldValue(
+  here: ActiveField,
+  value: FieldValue,
+  origin: 'manual' | 'stamp' = 'manual',
+): Promise<boolean> {
   const done =
     here.fieldId !== undefined
       ? fillCreatedField(here.fieldId, value)
       : here.source !== undefined && (await fillField(here.source, here.name, value));
   // A value typed or picked by hand: the "save to My info?" chip reads this (BM-4, DSN-86).
-  if (done) markFieldOrigin(here, 'manual');
+  // A date stamp is marked `stamp` instead, which the chip ignores.
+  if (done) markFieldOrigin(here, origin);
   return done;
 }
 
@@ -83,10 +88,15 @@ export interface FieldFill {
   readonly expected?: string;
 }
 
-/** The fields `fillFields` changed, or `stale` when it changed none because one moved on. */
+/**
+ * The fields `fillFields` changed. `stale`: it changed none because one moved on (or the
+ * `guard` said so). `failed`: it had edits to make and committed none (engine error, the
+ * history moved meanwhile, the lock refused).
+ */
 export interface FieldsFilled {
   readonly done: readonly { readonly source: SourceId; readonly name: string }[];
   readonly stale: boolean;
+  readonly failed: boolean;
 }
 
 /**
@@ -101,10 +111,12 @@ export async function fillFields(
   fills: readonly FieldFill[],
   label: string,
   coalesceKey?: string,
+  guard?: () => boolean,
 ): Promise<FieldsFilled> {
+  // `runAction` drops the value of an action with no edits, so these are told here.
+  let stale = false;
+  let planned = 0;
   try {
-    // `runAction` drops the value of an action with no edits, so staleness is told here.
-    let stale = false;
     const result = await runAction(async (ctx): Promise<ActionResult<FieldsFilled> | undefined> => {
       const found = new Map<SourceId, readonly FormField[]>();
       const targets: { fill: FieldFill; field: FormField }[] = [];
@@ -122,24 +134,30 @@ export async function fillFields(
         }
         targets.push({ fill, field });
       }
+      // The caller's last check (created fields), in the same step as the writes.
+      if (guard !== undefined && !guard()) {
+        stale = true;
+        return undefined;
+      }
       const edits: EngineEdit[] = [];
       const done: { source: SourceId; name: string }[] = [];
       for (const { fill, field } of targets) {
         if (field.readOnly || sameValue(field.value, fill.value)) continue;
+        planned += 1;
         edits.push((await executeEdit(ctx, formEdit(fill.source, field, fill.value))).recorded);
         done.push({ source: fill.source, name: fill.name });
       }
       return {
         edits,
         label,
-        value: { done, stale: false },
+        value: { done, stale: false, failed: false },
         ...(coalesceKey === undefined ? {} : { coalesceKey }),
       };
     });
-    return result ?? { done: [], stale };
+    return result ?? { done: [], stale, failed: !stale && planned > 0 };
   } catch (error) {
     console.warn('Filling the fields failed', error);
-    return { done: [], stale: false };
+    return { done: [], stale: false, failed: true };
   }
 }
 
