@@ -320,8 +320,8 @@ export function readPages(toks: readonly Tok[], ctx: IntentContext, navigate = f
   function endOrdinals(
     list: readonly Tok[],
     from: number,
-  ): { ords: { n: number }[]; end: number } | null {
-    const ords: { n: number }[] = [];
+  ): { ords: { n: number; word?: boolean }[]; end: number } | null {
+    const ords: { n: number; word?: boolean }[] = [];
     let k = from;
     for (;;) {
       const o = numberAt(list, k);
@@ -364,6 +364,8 @@ export function readPages(toks: readonly Tok[], ctx: IntentContext, navigate = f
     // list, is read from the end too. A front-counted item beside it (a plain number, a range,
     // "ilk"/"son") has no single reading, so the list is not acted on.
     let fromEnd = false;
+    // A spelled-out ordinal alone is counted from the end; a digit ordinal beside one is not read.
+    let endSeen = false;
     const add = (from: number, to: number, how: Pages['named']): void => {
       explicit = true;
       named.add(how);
@@ -429,16 +431,24 @@ export function readPages(toks: readonly Tok[], ctx: IntentContext, navigate = f
       const nm = numberAt(list, i);
       if (nm && fromEnd) {
         // The rest of a "sondan" list: "sondan ikinci ve üçüncü sayfa" is 23 and 22.
-        if (nm.ord) add(count - nm.n + 1, count - nm.n + 1, 'edge');
+        if (nm.ord && !nm.word) unknown.push(t);
+        else if (nm.ord) add(count - nm.n + 1, count - nm.n + 1, 'edge');
         else unknown.push(t);
+        i += nm.len - 1;
+        continue;
+      }
+      if (nm && endSeen && nm.ord && !nm.word) {
+        unknown.push(t);
         i += nm.len - 1;
         continue;
       }
       const endList = nm?.ord ? endOrdinals(list, i) : null;
       if (nm && endList) {
         // "second and third to last", "second and third from the end": the suffix is for all.
-        if (endList.ords.some((o) => o.n < 2)) unknown.push(t);
+        if (endList.ords.some((o) => o.n < 2 || (!o.word && endList.ords.length > 1)))
+          unknown.push(t);
         else for (const o of endList.ords) add(count - o.n + 1, count - o.n + 1, 'edge');
+        endSeen = true;
         i = endList.end;
         continue;
       }

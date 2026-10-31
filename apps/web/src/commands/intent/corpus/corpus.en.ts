@@ -325,6 +325,8 @@ export const EN: Readonly<Record<string, readonly Row[]>> = {
     ['delete page eleven', 'delete 11'],
     ['delete second to last page', 'delete 23'],
     ['delete second from the end', 'delete 23'],
+    ['delete second to last and 5th page', 'none'],
+    ['delete second and 5th to last pages', 'none'],
     ['delete second and third to last pages', 'delete 22-23'],
     ['delete second and third from the end', 'delete 22-23'],
     ['delete second to last and third to last pages', 'delete 22-23'],
