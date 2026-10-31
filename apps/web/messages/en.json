@@ -5220,6 +5220,8 @@
   "intent_reason_needs_pages": "Say which pages, like 3–5",
   "intent_reason_not_a_run": "Page numbers go on a run of pages, like 3–10",
   "intent_reason_shifted": "Add these after the pages are in place, in a second sentence",
+  "intent_reason_shifted_extract": "The extract runs after the delete, and page {page} would be gone; extract first, then delete in a second sentence",
+  "intent_reason_shifted_page": "Page {page} is deleted earlier in this sentence; say this step in a second sentence",
   "intent_reason_two_finishing": "One save or tool per sentence",
   "intent_reason_after_split": "Splitting ends the document; put it last",
   "intent_reason_single_part": "That leaves one part",
@@ -5228,7 +5230,6 @@
   "intent_unavailable_excel": "Recto doesn’t turn PDFs into Excel files",
   "intent_unavailable_powerpoint": "Recto doesn’t turn PDFs into PowerPoint files",
   "intent_unavailable_translate": "Recto doesn’t translate documents",
-  "intent_reason_stale": "The document changed; read the sentence again",
   "history_intent": "{steps}",
   "toast_intent_done": [
     {
@@ -5242,6 +5243,7 @@
   ],
   "save_copy_target": "Target: under {target} · {size} ≈ {estimate}",
   "save_copy_target_unmet": "Smallest is about {size}; the target can’t be reached here",
+  "save_copy_target_over": "Target: under {target} · {size} ≈ {estimate}, above the target",
   "recents_search_label": "Search recent files",
   "recents_sort_label": "Sort recent files",
   "recents_sort_recent": "Last opened",

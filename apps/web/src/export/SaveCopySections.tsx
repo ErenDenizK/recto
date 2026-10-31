@@ -129,8 +129,8 @@ function estimateDetail(
 
 /**
  * The line under Size when a sentence named a byte target (PRD-40): "Target: under 2 MB · Smaller
- * ≈ 1.4 MB", or, when the lightest Size cannot reach it, that Smallest is about as big as it
- * gets and the target can't be reached here (no dpi search, no silent over-compression).
+ * ≈ 1.4 MB"; when the chosen Size's estimate is above the target it says so, and for Smallest
+ * that the target can't be reached here (no dpi search, no silent over-compression).
  */
 function targetText(size: SizeChoice, estimates: SizeEstimates, target: number): string {
   const after = size === 'same' ? estimates.same : estimates[size].after;
@@ -143,11 +143,9 @@ function targetText(size: SizeChoice, estimates: SizeEstimates, target: number):
     smallest: m.save_copy_size_smallest(),
     custom: m.save_copy_size_custom(),
   }[size];
-  return m.save_copy_target({
-    target: formatSize(target),
-    size: label,
-    estimate: formatSize(after),
-  });
+  const inputs = { target: formatSize(target), size: label, estimate: formatSize(after) };
+  // Whatever Size is chosen, an estimate above the target says so rather than showing it as met.
+  return after > target ? m.save_copy_target_over(inputs) : m.save_copy_target(inputs);
 }
 
 export function SizeSection({

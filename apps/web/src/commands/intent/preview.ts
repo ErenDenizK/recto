@@ -21,6 +21,7 @@ import {
   commandOf,
   coversAll,
   documentStepsOf,
+  finishesAfterSplit,
   finishingStepOf,
   isDocumentStep,
   isNavigateStep,
@@ -33,7 +34,6 @@ import {
   type Family,
   type IntentContext,
   type Pages,
-  type Problem,
   type Reading,
   type Step,
 } from './types';
@@ -47,6 +47,11 @@ export interface IntentPreview {
   /** 'one' = one undo step; 'separate' = a handoff commits its own; 'none' = output/navigate only. */
   readonly undo: 'one' | 'separate' | 'none';
   readonly runnable: boolean;
+  /**
+   * Words the parser corrected, for a quiet "döndr → döndür" under the row: what was typed and
+   * the properly spelled `display` form (never the folded form the parser matched).
+   */
+  readonly corrected?: readonly { readonly typed: string; readonly display: string }[];
   /** Why not, when not runnable (problem or guard refusal). */
   readonly reason?: string;
   /** For `unavailable`: the command row offered instead. */
@@ -112,8 +117,21 @@ function nearestTitle(commandId: string): string | undefined {
   return commandId === 'document.exportMarkdown' ? m.cmd_convert_markdown() : undefined;
 }
 
-function problemText(kind: Problem, ctx: IntentContext): string {
-  switch (kind) {
+/** The words for a page a later step names after an earlier step deleted it (`shifted`). */
+function shiftedText(problem: NonNullable<Reading['problem']>, reading: Reading): string {
+  if (problem.page === undefined) return m.intent_reason_shifted();
+  const step = reading.steps[problem.step];
+  return step?.action === 'extract'
+    ? m.intent_reason_shifted_extract({ page: problem.page })
+    : m.intent_reason_shifted_page({ page: problem.page });
+}
+
+function problemText(
+  problem: NonNullable<Reading['problem']>,
+  reading: Reading,
+  ctx: IntentContext,
+): string {
+  switch (problem.kind) {
     case 'no-document':
       return m.palette_intent_no_document();
     case 'out-of-range':
@@ -131,7 +149,7 @@ function problemText(kind: Problem, ctx: IntentContext): string {
     case 'not-a-run':
       return m.intent_reason_not_a_run();
     case 'shifted':
-      return m.intent_reason_shifted();
+      return shiftedText(problem, reading);
     case 'two-finishing':
       return m.intent_reason_two_finishing();
     case 'after-split':
@@ -395,14 +413,16 @@ export function previewOf(
   reading: Reading,
   ctx: IntentContext,
   version: number,
-  text = '',
+  text: string,
 ): IntentPreview {
   const steps = reading.steps.map((step) => previewStep(step, ctx));
   const key = `${version}|${foldForSearch(text).trim().replace(/\s+/g, ' ')}|${JSON.stringify(reading.steps)}`;
   const unavailable = reading.steps.find((step) => step.action === 'unavailable');
   let reason: string | undefined;
   let nearest: IntentPreview['nearest'];
-  if (reading.problem !== null) reason = problemText(reading.problem.kind, ctx);
+  if (reading.problem !== null) reason = problemText(reading.problem, reading, ctx);
+  // A finishing step after a split would open on part 1, the part the split activates.
+  if (reason === undefined && finishesAfterSplit(reading)) reason = m.intent_reason_after_split();
   if (unavailable?.action === 'unavailable') {
     reason ??= steps[0]?.label;
     const title = unavailable.nearest === null ? undefined : nearestTitle(unavailable.nearest);
@@ -429,6 +449,9 @@ export function previewOf(
     steps,
     undo: undoOf(reading),
     runnable: reason === undefined && reading.steps.length > 0,
+    ...(reading.corrected === undefined || reading.corrected.length === 0
+      ? {}
+      : { corrected: reading.corrected.map(({ typed, display }) => ({ typed, display })) }),
     ...(reason === undefined ? {} : { reason }),
     ...(nearest === undefined ? {} : { nearest }),
   };
@@ -472,7 +495,7 @@ export function previewWithGuard(
   reading: Reading,
   ctx: IntentContext,
   version: number,
-  text = '',
+  text: string,
 ): IntentPreview {
   const base = previewOf(reading, ctx, version, text);
   const ws = useWorkspaceStore.getState().workspace;

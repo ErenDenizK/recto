@@ -29,9 +29,12 @@ import { gatherIntentContext, workspaceVersion } from './context';
 import {
   composeSteps,
   documentStepsOf,
+  finishesAfterSplit,
   finishingStepOf,
   isNavigateStep,
+  pageIdsOf,
   rangeText,
+  relocateStep,
   stepPages,
 } from './plan';
 import { guardReason, historyLabel, previewOf } from './preview';
@@ -40,12 +43,12 @@ import type { Reading, Step } from './types';
 export type RunResult = 'ran' | 'stale' | 'refused';
 
 /** The request Save a copy opens with for an output step (PRD-40), or null for a plain open. */
-function requestOf(step: Step, pageCount: number): SaveCopyRequest | null {
+function requestOf(step: Step): SaveCopyRequest | null {
   switch (step.action) {
     case 'compress':
       return step.targetBytes === null ? 'size' : { kind: 'size', targetBytes: step.targetBytes };
     case 'exportImages':
-      return { kind: 'images', type: step.format, range: rangeText(step.pages, pageCount) };
+      return { kind: 'images', type: step.format, range: rangeText(step.pages) };
     case 'exportText':
       return { kind: 'text', format: step.format };
     default:
@@ -78,7 +81,7 @@ async function withSelection(
 }
 
 /** Runs one finishing or navigate step (§2.12 steps 4 and 5). */
-async function runLast(step: Step, pageCount: number): Promise<void> {
+async function runLast(step: Step): Promise<void> {
   const ws = useWorkspaceStore.getState().workspace;
   const doc = getActiveDocument(ws);
   switch (step.action) {
@@ -103,7 +106,7 @@ async function runLast(step: Step, pageCount: number): Promise<void> {
       return;
     case 'extract': {
       if (!doc) return;
-      const ids = step.pages.pages.flatMap((n) => (doc.pages[n - 1] ? [doc.pages[n - 1]!.id] : []));
+      const ids = step.pages.pages.flatMap((n) => doc.pages[n - 1]?.id ?? []);
       await withSelection(doc.id, ids, () => commandRegistry.execute('pages.extract'));
       return;
     }
@@ -129,7 +132,7 @@ async function runLast(step: Step, pageCount: number): Promise<void> {
     case 'compress':
     case 'exportImages':
     case 'exportText':
-      if (doc) openSaveCopy(doc.id, requestOf(step, pageCount));
+      if (doc) openSaveCopy(doc.id, requestOf(step));
       return;
     case 'saveCopy':
       await commandRegistry.execute('file.export');
@@ -165,14 +168,21 @@ async function runLast(step: Step, pageCount: number): Promise<void> {
 export async function runReading(
   reading: Reading,
   shownKey: string,
-  text = '',
+  text: string,
 ): Promise<RunResult> {
   const ctx = gatherIntentContext();
   const shown = previewOf(reading, ctx, workspaceVersion(), text);
   if (shown.key !== shownKey) return 'stale';
   if (!shown.runnable || guardReason(reading) !== undefined) return 'refused';
+  // A split activates its first part, so a tool or Save a copy after it would open on part 1.
+  if (finishesAfterSplit(reading)) return 'refused';
 
   const doc = getActiveDocument(useWorkspaceStore.getState().workspace);
+  // The finishing step names pages as previewed; the commit moves them, so find them by id first
+  // and look the ids up again once the document steps have run.
+  const last = finishingStepOf(reading) ?? reading.steps.find(isNavigateStep);
+  const lastIds = last === undefined ? [] : pageIdsOf(last, doc);
+  if (lastIds === null) return 'refused';
   const documentSteps = documentStepsOf(reading);
   if (documentSteps.length > 0) {
     if (!doc) return 'refused';
@@ -199,8 +209,14 @@ export async function runReading(
     if (index >= 0 && index !== useViewStore.getState().currentPage) goToPageIndex(index);
   }
 
-  // Pages in the sentence are positions as previewed, so "every page" is judged by that count.
-  const last = finishingStepOf(reading) ?? reading.steps.find(isNavigateStep);
-  if (last !== undefined) await runLast(last, ctx.pageCount);
+  if (last !== undefined) {
+    const located = relocateStep(
+      last,
+      lastIds,
+      getActiveDocument(useWorkspaceStore.getState().workspace),
+    );
+    if (located === null) return 'refused';
+    await runLast(located);
+  }
   return 'ran';
 }

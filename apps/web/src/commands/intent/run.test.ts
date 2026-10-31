@@ -4,12 +4,14 @@
  * history entry that one Undo takes back, an output opens Save a copy set up after the commit,
  * and a failing commit stops the finishing step.
  */
-import { getActiveDocument } from '@pdf-editor/document-model';
+import { deletePages, getActiveDocument, type PageId } from '@pdf-editor/document-model';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import manyUrl from '../../../../../test/fixtures/many-pages.pdf?url';
 import { fixtureFile } from '../../../test/store-harness';
 import { saveCopyRequestOf } from '../../export/export-store';
+import { useSelectionStore } from '../../state/selection-store';
+import { useViewStore } from '../../state/view-store';
 import { setLocale } from '../../i18n';
 import { registerToolCommands } from '../../tools/tool-commands';
 import { resetLockStore, useLockStore } from '../../state/lock-store';
@@ -148,12 +150,151 @@ describe('runReading', () => {
   });
 
   it('stops before the finishing step when the commit changes nothing', async () => {
-    const text = 'move 1 to the start and compress';
-    const parsed = parseIntent(text, gatherIntentContext());
-    if (parsed.kind !== 'readings') throw new Error('no reading');
-    const reading = parsed.readings[0];
-    const key = previewOf(reading, gatherIntentContext(), workspaceVersion(), text).key;
-    expect(await runReading(reading, key, text)).toBe('refused');
+    const text = 'rotate 1 and compress';
+    const { reading, key } = read(text);
+    // The operation throws (the page it names is gone), so the store commits nothing.
+    const store = useWorkspaceStore.getState();
+    const original = store.applyOperation;
+    useWorkspaceStore.setState({ applyOperation: () => false });
+    try {
+      expect(await runReading(reading, key, text)).toBe('refused');
+    } finally {
+      useWorkspaceStore.setState({ applyOperation: original });
+    }
     expect(useSheetStore.getState().open).toBeNull();
+  });
+});
+
+describe('a finishing step after a chain', () => {
+  let extracted: PageId[] | undefined;
+  let offs: (() => void)[] = [];
+  beforeEach(() => {
+    extracted = undefined;
+    offs = [
+      commandRegistry.register({
+        id: 'pages.extract',
+        title: 'Extract',
+        group: 'test',
+        act: null,
+        run: () => {
+          extracted = [...useSelectionStore.getState().selected];
+        },
+      }),
+      commandRegistry.register({
+        id: 'tool.signature',
+        title: 'Sign',
+        group: 'test',
+        act: null,
+        run: () => undefined,
+      }),
+    ];
+  });
+  afterEach(() => {
+    for (const off of offs) off();
+  });
+
+  it('extracts the page it showed, not the one now at that position', async () => {
+    const ids = doc().pages.map((p) => p.id);
+    const text = 'delete 1 and extract 3';
+    const { reading, key } = read(text);
+    expect(await runReading(reading, key, text)).toBe('ran');
+    expect(extracted).toEqual([ids[2]]);
+  });
+
+  it('signs the page it showed after a duplicate moved it', async () => {
+    const ids = doc().pages.map((p) => p.id);
+    const text = 'duplicate 2 and sign page 5';
+    const { reading, key } = read(text);
+    expect(await runReading(reading, key, text)).toBe('ran');
+    const at = doc().pages.findIndex((p) => p.id === ids[4]);
+    expect(at).toBe(5);
+    expect(useViewStore.getState().navTarget).toBe(at);
+  });
+
+  it('opens Images on the pages it showed after a delete moved them', async () => {
+    const text = 'delete 1 and save pages 5-6 as png';
+    const { reading, key } = read(text);
+    expect(await runReading(reading, key, text)).toBe('ran');
+    expect(saveCopyRequestOf(useSheetStore.getState().open)).toEqual({
+      kind: 'images',
+      type: 'png',
+      range: '4-5',
+    });
+  });
+
+  it('keeps "every page" as every page when the chain added one', async () => {
+    const text = 'duplicate 2 and save as png';
+    const { reading, key } = read(text);
+    expect(await runReading(reading, key, text)).toBe('ran');
+    expect(saveCopyRequestOf(useSheetStore.getState().open)).toEqual({
+      kind: 'images',
+      type: 'png',
+      range: '',
+    });
+  });
+
+  it('refuses when the page the finishing step named is gone', async () => {
+    const text = 'delete 1 and extract 3';
+    const { reading, key } = read(text);
+    // The preview is true, but the page is deleted before the finishing step looks for it.
+    const doomed = doc().pages[2]?.id;
+    const store = useWorkspaceStore.getState();
+    const original = store.applyOperation;
+    useWorkspaceStore.setState({
+      applyOperation: (operation, label, options) =>
+        original(
+          (ws, ids) => deletePages(operation(ws, ids), doomed ? [doomed] : []),
+          label,
+          options,
+        ),
+    });
+    try {
+      expect(await runReading(reading, key, text)).toBe('refused');
+    } finally {
+      useWorkspaceStore.setState({ applyOperation: original });
+    }
+    expect(extracted).toBeUndefined();
+  });
+});
+
+describe('a chain that moves pages before the step that reads them', () => {
+  it('splits at the page it showed, not the one now at that position', async () => {
+    const ids = doc().pages.map((p) => p.id);
+    const text = 'delete 1 and split at 10';
+    const { reading, key } = read(text);
+    expect(await runReading(reading, key, text)).toBe('ran');
+    const first = getActiveDocument(useWorkspaceStore.getState().workspace);
+    expect(first?.pages.map((p) => p.id)).toEqual(ids.slice(1, 9));
+  });
+
+  it('numbers every page when an earlier step added one', async () => {
+    const text = 'duplicate 3 and add page numbers';
+    const { reading, key } = read(text);
+    expect(await runReading(reading, key, text)).toBe('ran');
+    expect(doc().pages.length).toBe(401);
+    expect(doc().furniture?.[0]).not.toHaveProperty('pages');
+  });
+
+  it('reverses every page when an earlier step added one', async () => {
+    const ids = doc().pages.map((p) => p.id);
+    const text = 'duplicate 3 and reverse';
+    const { reading, key } = read(text);
+    expect(await runReading(reading, key, text)).toBe('ran');
+    const now = doc().pages.map((p) => p.id);
+    expect(now).toHaveLength(401);
+    expect(now[0]).toBe(ids[399]);
+    expect(now.at(-1)).toBe(ids[0]);
+    // The copy sat at 4 of 401; whole-document reverse puts it at 398 (index 397).
+    expect(now.findIndex((id) => !ids.includes(id))).toBe(397);
+  });
+
+  it('opens no tool after a split', async () => {
+    for (const text of ['split every 100 and compress', 'split every 100 and save as jpg']) {
+      const { reading, key } = read(text);
+      const before = Object.keys(useWorkspaceStore.getState().workspace.documents).length;
+      expect(await runReading(reading, key, text)).toBe('refused');
+      expect(Object.keys(useWorkspaceStore.getState().workspace.documents).length).toBe(before);
+      expect(useSheetStore.getState().open).toBeNull();
+    }
   });
 });

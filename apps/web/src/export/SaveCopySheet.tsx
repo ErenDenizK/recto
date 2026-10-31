@@ -537,7 +537,11 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
               ) : null}
               <SizeSection
                 draft={draft}
-                patch={patch}
+                patch={(next) => {
+                  // A size the person picks is theirs: the target no longer chooses for them.
+                  if (next.size !== undefined) setTargetChosen(true);
+                  patch(next);
+                }}
                 analysis={analysis}
                 estimates={estimates}
                 quick={quick}

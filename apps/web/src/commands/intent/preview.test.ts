@@ -69,9 +69,9 @@ describe('the corpus has previews', () => {
     if (!rotate) throw new Error('no rotate row');
     const ctx = FIXTURES.DOC24;
     setLocale('en');
-    const en = previewOf(rotate.reading, ctx, 1).sentence;
+    const en = previewOf(rotate.reading, ctx, 1, 'rotate').sentence;
     setLocale('tr');
-    const tr = previewOf(rotate.reading, ctx, 1).sentence;
+    const tr = previewOf(rotate.reading, ctx, 1, 'rotate').sentence;
     expect(en).not.toBe(tr);
   });
 });
@@ -94,7 +94,7 @@ describe('the key', () => {
     setLocale('en');
     const chain = parseIntent('rotate 3-5 and delete 8', ctx);
     if (chain.kind !== 'readings') throw new Error('no chain');
-    const preview = previewOf(chain.readings[0], ctx, 1);
+    const preview = previewOf(chain.readings[0], ctx, 1, 'chain');
     expect(preview.sentence).toBe('Rotate pages 3–5 right, then delete page 8');
     expect(preview.undo).toBe('one');
     expect(preview.runnable).toBe(true);
@@ -104,7 +104,7 @@ describe('the key', () => {
     setLocale('en');
     const chain = parseIntent('compress under 2 MB and rotate 3', ctx);
     if (chain.kind !== 'readings') throw new Error('no chain');
-    const preview = previewOf(chain.readings[0], ctx, 1);
+    const preview = previewOf(chain.readings[0], ctx, 1, 'chain');
     expect(preview.steps.map((s) => s.family)).toEqual(['document', 'output']);
     expect(preview.undo).toBe('one');
   });
@@ -113,8 +113,48 @@ describe('the key', () => {
     setLocale('en');
     const word = parseIntent("pdf'i word'e çevir", ctx);
     if (word.kind !== 'readings') throw new Error('no reading');
-    const preview = previewOf(word.readings[0], ctx, 1);
+    const preview = previewOf(word.readings[0], ctx, 1, 'word');
     expect(preview.runnable).toBe(false);
     expect(preview.nearest?.commandId).toBe('document.exportMarkdown');
+  });
+});
+
+describe('the reasons', () => {
+  const ctx = FIXTURES.DOC24;
+  const reasonOf = (text: string) => {
+    const result = parseIntent(text, ctx);
+    if (result.kind !== 'readings') throw new Error(`no reading for ${text}`);
+    return previewOf(result.readings[0], ctx, 1, text);
+  };
+
+  it('says which page a later step lost to an earlier delete, in both languages', () => {
+    setLocale('en');
+    const extract = reasonOf('delete 3 and extract 3');
+    expect(extract.runnable).toBe(false);
+    expect(extract.reason).toContain('3');
+    expect(extract.reason).toMatch(/extract/i);
+    setLocale('tr');
+    expect(reasonOf('3. sayfayı sil ve 3. sayfayı ayıkla').reason).toContain('3. sayfa');
+  });
+
+  it('refuses any finishing step after a split, even when the parser let it through', () => {
+    setLocale('en');
+    const split = parseIntent('split every 10', ctx);
+    const compress = parseIntent('compress', ctx);
+    if (split.kind !== 'readings' || compress.kind !== 'readings') throw new Error('no reading');
+    const joined: Reading = {
+      ...split.readings[0],
+      steps: [...split.readings[0].steps, ...compress.readings[0].steps],
+      problem: null,
+    };
+    const preview = previewOf(joined, ctx, 1, 'split every 10 and compress');
+    expect(preview.runnable).toBe(false);
+    expect(preview.reason).toBe('Splitting ends the document; put it last');
+  });
+
+  it('shows a corrected word as the lexicon spells it', () => {
+    setLocale('tr');
+    const typo = reasonOf('döndr 3');
+    expect(typo.corrected).toEqual([{ typed: 'döndr', display: 'döndür' }]);
   });
 });

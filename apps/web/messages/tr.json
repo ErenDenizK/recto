@@ -3562,6 +3562,8 @@
   "intent_reason_needs_pages": "Hangi sayfalar? Örneğin 3–5",
   "intent_reason_not_a_run": "Sayfa numaraları ardışık sayfalara eklenir, örneğin 3–10",
   "intent_reason_shifted": "Bunu sayfalar yerleşince ayrı bir cümleyle ekleyin",
+  "intent_reason_shifted_extract": "Ayıklama silmeden sonra çalışır ve {page}. sayfa o zaman yok olur; önce ayıklayın, silmeyi ayrı bir cümleyle söyleyin",
+  "intent_reason_shifted_page": "{page}. sayfa bu cümlede daha önce siliniyor; bu adımı ayrı bir cümleyle söyleyin",
   "intent_reason_two_finishing": "Bir cümlede tek bir kaydetme ya da araç",
   "intent_reason_after_split": "Bölme belgeyi sonlandırır; en sona koyun",
   "intent_reason_single_part": "Bu tek parça bırakır",
@@ -3570,7 +3572,6 @@
   "intent_unavailable_excel": "Recto PDF’yi Excel dosyasına çevirmez",
   "intent_unavailable_powerpoint": "Recto PDF’yi PowerPoint dosyasına çevirmez",
   "intent_unavailable_translate": "Recto belgeleri çevirmez",
-  "intent_reason_stale": "Belge değişti; cümleyi yeniden okuyun",
   "history_intent": "{steps}",
   "toast_intent_done": [
     {
@@ -3584,6 +3585,7 @@
   ],
   "save_copy_target": "Hedef: {target} altı · {size} ≈ {estimate}",
   "save_copy_target_unmet": "En küçük yaklaşık {size}; hedefe burada ulaşılamıyor",
+  "save_copy_target_over": "Hedef: {target} altı · {size} ≈ {estimate}, hedefin üstünde",
   "recents_search_label": "Son açılan dosyalarda ara",
   "recents_sort_label": "Son açılan dosyaları sırala",
   "recents_sort_recent": "Açılma tarihi",
