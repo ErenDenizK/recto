@@ -23,11 +23,20 @@ runs:
         pnpm exec playwright install chromium
 
         missing=0
-        for bin in "$HOME"/.cache/ms-playwright/chromium*/*/chrome \
-          "$HOME"/.cache/ms-playwright/chromium*/*/headless_shell; do
+        checked=0
+        for bin in "$HOME"/.cache/ms-playwright/chromium-*/chrome-linux*/chrome \
+          "$HOME"/.cache/ms-playwright/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell; do
           [ -x "$bin" ] || continue
-          if ldd "$bin" | grep -q 'not found'; then missing=1; fi
+          checked=$((checked + 1))
+          # Through a file: `ldd | grep -q` under pipefail reads SIGPIPE (141) as clean.
+          ldd "$bin" > "$RUNNER_TEMP/ldd.txt" 2>&1 || true
+          if grep -q 'not found' "$RUNNER_TEMP/ldd.txt"; then missing=1; fi
         done
+        if [ "$checked" = 0 ]; then missing=1; fi
+        # install-deps also brings the fonts the frames are rendered with.
+        fc-list > "$RUNNER_TEMP/fc.txt" 2>/dev/null || true
+        grep -qi 'noto color emoji' "$RUNNER_TEMP/fc.txt" || missing=1
+        grep -qi liberation "$RUNNER_TEMP/fc.txt" || missing=1
         if [ "$missing" = 1 ]; then
           echo "Chromium system libraries missing; installing with apt"
           pnpm exec playwright install-deps chromium
