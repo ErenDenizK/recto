@@ -81,7 +81,7 @@ describe('the intent bar in the palette', () => {
 
   it('keeps a problem legible, says why, and does nothing on Enter', async () => {
     await userEvent.keyboard('rotate 2-999 right');
-    const option = await screen.findByRole('option', { name: /^Rotate pages\s+right/ });
+    const option = await screen.findByRole('option', { name: /^Rotate pages 2–999 right/ });
     expect(option).toHaveAttribute('aria-disabled', 'true');
     expect(option).toHaveAccessibleDescription(/This document has/);
     await frame();

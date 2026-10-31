@@ -11,13 +11,13 @@
 import { gatherIntentContext, workspaceVersion } from './intent/context';
 import { parseIntent } from './intent/parse';
 import { type IntentPreview, previewOf, previewWithGuard } from './intent/preview';
-import { type RunResult, runReading } from './intent/run';
+import type { RunResult } from './intent/run';
 import type { Reading } from './intent/types';
 import { m } from '../i18n';
 
 // One chunk for the parser, the preview and the runner, and the component that draws them.
 export { IntentReading } from '../shell/palette/IntentRows';
-export { gatherIntentContext, parseIntent, runReading };
+export { gatherIntentContext, parseIntent };
 export type { IntentPreview, RunResult };
 
 /** One reading as the bar shows it: the reading, its preview and the text it was drawn from. */
@@ -32,9 +32,9 @@ export interface ReadingRow {
 
 export type IntentRead =
   /** One or two readings, best first. */
-  | { readonly kind: 'readings'; readonly rows: readonly ReadingRow[]; readonly orLabel: string }
+  | { readonly kind: 'readings'; readonly rows: readonly ReadingRow[] }
   /** An action word was found but another word was not: a quiet row, then the commands. */
-  | { readonly kind: 'partial'; readonly message: string }
+  | { readonly kind: 'partial'; readonly message: string; readonly rest: string }
   | { readonly kind: 'none' };
 
 /** "Try: rotate pages 3–5 right", in the UI language (§2.14). */
@@ -51,12 +51,16 @@ export function readIntent(text: string): IntentRead {
     return {
       kind: 'partial',
       message: `${m.intent_bar_not_understood({ word: result.unknown[0] ?? text.trim() })} · ${exampleLine()}`,
+      // The commands rank on what was understood: the text without the words it did not read.
+      rest: text
+        .split(/\s+/)
+        .filter((word) => !result.unknown.some((u) => u.toLowerCase() === word.toLowerCase()))
+        .join(' '),
     };
   }
   const version = workspaceVersion();
   return {
     kind: 'readings',
-    orLabel: m.intent_bar_or(),
     rows: result.readings.map((reading) => {
       const preview = previewWithGuard(reading, ctx, version, text);
       return { key: preview.key, reading, preview, text };

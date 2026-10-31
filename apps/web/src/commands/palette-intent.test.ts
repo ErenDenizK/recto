@@ -73,7 +73,7 @@ describe('announcementOf', () => {
     const ok = readIntent('delete 2');
     expect(announcementOf(ok)).toBe('Delete page 2');
     const bad = announcementOf(readIntent('rotate 2-999 right'));
-    expect(bad).toMatch(/^Rotate pages\s+right\. /);
+    expect(bad).toMatch(/^Rotate pages 2–999 right\. /);
   });
 
   it('says two readings together', () => {

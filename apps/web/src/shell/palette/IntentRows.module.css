@@ -50,8 +50,9 @@
   display: flex;
   align-items: flex-start;
   gap: var(--space-1h);
-  padding-inline-start: calc(var(--icon-sm) + var(--space-2));
-  overflow: hidden;
+  padding: var(--space-1h) 0 var(--space-1h) calc(var(--icon-sm) + var(--space-2));
+  overflow-x: auto;
+  overflow-y: visible;
 }
 
 .thumb {
@@ -70,11 +71,15 @@
   margin-inline-start: var(--space-2);
 }
 
-/* The affected pages: a 2 px accent ring (outline, so forced colours keep it) at full strength. */
-.thumb[data-affected='true'] {
-  outline: 2px solid var(--accent);
-  outline-offset: 0;
+/* The affected pages: a 2 px accent ring on the sheet (outline, so forced colours keep it). */
+.thumb[data-affected='true'],
+.thumb[data-affected='all'] {
   opacity: 1;
+}
+
+.thumb[data-affected='true'] .sheet {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .sheet {
@@ -107,14 +112,23 @@
   color: var(--accent-on-fill);
 }
 
+.thumb[data-mark='delete'] .badge {
+  background: var(--danger);
+  color: var(--surface-frame);
+}
+
 .badge svg {
   width: var(--icon-xs);
   height: var(--icon-xs);
 }
 
-/* Deleted: dimmed and struck, with the word in the sentence (A-19). */
-.thumb[data-mark='delete'] .sheet {
-  opacity: 0.5;
+/* Deleted: a danger ring, badge and strike, and fainter than the unaffected neighbours (A-19). */
+.thumb[data-affected='true'][data-mark='delete'] .sheet {
+  outline-color: var(--danger);
+}
+
+.thumb[data-affected='true'][data-mark='delete'] .sheet > * {
+  opacity: 0.35;
 }
 
 .thumb[data-mark='delete'] .sheet::after {
@@ -123,8 +137,8 @@
   background: linear-gradient(
     to top right,
     transparent calc(50% - 1px),
-    var(--text-primary) calc(50% - 1px),
-    var(--text-primary) calc(50% + 1px),
+    var(--danger) calc(50% - 1px),
+    var(--danger) calc(50% + 1px),
     transparent calc(50% + 1px)
   );
   content: '';

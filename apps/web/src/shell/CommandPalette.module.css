@@ -246,12 +246,24 @@
   align-self: center;
 }
 
-/* Between two readings: a quiet "or" (spec §3.3), stacked, never collapsing one into the other. */
+/* Between two readings: a hairline, stacked, never collapsing one into the other (spec §3.3). */
 .or {
-  padding: var(--space-half) var(--space-3);
-  color: var(--text-tertiary);
-  font-size: var(--type-footnote);
-  line-height: var(--type-footnote-lh);
+  height: 1px;
+  margin: var(--space-1) var(--space-3);
+  background: var(--border-hairline);
+}
+
+/* A capability Recto lacks: a quiet fact above its nearest command, never focusable. */
+.info {
+  display: flex;
+  min-height: var(--control-h);
+  padding: 0 var(--space-2) 0 var(--space-3);
+  color: var(--text-secondary);
+}
+
+/* The nearest command lines up with the reading's text, past its glyph column. */
+.option[data-indented] {
+  padding-inline-start: calc(var(--space-3) + var(--icon-sm) + var(--space-2));
 }
 
 .option[aria-disabled='true'] {
@@ -323,4 +335,9 @@
   .footer {
     display: none;
   }
+}
+
+/* Enter does nothing on a row that cannot run: its keycap says so quietly. */
+.footerItem[data-dim] {
+  opacity: 0.4;
 }

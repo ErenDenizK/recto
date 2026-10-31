@@ -105,8 +105,10 @@ function Strip({
   readonly ready: boolean;
 }) {
   const coarse = useCoarsePointer();
-  const [width, height] = coarse ? [48, 64] : [32, 42];
+  const [width, height] = coarse ? [48, 64] : [40, 52];
   const pages = step.pages ?? [];
+  // Every page is affected (a whole-document step): no ring, the sentence and its fact say it.
+  const all = pages.length >= doc.pages.length;
   const shown = pages.slice(0, MAX_PAGES);
   const more = pages.length - shown.length;
   const items = stripItems(shown, doc.pages.length, more === 0 && shown.length <= NEIGHBOURS_UP_TO);
@@ -117,7 +119,7 @@ function Strip({
           key={item.page}
           className={styles.thumb}
           data-page={item.page}
-          data-affected={item.affected ? 'true' : 'false'}
+          data-affected={item.affected ? (all ? 'all' : 'true') : 'false'}
           data-mark={item.affected ? step.mark : undefined}
           data-gap={item.gap ? '' : undefined}
         >
@@ -129,7 +131,7 @@ function Strip({
           <span className={styles.number}>{item.page}</span>
           {item.affected && step.mark ? (
             <span className={styles.badge}>
-              <Icon name={MARK_GLYPH[step.mark]} size={16} />
+              <Icon name={MARK_GLYPH[step.mark]} size={16} filled />
             </span>
           ) : null}
         </span>
@@ -193,7 +195,14 @@ export function IntentReading({
         {preview.steps.map((step, i) => (
           <span key={i} className={styles.step} data-family={step.family}>
             <span className={styles.line}>
-              <Icon name={FAMILY_GLYPH[step.family]} className={styles.glyph} />
+              <Icon
+                name={
+                  step.family === 'handoff' && step.mark
+                    ? MARK_GLYPH[step.mark]
+                    : FAMILY_GLYPH[step.family]
+                }
+                className={styles.glyph}
+              />
               <span className={styles.label} data-label="">
                 {step.label}
               </span>
@@ -203,7 +212,7 @@ export function IntentReading({
                 </span>
               ) : null}
             </span>
-            {doc && step.pages && step.pages.length > 0 ? (
+            {doc && step.family !== 'output' && step.pages && step.pages.length > 0 ? (
               <Strip step={step} doc={doc} ready={ready} />
             ) : null}
             {step.parts && step.parts.length > 0 ? <Parts parts={step.parts} /> : null}

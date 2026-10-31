@@ -136,14 +136,15 @@ test.describe('the intent bar', () => {
   }) => {
     await openSample(page, 'tr');
     await type(page, "pdf'i word'e çevir");
-    await painted(page);
-    const row = readings(page).first();
-    await expect(row).toHaveAttribute('aria-disabled', 'true');
-    await expect(row).toHaveAttribute('aria-label', /Word/);
-    await expect(row.locator('xpath=following-sibling::*[@role="option"]').first()).toBeVisible();
+    await expect(page.locator('[data-intent] [data-info]')).toBeVisible();
+    await frames(page);
+    // The honest line is a fact, not an option; the nearest command is the active row.
+    await expect(page.locator('[data-intent] [data-info]')).toContainText('Word');
+    await expect(readings(page)).toHaveCount(0);
+    const nearest = page.getByRole('option').first();
+    await expect(nearest).toHaveAttribute('aria-selected', 'true');
     await page.keyboard.press('Enter');
-    await expect(palette(page)).toBeVisible();
-    await expect(page.getByTestId('save-copy-sheet')).toHaveCount(0);
+    await expect(page.getByTestId('save-copy-sheet')).toBeVisible();
   });
 
   test('a phrase it cannot read shows no reading and leaves the document alone', async ({
