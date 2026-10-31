@@ -16,6 +16,9 @@ The standing rules every agent brief carries (PRC-35). The lead reads the open r
 2. **YAML and workflow edits (L3).** Diff against base and list every removed key in the report.
 3. **Forget path (L6).** Every new storage ships with a Clear/forget test in every edition.
 4. **Deterministic tests (L7).** No either/or assertions; hold async work on a promise the test releases.
+   Tests are part of the work, not a later stage: run every new or changed test file 5 times in a row
+   before opening the PR; wait for entrances and exits with `settle()`/`settled()` before interacting or
+   asserting on Base UI surfaces (L13).
 5. **Parsers and NLP (L4).** Ship an adversarial probe set as tests, not only the builder's own corpus.
 6. **Chained page operations (L5).** Resolve pages to ids before commit.
 7. **No background processes (L2, L12).** Leave none running at the end; no long background loops, run repeats in the foreground in batches. The lead stops finished agents.
