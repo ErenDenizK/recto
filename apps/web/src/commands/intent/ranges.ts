@@ -332,7 +332,10 @@ export function readPages(toks: readonly Tok[], ctx: IntentContext, navigate = f
       if (is(list[k], 'to', 'from')) {
         let e = k + 1;
         if (is(list[e], 'the')) e++;
-        if (LAST.includes(full(list[e] ?? list[k]!)) || (is(list[k], 'from') && is(list[e], 'end')))
+        if (
+          LAST.includes(full(list[e] ?? (list[k] as Tok))) ||
+          (is(list[k], 'from') && is(list[e], 'end'))
+        )
           return { ords, end: e };
         return null;
       }
