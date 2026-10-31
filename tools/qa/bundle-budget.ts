@@ -33,6 +33,10 @@
  * - `engineClient`: the closure of the `client` chunk, `@pdf-editor/engine/client` (PF-2): the
  *   engine code the main thread loads to open the first document (the worker proxies and pure
  *   helpers, never pdf-lib or EmbedPDF), JS gzip. The audit's ceiling is 120 KB.
+ * - `intentBar` (PRD-39, spec niyet §2.19): what the palette's first open loads for sentences, the
+ *   closure of the lazy `palette-intent` chunk (the parser, lexicon, preview, runner and the
+ *   reading rows) minus the chunks already in the `editor` closure, JS gzip. Only its absolute
+ *   gate applies: it is lazy, so it never grows the editor's first load.
  * - `pdfiumWorker`: the PDFium worker script and its closure, raw (parsed before the first
  *   render).
  * - `precache`: the bytes the service worker precaches.
@@ -78,6 +82,7 @@ type MeasureName =
   | 'compact'
   | 'compactSession'
   | 'engineClient'
+  | 'intentBar'
   | 'pdfiumWorker'
   | 'precache';
 
@@ -103,6 +108,7 @@ const MEASURE_LABELS: Readonly<Record<MeasureName, string>> = {
   compact: 'Compact edition JS gzip (static)',
   compactSession: 'Compact read session JS gzip',
   engineClient: 'First-open engine JS gzip (PF-2)',
+  intentBar: 'Intent bar chunk JS gzip (PRD-39)',
   pdfiumWorker: 'PDFium worker script, raw',
   precache: 'Service-worker precache, raw',
 };
@@ -191,6 +197,16 @@ function main(): void {
   const editor = closure([chunk('app')]);
   const compact = closure([chunk('CompactApp')]);
   const engineClient = closure([chunk('client')]);
+  // The lazy intent chunk, without what the editor loads anyway (PRD-39, §2.19).
+  const inEditor = new Set(editor.files);
+  const intentFiles = closure([chunk('palette-intent')]).files.filter(
+    (file) => !inEditor.has(file),
+  );
+  const intentBar: Closure = {
+    files: intentFiles,
+    raw: intentFiles.reduce((sum, file) => sum + sizeOf(file).raw, 0),
+    gzip: intentFiles.reduce((sum, file) => sum + sizeOf(file).gzip, 0),
+  };
   const pdfiumWorker = closure([chunk('pdfium.worker')]);
   const session = readSession(dist, assetFiles, compact, sizeOf);
   const measures: Partial<Record<MeasureName, number>> = {
@@ -199,6 +215,7 @@ function main(): void {
     compact: compact.gzip,
     ...(session ? { compactSession: session.measured.gzip } : {}),
     engineClient: engineClient.gzip,
+    intentBar: intentBar.gzip,
     pdfiumWorker: pdfiumWorker.raw,
     precache: precacheBytes,
   };
@@ -208,6 +225,7 @@ function main(): void {
     compact: compact.files.length,
     ...(session ? { compactSession: session.measured.files.length } : {}),
     engineClient: engineClient.files.length,
+    intentBar: intentBar.files.length,
     pdfiumWorker: pdfiumWorker.files.length,
     precache: precacheList.length,
   };
@@ -305,6 +323,7 @@ function main(): void {
     [MEASURE_LABELS.editor, editor],
     [MEASURE_LABELS.compact, compact],
     [MEASURE_LABELS.engineClient, engineClient],
+    [MEASURE_LABELS.intentBar, intentBar],
   ];
   for (const [label, measured] of breakdown) {
     console.log(`\n${label}, largest chunks:`);

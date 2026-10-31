@@ -1,226 +1,89 @@
 /**
- * The palette's door to the query parser (Epic 4, R12 E10): what the parser needs from the open
- * document (`gatherQueryContext`), what each intent says it will do before it runs
- * (`describeIntent`), and how it runs (`runIntent`). Nothing here is a second home for a
- * command (DSN-46): a page action selects its resolved pages and then executes the same
- * command the menu and the keys use (`pages.rotateRight`, `pages.delete`…), so its Undo toast,
- * guards and announcements are the command's own.
+ * The palette's door to the intent bar (PRD-39, spec §2.12–§2.14, lane N3): what the typed text
+ * reads as (`readIntent`: the parser's readings, each with its preview), whether a row on screen
+ * is still the one Enter would run (`stillShown`, §2.13), and how it runs (`runReading`). Nothing
+ * here is a second home for a command (DSN-46): the runner executes the same commands the menu
+ * and the keys use, so Undo toasts, guards and announcements are the commands' own.
+ *
+ * The palette loads this module lazily, with the parser, the preview, the runner and the rows'
+ * component, so none of it enters the editor's first load (PRD-39, spec §2.19).
  */
-import { getActiveDocument, walkOutline } from '@pdf-editor/document-model';
-
-import { openRecent } from '../home/home-actions';
+import { gatherIntentContext, workspaceVersion } from './intent/context';
+import { parseIntent } from './intent/parse';
+import { type IntentPreview, previewOf, previewWithGuard } from './intent/preview';
+import { type RunResult, runReading } from './intent/run';
+import type { Reading } from './intent/types';
 import { m } from '../i18n';
-import { useRecentsStore } from '../files/recents';
-import { useSelectionStore } from '../state/selection-store';
-import { useViewStore } from '../state/view-store';
-import { useWorkspaceStore } from '../state/workspace-store';
-import { rotateDocumentPages } from '../shell/frame/TitleMenuItems';
-import { goToPageIndex } from '../viewer/navigation';
-import { commandRegistry } from './registry';
-import { parseQuery } from './query';
-import type { InvalidReason, PagesAction, QueryContext, QueryIntent } from './query';
 
-// One chunk for the parser and its rows: the palette loads this module lazily.
-export { parseQuery };
+// One chunk for the parser, the preview and the runner, and the component that draws them.
+export { IntentReading } from '../shell/palette/IntentRows';
+export { gatherIntentContext, parseIntent, runReading };
+export type { IntentPreview, RunResult };
 
-/** The facts the parser reads, taken from the stores now. */
-export function gatherQueryContext(): QueryContext {
-  const ws = useWorkspaceStore.getState().workspace;
-  const doc = getActiveDocument(ws);
-  const headings: { title: string; page: number }[] = [];
-  if (doc) {
-    const index = new Map(doc.pages.map((page, i) => [page.id, i + 1]));
-    walkOutline(doc.outline, (node) => {
-      const title = node.title.trim();
-      const target =
-        node.destination?.kind === 'page' ? index.get(node.destination.page) : undefined;
-      if (title !== '' && target !== undefined) headings.push({ title, page: target });
-    });
-  }
-  return {
-    pageCount: doc?.pages.length ?? 0,
-    currentPage: useViewStore.getState().currentPage + 1,
-    headings,
-    recents: useRecentsStore.getState().entries.map((e) => ({ id: e.id, name: e.name })),
-  };
-}
-
-/** One row the palette shows for an intent. */
-export interface IntentView {
+/** One reading as the bar shows it: the reading, its preview and the text it was drawn from. */
+export interface ReadingRow {
+  /** The preview's key: the folded text, the steps and the workspace version (§2.13). */
   readonly key: string;
-  /** What will happen, in words ("Rotate pages 3–7 right"). */
-  readonly label: string;
-  /** The quiet text at the row's end ("5 pages", "Page 12"), or why it cannot run. */
-  readonly detail: string | undefined;
-  readonly runnable: boolean;
+  readonly reading: Reading;
+  readonly preview: IntentPreview;
+  /** The exact text typed, which `runReading` checks the key against. */
+  readonly text: string;
 }
 
-/** "Rotate pages 3–7 right": the row text of a page action, shared by valid and invalid rows. */
-function pagesLabel(
-  action: PagesAction,
-  turns: -1 | 1 | 2 | undefined,
-  count: number,
-  pages: string,
-): string {
-  const input = { count, pages: dashed(pages) };
-  return action === 'rotate'
-    ? ROTATE_LABEL[String(turns ?? 1) as keyof typeof ROTATE_LABEL](input)
-    : ACTION_LABEL[action](input);
+export type IntentRead =
+  /** One or two readings, best first. */
+  | { readonly kind: 'readings'; readonly rows: readonly ReadingRow[]; readonly orLabel: string }
+  /** An action word was found but another word was not: a quiet row, then the commands. */
+  | { readonly kind: 'partial'; readonly message: string }
+  | { readonly kind: 'none' };
+
+/** "Try: rotate pages 3–5 right", in the UI language (§2.14). */
+export function exampleLine(): string {
+  return m.intent_bar_try({ example: m.intent_bar_example() });
 }
 
-/** "3-7" as it is read: an en dash. */
-const dashed = (pages: string): string => pages.replaceAll('-', '–');
-
-const ROTATE_LABEL = {
-  '-1': m.palette_intent_rotate_left,
-  '1': m.palette_intent_rotate_right,
-  '2': m.palette_intent_rotate_half,
-} as const;
-
-const ACTION_LABEL: Record<
-  Exclude<PagesAction, 'rotate'>,
-  | typeof m.palette_intent_delete
-  | typeof m.palette_intent_duplicate
-  | typeof m.palette_intent_extract
-> = {
-  delete: m.palette_intent_delete,
-  duplicate: m.palette_intent_duplicate,
-  extract: m.palette_intent_extract,
-};
-
-function reasonText(reason: InvalidReason, pageCount: number): string {
-  switch (reason) {
-    case 'no-document':
-      return m.palette_intent_no_document();
-    case 'out-of-range':
-      return m.palette_intent_out_of_range({ count: pageCount });
-    case 'reversed-range':
-      return m.palette_intent_reversed();
-    case 'no-pages':
-      return m.palette_intent_no_pages();
-    case 'all-pages':
-      return m.palette_intent_all_pages();
-    case 'ambiguous-count':
-      return m.palette_intent_ambiguous();
+/** What `text` reads as against the open document now (§2.2, §2.11). */
+export function readIntent(text: string): IntentRead {
+  const ctx = gatherIntentContext();
+  const result = parseIntent(text, ctx);
+  if (result.kind === 'none') return { kind: 'none' };
+  if (result.kind === 'partial') {
+    return {
+      kind: 'partial',
+      message: `${m.intent_bar_not_understood({ word: result.unknown[0] ?? text.trim() })} · ${exampleLine()}`,
+    };
   }
-}
-
-/**
- * The rows an intent shows, best first: one for a jump or an action, one per matching heading or
- * recent file, and a quiet row that cannot run for an invalid one. `query` is what was typed.
- */
-export function describeIntent(intent: QueryIntent, query: string): IntentView[] {
-  switch (intent.kind) {
-    case 'page':
-      return [
-        {
-          key: 'intent-page',
-          label: m.palette_intent_go_page({ page: intent.page }),
-          detail: undefined,
-          runnable: true,
-        },
-      ];
-    case 'pages': {
-      return [
-        {
-          key: 'intent-pages',
-          label: pagesLabel(intent.action, intent.turns, intent.pages.length, intent.pagesLabel),
-          detail: m.palette_intent_count({ count: intent.pages.length }),
-          runnable: true,
-        },
-      ];
-    }
-    case 'heading':
-      return intent.matches.map((heading, i) => ({
-        key: `intent-heading-${i}`,
-        label: m.palette_intent_go_heading({ title: heading.title }),
-        detail: m.palette_intent_page_n({ page: heading.page }),
-        runnable: true,
-      }));
-    case 'recent':
-      return intent.matches.map((entry) => ({
-        key: `intent-recent-${entry.id}`,
-        label: m.palette_intent_open_recent({ name: entry.name }),
-        detail: undefined,
-        runnable: true,
-      }));
-    case 'invalid':
-      return [
-        {
-          key: 'intent-invalid',
-          label:
-            intent.for === 'page' && intent.page !== undefined
-              ? m.palette_intent_go_page({ page: intent.page })
-              : intent.action !== undefined && intent.pagesLabel !== undefined
-                ? pagesLabel(
-                    intent.action,
-                    intent.turns,
-                    /[,-]/.test(intent.pagesLabel) ? 2 : 1,
-                    intent.pagesLabel,
-                  )
-                : query.trim(),
-          detail: reasonText(intent.reason, intent.pageCount),
-          runnable: false,
-        },
-      ];
-  }
-}
-
-/** Runs row `index` of `describeIntent(intent)`. */
-export async function runIntent(intent: QueryIntent, index: number): Promise<void> {
-  switch (intent.kind) {
-    case 'page':
-      goToPageIndex(intent.page - 1);
-      return;
-    case 'heading': {
-      const heading = intent.matches[index];
-      if (heading) goToPageIndex(heading.page - 1);
-      return;
-    }
-    case 'recent': {
-      const match = intent.matches[index];
-      const entry = useRecentsStore.getState().entries.find((e) => e.id === match?.id);
-      if (entry) await openRecent(entry);
-      return;
-    }
-    case 'pages':
-      await runPagesIntent(intent);
-      return;
-    case 'invalid':
-      return;
-  }
-}
-
-/**
- * Selects the resolved pages and runs the page command on them; a rotation gives the selection
- * back, a delete clears it itself, a duplicate or extract leaves the pages selected. The navigator is named as the document whose selection is visible,
- * so Delete, which acts only on a selection the person can see, takes it (S10).
- */
-async function runPagesIntent(intent: Extract<QueryIntent, { kind: 'pages' }>): Promise<void> {
-  const doc = getActiveDocument(useWorkspaceStore.getState().workspace);
-  if (!doc) return;
-  const ids = intent.pages.flatMap((n) => {
-    const page = doc.pages[n - 1];
-    return page ? [page.id] : [];
-  });
-  if (ids.length === 0) return;
-  const selection = useSelectionStore.getState();
-  const before = {
-    selected: selection.selected,
-    anchor: selection.anchor,
-    focused: selection.focused,
+  const version = workspaceVersion();
+  return {
+    kind: 'readings',
+    orLabel: m.intent_bar_or(),
+    rows: result.readings.map((reading) => {
+      const preview = previewWithGuard(reading, ctx, version, text);
+      return { key: preview.key, reading, preview, text };
+    }),
   };
-  const navigator = selection.navigatorDocument;
-  selection.apply({ selected: new Set(ids), anchor: ids[0] ?? null, focused: ids[0] ?? null });
-  selection.setNavigatorDocument(doc.id);
-  try {
-    // A half turn is one 180° rotation, so one undo takes it back (the menu's own helper).
-    if (intent.turns === 2) rotateDocumentPages(180);
-    else await commandRegistry.execute(intent.commandId);
-  } finally {
-    const now = useSelectionStore.getState();
-    now.setNavigatorDocument(navigator);
-    // Rotating leaves the selection as it was; the others leave their pages selected.
-    if (intent.action === 'rotate') now.apply(before);
-  }
+}
+
+/**
+ * Whether `row` still describes the document and the text now. Enter checks this before the
+ * palette closes, so a stale row does nothing at all (§2.13 c); `runReading` checks it again.
+ */
+export function stillShown(row: ReadingRow): boolean {
+  return (
+    previewOf(row.reading, gatherIntentContext(), workspaceVersion(), row.text).key === row.key
+  );
+}
+
+/** The screen reader's sentence for the readings on screen (FB10, `palette-args`; §2.15). */
+export function announcementOf(read: IntentRead): string | undefined {
+  if (read.kind !== 'readings') return undefined;
+  const [first, second] = read.rows;
+  if (first === undefined) return undefined;
+  const say = (row: ReadingRow) =>
+    row.preview.reason !== undefined && row.preview.reason !== row.preview.sentence
+      ? `${row.preview.sentence}. ${row.preview.reason}`
+      : row.preview.sentence;
+  return second === undefined
+    ? say(first)
+    : m.intent_bar_announce_two({ first: say(first), second: say(second) });
 }
