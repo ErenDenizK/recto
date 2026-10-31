@@ -40,7 +40,6 @@ import { gridStep, middleTruncate, relativeTime } from './home-model';
 import lit from './lit.module.css';
 import { ProgressBar } from './ProgressBar';
 import { clearWithConfirm, recentHint, useNow } from './RecentList';
-import recentStyles from './RecentList.module.css';
 import styles from './RecentShelf.module.css';
 import { TEXT_SAFE_ATTR } from './text-safe';
 import { useSampleAvailable } from './use-sample-available';
@@ -135,7 +134,11 @@ export function RecentShelf({
         <h2 id={headingId} className={styles.title}>
           {m.recents_heading()}
         </h2>
-        <Button variant="quiet" onClick={() => void clearWithConfirm(entries)}>
+        <Button
+          variant="quiet"
+          className={styles.clear}
+          onClick={() => void clearWithConfirm(entries)}
+        >
           {m.recents_clear()}
         </Button>
       </div>
@@ -226,28 +229,29 @@ export function RecentShelf({
         ) : null}
       </ul>
       {clearFailed ? (
-        <p className={recentStyles.note} data-testid="recent-clear-failed">
+        <p className={styles.note} data-testid="recent-clear-failed">
           {m.recents_clear_failed()}
         </p>
       ) : null}
       {note !== null ? (
-        <p className={recentStyles.note} data-testid="recent-note">
+        <p className={styles.note} data-testid="recent-note">
           {note.kind === 'open-again'
             ? m.recents_note_open_again({ name: note.name })
             : m.recents_note_unavailable({ name: note.name })}
         </p>
       ) : null}
       {keeping === 'unavailable' ? (
-        <p className={recentStyles.footnote} data-testid="recent-not-kept">
-          <Icon name="warning" className={recentStyles.footnoteIcon} />
+        <p className={styles.footnote} data-testid="recent-not-kept">
+          <Icon name="warning" className={styles.footnoteIcon} />
           {m.session_not_kept()}
         </p>
       ) : anyKept ? (
-        <p className={recentStyles.footnote} data-testid="recent-kept-footnote">
+        <p className={styles.footnote} data-testid="recent-kept-footnote">
           {m.recents_kept_footnote()} ·{' '}
           <Button
             variant="quiet"
             size="sm"
+            className={styles.manage}
             onClick={() => void commandRegistry.execute('settings.keptDocuments')}
           >
             {m.recents_manage()}
@@ -321,7 +325,7 @@ function Tile({
         {meta}
         {hint === undefined ? null : <span className={styles.badge}>{hint}</span>}
       </span>
-      <ProgressBar value={read ? entryProgress(entry) : 0} className={styles.bar} />
+      {read ? <ProgressBar value={entryProgress(entry)} className={styles.bar} /> : null}
     </button>
   );
 }

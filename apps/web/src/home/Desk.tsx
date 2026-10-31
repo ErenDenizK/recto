@@ -184,7 +184,7 @@ export default function Desk({
               <h1 className="visually-hidden">{m.library_label()}</h1>
             )}
             {top}
-            <DeskDropLine dragging={dragging} dragCount={dragCount} />
+            <DeskDropLine dragging={dragging} dragCount={dragCount} more={camera} />
             {cards.length > 0 ? (
               <div className={view.documents}>
                 <LibraryHead order={order} pages={pages} />

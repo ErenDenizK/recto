@@ -59,33 +59,36 @@
 }
 
 .stage {
-  --cover-box-w: 152px;
-  --cover-box-h: 200px;
+  --cover-box-w: 128px;
+  --cover-box-h: 168px;
   display: grid;
-  place-items: center;
-  height: 200px;
+  /* Every sheet stands on one baseline, whatever its proportions. */
+  place-items: end center;
+  height: 168px;
   margin-bottom: var(--space-2);
 }
 
 .name {
-  display: -webkit-box;
+  /* One line, before the ⋯ at its end; the full name is the tile's accessible name. */
+  min-width: 0;
+  padding-inline-end: calc(var(--control-h) + var(--space-1));
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: var(--type-body);
   font-weight: var(--weight-medium);
   line-height: var(--type-body-lh);
   letter-spacing: var(--track-body);
-  overflow-wrap: anywhere;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
 }
 
 .meta {
-  display: flex;
-  flex-wrap: wrap;
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   /* Tiles in a row share a height; the facts and the bar sit at the bottom, aligned. */
   margin-top: auto;
-  gap: 0 var(--space-1);
   color: var(--text-secondary);
   font-size: var(--type-footnote);
   line-height: var(--type-footnote-lh);
@@ -98,7 +101,7 @@
 }
 
 .badge::before {
-  content: '· ';
+  content: ' · ';
 }
 
 .bar {
@@ -108,7 +111,7 @@
 /* The sample's static drawing, on the same sheet the covers take. */
 .drawing {
   display: block;
-  width: min(152px, calc(200px * 210 / 297));
+  width: min(128px, calc(168px * 210 / 297));
   aspect-ratio: 210 / 297;
   overflow: hidden;
   border-radius: var(--radius-page);
@@ -150,8 +153,9 @@
 .more {
   composes: focus-inset from global;
   position: absolute;
-  top: var(--space-2);
-  right: var(--space-2);
+  /* On the name row: under the 168 px stage and its margin, centred on the line. */
+  top: calc(var(--space-3) + 168px + var(--space-2) + (var(--type-body-lh) - var(--control-h)) / 2);
+  right: var(--space-3);
   display: grid;
   place-items: center;
   width: var(--control-h);
@@ -159,8 +163,8 @@
   padding: 0;
   border: 0;
   border-radius: var(--radius-capsule);
-  background: var(--surface-hover);
-  color: var(--text-primary);
+  background: transparent;
+  color: var(--text-secondary);
   opacity: 0;
   -webkit-tap-highlight-color: transparent;
   transition: opacity var(--duration-fast) var(--ease-out);
@@ -171,6 +175,7 @@
   height: var(--icon-sm);
 }
 
+.more:hover,
 .item:hover .more,
 .item:focus-within .more,
 .more[data-popup-open],
@@ -182,4 +187,34 @@
   .more {
     opacity: 1;
   }
+}
+
+/* Text controls start on the column's edges: their own padding is pulled out (DSN-87). */
+.clear {
+  margin-inline-end: calc(-1 * var(--space-3));
+}
+
+.note,
+.footnote {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.footnote {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-1);
+}
+
+.footnoteIcon {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  color: var(--warning);
+}
+
+.manage {
+  margin-inline: calc(-1 * var(--space-2)) 0;
 }

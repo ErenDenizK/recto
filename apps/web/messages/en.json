@@ -5318,5 +5318,6 @@
   "desk_opening": "Opening {name}",
   "cmd_file_sign_pdf_keywords": "sign, signature, fill, form, fill and sign, sign a pdf, imzala, pdf imzala",
   "cmd_file_images_to_pdf_keywords": "images to pdf, image to pdf, jpg to pdf, png to pdf, jpeg to pdf, webp to pdf, photo to pdf, convert images to pdf, resimden pdf, görselden pdf",
-  "cmd_file_pdf_to_images_keywords": "images, png, jpeg, picture, pdf to jpg, pdf to png, pdf to jpeg, pdf to webp, pdf to image, convert pdf to image, pdf'ten jpg, pdf'ten png"
+  "cmd_file_pdf_to_images_keywords": "images, png, jpeg, picture, pdf to jpg, pdf to png, pdf to jpeg, pdf to webp, pdf to image, convert pdf to image, pdf'ten jpg, pdf'ten png",
+  "desk_more_hint": "Batch and conversions"
 }

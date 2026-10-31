@@ -30,8 +30,8 @@ import { setContinueShown } from './continue-shown';
 /** The page's box, CSS px: the page you left, large enough to recognise. */
 export const THUMB = {
   desk: { width: 88, height: 116 },
-  /** The Masa desk's card (DSN-87): the page left, larger, 132 × 172. */
-  masa: { width: 132, height: 172 },
+  /** The Masa desk's card (DSN-87): the page left, fitted to a 172 px high box, up to 240 wide. */
+  masa: { width: 240, height: 172 },
   phone: { width: 68, height: 90 },
 } as const;
 

@@ -16,13 +16,19 @@
 }
 
 .hero {
-  grid-column: span 8;
+  grid-column: span 7;
   min-width: 0;
 }
 
 .intents {
-  grid-column: span 4;
+  grid-column: span 5;
   min-width: 0;
+}
+
+/* Both columns of the top row are as tall as the taller (the hero's 220 px). */
+.hero > *,
+.intents > * {
+  height: 100%;
 }
 
 .top[data-hero='none'] .intents {

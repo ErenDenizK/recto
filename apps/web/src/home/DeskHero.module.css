@@ -6,6 +6,7 @@
  */
 .hero {
   position: relative;
+  height: 100%;
   box-sizing: border-box;
   min-height: 220px;
   border-radius: var(--radius-xl);
@@ -32,7 +33,7 @@
 /* The page is content: its own colours and the page hairline in both themes. */
 .cover {
   display: block;
-  width: 132px;
+  height: 172px;
   aspect-ratio: 210 / 297;
   overflow: hidden;
   border-radius: var(--radius-page);

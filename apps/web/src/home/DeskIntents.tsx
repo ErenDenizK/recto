@@ -11,6 +11,8 @@
  */
 import { type CSSProperties, type KeyboardEvent, useId, useRef, useState } from 'react';
 
+import { Menu } from '@base-ui/react/menu';
+
 import { commandRegistry } from '../commands/registry';
 import { m } from '../i18n';
 import { openScan } from '../scan/scan-flag';
@@ -20,6 +22,7 @@ import { useContinueShown } from './continue-shown';
 import { columnsOf } from './desk-model';
 import styles from './DeskIntents.module.css';
 import { combineFiles, openPdfs } from './home-actions';
+import { MoreWaysPopup } from './DeskMoreWays';
 import { gridStep } from './home-model';
 import lit from './lit.module.css';
 
@@ -91,6 +94,18 @@ export function DeskIntents({
           },
         ]
       : []),
+    ...(scan
+      ? []
+      : [
+          {
+            id: 'more',
+            testId: 'desk-more',
+            icon: 'dots-three' as const,
+            label: m.desk_more(),
+            hint: m.desk_more_hint(),
+            run: () => undefined,
+          },
+        ]),
   ];
   const tabbable = intents.some((i) => i.id === focused) ? focused : 'open';
 
@@ -124,34 +139,51 @@ export function DeskIntents({
       {intents.map((intent) => {
         const prominent = intent.id === 'open' && !continued && !selecting;
         const busy = intent.id === 'open' && opening;
-        return (
-          // A lit tile, as the sample card is, not ui/Button's action capsule: glyph, label and
-          // hint, with its own press (DSN-87).
-          <button
-            key={intent.id}
-            type="button"
-            // eslint-disable-next-line recto/q9-controls
-            className={`${lit.lit} ${styles.tile}`}
-            data-lit=""
-            data-intent={intent.id}
-            data-prominent={prominent || undefined}
-            data-testid={intent.testId}
-            {...(intent.id === 'open' ? { 'data-library-open': '' } : {})}
-            aria-busy={busy || undefined}
-            aria-labelledby={`${base}-${intent.id}-label`}
-            aria-describedby={`${base}-${intent.id}-hint`}
-            tabIndex={intent.id === tabbable ? 0 : -1}
-            onFocus={() => setFocused(intent.id)}
-            onKeyDown={onKeyDown}
-            onClick={intent.run}
-          >
-            <Icon name={intent.icon} className={styles.glyph} />
+        const shared = {
+          // A lit tile, as the sample card is, not ui/Button's action capsule: glyph well, label
+          // and hint, with its own press (DSN-87).
+          className: `${lit.lit} ${styles.tile}`,
+          'data-lit': '',
+          'data-intent': intent.id,
+          'data-prominent': prominent || undefined,
+          'data-testid': intent.testId,
+          'aria-busy': busy || undefined,
+          'aria-labelledby': `${base}-${intent.id}-label`,
+          'aria-describedby': `${base}-${intent.id}-hint`,
+          tabIndex: intent.id === tabbable ? 0 : -1,
+          onFocus: () => setFocused(intent.id),
+          onKeyDown,
+        };
+        const content = (
+          <>
+            <span className={styles.well} aria-hidden="true">
+              <Icon name={intent.icon} className={styles.glyph} />
+            </span>
             <span id={`${base}-${intent.id}-label`} className={styles.label}>
               {intent.label}
             </span>
             <span id={`${base}-${intent.id}-hint`} className={styles.hint}>
               {intent.hint}
             </span>
+          </>
+        );
+        if (intent.id === 'more') {
+          return (
+            <Menu.Root key={intent.id}>
+              <Menu.Trigger {...shared}>{content}</Menu.Trigger>
+              <MoreWaysPopup />
+            </Menu.Root>
+          );
+        }
+        return (
+          <button
+            key={intent.id}
+            type="button"
+            {...shared}
+            {...(intent.id === 'open' ? { 'data-library-open': '' } : {})}
+            onClick={intent.run}
+          >
+            {content}
           </button>
         );
       })}

@@ -1,17 +1,22 @@
 /*
- * The intents (DeskIntents.tsx; DSN-87 masa.md §2.2, §2.3): lit tiles in a 2×2 grid beside the
- * hero (two rows of 98 px, a 24 px gap between the columns, a --space-3 gap between tiles), and
- * on the hero's own row when the slot is stacked or empty (one row of four; two by two under
- * 720 px). Tiles take the sample card's press and hover (GLS-25); on coarse pointers they are at
- * least 108 px tall with a 52 px target. Drag-over lifts the group 2 px with the e3 shadow and a
- * dashed accent line, as the launcher did (L9); reduced motion keeps the shadow and the line.
+ * The intents (DeskIntents.tsx; DSN-87 masa.md §2.2, §2.3): four lit tiles, always four cells,
+ * in a 2×2 grid beside the hero that is as tall as the hero (two equal rows). The container's
+ * width decides the shape: 2×2 from 840 px, one row of four from 720 to 839 (the glyph above its
+ * label there), 2×2 under 720 (masa.md §2.3; the director's brief said 600, the spec's 720 is
+ * kept). Every tile is standard lit glass: the primary (Open files, while Continue is not
+ * showing) is a 40 × 40 accent-filled glyph well and first focus, never a slab. A label and a
+ * hint are one line each with an ellipsis; the full text is the accessible name and
+ * description. Tiles take the sample card's press and hover (GLS-25). Drag-over lifts the group
+ * 2 px with the e3 shadow and a dashed accent line (L9); reduced motion keeps the shadow and the
+ * line.
  */
 .group {
   position: relative;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-rows: minmax(98px, 1fr);
-  gap: var(--space-3);
+  grid-template-rows: 1fr 1fr;
+  gap: var(--space-4);
+  height: 100%;
   min-width: 0;
   border-radius: var(--radius-xl);
   transition:
@@ -19,24 +24,19 @@
     outline-color var(--duration-fast) var(--ease-out);
 }
 
-/* Three intents: Open spans the top row (Scan off or no camera). */
-.group[data-count='3'] .tile:first-child {
-  grid-column: 1 / -1;
-}
-
 .tile {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   grid-template-areas:
-    'glyph label'
+    'well label'
     'hint hint';
   align-content: center;
   align-items: center;
   column-gap: var(--space-3);
-  row-gap: var(--space-1);
+  row-gap: var(--space-2);
   box-sizing: border-box;
   min-width: 0;
-  min-height: 98px;
+  min-height: 0;
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-xl);
   color: var(--text-primary);
@@ -48,40 +48,48 @@
     box-shadow var(--duration-fast) var(--ease-out);
 }
 
+/* The glyph well: 40 × 40, radius 10; accent-filled on the primary. */
+.well {
+  grid-area: well;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.tile[data-prominent] .well {
+  background: var(--accent-fill);
+  color: var(--accent-on-fill);
+}
+
 .glyph {
-  grid-area: glyph;
-  width: var(--icon-lg);
-  height: var(--icon-lg);
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+.label,
+.hint {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .label {
   grid-area: label;
-  min-width: 0;
   font-size: var(--type-body);
   font-weight: var(--weight-semibold);
   line-height: var(--type-body-lh);
   letter-spacing: var(--track-body);
-  overflow-wrap: anywhere;
 }
 
 .hint {
   grid-area: hint;
-  min-width: 0;
   color: var(--text-secondary);
   font-size: var(--type-footnote);
   line-height: var(--type-footnote-lh);
   letter-spacing: var(--track-footnote);
-  text-wrap: pretty;
-}
-
-/* The view's one lime while Continue is not showing. */
-.tile[data-prominent] {
-  background: var(--primary-fill);
-  color: var(--primary-ink);
-}
-
-.tile[data-prominent] .hint {
-  color: inherit;
 }
 
 @media (hover: hover) {
@@ -100,19 +108,15 @@
   cursor: progress;
 }
 
-/* The arrival focus draws no ring until a key is pressed (DeskView.tsx). */
+/* The arrival focus draws no ring until a key is pressed (Desk.tsx). */
 .tile[data-quiet-focus]:focus-visible {
   outline: none;
   box-shadow: none;
 }
 
 @media (pointer: coarse) {
-  .group {
-    grid-auto-rows: minmax(108px, 1fr);
-  }
-
   .tile {
-    min-height: 108px;
+    min-height: 52px;
   }
 }
 
@@ -142,34 +146,54 @@
   }
 }
 
-/* Stacked or empty hero slot: the intents run as one row of four (two by two when narrow). */
+/* Stacked hero, or no hero: one row of four, the glyph above its label. */
 .group[data-wide] {
-  grid-template-columns: repeat(var(--intents-count, 4), minmax(0, 1fr));
-  grid-auto-rows: auto;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: auto;
 }
 
-.group[data-wide][data-count] .tile:first-child {
-  grid-column: auto;
-}
-
-@container library (width < 840px) {
+@container library (max-width: 839.98px) {
   .group {
-    grid-template-columns: repeat(var(--intents-count, 4), minmax(0, 1fr));
-    grid-auto-rows: auto;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: auto;
   }
 
-  .group[data-count] .tile:first-child {
-    grid-column: auto;
+  .tile {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'well'
+      'label'
+      'hint';
+    justify-items: start;
+    row-gap: var(--space-1);
+  }
+
+  .well {
+    margin-bottom: var(--space-1);
+  }
+
+  .label,
+  .hint {
+    max-width: 100%;
   }
 }
 
-@container library (width < 720px) {
+@container library (max-width: 719.98px) {
   .group,
   .group[data-wide] {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: 1fr 1fr;
   }
 
-  .group[data-count='3'] .tile:first-child {
-    grid-column: 1 / -1;
+  .tile {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'well label'
+      'hint hint';
+    justify-items: stretch;
+  }
+
+  .well {
+    margin-bottom: 0;
   }
 }

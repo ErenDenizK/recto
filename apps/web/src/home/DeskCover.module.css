@@ -28,6 +28,8 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
+  /* Every cover stands on one baseline (DSN-87). */
+  object-position: center bottom;
 }
 
 .glyph {

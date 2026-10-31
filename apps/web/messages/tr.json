@@ -3624,5 +3624,6 @@
   "desk_opening": "{name} açılıyor",
   "cmd_file_sign_pdf_keywords": "imzala, imza, doldur, form, doldur ve imzala, pdf imzala, sign, signature, fill and sign",
   "cmd_file_images_to_pdf_keywords": "resimden pdf, görselden pdf, fotoğraftan pdf, jpg'den pdf, png'den pdf, resimleri pdf yap, images to pdf, image to pdf",
-  "cmd_file_pdf_to_images_keywords": "resim olarak kaydet, görsel, resim, pdf'ten jpg, pdf'ten png, pdf'ten jpeg, pdf'ten webp, pdf'ten resim, pdf to jpg, pdf to png"
+  "cmd_file_pdf_to_images_keywords": "resim olarak kaydet, görsel, resim, pdf'ten jpg, pdf'ten png, pdf'ten jpeg, pdf'ten webp, pdf'ten resim, pdf to jpg, pdf to png",
+  "desk_more_hint": "Toplu işlem ve dönüştürme"
 }

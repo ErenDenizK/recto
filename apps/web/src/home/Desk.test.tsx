@@ -135,8 +135,8 @@ describe('Desk', () => {
     const group = within(home).getByRole('group', { name: 'Ways to start' });
     const names = within(group)
       .getAllByRole('button')
-      .map((b) => b.querySelector('span')?.textContent);
-    expect(names).toEqual(['Open files…', 'Sign a PDF…', 'Combine files…']);
+      .map((b) => b.querySelectorAll('span')[1]?.textContent);
+    expect(names).toEqual(['Open files…', 'Sign a PDF…', 'Combine files…', 'More ways…']);
     const open = within(group).getByRole('button', { name: /^Open files…/ });
     expect(open).toHaveAttribute('data-prominent');
     expect(home.querySelectorAll('[data-prominent]')).toHaveLength(1);
