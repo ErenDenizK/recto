@@ -486,7 +486,7 @@ export function onKeptRemoved(remover: typeof keptRemover): void {
  * Told when a file was recorded as opened (DSN-87): registered by `home/cover-capture.ts`,
  * which stores the file's cover, so this module does not depend on the engine.
  */
-let recordedListener: ((entry: RecentEntry) => void) | undefined;
+let recordedListener: ((entry: RecentEntry, lastModified?: number) => void) | undefined;
 
 export function onRecentRecorded(listener: typeof recordedListener): void {
   recordedListener = listener;
@@ -612,6 +612,8 @@ export interface RecordRecentInput {
   readonly size: number;
   readonly pages?: number;
   readonly handle?: RecentFileHandle;
+  /** The file's last-modified time (ms), when known: a cover newer than it is still current (DSN-87). */
+  readonly lastModified?: number;
   /** The entry this open came from (a reopen), replaced even if the size changed. */
   readonly replaces?: string;
   readonly now?: number;
@@ -677,7 +679,7 @@ export async function recordRecent(input: RecordRecentInput): Promise<RecentEntr
     }
     for (const id of removed) await target.remove(id);
   });
-  recordedListener?.(written);
+  recordedListener?.(written, input.lastModified);
   return written;
 }
 

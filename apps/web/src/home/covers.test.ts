@@ -21,7 +21,13 @@ import {
   watchCoverSweep,
   writeCover,
 } from './covers';
-import { encodeCover, FIRST_BOX, firstCoverSource, LEFT_BOX } from './cover-capture';
+import {
+  coverIsCurrent,
+  encodeCover,
+  FIRST_BOX,
+  firstCoverSource,
+  LEFT_BOX,
+} from './cover-capture';
 
 const dbs: string[] = [];
 const freshDb = (): string => {
@@ -201,5 +207,14 @@ describe('the encoded cover', () => {
     const small = await paper(100, 150);
     const same = await encodeCover(small, 100, 150, FIRST_BOX);
     expect(same).toMatchObject({ width: 100, height: 150 });
+  });
+});
+
+describe('skipping a current cover', () => {
+  it('skips only when the cover is newer than the file', () => {
+    expect(coverIsCurrent(200, 100)).toBe(true);
+    expect(coverIsCurrent(100, 200)).toBe(false);
+    expect(coverIsCurrent(undefined, 100)).toBe(false);
+    expect(coverIsCurrent(200, undefined)).toBe(false);
   });
 });

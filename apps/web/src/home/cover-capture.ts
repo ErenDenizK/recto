@@ -169,7 +169,17 @@ export function firstCoverSource(
     : source;
 }
 
-async function captureFirst(entry: RecentEntry): Promise<void> {
+/**
+ * Whether a stored `first` cover written at `at` still shows the file: it does when the file
+ * is not newer than the cover. An unknown `lastModified` never skips.
+ */
+export function coverIsCurrent(at: number | undefined, lastModified: number | undefined): boolean {
+  return at !== undefined && lastModified !== undefined && at > lastModified;
+}
+
+async function captureFirst(entry: RecentEntry, lastModified?: number): Promise<void> {
+  const have = (await prefetchCovers()).find((c) => c.key === coverKey('first', entry));
+  if (coverIsCurrent(have?.at, lastModified)) return;
   const source = firstCoverSource(useWorkspaceStore.getState().workspace.sources, entry);
   const info = source?.pages[0];
   if (!source || !info) return;
@@ -304,10 +314,10 @@ async function backfill(isStopped: () => boolean): Promise<void> {
 export function startCoverCapture(options: { readonly compact: boolean }): () => void {
   let stopped = false;
   const stopSweep = watchCoverSweep();
-  onRecentRecorded((entry) => {
+  onRecentRecorded((entry, lastModified) => {
     // After the first visible page has had its turn; the render is `offscreen` priority anyway.
     window.setTimeout(() => {
-      if (!stopped) void captureFirst(entry).catch(() => undefined);
+      if (!stopped) void captureFirst(entry, lastModified).catch(() => undefined);
     }, 400);
   });
   const stopPlaces = watchPlaces();
