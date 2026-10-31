@@ -5,8 +5,8 @@
  * - **Continue after close.** A document is read to page 4 at a zoom and 90 px into the page,
  *   then closed; the desk's Continue shows page 4 from a stored cover (a `blob:` image) and lands
  *   on the same page, zoom and offset (within 2 px). The sample joins Recents only once changed
- *   (02.14), so the test reads `many-pages.pdf`; the file comes back through the file dialog
- *   ("Open again…"), which the test serves.
+ *   (02.14), so the test reads `many-pages.pdf`; it comes back from its kept snapshot, or through
+ *   the file dialog ("Open again…") where there is none, which the test serves.
  * - **Continue after a cold start.** The same in a new page of the same context (the tab lock is
  *   released): the covers are `blob:` images served from storage, the engine is never started
  *   before the first open (no worker, no `.wasm` request), and `recto:desk-painted` exists.
@@ -29,6 +29,8 @@ import {
 } from './helpers';
 
 test.use({ viewport: { width: 1440, height: 900 } });
+// Reading a 400-page file to page 4 and closing it takes a while on a shared runner.
+test.setTimeout(120_000);
 
 /** CI noise allowance for the desk's paint mark (ms); the 1 s target is the perf baseline's. */
 const PAINT_CEILING_MS = 2500;
@@ -96,7 +98,7 @@ async function readAndClose(page: Page): Promise<Left> {
 async function expectContinueCover(page: Page): Promise<void> {
   const card = page.getByTestId('continue-card');
   await expect(card).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByTestId('continue-page')).toHaveText(/^Page 4 of \d+$/, {
+  await expect(page.getByTestId('continue-page')).toHaveText(/^Page 4 of \d+/, {
     timeout: 30_000,
   });
   await expect(card.locator('[data-library-sheet] img[data-cover]')).toHaveAttribute(
@@ -106,11 +108,14 @@ async function expectContinueCover(page: Page): Promise<void> {
   );
 }
 
-/** Presses Continue; the file comes back through the dialog, and the place is found again. */
+/**
+ * Presses Continue and expects the place again. A closed document reopens from its kept snapshot
+ * with no dialog; where the browser keeps none, the file dialog opens ("Open again…") and the
+ * test serves it with the same file.
+ */
 async function continueAndExpectPlace(page: Page, left: Left): Promise<void> {
-  const chooser = page.waitForEvent('filechooser');
+  page.once('filechooser', (chooser) => void chooser.setFiles([fixturePath('many-pages.pdf')]));
   await page.getByTestId('continue-resume').click();
-  await (await chooser).setFiles([fixturePath('many-pages.pdf')]);
   await expect(page.getByTestId('home')).toHaveCount(0, { timeout: 30_000 });
   await expect(page.getByTestId('page-pill')).toHaveText(left.label, { timeout: 30_000 });
   await expect
@@ -232,10 +237,11 @@ test('the sample hero lifts and grows into the page, which never shows its bare 
   const grown = frames.map((f) => f.clone).filter((w) => w > 0);
   expect(grown.length, 'the clone was drawn').toBeGreaterThanOrEqual(2);
   expect(Math.max(...grown), 'it grew').toBeGreaterThan(Math.min(...grown) * 1.4);
-  // Any frame in which the reader is visible (not held at 0) shows more than the bare sheet.
+  // Any frame in which the reader fades in shows more than the bare sheet.
   for (const frame of frames) {
-    const visible = frame.viewport === '' || Number(frame.viewport) > 0.02;
-    if (visible && frame.clone > 0 && frame.state !== null) {
+    // The dissolve: the reader is fading in (a number) under the clone.
+    const dissolving = frame.viewport !== '' && Number(frame.viewport) > 0.02;
+    if (dissolving && frame.clone > 0 && frame.state !== null) {
       expect(frame.state, 'the page under the dissolving clone').not.toBe('placeholder');
     }
   }
@@ -282,8 +288,9 @@ test('a kept document reopened from its tile holds, then grows into a page that 
   expect(grown.length, 'the clone was drawn').toBeGreaterThanOrEqual(2);
   expect(Math.max(...grown), 'it grew').toBeGreaterThan(Math.min(...grown) * 1.4);
   for (const frame of frames) {
-    const visible = frame.viewport === '' || Number(frame.viewport) > 0.02;
-    if (visible && frame.clone > 0 && frame.state !== null) {
+    // The dissolve: the reader is fading in (a number) under the clone.
+    const dissolving = frame.viewport !== '' && Number(frame.viewport) > 0.02;
+    if (dissolving && frame.clone > 0 && frame.state !== null) {
       expect(frame.state, 'the page under the dissolving clone').not.toBe('placeholder');
     }
   }

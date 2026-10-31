@@ -182,12 +182,26 @@ export function openInRead(id: DocumentId): void {
   ui().showSurface('page', id);
 }
 
+/** Resumes just made, by document: the page and when (ms). */
+const resumed = new Map<DocumentId, { readonly page: number; readonly at: number }>();
+/** A resume of the same page within this long of the last one is the same resume (ms). */
+const RESUME_ONCE_MS = 5000;
+
 /**
  * Opens a document where it was left (Epic 3, 3c; DSN-66): its zoom first, so the page view
  * mounts at it, then its page, then the scroll offset once the rows are measured. From the desk's
  * Continue card, the card's page lifts and grows into the page (DSN-87, `openFromDesk`).
  */
 export function resumeDocument(id: DocumentId, point: ResumePoint): Promise<void> {
+  // The same place asked twice within a moment (a reopen that resumed itself, then the card that
+  // was pressed resuming too) is one resume: a second settle would hold the reader out of sight
+  // again under the flight.
+  const last = resumed.get(id);
+  const now = Date.now();
+  if (last?.page === point.page && now - last.at < RESUME_ONCE_MS) {
+    return Promise.resolve();
+  }
+  resumed.set(id, { page: point.page, at: now });
   const title = model().workspace.documents[id]?.title ?? '';
   return openFromDesk(title, async () => {
     const view = await import('../session/resume-view');

@@ -108,3 +108,32 @@
 :root[data-vt-library] [data-library-sheet] [data-testid='library-card-check'] {
   visibility: hidden;
 }
+
+/* The desk's opening (DSN-87, `liftOpen`): while the cover is held over a copy of the desk, the
+   reader that mounts under it waits out of sight. The copy is see-through between the tiles, so
+   without this the bare page would show through. Layout is untouched, so an exact resume
+   measures and scrolls as usual. */
+:root[data-open-hold] [data-read-viewport] {
+  visibility: hidden;
+}
+
+/* The busy ring (after 400 ms): a turning arc on a soft disc over the held cover. */
+[data-open-grow] [data-open-busy] {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: var(--icon-lg, 24px);
+  height: var(--icon-lg, 24px);
+  box-sizing: border-box;
+  border: 2px solid color-mix(in srgb, var(--text-secondary) 35%, transparent);
+  border-top-color: var(--text-primary);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--page-background) 55%, transparent);
+  animation: open-busy-spin var(--loop-spinner) linear infinite;
+}
+
+@keyframes open-busy-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}

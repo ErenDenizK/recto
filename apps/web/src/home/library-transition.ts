@@ -398,6 +398,9 @@ export interface OpenSeed {
   readonly image: SeedImage;
 }
 
+/** Set on `<html>` while the arriving reader waits behind the desk's copy (see the stylesheet). */
+const HOLD = 'data-open-hold';
+
 /** The opening that runs now, if any: one at a time (`canLift`). */
 let opening: OpenState | null = null;
 
@@ -410,11 +413,26 @@ function homeShows(): boolean {
 }
 
 /**
+ * Gives the SVG parts of `copy` back the ids `ghostOf` strips from every element: a drawing's
+ * gradients and clips are found by id (`url(#…)`), and without them it paints without its fills
+ * (the sample's cover loses its sky). HTML keeps no duplicate ids.
+ */
+function restoreSvgIds(from: Element, copy: Element): void {
+  const live = from.querySelectorAll('*');
+  const twins = copy.querySelectorAll('*');
+  live.forEach((el, i) => {
+    const twin = twins[i];
+    if (el instanceof SVGElement && el.id !== '' && twin?.id === '') twin.id = el.id;
+  });
+}
+
+/**
  * A copy of the pressed `sheet` to lift. Its pictures are copied into canvases, so the copy keeps
  * showing after the desk unmounts and revokes its object URLs (a cloned `<img>` would reload).
  */
 function liftedCopy(sheet: HTMLElement): HTMLElement {
   const copy = ghostOf(sheet);
+  restoreSvgIds(sheet, copy);
   const sources = sheet.querySelectorAll('img');
   copy.querySelectorAll('img').forEach((img, i) => {
     const source = sources[i];
@@ -432,6 +450,7 @@ function liftedCopy(sheet: HTMLElement): HTMLElement {
 /** A still copy of `view` laid over it, scrolled where it is; the desk fades as a copy. */
 function stillCopy(view: HTMLElement): HTMLElement {
   const copy = ghostOf(view);
+  restoreSvgIds(view, copy);
   placeAt(copy, view.getBoundingClientRect());
   copy.style.zIndex = '9';
   document.body.append(copy);
@@ -596,6 +615,8 @@ export function liftOpen(
   };
 
   const settleBack = () => {
+    veil?.remove();
+    veil = null;
     if (!copy) {
       send({ type: 'landed' });
       return;
@@ -626,10 +647,15 @@ export function liftOpen(
         announce(m.desk_opening({ name }));
         break;
       case 'veil':
-        // Synchronously, before React takes the desk away.
-        if (view.isConnected) veil = stillCopy(view);
+        // Synchronously, before React takes the desk away (unless it was taken a step earlier).
+        // The copy of the desk is see-through between its tiles, so the arriving reader waits
+        // out of sight (`library-transition.css`) until the cover flies to it, or fades in under
+        // the copy's fade (reduced motion).
+        if (veil === null && view.isConnected) veil = stillCopy(view);
+        document.documentElement.setAttribute(HOLD, '');
         break;
       case 'unveil':
+        document.documentElement.removeAttribute(HOLD);
         veil?.remove();
         veil = null;
         break;
@@ -646,6 +672,7 @@ export function liftOpen(
         copy?.querySelector('[data-open-busy]')?.remove();
         if (!copy) {
           // Reduced motion: the copy of the desk cross-fades away over the arrived page.
+          document.documentElement.removeAttribute(HOLD);
           const fade = veil?.animate([{ opacity: 1 }, { opacity: 0 }], {
             duration: duration('slow'),
             easing: EASE.standard,
@@ -663,9 +690,12 @@ export function liftOpen(
           void lightPulse(to);
           send({ type: 'landed' });
         });
+        // The flight holds the reader at opacity 0 itself now.
+        document.documentElement.removeAttribute(HOLD);
         break;
       }
       case 'dissolve': {
+        document.documentElement.removeAttribute(HOLD);
         const out = [copy, veil].filter((el): el is HTMLElement => el !== null);
         const fades = out.map(
           (el) =>
@@ -679,6 +709,7 @@ export function liftOpen(
         break;
       }
       case 'finish': {
+        document.documentElement.removeAttribute(HOLD);
         flying?.();
         copy?.remove();
         veil?.remove();
@@ -703,7 +734,19 @@ export function liftOpen(
     else if (shows && (state.phase === 'left' || state.phase === 'flying'))
       send({ type: 'returned' });
   };
-  offs.push(useUiStore.subscribe(watch), useWorkspaceStore.subscribe(watch));
+  // The open's first change to the workspace (a file loaded, a document added) re-renders the
+  // desk a moment before the view changes (the sample's hero goes, an open card arrives). The
+  // still copy is taken now, so it shows the desk as it was pressed, never that in-between.
+  const freeze = () => {
+    if (veil === null && state.phase === 'lifted' && view.isConnected) veil = stillCopy(view);
+  };
+  offs.push(
+    useUiStore.subscribe(watch),
+    useWorkspaceStore.subscribe(() => {
+      freeze();
+      watch();
+    }),
+  );
 
   void work?.then(
     () => send({ type: 'worked' }),
