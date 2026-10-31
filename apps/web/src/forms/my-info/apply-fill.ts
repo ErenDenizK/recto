@@ -88,6 +88,18 @@ export function createFillPlan(
 let fills = 0;
 
 /**
+ * Undoes the fill whose history entry carries `key`, and only that one (never an entry
+ * someone else pushed meanwhile), and drops its redo entry so a half fill cannot come back.
+ */
+function rollbackFill(key: string): void {
+  const store = useWorkspaceStore.getState();
+  if (store.history.present.coalesceKey !== key) return;
+  store.undo();
+  const { history } = useWorkspaceStore.getState();
+  store.replaceHistory({ ...history, future: history.future.slice(1) });
+}
+
+/**
  * Writes `plan` as one history entry. Refuses (`locked`, `stale`, `no-document`) before
  * changing anything; `nothing` when every field already holds its planned text.
  */
@@ -131,10 +143,10 @@ export async function applyFillPlan(plan: FillPlan): Promise<FillOutcome> {
     label,
     fromEngine.done.length > 0 ? key : undefined,
   );
-  if (fromModel.stale) {
-    // A created field moved after the engine step: take the whole fill back.
-    if (fromEngine.done.length > 0) useWorkspaceStore.getState().undo();
-    return none('stale');
+  if (fromModel.stale || fromModel.failed) {
+    // A created field moved (or refused) after the engine step: take this fill back.
+    if (fromEngine.done.length > 0) rollbackFill(key);
+    return none(fromModel.stale ? 'stale' : 'failed');
   }
 
   markFieldOrigin(

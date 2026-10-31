@@ -342,33 +342,34 @@ export function createdFillsStale(documentId: DocumentId, fills: readonly Create
 /**
  * Fills many created fields of one document as one history entry labelled `label` (BM-4,
  * "Fill from My info"). All or nothing: a field that is gone or no longer holds its
- * `expected` text makes it write nothing and report `stale`. With `coalesceKey` the entry
- * joins the one the engine fill pushed. Resolves to the ids changed.
+ * `expected` text makes it write nothing and report `stale`; `failed` is a write the model
+ * refused. With `coalesceKey` the entry joins the one the engine fill pushed. Resolves to the
+ * ids changed.
  */
 export function fillCreatedFields(
   documentId: DocumentId,
   fills: readonly CreatedFill[],
   label: string,
   coalesceKey?: string,
-): { readonly done: readonly FieldId[]; readonly stale: boolean } {
+): { readonly done: readonly FieldId[]; readonly stale: boolean; readonly failed: boolean } {
   const doc = workspace().documents[documentId];
   const targets: { fill: CreatedFill; field: CreatedField; next: CreatedField['value'] }[] = [];
   for (const fill of fills) {
     const field = doc?.fields?.find((f) => f.id === fill.id);
     const held = typeof field?.value === 'string' ? field.value : '';
     if (!field || (fill.expected !== undefined && held !== fill.expected)) {
-      return { done: [], stale: true };
+      return { done: [], stale: true, failed: false };
     }
     if (field.readOnly) continue;
     const next = toCreatedValue(field, fill.value);
     if (JSON.stringify(next ?? null) === JSON.stringify(field.value ?? null)) continue;
     targets.push({ fill, field, next });
   }
-  if (targets.length === 0) return { done: [], stale: false };
+  if (targets.length === 0) return { done: [], stale: false, failed: false };
   const done = commit(
     (ws) => targets.reduce((w, t) => setFormFieldValue(w, documentId, t.fill.id, t.next), ws),
     label,
     coalesceKey,
   );
-  return { done: done ? targets.map((t) => t.fill.id) : [], stale: false };
+  return { done: done ? targets.map((t) => t.fill.id) : [], stale: false, failed: !done };
 }

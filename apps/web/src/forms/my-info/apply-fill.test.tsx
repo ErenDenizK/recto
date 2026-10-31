@@ -20,7 +20,7 @@ import { getEngineService } from '../../engine/engine-service';
 import { resetLockStore, useLockStore } from '../../state/lock-store';
 import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
 import { useToolStore } from '../../viewer/tool-store';
-import { addField, updateField } from '../create/field-actions';
+import { addField, fillCreatedFields, updateField } from '../create/field-actions';
 import { resetCreateStore } from '../create/create-store';
 import { commitFieldValue } from '../actions';
 import { fieldStops, isFillable, resetFormStore, useFormStore } from '../form-store';
@@ -28,7 +28,13 @@ import { clearActiveForm, fillActiveFormFromMyInfo } from '../index';
 import { forgetMyInfo, memoryMyInfoBackend, setMyInfoBackend, useMyInfo } from './my-info';
 import { createFillPlan } from './apply-fill';
 import { originOf, resetFillOrigins } from './fill-origin';
+import type * as FieldActions from '../create/field-actions';
 import { type MyInfo, planFill } from './plan-fill';
+
+vi.mock('../create/field-actions', async (importOriginal) => {
+  const real = await importOriginal<typeof FieldActions>();
+  return { ...real, fillCreatedFields: vi.fn(real.fillCreatedFields) };
+});
 
 const INFO: MyInfo = { givenName: 'Ayşe', familyName: 'Yılmaz', email: 'ayse@example.com' };
 const model = () => useWorkspaceStore.getState();
@@ -279,6 +285,45 @@ describe('applyFillPlan', () => {
       expect((await fillActiveFormFromMyInfo(plan)).status).toBe('stale');
       expect((await values(source)).name).toBe('');
       expect(createdValue(id)).toBe('x@y.z');
+    });
+  });
+
+  describe('a created write that goes wrong after the engine commit', () => {
+    for (const [name, result, status] of [
+      ['reports stale', { done: [], stale: true, failed: false }, 'stale'],
+      ['fails to commit', { done: [], stale: false, failed: true }, 'failed'],
+    ] as const) {
+      it(`${name}: the fill is undone, redo is gone, other entries stay`, async () => {
+        const { source, id } = await openCleared();
+        const plan = await planOf();
+        if (!plan) throw new Error('no plan');
+        await whenIdle();
+        const count = labels().length;
+        vi.mocked(fillCreatedFields).mockReturnValueOnce(result);
+        expect(await fillActiveFormFromMyInfo(plan)).toEqual({ status, filled: 0 });
+        await whenIdle();
+        expect(labels().length).toBe(count);
+        expect(labels().at(-1)).not.toBe('Fill from My info');
+        expect(model().redo()).toBeUndefined();
+        expect((await values(source)).name).toBe('');
+        expect(doc().fields?.find((f) => f.id === id)?.value ?? '').toBe('');
+      });
+    }
+
+    it('does not undo an entry that is not this fill', async () => {
+      const { source } = await openCleared();
+      const plan = await planOf();
+      if (!plan) throw new Error('no plan');
+      await whenIdle();
+      vi.mocked(fillCreatedFields).mockImplementationOnce(() => {
+        // Someone pushed another entry after the engine commit.
+        updateField(plan.items.find((i) => i.fieldId)?.fieldId as never, { required: true });
+        return { done: [], stale: true, failed: false };
+      });
+      const count = labels().length;
+      expect((await fillActiveFormFromMyInfo(plan)).status).toBe('stale');
+      expect(labels().length).toBe(count + 2);
+      expect((await values(source)).name).toBe('Ayşe Yılmaz');
     });
   });
 
