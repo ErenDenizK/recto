@@ -1,0 +1,199 @@
+/*
+ * The intents (DeskIntents.tsx; DSN-87 masa.md §2.2, §2.3): four lit tiles, always four cells,
+ * in a 2×2 grid beside the hero that is as tall as the hero (two equal rows). The container's
+ * width decides the shape: 2×2 from 840 px, one row of four from 720 to 839 (the glyph above its
+ * label there), 2×2 under 720 (masa.md §2.3; the director's brief said 600, the spec's 720 is
+ * kept). Every tile is standard lit glass: the primary (Open files, while Continue is not
+ * showing) is a 40 × 40 accent-filled glyph well and first focus, never a slab. A label and a
+ * hint are one line each with an ellipsis; the full text is the accessible name and
+ * description. Tiles take the sample card's press and hover (GLS-25). Drag-over lifts the group
+ * 2 px with the e3 shadow and a dashed accent line (L9); reduced motion keeps the shadow and the
+ * line.
+ */
+.group {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: 1fr 1fr;
+  gap: var(--space-4);
+  height: 100%;
+  min-width: 0;
+  border-radius: var(--radius-xl);
+  transition:
+    transform var(--spring-quick) var(--ease-spring),
+    outline-color var(--duration-fast) var(--ease-out);
+}
+
+.tile {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    'well label'
+    'hint hint';
+  align-content: center;
+  align-items: center;
+  column-gap: var(--space-3);
+  row-gap: var(--space-2);
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-xl);
+  color: var(--text-primary);
+  text-align: start;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition:
+    transform var(--spring-press) var(--ease-spring),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+/* The glyph well: 40 × 40, radius 10; accent-filled on the primary. */
+.well {
+  grid-area: well;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.tile[data-prominent] .well {
+  background: var(--accent-fill);
+  color: var(--accent-on-fill);
+}
+
+.glyph {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+.label,
+.hint {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.label {
+  grid-area: label;
+  font-size: var(--type-body);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-body-lh);
+  letter-spacing: var(--track-body);
+}
+
+.hint {
+  grid-area: hint;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  letter-spacing: var(--track-footnote);
+}
+
+@media (hover: hover) {
+  .tile:hover {
+    --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--lens-rim-hover);
+  }
+}
+
+.tile:active {
+  --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--lens-rim-pressed);
+  transform: scale(var(--press-scale-large));
+  transition-duration: var(--duration-instant);
+}
+
+.tile[aria-busy='true'] {
+  cursor: progress;
+}
+
+/* The arrival focus draws no ring until a key is pressed (Desk.tsx). */
+.tile[data-quiet-focus]:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+@media (pointer: coarse) {
+  .tile {
+    min-height: 52px;
+  }
+}
+
+/* Dragging, the window is the target: the group lifts and rings in a dashed accent line. */
+.group[data-dragging] {
+  --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--e3);
+  outline: 2px dashed var(--accent-line);
+  outline-offset: var(--space-1);
+  transform: translateY(calc(-1 * var(--space-half)));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .group[data-dragging],
+  .tile:active {
+    transform: none;
+  }
+}
+
+:root[data-motion='reduced'] .group[data-dragging],
+:root[data-motion='reduced'] .tile:active {
+  transform: none;
+}
+
+@media (forced-colors: active) {
+  .group[data-dragging] {
+    outline-color: Highlight;
+  }
+}
+
+/* Stacked hero, or no hero: one row of four, the glyph above its label. */
+.group[data-wide] {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: auto;
+}
+
+@container library (max-width: 839.98px) {
+  .group {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: auto;
+  }
+
+  .tile {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'well'
+      'label'
+      'hint';
+    justify-items: start;
+    row-gap: var(--space-1);
+  }
+
+  .well {
+    margin-bottom: var(--space-1);
+  }
+
+  .label,
+  .hint {
+    max-width: 100%;
+  }
+}
+
+@container library (max-width: 719.98px) {
+  .group,
+  .group[data-wide] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: 1fr 1fr;
+  }
+
+  .tile {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'well label'
+      'hint hint';
+    justify-items: stretch;
+  }
+
+  .well {
+    margin-bottom: 0;
+  }
+}
