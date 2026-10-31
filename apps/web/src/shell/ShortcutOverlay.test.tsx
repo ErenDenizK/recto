@@ -11,7 +11,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
-import { settled } from '../../test/settled';
+import { EXIT_TIMEOUT, settled } from '../../test/settled';
 import { registerAppCommands } from '../commands/app-commands';
 import { keymapRows } from '../commands/keymap';
 import { commandRegistry } from '../commands/registry';
@@ -143,7 +143,7 @@ describe('the shortcuts overlay (07 §23)', () => {
 
     await userEvent.keyboard('{Escape}');
     expect(useUiStore.getState().shortcutsOpen).toBe(false);
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull(), { timeout: EXIT_TIMEOUT });
     act(() => useUiStore.setState({ shortcutsOpen: true }));
     expect(await screen.findByRole('searchbox', { name: 'Find a shortcut' })).toHaveValue(
       'highlighter',

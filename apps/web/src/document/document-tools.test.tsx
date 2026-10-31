@@ -22,6 +22,8 @@ import { validatePasswordForm } from './password-form';
 import { passwordStrength } from './password-strength';
 import { ALL_PERMISSIONS } from '@pdf-editor/document-model';
 
+import { settled } from '../../test/settled';
+
 const labels = () => {
   const { past, present } = useWorkspaceStore.getState().history;
   return [...past, present].map((e) => e.label);
@@ -179,7 +181,7 @@ describe('Set password dialog', () => {
     await openMetadataFixture();
     render(<DocumentSheets />);
     act(() => openDocumentDialog('set-password', activeDoc().id));
-    const dialog = await screen.findByTestId('set-password-dialog');
+    const dialog = await settled(await screen.findByTestId('set-password-dialog'));
     await userEvent.click(within(dialog).getByRole('button', { name: 'Set password' }));
     expect(within(dialog).getByRole('alert')).toHaveTextContent(
       'Enter a password to open, a password to change permissions, or both.',
@@ -220,12 +222,12 @@ describe('Set password dialog', () => {
     await openMetadataFixture();
     render(<DocumentSheets />);
     act(() => openDocumentDialog('set-password', activeDoc().id));
-    const dialog = await screen.findByTestId('set-password-dialog');
+    const dialog = await settled(await screen.findByTestId('set-password-dialog'));
     await userEvent.fill(within(dialog).getByLabelText('Password to open'), 'secret-123');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Set password' }));
     expect(activeDoc().security?.userPassword).toBe('secret-123');
     act(() => openDocumentDialog('remove-password', activeDoc().id));
-    const remove = await screen.findByTestId('remove-password-dialog');
+    const remove = await settled(await screen.findByTestId('remove-password-dialog'));
     await userEvent.click(within(remove).getByRole('button', { name: 'Remove password' }));
     expect(activeDoc().security).toBeUndefined();
     expect(labels().slice(-2)).toEqual(['Set password', 'Remove password']);
