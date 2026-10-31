@@ -5351,6 +5351,7 @@
   "scan_photos_skipped": "{count} photos could not be read and were skipped.",
   "scan_apply": "Apply",
   "scan_back": "Back",
+  "scan_limit_phone": "A phone keeps {max} pages in one scan. Press Done, then scan more.",
   "labs_title": "Labs",
   "labs_on": "Labs on",
   "labs_status_prototype": "Prototype.",

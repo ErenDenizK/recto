@@ -141,6 +141,7 @@ export async function openPdf(file: File, replaces?: string): Promise<boolean> {
     void recordRecent({
       name: file.name,
       size: file.size,
+      lastModified: file.lastModified,
       pages: doc.pages.length,
       ...(handle === undefined ? {} : { handle }),
       ...(replaces === undefined ? {} : { replaces }),

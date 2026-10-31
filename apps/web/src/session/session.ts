@@ -33,7 +33,13 @@ import {
 } from '@pdf-editor/document-model';
 
 import { getEngineService } from '../engine/engine-service';
-import { forgetKept, keepRecent, onKeptRemoved, useRecentsStore } from '../files/recents';
+import {
+  forgetKept,
+  keepRecent,
+  onKeptRemoved,
+  onRecentRecorded,
+  useRecentsStore,
+} from '../files/recents';
 import { m } from '../i18n';
 import { isSampleFile } from '../sample/sample-file';
 import { lockOf, useLockStore } from '../state/lock-store';
@@ -171,11 +177,21 @@ export function recentRowOf(record: KeptRecordV1): { name: string; size: number 
   };
 }
 
-function attachKept(record: KeptRecordV1, bytes = 0): void {
+/** A kept document goes to its Recents row, with the place it was left at (exported for tests). */
+export function attachKept(record: KeptRecordV1, bytes = 0): void {
+  const { page, resume } = record.place;
   void keepRecent({
     ...recentRowOf(record),
     pages: record.pages,
     kept: { snapshotId: record.id, keptAt: record.keptAt, bytes, changed: record.place.changed },
+    // Where reading stopped rides on the row, so the desk shows progress without reading OPFS
+    // (DSN-87, `masa.md` §3.2).
+    place: {
+      page: Math.min(Math.max(0, page), Math.max(0, record.pages - 1)),
+      total: record.pages,
+      at: record.keptAt,
+      ...resume,
+    },
   });
 }
 
@@ -320,6 +336,41 @@ export function startSession(options: StartOptions): () => void {
       };
     });
   }
+  // Covers and places for the desk (DSN-87), loaded after the first paint's work.
+  let stopCovers: (() => void) | undefined;
+  const compact = options.edition === 'compact';
+  const startCovers = () =>
+    import('../home/cover-capture').then((capture) => {
+      if (stopped) return undefined;
+      stopCovers = capture.startCoverCapture({ compact });
+      return capture;
+    });
+  let stopPhoneSweep: (() => void) | undefined;
+  if (compact) {
+    // The phone's session pays for nothing until a file is opened (compactSession's cap):
+    // the first recorded file loads the capture and hands it that file.
+    let loading = false;
+    onRecentRecorded((entry, lastModified) => {
+      if (loading) return;
+      loading = true;
+      void startCovers()
+        .then((capture) => capture?.recordedCover(entry, lastModified, () => stopped))
+        .catch(() => {
+          // The chunk failed to load: the next recorded file tries again.
+          loading = false;
+        });
+    });
+    // Remove and Clear in a session that opens nothing still take their covers (privacy): load
+    // the covers module only on that intent, never in the eager phone chunk.
+    stopPhoneSweep = useRecentsStore.subscribe((next, previous) => {
+      if (!next.loaded || next.entries.length >= previous.entries.length) return;
+      void import('../home/covers').then((covers) => {
+        if (!stopped) void covers.sweepCovers(useRecentsStore.getState().entries);
+      });
+    });
+  } else {
+    void startCovers();
+  }
   window.addEventListener('beforeunload', onBeforeUnload);
   const offlineUnsub = useWorkspaceStore.subscribe((state) =>
     offlineTracker.observe(state.workspace),
@@ -395,6 +446,9 @@ export function startSession(options: StartOptions): () => void {
   return () => {
     stopped = true;
     stopResume?.();
+    stopCovers?.();
+    stopPhoneSweep?.();
+    onRecentRecorded(undefined);
     unwatch?.();
     offlineUnsub();
     window.removeEventListener('beforeunload', onBeforeUnload);
@@ -644,15 +698,17 @@ export async function reopenFromSnapshot(
  * every Recents row's "changes kept". Final. Resolves false when storage could not be cleared.
  */
 export async function clearKeptChanges(): Promise<boolean> {
+  // The covers are pictures of those documents (DSN-87); a window that keeps none has them in memory.
+  const coversCleared = import('../home/covers').then((covers) => covers.clearCovers());
   const ctl = controller;
-  if (!ctl) return true;
+  if (!ctl) return coversCleared;
   const ok = await ctl.writer.clearAll();
   // Every row's snapshot is gone, also those the list did not know of (another tab's).
   const kept = useRecentsStore
     .getState()
     .entries.flatMap((entry) => (entry.kept === undefined ? [] : [entry.kept.snapshotId]));
   if (ok) await forgetKept(kept);
-  return ok;
+  return (await coversCleared) && ok;
 }
 
 /** Writes the snapshot now (tests; the writer also does on hide). */

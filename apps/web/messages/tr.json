@@ -3657,6 +3657,7 @@
   "scan_photos_skipped": "{count} fotoğraf okunamadı ve atlandı.",
   "scan_apply": "Uygula",
   "scan_back": "Geri",
+  "scan_limit_phone": "Telefon bir taramada {max} sayfa tutar. Bitti’ye basın, sonra yenisini tarayın.",
   "labs_title": "Deneysel",
   "labs_on": "Deneysel açık",
   "labs_status_prototype": "Prototip.",

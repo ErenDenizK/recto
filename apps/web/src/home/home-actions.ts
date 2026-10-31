@@ -294,7 +294,8 @@ export async function combineFiles(): Promise<DocumentId | undefined> {
   );
   presentOpenFailures(skipped, files.length);
   if (!committed || created === undefined) return undefined;
-  for (const file of used) void recordRecent({ name: file.name, size: file.size });
+  for (const file of used)
+    void recordRecent({ name: file.name, size: file.size, lastModified: file.lastModified });
   // Opened from files: "Open documents locked" applies (ADR-0029 §2.8).
   lockOpened([created]);
   showInGrid(created);

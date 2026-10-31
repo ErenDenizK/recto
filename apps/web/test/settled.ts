@@ -49,6 +49,38 @@ export function moving(el: Element): Animation[] {
   );
 }
 
+/** The beat of the stall clock, ms. */
+const BEAT_MS = 50;
+/** A beat this late means the page was frozen, not merely busy, ms. */
+const STALL_MS = 250;
+
+/**
+ * Counts the time the page spent frozen (a long task, a starved runner), which is not time the
+ * element had to come to rest. Vitest runs the files of a worker as iframes of one page, so a
+ * sibling file's long task, or a runner stalled for seconds, stops this file's frames, timers
+ * and animation clock alike. An entrance that then ends just after the wall-clock budget has
+ * gone fails as "still moving: background-color, box-shadow" with the glass settle (the last
+ * ~230 ms of a sheet's entrance) on screen (CI, PR #143 run 41206269790 and run 41202702690).
+ * Time is read as a gap between beats of a timer: the latest beat may not have run yet when the
+ * stall ends, so the open gap since it counts too.
+ */
+function stallClock(): { frozen: () => number; stop: () => void } {
+  let last = performance.now();
+  let frozen = 0;
+  const beat = setInterval(() => {
+    const now = performance.now();
+    if (now - last > STALL_MS) frozen += now - last - BEAT_MS;
+    last = now;
+  }, BEAT_MS);
+  return {
+    frozen: () => {
+      const open = performance.now() - last;
+      return frozen + (open > STALL_MS ? open - BEAT_MS : 0);
+    },
+    stop: () => clearInterval(beat),
+  };
+}
+
 /**
  * Resolves with `el` once it and its ancestors have stopped moving (see above).
  *
@@ -60,33 +92,49 @@ export function moving(el: Element): Animation[] {
  * the element straight after the check could still find the held animation (CI, PR #11:
  * Segmented's thumb, `getAnimations()` 1). One frame after the check the event has run;
  * anything that started meanwhile is waited out again.
+ *
+ * `timeout` is time the page ran: a freeze of the page (`stallClock()`) does not count.
  */
 export async function settled<T extends Element>(el: T, { timeout = 5000 } = {}): Promise<T> {
-  await act(async () => {
-    await frame();
-    await frame();
-  });
-  const until = performance.now() + timeout;
-  for (;;) {
-    await waitFor(
-      () => {
-        const running = moving(el);
-        if (running.length > 0) {
-          const names = running.map((a) =>
-            a instanceof CSSTransition
-              ? a.transitionProperty
-              : a instanceof CSSAnimation
-                ? a.animationName
-                : a.id || 'animation',
-          );
-          throw new Error(`still moving: ${names.join(', ')}`);
-        }
-      },
-      { timeout: Math.max(0, until - performance.now()) },
-    );
+  const clock = stallClock();
+  try {
     await act(async () => {
       await frame();
+      await frame();
     });
-    if (moving(el).length === 0) return el;
+    const began = performance.now();
+    const frozenAtStart = clock.frozen();
+    // The budget is `timeout` of a page that ran: a freeze pushes the deadline out by its length.
+    const remaining = () => began + timeout + (clock.frozen() - frozenAtStart) - performance.now();
+    for (;;) {
+      try {
+        await waitFor(
+          () => {
+            const running = moving(el);
+            if (running.length > 0) {
+              const names = running.map((a) =>
+                a instanceof CSSTransition
+                  ? a.transitionProperty
+                  : a instanceof CSSAnimation
+                    ? a.animationName
+                    : a.id || 'animation',
+              );
+              throw new Error(`still moving: ${names.join(', ')}`);
+            }
+          },
+          { timeout: Math.max(0, remaining()) },
+        );
+      } catch (error) {
+        // The wait ran out while the page was frozen: the freeze was the wait, not the element.
+        if (remaining() > 0) continue;
+        throw error;
+      }
+      await act(async () => {
+        await frame();
+      });
+      if (moving(el).length === 0) return el;
+    }
+  } finally {
+    clock.stop();
   }
 }
