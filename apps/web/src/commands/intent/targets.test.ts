@@ -44,6 +44,7 @@ describe('sizes', () => {
     ['2 MB altına', 2 * MB],
     ['2 MB altında', 2 * MB],
     ['en fazla 2 MB', 2 * MB],
+    ['en çok 2 MB', 2 * MB],
     ['maksimum 2 MB', 2 * MB],
     ['2 MB geçmesin', 2 * MB],
     ["2 MB'dan küçük", 2 * MB],
@@ -53,6 +54,17 @@ describe('sizes', () => {
     const found = readSize(toks(text));
     expect(found?.value).toBe(bytes);
     expect(found?.rest).toEqual([]);
+  });
+
+  it.each([
+    "2 MB'den fazla",
+    'fazla 2 MB',
+    "en az 2 MB'a",
+    'at least 2 MB',
+    'more than 2 MB',
+    'larger than 2 MB',
+  ])('does not take %s for a ceiling', (text) => {
+    expect(readSize(toks(text))).toBeNull();
   });
 
   it('is not a size without a unit or with two', () => {
@@ -211,10 +223,22 @@ describe('splitting', () => {
     ['10. sayfadan', { at: [10] }],
     ['into 3 parts', { parts: 3 }],
     ['3 parçaya', { parts: 3 }],
+    ['after 10', { at: [11] }],
+    ['10. sayfadan sonra', { at: [11] }],
+    ["10'dan sonra", { at: [11] }],
+    ['at 10 and 20', { at: [10, 20] }],
+    ['at 10, 20', { at: [10, 20] }],
+    ['10 ve 20', { at: [10, 20] }],
+    ['after 10 and 20', { at: [11, 21] }],
   ])('reads %s', (text, how) => {
     const reads = readSplit(toks(text));
     expect(reads).toHaveLength(1);
     expect(reads?.[0]?.how).toEqual(how);
+  });
+
+  it('refuses cut points that are not joined or mix with a count', () => {
+    expect(readSplit(toks('10 20'))).toBeNull();
+    expect(readSplit(toks('every 10 and 20'))).toBeNull();
   });
 
   it('reads a bare number two ways: every N, or a new part at N', () => {

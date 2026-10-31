@@ -19,23 +19,69 @@ const without = (rest: Rest, drop: ReadonlySet<Tok>): Tok[] => rest.filter((t) =
 
 // ---------------------------------------------------------------------------------- sizes
 
-const COMPARATORS = new Set(
-  'under below less than smaller at most max maximum upto altina altinda alti en fazla maksimum azami gecmesin kucuk az'.split(
-    ' ',
-  ),
-);
+/**
+ * Whole phrases that put a ceiling on the size ("under 2 MB", "2 MB altına", "en fazla 2 MB"),
+ * each a run of folded words. A word alone is not a comparator: "fazla" and "az" mean more
+ * and less than, and "en az 2 MB" is a floor, not a ceiling.
+ */
+const UPPER_BOUNDS: readonly (readonly string[])[] = [
+  ...['under', 'below', 'max', 'maximum', 'upto', 'maksimum', 'azami', 'gecmesin'].map((w) => [w]),
+  ...['altina', 'altinda', 'alti', 'kucuk'].map((w) => [w]),
+  ['less', 'than'],
+  ['smaller', 'than'],
+  ['at', 'most'],
+  ['up', 'to'],
+  ['en', 'fazla'],
+  ['en', 'cok'],
+  // What is left of "smaller than" when the lexicon took "smaller" as the verb.
+  ['than'],
+];
+/** Words and phrases that say the size is a floor or something else: the sentence is not read. */
+const NOT_UPPER: readonly (readonly string[])[] = [
+  ['en', 'az'],
+  ['at', 'least'],
+  ['more', 'than'],
+  ['larger', 'than'],
+  ['bigger', 'than'],
+  ['fazla'],
+  ['az'],
+  ['over'],
+  ['above'],
+  ['buyuk'],
+];
 
-/** A size and its comparator words ("under 2 MB", "2 MB altına"): all mean "at most". */
+/**
+ * A size and its comparator phrase ("under 2 MB", "2 MB altına", "en fazla 2 MB"): all mean "at
+ * most". "-dan az" (less than) after the size is one too. A floor ("en az", "at least", "more
+ * than", "2 MB'den fazla") is read as nothing, never as a ceiling.
+ */
 export function readSize(rest: Rest): Found<number> | null {
   const sizes = rest.filter((t) => t.kind === 'size');
   const size = sizes[0];
   if (!size || sizes.length > 1) return null;
-  const drop = new Set<Tok>([
-    size,
-    ...rest.filter((t) => t.kind === 'word' && COMPARATORS.has(t.text)),
-  ]);
+  const words = rest.map((t) => (t.kind === 'word' ? full(t) : ''));
+  const phraseAt = (phrase: readonly string[], at: number): boolean =>
+    phrase.every((w, k) => words[at + k] === w);
+  const drop = new Set<Tok>([size]);
+  const at = rest.indexOf(size);
+  // "2 MB'tan az": less than, only straight after a size in the ablative.
+  const lessThan = ABLATIVE_SIZE.test(size.suf) && words[at + 1] === 'az';
+  for (let i = 0; i < rest.length; i++) {
+    if (lessThan && i === at + 1) {
+      drop.add(rest[i] as Tok);
+      continue;
+    }
+    const floor = NOT_UPPER.find((p) => phraseAt(p, i));
+    if (floor) return null;
+    const ceiling = UPPER_BOUNDS.find((p) => phraseAt(p, i));
+    if (ceiling) {
+      for (let k = 0; k < ceiling.length; k++) drop.add(rest[i + k] as Tok);
+      i += ceiling.length - 1;
+    }
+  }
   return { value: size.n, rest: without(rest, drop) };
 }
+const ABLATIVE_SIZE = /^(?:dan|den|tan|ten)$/;
 
 // ------------------------------------------------------------------- degrees and direction
 
@@ -194,15 +240,18 @@ export function readRelation(rest: Rest): Found<MoveTo> | null {
     const before = BEFORE.includes(full(t));
     if (before || AFTER.includes(full(t))) {
       // English puts the page after the word ("before 2"), Turkish before it ("2'nin önüne").
-      const forward = rest.slice(i + 1).find((x) => !isPageWord(x));
-      const back = rest
-        .slice(0, i)
-        .reverse()
-        .find((x) => !isPageWord(x));
-      const target = forward?.kind === 'number' ? forward : back?.kind === 'number' ? back : null;
+      // The page word that goes with the target ("after page 8") leaves with it.
+      const ahead = rest.slice(i + 1);
+      const forward = ahead.findIndex((x) => !isPageWord(x));
+      const behind = rest.slice(0, i).reverse();
+      const back = behind.findIndex((x) => !isPageWord(x));
+      const fwd = ahead[forward]?.kind === 'number' ? ahead[forward] : undefined;
+      const bwd = behind[back]?.kind === 'number' ? behind[back] : undefined;
+      const target = fwd ?? bwd;
       if (!target) return null;
+      const words = fwd ? ahead.slice(0, forward) : behind.slice(0, back);
       const to: MoveTo = before ? { before: target.n } : { after: target.n };
-      return { value: to, rest: rest.filter((x) => x !== t && x !== target) };
+      return { value: to, rest: rest.filter((x) => x !== t && x !== target && !words.includes(x)) };
     }
     if (START.includes(full(t)) || END.includes(full(t))) {
       const drop = new Set<Tok>([t]);
@@ -224,18 +273,21 @@ export interface SplitRead {
 }
 
 /**
- * How a split is asked for: "every 10", "her 10 sayfada", "10 sayfada bir", "at 10", "10.
- * sayfadan", "into 3 parts", "3 parçaya". A bare number is the one known two-way case
- * ("böl 10": every 10, or a new part at 10), so it gives two reads.
+ * How a split is asked for: "every 10", "her 10 sayfada", "10 sayfada bir", "at 10", "at 10 and
+ * 20", "10. sayfadan", "after 10", "10. sayfadan sonra", "into 3 parts", "3 parçaya". A bare
+ * number is the one known two-way case ("böl 10": every 10, or a new part at 10), so it gives
+ * two reads. `at` holds the pages where a new part starts, so "after 10" is 11.
  */
 export function readSplit(rest: Rest): SplitRead[] | null {
   const numbers = rest.filter((t) => t.kind === 'number');
   const n = numbers[0];
-  if (!n || numbers.length > 1) return null;
+  if (!n) return null;
+  const last = numbers.at(-1) as Tok;
   const pageish = (t: Tok): boolean => isPageWord(t);
   const every = rest.filter((t) => is(t, 'every', 'each', 'her'));
   const bir = rest.filter((t) => is(t, 'bir'));
   const at = rest.filter((t) => is(t, 'at'));
+  const after = rest.filter((t) => is(t, 'after'));
   const parts = rest.filter(
     (t) =>
       is(t, 'into') ||
@@ -243,15 +295,40 @@ export function readSplit(rest: Rest): SplitRead[] | null {
       isNoun(t, 'parca') ||
       isNoun(t, 'belge'),
   );
+  // "10. sayfadan sonra", "10'dan sonra": the conjunction "sonra" right after the last number.
+  const sonra = rest
+    .slice(rest.indexOf(last) + 1)
+    .find((t, k, tail) => !pageish(t) && tail.slice(0, k).every(pageish));
+  const sonraTok = sonra?.kind === 'conj' && sonra.text === 'sonra' ? sonra : undefined;
   const ablative = n.ord && rest.some((t) => pageish(t) && /(?:dan|den)$/.test(t.text + t.suf));
-  const read = (how: SplitHow, weight: number, used: Tok[]): SplitRead => ({
-    how,
-    weight,
-    rest: rest.filter((t) => t !== n && !used.includes(t) && !pageish(t)),
-  });
+  const used = (extra: readonly Tok[]): Tok[] => [...extra, ...(sonraTok ? [sonraTok] : [])];
+  const read = (how: SplitHow, weight: number, extra: readonly Tok[]): SplitRead => {
+    const gone = used(extra);
+    return {
+      how,
+      weight,
+      rest: rest.filter((t) => !numbers.includes(t) && !gone.includes(t) && !pageish(t)),
+    };
+  };
+  const shift = after.length > 0 || sonraTok ? 1 : 0;
+  if (numbers.length > 1) {
+    // Several cut points ("10 ve 20", "at 10 and 20"): places only, joined by a conjunction.
+    const joined = numbers.every((x, k) => {
+      if (k === 0) return true;
+      const between = rest.slice(rest.indexOf(numbers[k - 1] as Tok) + 1, rest.indexOf(x));
+      return (
+        between.some((t) => t.kind === 'conj') &&
+        between.every((t) => t.kind === 'conj' || pageish(t))
+      );
+    });
+    if (!joined || every.length > 0 || bir.length > 0 || parts.length > 0) return null;
+    const places = [...new Set(numbers.map((x) => x.n + shift))].sort((x, y) => x - y);
+    return [read({ at: places }, 1, [...at, ...after])];
+  }
   if (every.length > 0 || (bir.length > 0 && rest.some(pageish))) {
     return [read({ every: n.n }, 1, [...every, ...bir])];
   }
+  if (shift > 0) return [read({ at: [n.n + 1] }, 1, after)];
   if (at.length > 0 || ablative) return [read({ at: [n.n] }, 1, at)];
   if (parts.length > 0) return [read({ parts: n.n }, 1, parts)];
   return [read({ every: n.n }, 1, []), read({ at: [n.n] }, 0.8, [])];
