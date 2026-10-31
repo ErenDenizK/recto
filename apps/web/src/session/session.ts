@@ -345,6 +345,7 @@ export function startSession(options: StartOptions): () => void {
       stopCovers = capture.startCoverCapture({ compact });
       return capture;
     });
+  let stopPhoneSweep: (() => void) | undefined;
   if (compact) {
     // The phone's session pays for nothing until a file is opened (compactSession's cap):
     // the first recorded file loads the capture and hands it that file.
@@ -352,7 +353,20 @@ export function startSession(options: StartOptions): () => void {
     onRecentRecorded((entry, lastModified) => {
       if (loading) return;
       loading = true;
-      void startCovers().then((capture) => capture?.recordedCover(entry, lastModified));
+      void startCovers()
+        .then((capture) => capture?.recordedCover(entry, lastModified, () => stopped))
+        .catch(() => {
+          // The chunk failed to load: the next recorded file tries again.
+          loading = false;
+        });
+    });
+    // Remove and Clear in a session that opens nothing still take their covers (privacy): load
+    // the covers module only on that intent, never in the eager phone chunk.
+    stopPhoneSweep = useRecentsStore.subscribe((next, previous) => {
+      if (!next.loaded || next.entries.length >= previous.entries.length) return;
+      void import('../home/covers').then((covers) => {
+        if (!stopped) void covers.sweepCovers(useRecentsStore.getState().entries);
+      });
     });
   } else {
     void startCovers();
@@ -433,6 +447,7 @@ export function startSession(options: StartOptions): () => void {
     stopped = true;
     stopResume?.();
     stopCovers?.();
+    stopPhoneSweep?.();
     onRecentRecorded(undefined);
     unwatch?.();
     offlineUnsub();

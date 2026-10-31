@@ -2,7 +2,7 @@
  * What the session hands the desk (DSN-87): a kept document's place on its Recents row, and the
  * privacy Clear taking the covers with it.
  */
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { memoryRecentsBackend, setRecentsBackend, useRecentsStore } from '../files/recents';
 import {
@@ -13,7 +13,7 @@ import {
   setCoversBackend,
   writeCover,
 } from '../home/covers';
-import { attachKept, clearKeptChanges } from './session';
+import { attachKept, clearKeptChanges, setSessionEnabled, startSession } from './session';
 import type { KeptRecordV1 } from './format';
 
 beforeEach(() => {
@@ -75,5 +75,45 @@ describe('clearKeptChanges', () => {
     setCoversBackend({ ...memory, clear: () => Promise.reject(new Error('locked')) });
     await clearCovers();
     expect(await clearKeptChanges()).toBe(false);
+  });
+});
+
+describe('the phone session, with no file opened', () => {
+  const entry = (name: string) => ({ id: name, name, size: 10, openedAt: 1 });
+  const put = (name: string) =>
+    writeCover({
+      key: coverKey('first', { name, size: 10 }),
+      kind: 'first',
+      page: 0,
+      width: 1,
+      height: 1,
+      type: 'image/jpeg',
+      bytes: new ArrayBuffer(3),
+      at: 1,
+    });
+
+  beforeEach(() => setSessionEnabled(true));
+  afterEach(() => setSessionEnabled(false));
+
+  it('sweeps the covers when Recents shrinks or is cleared', async () => {
+    await put('a.pdf');
+    await put('b.pdf');
+    useRecentsStore.setState({ entries: [entry('a.pdf'), entry('b.pdf')], loaded: true });
+    const stop = startSession({ edition: 'compact', tabId: 'tab-phone-sweep' });
+    try {
+      useRecentsStore.setState({ entries: [entry('a.pdf')] });
+      await vi.waitFor(
+        async () =>
+          expect((await readCovers()).map((c) => c.key)).toEqual([
+            coverKey('first', { name: 'a.pdf', size: 10 }),
+          ]),
+        { timeout: 10_000 },
+      );
+      useRecentsStore.setState({ entries: [] });
+      await vi.waitFor(async () => expect(await readCovers()).toEqual([]), { timeout: 10_000 });
+    } finally {
+      stop();
+      useRecentsStore.setState({ entries: [], loaded: false });
+    }
   });
 });

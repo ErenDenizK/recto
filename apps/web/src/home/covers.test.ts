@@ -190,12 +190,13 @@ describe('the sweep follows Recents', () => {
   });
 
   it('stops sweeping when stopped', async () => {
+    await writeCover(cover('a.pdf'));
+    useRecentsStore.setState({ entries: [entry('a.pdf')], loaded: true });
     const stop = watchCoverSweep();
     stop();
-    useRecentsStore.setState({ entries: [], loaded: true });
-    await writeCover(cover('a.pdf'));
+    useRecentsStore.setState({ entries: [] });
     await new Promise((r) => setTimeout(r, 50));
-    expect(await readCovers()).toEqual([]); // dropped by writeCover's own gate, not the sweep
+    expect(await readCovers()).toHaveLength(1);
   });
 });
 

@@ -360,15 +360,21 @@ async function backfill(isStopped: () => boolean): Promise<void> {
 
 /**
  * Resolves once the engine has a rendered page in its cache, i.e. the first visible page has
- * had its turn (`masa.md` §3.2: never ahead of it); gives up after `FIRST_PAGE_WAIT_MS`. The
- * engine has no per-page "painted" event, so the cache filling is the stand-in; the cover's own
- * render is `offscreen` priority besides.
+ * had its turn (`masa.md` §3.2: never ahead of it); gives up after `FIRST_PAGE_WAIT_MS`, and at
+ * once when `isStopped` turns true (the poll ends with the capture). The engine has no per-page
+ * "painted" event, so the cache filling is the stand-in. It is an approximation: from the second
+ * open on the cache is never empty, so this resolves at once, and the ordering then rests on the
+ * cover's own render being `offscreen` priority.
  */
-function afterFirstPage(): Promise<void> {
+function afterFirstPage(isStopped: () => boolean): Promise<void> {
   return new Promise((resolve) => {
     const started = Date.now();
     const poll = () => {
-      if (getEngineService().cacheStats.entries > 0 || Date.now() - started > FIRST_PAGE_WAIT_MS) {
+      if (
+        isStopped() ||
+        getEngineService().cacheStats.entries > 0 ||
+        Date.now() - started > FIRST_PAGE_WAIT_MS
+      ) {
         resolve();
       } else {
         window.setTimeout(poll, 100);
@@ -378,9 +384,18 @@ function afterFirstPage(): Promise<void> {
   });
 }
 
-/** A file was recorded as opened: its `first` cover, once the first page has rendered. */
-export function recordedCover(entry: RecentEntry, lastModified?: number): Promise<void> {
-  return afterFirstPage().then(() => captureFirst(entry, lastModified).catch(() => undefined));
+/**
+ * A file was recorded as opened: its `first` cover, once the first page has rendered. The
+ * phone's session passes its own stop check, as the capture's is not in reach there.
+ */
+export function recordedCover(
+  entry: RecentEntry,
+  lastModified?: number,
+  isStopped: () => boolean = () => false,
+): Promise<void> {
+  return afterFirstPage(isStopped).then(() =>
+    isStopped() ? undefined : captureFirst(entry, lastModified).catch(() => undefined),
+  );
 }
 
 /** Starts the capture for this session; `compact` skips the backfill. Returns the stop. */
@@ -388,7 +403,7 @@ export function startCoverCapture(options: { readonly compact: boolean }): () =>
   let stopped = false;
   const stopSweep = watchCoverSweep();
   onRecentRecorded((entry, lastModified) => {
-    void afterFirstPage().then(() => {
+    void afterFirstPage(() => stopped).then(() => {
       if (!stopped) void captureFirst(entry, lastModified).catch(() => undefined);
     });
   });
