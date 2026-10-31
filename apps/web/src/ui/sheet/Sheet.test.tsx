@@ -269,10 +269,13 @@ describe('focus, keys and drafts (07 §2.6)', () => {
   it('✕ closes with its reason; Cancel with its own', async () => {
     const onClose = vi.fn();
     const view = render(<Harness kind="task" onClose={onClose} />);
+    // A press on a panel still entering can miss its button on a slow runner: let it rest first.
+    await settle(await screen.findByTestId('sheet-sheet'));
     await userEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(onClose).toHaveBeenLastCalledWith('close');
     view.unmount();
     render(<Harness kind="task" onClose={onClose} />);
+    await settle(await screen.findByTestId('sheet-sheet'));
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(onClose).toHaveBeenLastCalledWith('cancel');
   });
