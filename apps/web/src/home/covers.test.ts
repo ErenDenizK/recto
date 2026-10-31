@@ -3,8 +3,8 @@
  * 24-record cap, the memory fallback where IndexedDB is refused, and the JPEG a capture
  * encodes. Real IndexedDB (browser mode), a database of its own per test.
  */
-import type { SourceDocument } from '@pdf-editor/document-model';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { DocumentId, SourceDocument } from '@pdf-editor/document-model';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type RecentEntry, useRecentsStore } from '../files/recents';
 import {
@@ -27,6 +27,8 @@ import {
   FIRST_BOX,
   firstCoverSource,
   LEFT_BOX,
+  leftTarget,
+  watchPlaces,
 } from './cover-capture';
 
 const dbs: string[] = [];
@@ -107,18 +109,54 @@ describe('the store', () => {
     expect(await readCovers()).toEqual([]);
   });
 
-  it('moves to memory where IndexedDB is refused', async () => {
+  it('moves to memory only when the database itself is refused', async () => {
+    const refused = (): Promise<never> => Promise.reject(new Error('refused'));
     setCoversBackend({
-      list: () => Promise.reject(new Error('refused')),
-      put: () => Promise.reject(new Error('refused')),
-      remove: () => Promise.reject(new Error('refused')),
-      clear: () => Promise.reject(new Error('refused')),
+      open: refused,
+      list: refused,
+      put: refused,
+      remove: refused,
+      clear: refused,
     });
     await writeCover(cover('a.pdf'));
     expect((await readCovers()).map((c) => c.key)).toEqual([
       coverKey('first', { name: 'a.pdf', size: 10 }),
     ]);
-    await clearCovers();
+    expect(await clearCovers()).toBe(true);
+    expect(await readCovers()).toEqual([]);
+  });
+
+  it('skips a failed put and still clears what is stored', async () => {
+    const real = indexedDbCoversBackend(indexedDB, freshDb());
+    let failPuts = false;
+    setCoversBackend({
+      ...real,
+      put: (record) => (failPuts ? Promise.reject(new Error('quota')) : real.put(record)),
+    });
+    await writeCover(cover('a.pdf'));
+    failPuts = true;
+    await writeCover(cover('b.pdf'));
+    expect(await readCovers()).toHaveLength(1);
+    expect(await clearCovers()).toBe(true);
+    expect(await readCovers()).toEqual([]);
+  });
+
+  it('reports a Clear that failed', async () => {
+    const real = memoryCoversBackend();
+    setCoversBackend({ ...real, clear: () => Promise.reject(new Error('locked')) });
+    expect(await clearCovers()).toBe(false);
+  });
+
+  it('settles a read whose transaction throws', async () => {
+    const real = indexedDbCoversBackend(indexedDB, freshDb());
+    setCoversBackend({ ...real, list: () => Promise.reject(new Error('throws')) });
+    expect(await readCovers()).toEqual([]);
+  });
+
+  it('gives no cover to a file that left Recents', async () => {
+    useRecentsStore.setState({ entries: [], loaded: true });
+    await writeCover(cover('gone.pdf'));
+    useRecentsStore.setState({ entries: [], loaded: false });
     expect(await readCovers()).toEqual([]);
   });
 });
@@ -134,28 +172,30 @@ describe('the sweep follows Recents', () => {
     try {
       // Not loaded: an empty list must not delete anything.
       useRecentsStore.setState({ entries: [], loaded: false });
-      await sweepCovers([
-        { name: 'a.pdf', size: 10 },
-        { name: 'b.pdf', size: 10 },
-      ]);
+      await new Promise((r) => setTimeout(r, 50));
       expect(await readCovers()).toHaveLength(2);
       useRecentsStore.setState({ entries: [entry('a.pdf'), entry('b.pdf')], loaded: true });
-      await sweepCovers([
-        { name: 'a.pdf', size: 10 },
-        { name: 'b.pdf', size: 10 },
-      ]);
-      expect(await readCovers()).toHaveLength(2);
+      await vi.waitFor(async () => expect(await readCovers()).toHaveLength(2));
       useRecentsStore.setState({ entries: [entry('a.pdf')] });
-      await sweepCovers([{ name: 'a.pdf', size: 10 }]);
-      expect((await readCovers()).map((c) => c.key)).toEqual([
-        coverKey('first', { name: 'a.pdf', size: 10 }),
-      ]);
+      await vi.waitFor(async () =>
+        expect((await readCovers()).map((c) => c.key)).toEqual([
+          coverKey('first', { name: 'a.pdf', size: 10 }),
+        ]),
+      );
       useRecentsStore.setState({ entries: [] });
-      await sweepCovers([]);
-      expect(await readCovers()).toEqual([]);
+      await vi.waitFor(async () => expect(await readCovers()).toEqual([]));
     } finally {
       stop();
     }
+  });
+
+  it('stops sweeping when stopped', async () => {
+    const stop = watchCoverSweep();
+    stop();
+    useRecentsStore.setState({ entries: [], loaded: true });
+    await writeCover(cover('a.pdf'));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(await readCovers()).toEqual([]); // dropped by writeCover's own gate, not the sweep
   });
 });
 
@@ -216,5 +256,92 @@ describe('skipping a current cover', () => {
     expect(coverIsCurrent(100, 200)).toBe(false);
     expect(coverIsCurrent(undefined, 100)).toBe(false);
     expect(coverIsCurrent(200, undefined)).toBe(false);
+  });
+});
+
+describe('the left cover', () => {
+  const ws = (encrypted: boolean) =>
+    ({
+      sources: {
+        s1: {
+          id: 's1',
+          name: 'a.pdf',
+          byteLength: 10,
+          pages: [
+            { size: { width: 1, height: 1 }, rotation: 0 },
+            { size: { width: 1, height: 1 }, rotation: 0 },
+          ],
+          flags: { encrypted },
+        },
+      },
+      documents: {
+        d1: {
+          pages: [0, 1].map((index) => ({
+            ref: { kind: 'source', source: 's1', index },
+            rotation: 0,
+          })),
+        },
+      },
+    }) as unknown as Parameters<typeof leftTarget>[0];
+  const doc = 'd1' as unknown as Parameters<typeof leftTarget>[1];
+
+  it('takes a page past the first of a plain source', () => {
+    expect(leftTarget(ws(false), doc, 1)?.index).toBe(1);
+    expect(leftTarget(ws(false), doc, 0)).toBeUndefined();
+  });
+
+  it('stores none for an encrypted source', () => {
+    expect(leftTarget(ws(true), doc, 1)).toBeUndefined();
+  });
+});
+
+describe('the place write', () => {
+  const file = { name: 'p.pdf', size: 7 };
+  const id = 'd1' as unknown as DocumentId;
+
+  beforeEach(async () => {
+    const { setRecentsBackend, memoryRecentsBackend, recordRecent } = await import(
+      '../files/recents'
+    );
+    setRecentsBackend(memoryRecentsBackend());
+    await recordRecent({ ...file, now: 1 });
+    const { resetResumeStore } = await import('../session/resume');
+    resetResumeStore();
+  });
+  afterEach(() => vi.useRealTimers());
+
+  const point = (page: number) => ({
+    page,
+    total: 9,
+    zoom: 1,
+    fit: null,
+    offset: 0,
+    at: 5,
+  });
+  const placeOf = () => useRecentsStore.getState().entries.find((e) => e.name === file.name)?.place;
+
+  it('writes two seconds after the last change', async () => {
+    vi.useFakeTimers();
+    const { setResume } = await import('../session/resume');
+    const stop = watchPlaces(() => file);
+    setResume(id, point(2));
+    await vi.advanceTimersByTimeAsync(1900);
+    expect(placeOf()).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(200);
+    expect(placeOf()?.page).toBe(2);
+    stop();
+  });
+
+  it('keeps the place of a document closed within the delay', async () => {
+    vi.useFakeTimers();
+    const { setResume } = await import('../session/resume');
+    // The file is named when the point is queued; the document is gone by the time it fires.
+    let open = true;
+    const stop = watchPlaces(() => (open ? file : undefined));
+    setResume(id, point(4));
+    open = false;
+    stop();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(placeOf()?.page).toBe(4);
   });
 });

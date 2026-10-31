@@ -92,6 +92,8 @@ function parseCover(value: unknown): CoverRecord | null {
 
 /** The store behind the module: IndexedDB, or memory where IndexedDB is refused. */
 export interface CoversBackend {
+  /** Opens the database; rejects when it is refused (the only reason to fall back to memory). */
+  open?(): Promise<void>;
   list(): Promise<readonly unknown[]>;
   put(record: CoverRecord): Promise<void>;
   remove(keys: readonly string[]): Promise<void>;
@@ -164,13 +166,23 @@ export function indexedDbCoversBackend(
     await done;
   };
   return {
+    open: async () => {
+      await db();
+    },
     // One read transaction for every cover: at most `COVERS_LIMIT` small records.
     list: async () =>
       new Promise<readonly unknown[]>((resolve, reject) => {
         void db().then((open) => {
-          const req = open.transaction(COVERS_STORE, 'readonly').objectStore(COVERS_STORE).getAll();
-          req.onsuccess = () => resolve(req.result as unknown[]);
-          req.onerror = () => reject(req.error ?? new Error('IndexedDB read failed'));
+          try {
+            const req = open
+              .transaction(COVERS_STORE, 'readonly')
+              .objectStore(COVERS_STORE)
+              .getAll();
+            req.onsuccess = () => resolve(req.result as unknown[]);
+            req.onerror = () => reject(req.error ?? new Error('IndexedDB read failed'));
+          } catch (error) {
+            reject(error instanceof Error ? error : new Error('IndexedDB read failed'));
+          }
         }, reject);
       }),
     put: (record) => write((store) => void store.put(record)),
@@ -182,42 +194,51 @@ export function indexedDbCoversBackend(
   };
 }
 
-let backend: CoversBackend | undefined;
+/** The backend asked for (tests), else IndexedDB; probed once before it is trusted. */
+let candidate: CoversBackend | undefined;
+let resolved: Promise<CoversBackend> | undefined;
 
-function store(): CoversBackend {
-  if (backend) return backend;
-  try {
-    backend = typeof indexedDB === 'undefined' ? memoryCoversBackend() : indexedDbCoversBackend();
-  } catch {
-    backend = memoryCoversBackend();
-  }
-  return backend;
+/**
+ * The store in use. Memory takes over only when the database itself is refused (some private
+ * windows); any later failure (a quota error on a put, say) leaves the stored database in place,
+ * so Clear and the sweep still reach what is on disk.
+ */
+function target(): Promise<CoversBackend> {
+  resolved ??= (async () => {
+    try {
+      const next =
+        candidate ?? (typeof indexedDB === 'undefined' ? undefined : indexedDbCoversBackend());
+      if (next === undefined) return memoryCoversBackend();
+      await next.open?.();
+      return next;
+    } catch {
+      return memoryCoversBackend();
+    }
+  })();
+  return resolved;
 }
 
 /** Replaces the backend (tests); forgets what was read. */
 export function setCoversBackend(next: CoversBackend | undefined): void {
-  backend = next;
+  candidate = next;
+  resolved = undefined;
   prefetched = undefined;
   chain = Promise.resolve();
-  inMemory = false;
+  warned = false;
 }
 
-/** True once a failure switched the store to memory. */
-let inMemory = false;
+let warned = false;
 
-/** Runs `run` on the store; where IndexedDB fails the cover moves to memory for the tab. */
+/** Runs `run` on the store; a failure is skipped (one warning), never a switch to memory. */
 async function guarded<T>(run: (target: CoversBackend) => Promise<T>, fallback: T): Promise<T> {
   try {
-    return await run(store());
-  } catch {
-    if (inMemory) return fallback;
-    inMemory = true;
-    backend = memoryCoversBackend();
-    try {
-      return await run(backend);
-    } catch {
-      return fallback;
+    return await run(await target());
+  } catch (error) {
+    if (!warned) {
+      warned = true;
+      console.warn('Covers: a storage operation failed and was skipped', error);
     }
+    return fallback;
   }
 }
 
@@ -272,6 +293,10 @@ export function prefetchCovers(): Promise<CoverRecord[]> {
 /** Stores `record` and drops the oldest beyond `COVERS_LIMIT`. */
 export function writeCover(record: CoverRecord): Promise<void> {
   return ordered(async () => {
+    // A file no longer in Recents (cleared while this was in flight) gets no cover.
+    const { loaded, entries } = useRecentsStore.getState();
+    const identity = identityOfKey(record.key);
+    if (loaded && !entries.some((entry) => coverIdentity(entry) === identity)) return;
     await guarded((target) => target.put(record), undefined);
     const all = await readCovers();
     const over = all
@@ -296,11 +321,18 @@ export function sweepCovers(files: readonly FileId[]): Promise<void> {
   });
 }
 
-/** Deletes every cover (the privacy popover's and Settings' Clear). */
-export function clearCovers(): Promise<void> {
+/**
+ * Deletes every cover (the privacy popover's and Settings' Clear), always through the stored
+ * database. Resolves false when it could not be cleared.
+ */
+export function clearCovers(): Promise<boolean> {
   return ordered(async () => {
-    await guarded((target) => target.clear(), undefined);
+    const cleared = await guarded(async (t) => {
+      await t.clear();
+      return true;
+    }, false);
     changed();
+    return cleared;
   });
 }
 

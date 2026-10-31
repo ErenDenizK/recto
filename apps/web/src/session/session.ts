@@ -33,7 +33,13 @@ import {
 } from '@pdf-editor/document-model';
 
 import { getEngineService } from '../engine/engine-service';
-import { forgetKept, keepRecent, onKeptRemoved, useRecentsStore } from '../files/recents';
+import {
+  forgetKept,
+  keepRecent,
+  onKeptRemoved,
+  onRecentRecorded,
+  useRecentsStore,
+} from '../files/recents';
 import { m } from '../i18n';
 import { isSampleFile } from '../sample/sample-file';
 import { lockOf, useLockStore } from '../state/lock-store';
@@ -171,7 +177,8 @@ export function recentRowOf(record: KeptRecordV1): { name: string; size: number 
   };
 }
 
-function attachKept(record: KeptRecordV1, bytes = 0): void {
+/** A kept document goes to its Recents row, with the place it was left at (exported for tests). */
+export function attachKept(record: KeptRecordV1, bytes = 0): void {
   const { page, resume } = record.place;
   void keepRecent({
     ...recentRowOf(record),
@@ -331,10 +338,25 @@ export function startSession(options: StartOptions): () => void {
   }
   // Covers and places for the desk (DSN-87), loaded after the first paint's work.
   let stopCovers: (() => void) | undefined;
-  void import('../home/cover-capture').then((capture) => {
-    if (stopped) return;
-    stopCovers = capture.startCoverCapture({ compact: options.edition === 'compact' });
-  });
+  const compact = options.edition === 'compact';
+  const startCovers = () =>
+    import('../home/cover-capture').then((capture) => {
+      if (stopped) return undefined;
+      stopCovers = capture.startCoverCapture({ compact });
+      return capture;
+    });
+  if (compact) {
+    // The phone's session pays for nothing until a file is opened (compactSession's cap):
+    // the first recorded file loads the capture and hands it that file.
+    let loading = false;
+    onRecentRecorded((entry, lastModified) => {
+      if (loading) return;
+      loading = true;
+      void startCovers().then((capture) => capture?.recordedCover(entry, lastModified));
+    });
+  } else {
+    void startCovers();
+  }
   window.addEventListener('beforeunload', onBeforeUnload);
   const offlineUnsub = useWorkspaceStore.subscribe((state) =>
     offlineTracker.observe(state.workspace),
@@ -411,6 +433,7 @@ export function startSession(options: StartOptions): () => void {
     stopped = true;
     stopResume?.();
     stopCovers?.();
+    onRecentRecorded(undefined);
     unwatch?.();
     offlineUnsub();
     window.removeEventListener('beforeunload', onBeforeUnload);
@@ -661,16 +684,16 @@ export async function reopenFromSnapshot(
  */
 export async function clearKeptChanges(): Promise<boolean> {
   // The covers are pictures of those documents (DSN-87); a window that keeps none has them in memory.
-  void import('../home/covers').then((covers) => covers.clearCovers());
+  const coversCleared = import('../home/covers').then((covers) => covers.clearCovers());
   const ctl = controller;
-  if (!ctl) return true;
+  if (!ctl) return coversCleared;
   const ok = await ctl.writer.clearAll();
   // Every row's snapshot is gone, also those the list did not know of (another tab's).
   const kept = useRecentsStore
     .getState()
     .entries.flatMap((entry) => (entry.kept === undefined ? [] : [entry.kept.snapshotId]));
   if (ok) await forgetKept(kept);
-  return ok;
+  return (await coversCleared) && ok;
 }
 
 /** Writes the snapshot now (tests; the writer also does on hide). */
