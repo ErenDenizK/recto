@@ -44,6 +44,15 @@ import { type ParagraphSession, useParagraphBoxAt, useTextEditStore } from './te
 import { rectToCss } from '../annotations/geometry';
 import { setParagraphFrameForTests } from './paragraph-frame-flag';
 
+const images = vi.hoisted(() => ({
+  /** Settles the next `locatedImages` call (default: no images, at once). */
+  next: undefined as Promise<readonly unknown[]> | undefined,
+}));
+
+vi.mock('../image-objects/images', () => ({
+  locatedImages: () => images.next ?? Promise.resolve([]),
+}));
+
 const commits = vi.hoisted(() => ({
   calls: [] as unknown[],
   /** The outcome the next commits resolve to (default: a success). */
@@ -491,6 +500,47 @@ describe('ParagraphEditor', () => {
  * text in the drawn lines (what iOS's keyboard trackpad does), an input acts on the range the
  * browser names, and an emptied paragraph still takes typing.
  */
+describe('the header and the page images (TXT-28)', () => {
+  beforeEach(() => {
+    useTextEditStore.getState().close();
+  });
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    images.next = undefined;
+    useTextEditStore.getState().close();
+  });
+
+  it('places without the images, opens at once, and places again when they arrive', async () => {
+    let arrive: (list: readonly unknown[]) => void = () => undefined;
+    images.next = new Promise((resolve) => {
+      arrive = resolve;
+    });
+    const { session } = setupEngine();
+    const { mirror } = renderEditor(session);
+    // Not waiting on the images: the editor is live while they are pending.
+    await ready(mirror);
+    const header = screen.getByTestId('paragraph-header');
+    const before = header.getBoundingClientRect();
+    const layer = (header.offsetParent ?? header.parentElement)?.getBoundingClientRect();
+    if (!layer) throw new Error('no layer');
+    // An image over the place the header took.
+    const bounds = {
+      x: before.left - layer.left - 4,
+      y: FRAME.size.height - (before.bottom - layer.top) - 4,
+      width: before.width + 8,
+      height: before.height + 8,
+    };
+    act(() => arrive([{ bounds }]));
+    await waitFor(() => {
+      const after = header.getBoundingClientRect();
+      expect(Math.abs(after.left - before.left) + Math.abs(after.top - before.top)).toBeGreaterThan(
+        1,
+      );
+    });
+  });
+});
+
 describe('the mirror’s selection and input', () => {
   beforeEach(() => {
     commits.calls.length = 0;
@@ -863,6 +913,9 @@ describe('leaving safely', () => {
     );
     await userEvent.keyboard('{Escape}');
     const choice = await screen.findByTestId('paragraph-choice');
+    // The choice says the overflow in its own sentence; the header says it once.
+    expect(screen.queryByTestId('paragraph-overflow')).toBeNull();
+    expect(screen.getAllByText(/runs into the content below/)).toHaveLength(1);
     expect(commits.calls).toHaveLength(0);
     expect(useTextEditStore.getState().paragraph).toBe(session);
     await waitFor(() => expect(screen.getByTestId('paragraph-keep-editing')).toHaveFocus());
@@ -873,6 +926,7 @@ describe('leaving safely', () => {
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(choice).not.toBeInTheDocument());
     await waitFor(() => expect(mirror).toHaveFocus());
+    expect(screen.getByTestId('paragraph-overflow')).toHaveAttribute('data-kind', 'overflow');
     // A press outside asks again; "Let it overlap" commits the layout as shown.
     await userEvent.keyboard('{Escape}');
     await userEvent.click(await screen.findByTestId('paragraph-overlap'));

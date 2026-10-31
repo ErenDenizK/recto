@@ -37,6 +37,7 @@ import styles from './CompactApp.module.css';
 import { CompactLibrary } from './CompactLibrary';
 import { CompactReader } from './CompactReader';
 import { openPdf, shareOrDownload } from './compact-actions';
+import { PhoneScanHost } from './scan/ScanEntry';
 import { capsuleAway, showLibrary, showReader, useCompactStore } from './compact-store';
 
 const VIEWPORT =
@@ -115,6 +116,7 @@ export function CompactApp() {
     <LocaleBoundary>
       <CompactRoot />
       <CompactToasts />
+      <PhoneScanHost />
       <LiveRegion />
     </LocaleBoundary>
   );

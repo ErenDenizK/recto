@@ -87,9 +87,10 @@
  *    (padding taken equal on both sides), unless another block in that box overlaps the
  *    block's lines vertically (a page-wide background behind two columns). Without such a
  *    box, the column's: the furthest right edge of the blocks that share its horizontal
- *    extent. Either way it stops one size short of a block beside it (to its right, with
- *    lines at the same height), never passes the page, and is never left of the block's own
- *    longest line.
+ *    extent, short of where a soft-wrapped line's next word would have fitted (the
+ *    producer's measure was narrower: a standfirst set short of its column). Either way it
+ *    stops one size short of a block beside it (to its right, with lines at the same
+ *    height), never passes the page, and is never left of the block's own longest line.
  * 11. **Hard line breaks** (`end: 'forced'`, `\n` in the text instead of the space). The
  *    measure runs from the block's left edge to its box's inner edge (step 10), or without
  *    a box to the end of its own longest line (a column's edge is too weak a hint: a
@@ -1899,6 +1900,15 @@ function wrapRightOf(
       const overlap = Math.min(o.measure.right, own) - Math.max(o.measure.left, block.measure.left);
       if (overlap > 0) right = Math.max(right, o.measure.right);
     }
+    // Never past where the producer wrapped (TXT-27): a soft break whose next word would have
+    // fitted shows the measure was narrower (a standfirst set short of its column).
+    draft.facts?.forEach((f, i) => {
+      const line = block.lines[i] as ParagraphLine;
+      const next = draft.facts?.[i + 1];
+      if (next && line.end === 'space') {
+        right = Math.min(right, line.x1 + f.space + next.firstWord - BOX_TOLERANCE);
+      }
+    });
   }
   // Never into text beside it (the next column): one size short of its left edge.
   for (const d of others) {

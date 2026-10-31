@@ -161,6 +161,8 @@
 
 /* The current tool: the tool-active fill, as the tiles' armed tile. */
 .row[aria-pressed='true'] {
+  --shadow-own: inset 0 0 0 1px var(--accent-edge);
+  box-shadow: var(--shadow-own);
   background: var(--tool-active-fill);
   color: var(--tool-active-ink);
 }

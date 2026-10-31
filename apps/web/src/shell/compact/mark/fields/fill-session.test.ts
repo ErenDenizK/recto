@@ -17,7 +17,8 @@ vi.mock('../../mark-host', () => ({
 
 vi.mock('../../../../viewer/input-state', () => ({ canChangeActive: () => input.canChange }));
 
-import { pressField } from './fill-session';
+import { hasToast } from '../../../../ui/Toast/toast';
+import { pressField, showFillUndoForTests } from './fill-session';
 
 const signature = { kind: 'signature', name: 's' } as unknown as FormField;
 const here = { pageId: 'p', name: 's' } as never;
@@ -52,5 +53,22 @@ describe('a signature field', () => {
     await Promise.resolve();
     expect(mark.armTool).not.toHaveBeenCalled();
     expect(useCompactStore.getState().drawerOpen).toBe(false);
+  });
+});
+
+describe('the fill Undo toast', () => {
+  beforeEach(() => useCompactStore.setState({ editing: false, drawerOpen: false }));
+
+  it('leaves when the tool drawer opens', () => {
+    showFillUndoForTests();
+    expect(hasToast('compact-fill')).toBe(true);
+    useCompactStore.setState({ drawerOpen: true });
+    expect(hasToast('compact-fill')).toBe(false);
+  });
+
+  it('leaves when editing begins', () => {
+    showFillUndoForTests();
+    useCompactStore.setState({ editing: true });
+    expect(hasToast('compact-fill')).toBe(false);
   });
 });

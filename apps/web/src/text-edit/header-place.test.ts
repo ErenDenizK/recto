@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { HEADER_GAP, type HeaderPlaceInput, placeHeader } from './header-place';
+import { gripEdge, HEADER_GAP, type HeaderPlaceInput, placeHeader } from './header-place';
 
 /** A 1440 × 900 window under a 44 px strip, above a 56 px dock band (16 px off the edge). */
 const FREE = { left: 0, top: 44, right: 1440, bottom: 900 - 72 };
@@ -84,5 +84,108 @@ describe('placeHeader (05-canvas §17.3)', () => {
   it('passes over the gaps when they are not known', () => {
     const text = { left: 100, top: 300, right: 1340, bottom: 420 };
     expect(placeHeader(input({ text, above: undefined, below: undefined })).side).toBe('dock');
+  });
+
+  // TXT-26: the sample's feature page at 1440 × 900, the left column's last paragraph open.
+  describe('beside a neighbouring column', () => {
+    const text = { left: 500, top: 515, right: 715, bottom: 565 };
+    const column = { left: 727, top: 500, right: 935, bottom: 590 };
+
+    it('rests in the page margin past the column, not over it', () => {
+      expect(placeHeader(input({ text, others: [column] }))).toEqual({
+        side: 'right',
+        left: 935 + HEADER_GAP,
+        top: 515,
+        maxWidth: 340,
+      });
+    });
+
+    it('takes the leading side when the trailing margin is too narrow', () => {
+      const free = { ...FREE, right: 1050 };
+      expect(placeHeader(input({ text, free, others: [column] }))).toMatchObject({
+        side: 'left',
+        left: 500 - HEADER_GAP,
+      });
+    });
+
+    it('prefers the empty space above to covering the column', () => {
+      const free = { ...FREE, left: 400, right: 1050 };
+      expect(placeHeader(input({ text, free, others: [column], above: 80 })).side).toBe('above');
+      // With nowhere clear, beside the paragraph over the column, as before.
+      expect(placeHeader(input({ text, free, others: [column] }))).toMatchObject({
+        side: 'right',
+        left: 715 + HEADER_GAP,
+      });
+    });
+
+    it('ignores paragraphs that are not level with it', () => {
+      const below = { ...column, top: 700, bottom: 760 };
+      expect(placeHeader(input({ text, others: [below] }))).toMatchObject({
+        side: 'right',
+        left: 715 + HEADER_GAP,
+      });
+    });
+  });
+});
+
+describe('page images as obstacles (TXT-28)', () => {
+  const image = { left: 960, top: 280, right: 1380, bottom: 440 };
+
+  it('a header beside the paragraph passes an image level with it, into the far margin', () => {
+    const place = placeHeader(
+      input({ text: { left: 500, top: 300, right: 940, bottom: 420 }, images: [image] }),
+    );
+    expect(place.side).not.toBe('right');
+    expect(place.side).toBe('left');
+  });
+
+  it('with no margin, goes above when the image sits below, and below when it sits above', () => {
+    const wide = { left: 100, top: 300, right: 1340, bottom: 420 };
+    const under = { left: 100, top: 440, right: 1340, bottom: 700 };
+    const over = { left: 100, top: 60, right: 1340, bottom: 280 };
+    expect(placeHeader(input({ text: wide, above: 200, below: 200, images: [over] })).side).toBe(
+      'below',
+    );
+    expect(placeHeader(input({ text: wide, above: 200, below: 200, images: [under] })).side).toBe(
+      'above',
+    );
+  });
+
+  it('is the same as before when the page has no image', () => {
+    expect(placeHeader(input({ images: [] }))).toEqual(placeHeader(input({})));
+  });
+
+  it('ignores an image under the paragraph itself, such as a full-bleed background', () => {
+    const wide = { left: 100, top: 300, right: 1340, bottom: 420 };
+    const page = { left: 0, top: 0, right: 1440, bottom: 900 };
+    expect(placeHeader(input({ text: wide, above: 200, below: 200, images: [page] })).side).toBe(
+      'above',
+    );
+  });
+
+  it('puts the grip under the frame when an image lies over its top edge', () => {
+    const frame = { left: 100, top: 300, right: 500, bottom: 420 };
+    expect(gripEdge(frame, [{ left: 90, top: 250, right: 520, bottom: 298 }], 40, 12)).toBe(
+      'bottom',
+    );
+  });
+});
+
+describe('gripEdge (TXT-24, TXT-26)', () => {
+  const frame = { left: 500, top: 515, right: 715, bottom: 565 };
+
+  it('puts the grip on the top edge when nothing is there', () => {
+    expect(gripEdge(frame, [], 24, 12)).toBe('top');
+  });
+
+  it('puts it on the bottom edge when the paragraph above is under it', () => {
+    const above = { left: 500, top: 450, right: 715, bottom: 510 };
+    expect(gripEdge(frame, [above], 24, 12)).toBe('bottom');
+  });
+
+  it('keeps the top when the bottom is taken too', () => {
+    const above = { left: 500, top: 450, right: 715, bottom: 510 };
+    const below = { left: 500, top: 570, right: 715, bottom: 620 };
+    expect(gripEdge(frame, [above, below], 24, 12)).toBe('top');
   });
 });

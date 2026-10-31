@@ -585,6 +585,11 @@ describe('tokens.css', () => {
       expect(resolve('--tool-active-fill-hover')).toBe(resolve('--accent-hover'));
       expect(resolve('--tool-active-fill-pressed')).toBe(resolve('--accent-pressed'));
       expect(resolve('--tool-active-ink')).toBe(resolve('--accent-ink'));
+      // The dark roles are what they were: lime fill and type, ink on it, no edge (DSN-83).
+      expect(resolve('--accent-fill')).toBe('#c8fb3d');
+      expect(resolve('--accent-text')).toBe('#c8fb3d');
+      expect(resolve('--accent-on-fill')).toBe(resolve('--accent-ink'));
+      expect(resolve('--accent-edge')).toBe('transparent');
     });
 
     it('gives current rows lime 0.12: on the frame primary 10.67, secondary 5.23, tertiary 4.26', () => {
@@ -1946,27 +1951,62 @@ describe('tokens.css', () => {
       }
     });
 
-    it('puts lime on ink: the prominent button and the armed tool are ink with a lime label', () => {
+    it('puts lime under ink: the prominent button and the armed tool are a lime fill with an ink label (DSN-83)', () => {
       for (const prefix of ['--primary', '--tool-active']) {
-        expect(value(`${prefix}-fill`), prefix).toBe(value('--n12'));
-        expect(value(`${prefix}-fill-hover`), prefix).toBe(value('--n11'));
-        expect(value(`${prefix}-fill-pressed`), prefix).toBe('#000000');
+        expect(value(`${prefix}-fill`), prefix).toBe(value('--accent-fill'));
+        expect(value(`${prefix}-fill-hover`), prefix).toBe(value('--accent-hover'));
+        expect(value(`${prefix}-fill-pressed`), prefix).toBe(value('--accent-pressed'));
         expect(value(prefix === '--primary' ? '--primary-ink' : '--tool-active-ink')).toBe(
-          '#c8fb3d',
+          value('--accent-on-fill'),
         );
       }
       const lime = tone('--accent');
-      expect(value('--accent')).toBe('#c8fb3d');
-      atLeast(contrast(lime, tone('--primary-fill')), 14.79, 'lime on ink');
-      atLeast(contrast(lime, tone('--primary-fill-hover')), 8.29, 'lime on hover n11');
-      atLeast(contrast(lime, tone('--primary-fill-pressed')), 17.32, 'lime on #000');
-      // Ink on lime where lime is still a fill (the focus band, a dark-ink glyph on lime).
-      expect(value('--accent-ink')).toBe('#08090c');
+      expect(value('--accent-fill')).toBe(value('--lime-300'));
+      expect(value('--accent-fill')).toBe('#c8fb3d');
+      expect(value('--accent-on-fill')).toBe('#08090c');
+      const onFill = tone('--accent-on-fill');
+      atLeast(contrast(onFill, tone('--accent-fill')), 16, 'ink on the fill');
+      expect(lc(onFill, tone('--accent-fill'))).toBeGreaterThanOrEqual(90);
+      atLeast(contrast(onFill, tone('--accent-hover')), 17.73, 'ink on hover');
+      atLeast(contrast(onFill, tone('--accent-pressed')), 13.86, 'ink on pressed');
       expect(value('--focus-light')).toBe('#c8fb3d');
       expect(value('--focus-dark')).toBe('#08090c');
-      // Lime is never text on a light surface: it fails every one of them.
+      // Lime is never type on a light surface: it fails every one of them.
       for (const surface of [...LIGHT_SURFACES, '--surface-sunken']) {
         expect(contrast(lime, tone(surface)), surface).toBeLessThan(1.3);
+      }
+    });
+
+    it('edges the lime fill in lime-800 and sets accent type in lime-900 (DSN-83)', () => {
+      expect(value('--accent-edge')).toBe('#446713');
+      expect(value('--accent-text')).toBe('#2f490a');
+      const edge = tone('--accent-edge');
+      atLeast(contrast(edge, tone('--accent-fill')), 4.5, 'edge on the fill');
+      for (const surface of ['--n1', '--n4']) {
+        atLeast(contrast(edge, tone(surface)), 3, `edge on ${surface}`);
+      }
+      const text = tone('--accent-text');
+      for (const surface of ['--n1', '--n2', '--n3', '--n4', '--n5']) {
+        atLeast(contrast(text, tone(surface)), 7, `accent text on ${surface}`);
+        expect(lc(text, tone(surface)), surface).toBeGreaterThanOrEqual(74.5);
+      }
+      expect(Math.abs(apcaContrast(text, tone('--n4')))).toBeGreaterThanOrEqual(75);
+    });
+
+    it('never reads lime as type in the light theme (DSN-83)', () => {
+      for (const name of [
+        '--primary-ink',
+        '--tool-active-ink',
+        '--accent-on-fill',
+        '--accent-text',
+      ]) {
+        expect(value(name), name).not.toBe(value('--lime-300'));
+      }
+      // No module sets `color` from the lime fill or the bare accent.
+      for (const [file, source] of Object.entries(modules)) {
+        for (const match of stripComments(source).matchAll(/(?<![-\w])color:\s*([^;}]+)[;}]/g)) {
+          expect(match[1] ?? '', file).not.toMatch(/var\(--(lime-300|accent|accent-fill)\)/);
+        }
       }
     });
 
@@ -2023,27 +2063,26 @@ describe('tokens.css', () => {
 
     it('floors its glass over black (G-25) as language.md §2.2’s light table says', () => {
       // [over black, over white, over the light canvas, primary · glass-sec · danger · warning
-      //  · ink fill over black, APCA primary / secondary over black]
+      //  APCA primary / secondary over black]
       const TABLE: Readonly<
         Record<
           Exclude<GlassTier, 'lit'>,
-          readonly [string, string, string, number, number, number, number, number, number, number]
+          readonly [string, string, string, number, number, number, number, number, number]
         >
       > = {
         // Chips and bars (GLS-8) keep the light tone over any page (GLS-20): black is their
         // worst too.
-        chip: ['#d0d0d2', '#fbfbfd', '#fbfbfd', 11.64, 6.52, 5.3, 5.42, 11.64, 77, 66],
-        bar: ['#d0d0d2', '#fbfbfd', '#fbfbfd', 11.64, 6.52, 5.3, 5.42, 11.64, 77, 66],
-        panel: ['#d4d5d6', '#fafafc', '#f7f8fa', 12.2, 6.84, 5.56, 5.69, 12.2, 80, 69],
-        menu: ['#d0d0d2', '#fbfbfd', '#fbfbfd', 11.64, 6.52, 5.3, 5.42, 11.64, 77, 66],
-        sheet: ['#e8e8ea', '#fbfbfc', '#f9f9fb', 14.65, 8.21, 6.67, 6.83, 14.65, 91, 80],
+        chip: ['#d0d0d2', '#fbfbfd', '#fbfbfd', 11.64, 6.52, 5.3, 5.42, 77, 66],
+        bar: ['#d0d0d2', '#fbfbfd', '#fbfbfd', 11.64, 6.52, 5.3, 5.42, 77, 66],
+        panel: ['#d4d5d6', '#fafafc', '#f7f8fa', 12.2, 6.84, 5.56, 5.69, 80, 69],
+        menu: ['#d0d0d2', '#fbfbfd', '#fbfbfd', 11.64, 6.52, 5.3, 5.42, 77, 66],
+        sheet: ['#e8e8ea', '#fbfbfc', '#f9f9fb', 14.65, 8.21, 6.67, 6.83, 91, 80],
       };
       for (const [tier, row] of Object.entries(TABLE) as [
         Exclude<GlassTier, 'lit'>,
         (typeof TABLE)[Exclude<GlassTier, 'lit'>],
       ][]) {
-        const [black, white, onCanvas, primary, secondary, danger, warning, fill, apcaP, apcaS] =
-          row;
+        const [black, white, onCanvas, primary, secondary, danger, warning, apcaP, apcaS] = row;
         const small = SMALL.includes(tier);
         // Chips, bars and menus share the CSS+ chain (GLS-8, GLS-23); panels and sheets keep
         // the floored one.
@@ -2061,7 +2100,8 @@ describe('tokens.css', () => {
         atLeast(contrast(tone('--glass-text-secondary'), worst), secondary, `${tier} secondary`);
         atLeast(contrast(tone('--glass-danger'), worst), danger, `${tier} danger`);
         atLeast(contrast(tone('--glass-warning'), worst), warning, `${tier} warning`);
-        atLeast(contrast(tone('--tool-active-fill'), worst), fill, `${tier} ink fill`);
+        // The lime fill has no luminance edge on glass; its lime-800 edge does (DSN-83).
+        atLeast(contrast(tone('--accent-edge'), worst), AA_NON_TEXT, `${tier} lime edge`);
         expect(lc(ink(), worst), `${tier} Lc primary`).toBeCloseTo(apcaP, -0.5);
         expect(lc(tone('--glass-text-secondary'), worst), `${tier} Lc secondary`).toBeCloseTo(
           apcaS,
@@ -2117,7 +2157,7 @@ describe('tokens.css', () => {
           for (const text of texts) {
             atLeast(contrast(tone(text), under), AA_TEXT, `${text} on ${tier}`);
           }
-          atLeast(contrast(tone('--tool-active-fill'), under), AA_NON_TEXT, `ink fill on ${tier}`);
+          atLeast(contrast(tone('--accent-edge'), under), AA_NON_TEXT, `lime edge on ${tier}`);
         }
       }
     });
@@ -2239,7 +2279,7 @@ describe('tokens.css', () => {
           [`${tier} over white`, glass(tier, WHITE)] as const,
           [`${tier} over black`, glass(tier, BLACK)] as const,
         ]),
-        ['ink fill', tone('--primary-fill')],
+        ['lime fill', tone('--primary-fill')],
       ];
       for (const [name, backdrop] of backdrops) {
         const best = Math.max(...bands.map((band) => contrast(band, backdrop)));

@@ -43,6 +43,7 @@ import type {
   DestinationView,
   DocumentMetadata,
   Rect,
+  Rotation,
   SourceFlags,
   SourceId,
 } from '@pdf-editor/document-model';
@@ -98,7 +99,7 @@ import {
 } from '../annotations/free-text-appearance';
 import { loadBundledFont } from '../fonts/bundled-fonts';
 import { jpegInfo } from '../images/jpeg-orientation';
-import { uprightJpegPage } from '../images/upright-page';
+import { imageStampPage, turnedStampPage, uprightJpegPage } from '../images/upright-page';
 import { restoreLostTail } from '../structure/tail-repair';
 import { checkXrefStructure } from '../structure/xref-check';
 import { permissionsFromP } from '../pdflib/inspect';
@@ -914,36 +915,46 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
 
   /**
    * What EmbedPDF needs besides the object to create a stamp: the image (PNG, JPEG) or
-   * appearance PDF bytes, or a generated text appearance for a named stamp.
+   * appearance PDF bytes, or a generated text appearance for a named stamp. On a page with
+   * /Rotate the content is drawn at its displayed size and turned back, so it reads upright to
+   * the viewer (IM-19, DSN-81; images/upright-page.ts). A PDF is taken as it is: it is an
+   * appearance carried over (a recreate, an undone delete), already turned.
    */
   private async stampContext(
     annotation: Extract<NewAnnotation, { kind: 'stamp' }>,
+    rotation: Rotation,
   ): Promise<{ data: ArrayBuffer }> {
+    const rect = effectiveRect(annotation);
+    const odd = rotation === 90 || rotation === 270;
+    const shown = odd ? { width: rect.height, height: rect.width } : rect;
+    const turned = async (upright: ArrayBuffer): Promise<{ data: ArrayBuffer }> => ({
+      data:
+        rotation === 0
+          ? upright
+          : await turnedStampPage(upright, rotation, rect.width, rect.height),
+    });
     if (annotation.imageBlob) {
       const data = await annotation.imageBlob.arrayBuffer();
-      if (!sniffStampData(new Uint8Array(data, 0, Math.min(data.byteLength, 8)))) {
+      const format = sniffStampData(new Uint8Array(data, 0, Math.min(data.byteLength, 8)));
+      if (!format) {
         throw new EngineError(
           'unsupported',
           `Stamp images must be PNG, JPEG or a one-page PDF (got ${annotation.imageBlob.type || 'unknown type'})`,
         );
       }
+      if (format === 'pdf') return { data };
       // A camera JPEG turned by its EXIF goes in upright, from its own bytes (M1-b).
       const jpeg = jpegInfo(new Uint8Array(data));
       if (jpeg && jpeg.orientation !== 1) {
-        return { data: await uprightJpegPage(new Uint8Array(data), jpeg) };
+        return turned(await uprightJpegPage(new Uint8Array(data), jpeg));
       }
-      return { data };
+      if (rotation === 0) return { data };
+      return turned(await imageStampPage(new Uint8Array(data), format, shown.width, shown.height));
     }
     if (annotation.name && (STAMP_NAMES as readonly string[]).includes(annotation.name)) {
-      const rect = effectiveRect(annotation);
-      return {
-        data: await namedStampAppearance(
-          annotation.name,
-          rect.width,
-          rect.height,
-          annotation.color,
-        ),
-      };
+      return turned(
+        await namedStampAppearance(annotation.name, shown.width, shown.height, annotation.color),
+      );
     }
     throw new EngineError(
       'unsupported',
@@ -1100,7 +1111,7 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
             doc,
             page,
             object,
-            (await this.stampContext(annotation)) as never,
+            (await this.stampContext(annotation, rotationDegrees(page))) as never,
           )
         : engine.createPageAnnotation(doc, page, object);
     const newId = await this.run(task, options, 'createAnnotation');

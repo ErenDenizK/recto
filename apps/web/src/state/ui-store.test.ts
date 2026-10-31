@@ -506,6 +506,10 @@ describe('nextZoomLevel', () => {
     expect(nextZoomLevel(1, -1)).toBe(0.9);
     expect(nextZoomLevel(1.03, 1)).toBe(1.1);
     expect(nextZoomLevel(1.03, -1)).toBe(1);
+    // A fit zoom off the ladder: the step must change the percentage read (67.4 % reads 67 %).
+    expect(nextZoomLevel(0.674, 1)).toBe(0.75);
+    expect(nextZoomLevel(0.67, 1)).toBe(0.75);
+    expect(nextZoomLevel(0.674, -1)).toBe(0.5);
     expect(nextZoomLevel(MAX_ZOOM, 1)).toBe(MAX_ZOOM);
     expect(nextZoomLevel(MIN_ZOOM, -1)).toBe(MIN_ZOOM);
   });

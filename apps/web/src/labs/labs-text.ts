@@ -8,8 +8,6 @@ import type { LabsKey } from './flags';
 export const LABS_TEXT: Readonly<
   Record<LabsKey, { readonly title: () => string; readonly hint: () => string }>
 > = {
-  tools: { title: m.labs_tools, hint: m.labs_tools_hint },
-  fillbar: { title: m.labs_fillbar, hint: m.labs_fillbar_hint },
   margin: { title: m.labs_margin, hint: m.labs_margin_hint },
   strip: { title: m.labs_strip, hint: m.labs_strip_hint },
   palette: { title: m.labs_palette, hint: m.labs_palette_hint },

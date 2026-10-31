@@ -67,6 +67,69 @@ import { pageParagraphs, useTextEditStore } from './text-edit-store';
 
 /** Extra hit area around a line box, CSS pixels. */
 const HIT_PADDING = 2;
+/**
+ * Room around a paragraph's ink in its keyboard target, CSS pixels: the inset focus ring's
+ * 4 px (styles/focus.css, PageTarget) and a 2 px gap, so the ring sits outside the ink.
+ */
+const PARAGRAPH_PADDING = 6;
+/**
+ * The nearest of a paragraph's runs to a CSS point (TXT-28): the run a press in the paragraph's
+ * padding opens as, so it lands where a press on that run's line would.
+ */
+export function nearestRun(
+  frame: PageFrame,
+  runs: readonly LocatedRun[],
+  point: { readonly x: number; readonly y: number },
+): LocatedRun | undefined {
+  let best: LocatedRun | undefined;
+  let bestDistance = Infinity;
+  for (const run of runs) {
+    const distance = distanceToBox(rectToCss(frame, run.lineBox), point);
+    if (distance < bestDistance) {
+      best = run;
+      bestDistance = distance;
+    }
+  }
+  return best;
+}
+
+function distanceToBox(
+  box: {
+    readonly left: number;
+    readonly top: number;
+    readonly width: number;
+    readonly height: number;
+  },
+  point: { readonly x: number; readonly y: number },
+): number {
+  const dx = Math.max(box.left - point.x, 0, point.x - (box.left + box.width));
+  const dy = Math.max(box.top - point.y, 0, point.y - (box.top + box.height));
+  return Math.hypot(dx, dy);
+}
+
+/**
+ * The paragraph a press at a CSS point in `item`'s padding opens (TXT-28): the one whose ink is
+ * nearest among `item` and the paragraphs whose padding holds the point.
+ */
+export function haloOwner(
+  frame: PageFrame,
+  item: ParagraphTarget,
+  all: readonly ParagraphTarget[],
+  point: { readonly x: number; readonly y: number },
+): ParagraphTarget {
+  let owner = item;
+  let ownerDistance = Infinity;
+  for (const other of all) {
+    const distance = distanceToBox(rectToCss(frame, other.block.box), point);
+    if (other !== item && distance > PARAGRAPH_PADDING) continue;
+    if (distance < ownerDistance) {
+      owner = other;
+      ownerDistance = distance;
+    }
+  }
+  return owner;
+}
+
 /** The smallest side of a paragraph's keyboard target, CSS pixels (DESIGN §5). */
 export const MIN_TARGET_PX = 24;
 /** Characters of a paragraph's text its target's name quotes. */
@@ -77,7 +140,8 @@ export const LONG_PRESS_MS = 500;
 const TOUCH_SLOP_PX = 8;
 
 /** Presses that keep an open editor: the editor, its header, and run targets (they reopen). */
-const KEEPS_EDITOR = '[data-text-edit-input], [data-text-edit-panel], [data-text-run]';
+const KEEPS_EDITOR =
+  '[data-text-edit-input], [data-text-edit-panel], [data-text-run], [data-text-halo]';
 
 /** A detected paragraph's keyboard target: the paragraph and its located runs, in order. */
 export interface ParagraphTarget {
@@ -202,6 +266,15 @@ export function TextEditLayer(props: PageOverlayProps) {
     s.focusReturn?.pageId === pageId ? s.focusReturn : null,
   );
   const layerRef = useRef<HTMLDivElement>(null);
+  const openBlock = useTextEditStore((s) =>
+    s.paragraph?.target.pageId === pageId ? s.paragraph.block.ref.index : null,
+  );
+  const isOpen = (block: ParagraphBlock) => openBlock === block.ref.index;
+  const paragraphItems = plan
+    ? plan.items.flatMap((item) =>
+        item.kind === 'paragraph' && !isOpen(item.target.block) ? [item.target] : [],
+      )
+    : [];
   const shown = session !== null && editable;
 
   // An editor open when the document is locked closes, unapplied.
@@ -311,6 +384,19 @@ export function TextEditLayer(props: PageOverlayProps) {
       tabIndex={-1}
       style={{ zIndex: HIT_LAYER_Z.textRun }}
     >
+      {active && plan
+        ? plan.items.map((item) =>
+            item.kind === 'paragraph' && !isOpen(item.target.block) ? (
+              <ParagraphHalo
+                key={`h:${item.target.block.ref.index}`}
+                frame={frame}
+                item={item.target}
+                all={paragraphItems}
+                onOpen={open}
+              />
+            ) : null,
+          )
+        : null}
       {active && runs !== null
         ? runs.map((run, index) =>
             // Until the paragraphs are known every run waits as a pointer target only.
@@ -362,6 +448,71 @@ export function TextEditLayer(props: PageOverlayProps) {
 }
 
 /**
+ * A paragraph's pointer target in its padding (TXT-28): the padded keyboard target's rectangle,
+ * under the runs, so a press in the ring around the ink opens the paragraph as a press on the
+ * nearest run does (caret at the nearest character; a tap or long press on touch). Where two
+ * paragraphs' padding overlap, the paragraph whose ink is nearer opens. It sits below the
+ * runs, so presses on text are theirs, and is left out for the open paragraph, whose frame
+ * controls and selection are the editor's.
+ */
+function ParagraphHalo({
+  frame,
+  item,
+  all,
+  onOpen,
+}: {
+  readonly frame: PageFrame;
+  readonly item: ParagraphTarget;
+  readonly all: readonly ParagraphTarget[];
+  readonly onOpen: (run: LocatedRun, selection: { start: number; end: number }) => void;
+}) {
+  const box = rectToCss(frame, item.block.box);
+  const width = Math.max(box.width + 2 * PARAGRAPH_PADDING, MIN_TARGET_PX);
+  const height = Math.max(box.height + 2 * PARAGRAPH_PADDING, MIN_TARGET_PX);
+  const press = (element: Element, at: { clientX: number; clientY: number }) => {
+    const layer = element.parentElement?.getBoundingClientRect();
+    if (!layer) return null;
+    const point = { x: at.clientX - layer.left, y: at.clientY - layer.top };
+    const owner = haloOwner(frame, item, all, point);
+    const run = nearestRun(frame, owner.runs, point);
+    return run ? { run, caret: caretOffset(run, cssPointToUser(frame, point)) } : null;
+  };
+  const onPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.button !== 0) return;
+    const element = event.currentTarget;
+    if (event.pointerType === 'touch') {
+      watchTouch(event.nativeEvent, penSession().penSeen, (at) => {
+        const hit = press(element, at);
+        if (hit) onOpen(hit.run, { start: hit.caret, end: hit.caret });
+      });
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const hit = press(element, event);
+    if (!hit) return;
+    onOpen(
+      hit.run,
+      event.detail >= 2 ? wordAt(hit.run.text, hit.caret) : { start: hit.caret, end: hit.caret },
+    );
+  };
+  return (
+    <span
+      className={styles.halo}
+      data-text-halo={item.block.ref.index}
+      aria-hidden="true"
+      style={{
+        left: box.left + box.width / 2 - width / 2,
+        top: box.top + box.height / 2 - height / 2,
+        width,
+        height,
+      }}
+      onPointerDown={onPointerDown}
+    />
+  );
+}
+
+/**
  * A paragraph's keyboard target over its box (at least `MIN_TARGET_PX` square): Enter or
  * Space opens the paragraph editor. It takes no pointer; the runs under it do.
  */
@@ -379,8 +530,8 @@ function ParagraphTargetButton({
   readonly onKeyDown: (event: ReactKeyboardEvent<HTMLButtonElement>) => void;
 }) {
   const box = rectToCss(frame, block.box);
-  const width = Math.max(box.width + 2 * HIT_PADDING, MIN_TARGET_PX);
-  const height = Math.max(box.height + 2 * HIT_PADDING, MIN_TARGET_PX);
+  const width = Math.max(box.width + 2 * PARAGRAPH_PADDING, MIN_TARGET_PX);
+  const height = Math.max(box.height + 2 * PARAGRAPH_PADDING, MIN_TARGET_PX);
   return (
     <OnPage
       className={styles.paragraph}

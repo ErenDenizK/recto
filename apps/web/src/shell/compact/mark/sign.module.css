@@ -65,6 +65,8 @@
 
 /* The armed signature: the tool-active fill, as the drawer's armed tile. */
 .tile[aria-pressed='true'] {
+  --shadow-own: inset 0 0 0 1px var(--accent-edge);
+  box-shadow: var(--shadow-own);
   background: var(--tool-active-fill);
   color: var(--tool-active-ink);
 }
