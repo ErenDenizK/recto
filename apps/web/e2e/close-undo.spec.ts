@@ -30,8 +30,10 @@ test('undo of a close reopens the parked document with its edits', async ({ page
   await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.3, { steps: 8 });
   await page.mouse.up();
   await page.keyboard.press('Escape');
-  const before = await layer.locator('[data-annotation-kind="square"]').count();
-  expect(before).toBeGreaterThan(0);
+  // The rectangle reaches the layer once the engine worker has created it, a moment after the
+  // pointer is up, so wait for it (a bare `count()` is a snapshot and read 0 on a slow runner).
+  const squares = layer.locator('[data-annotation-kind="square"]');
+  await expect(squares).toHaveCount(1, { timeout: 20_000 });
 
   const tab = page.getByRole('tab', { name: 'simple-text' });
   await tab.hover();
@@ -42,9 +44,7 @@ test('undo of a close reopens the parked document with its edits', async ({ page
   await page.keyboard.press('ControlOrMeta+z');
   await expect(page.getByRole('tab', { name: 'simple-text' })).toBeVisible();
   await expect(rendered.first()).toBeAttached({ timeout: 20_000 });
-  await expect(layer.locator('[data-annotation-kind="square"]')).toHaveCount(before, {
-    timeout: 20_000,
-  });
+  await expect(squares).toHaveCount(1, { timeout: 20_000 });
   const elapsed = Date.now() - started;
   info.annotations.push({ type: 'undo-of-close-ms', description: String(elapsed) });
   console.log(`undo of close: ${elapsed} ms`);
