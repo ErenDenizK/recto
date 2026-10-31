@@ -182,22 +182,15 @@ const atLeast = (value: number, minimum: number, label: string) =>
 
 describe('fener.css (DSN-88)', () => {
   describe('with the flag off nothing applies', () => {
-    it('keys every rule on [data-fener], except the swatch names it adds', () => {
+    it('keys every rule on [data-fener]: no name exists with the flag off', () => {
       const selectors = [...fener.matchAll(/([^{}@]+)\{/g)].map((m) =>
         (m[1] ?? '').replace(/\s+/g, ' ').trim(),
       );
       expect(selectors.length).toBeGreaterThan(20);
       for (const selector of selectors) {
-        if (selector === ':root' || selector.startsWith('media ')) continue;
+        if (selector.startsWith('media ')) continue;
         expect(selector, selector).toMatch(/\[data-fener\]/);
       }
-      expect(block(fener, ':root')).toEqual(
-        new Map([
-          ['--fener-swatch-indigo', '#4650fb'],
-          ['--fener-swatch-violet', '#844afb'],
-          ['--fener-swatch-blue', '#0d77ca'],
-        ]),
-      );
     });
 
     it('leaves today’s tokens at their values (Fener off resolves to tokens.css alone)', () => {
@@ -260,6 +253,25 @@ describe('fener.css (DSN-88)', () => {
         expect(ink).toEqual(WHITE);
         atLeast(contrast(ink, fill()), AA_TEXT, 'white on the fill');
         expect(lc(ink, fill())).toBeGreaterThanOrEqual(75);
+      });
+
+      it('holds white type 4.5:1 on the fill as drawn: the 94 % mix over the lightest glass beneath', () => {
+        const mix = Number.parseFloat(
+          block(fener, ':root[data-fener]').get('--fener-fill-mix') ?? '',
+        );
+        expect(mix).toBe(94);
+        // The button is drawn at 94 % over what is under it: the lightest of that is a glass tier
+        // over a white page (and white itself, for a page-coloured capsule).
+        const beneath: readonly (readonly [string, Rgb])[] = [
+          // Only the light theme draws it on a bare light capsule; the dark theme's is on glass.
+          ...(theme === 'light' ? ([['white', WHITE]] as const) : []),
+          ...TIERS.map((tier) => [`${tier} over white`, glass(scoped, tier, WHITE)] as const),
+        ];
+        for (const [name, backdrop] of beneath) {
+          const drawn = round8(over(fill(), mix / 100, backdrop));
+          atLeast(contrast(WHITE, drawn), AA_TEXT, `white on the fill over ${name}`);
+          expect(lc(WHITE, drawn), `Lc over ${name}`).toBeGreaterThanOrEqual(70);
+        }
       });
 
       it('never lightens the fill on hover or press (white type would fall under 4.5:1)', () => {
@@ -457,12 +469,40 @@ describe('fener.css (DSN-88)', () => {
     expect(block(fener, ":root[data-fener][data-theme='dark']").get('--focus-field-shadow')).toBe(
       'var(--focus-shadow-inset)',
     );
-    expect(fener).toMatch(
-      /:root\[data-fener\] \.mat :focus-visible \{\s*box-shadow: var\(--focus-shadow-inset\), var\(--shadow-own, 0 0 #0000\);/,
-    );
+    // focus.css reads the token itself: Fener restates no component's ring.
+    expect(fener).not.toMatch(/:focus-visible \{\s*box-shadow/);
     expect(fener).toMatch(
       /\.btn-prominent, \[data-markup-done\]\)[^{]*:focus-visible \{\s*--focus-light: var\(--focus-on-fill\);/,
     );
+  });
+
+  it('deepens Mor and Mavi in the light theme so white type holds (#783cee, #0a6ab5)', () => {
+    const light = (preset: Preset) => scope('light', preset);
+    for (const [preset, hex] of [
+      ['indigo', '#4650fb'],
+      ['violet', '#783cee'],
+      ['blue', '#0a6ab5'],
+    ] as const) {
+      // Çivit keeps its own selection blue (#4c5cf8); Mor and Mavi's selection is the fill.
+      for (const name of [
+        '--accent',
+        '--accent-fill',
+        '--primary-fill',
+        '--theme-fill',
+        '--control-range',
+        ...(preset === 'indigo' ? [] : ['--select']),
+      ]) {
+        expect(resolve(light(preset), name), `${preset} ${name}`).toBe(hex);
+      }
+    }
+    // The dark theme keeps the lab's fills.
+    expect(resolve(scope('dark', 'violet'), '--primary-fill')).toBe('#844afb');
+    expect(resolve(scope('dark', 'blue'), '--primary-fill')).toBe('#0d77ca');
+  });
+
+  it('keeps today’s scrim in the light theme', () => {
+    expect(block(fener, "[data-fener]:where([data-theme='light'])").has('--scrim')).toBe(false);
+    expect(block(fener, "[data-fener]:where([data-theme='dark'])").has('--scrim')).toBe(false);
   });
 
   it('lights the spark’s edge on the armed tool (the fill alone is 1.75:1 on light glass)', () => {

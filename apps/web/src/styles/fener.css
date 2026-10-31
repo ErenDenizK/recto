@@ -18,9 +18,11 @@
  * Status (danger, warning, success) stays as `tokens.css` has it: the lab's greener success fell to
  * 4.27:1 on the light canvas, under the 4.5 floor `tokens.test.ts` holds.
  *
- * Hover and press never lighten the fill (white type on it would fall under 4.5:1: 4.82 Mor,
- * 5.53 Çivit, 4.66 Mavi): the edge and the glow light instead, and the press keeps Recto's sink
- * (the press scale, no lift).
+ * Hover and press never lighten the fill (white type on it would fall under 4.5:1): the edge and
+ * the glow light instead, and the press keeps Recto's sink (the press scale, no lift). The light
+ * theme's Mor (#783cee) and Mavi (#0a6ab5) are deeper than the lab's, so white type holds 4.5:1
+ * on the fill as drawn, after the 94 % mix over the lightest glass beneath (`fener.test.ts`).
+ * The light scrim is today's.
  *
  * How it wins: the token blocks use `:where()`, so each is exactly as specific as the theme
  * blocks of `tokens.css` (0,1,0) and wins by coming after them, yet still loses to
@@ -47,7 +49,6 @@
   --n11: #3f424d;
   --n12: #15171e;
   --canvas: #e6e9f2;
-  --scrim: rgb(14 18 49 / 0.3);
 
   /* Glass: tints and filters (large glass stays neutral). */
   --glass-chip-filter: saturate(1.3) contrast(0.9) brightness(1.18);
@@ -137,32 +138,32 @@
   --glass-lit-tint: rgb(252 251 254 / var(--glass-lit-alpha));
 
   /* The theme colour: fill, ink, type, lines, rings. */
-  --accent: #844afb;
-  --accent-hover: #844afb;
-  --accent-pressed: #844afb;
-  --accent-fill: #844afb;
+  --accent: #783cee;
+  --accent-hover: #783cee;
+  --accent-pressed: #783cee;
+  --accent-fill: #783cee;
   --accent-text: #7119e9;
-  --accent-line: #844afb;
-  --accent-ring: #844afb;
-  --accent-subtle: rgb(132 74 251 / 0.08);
-  --accent-muted: rgb(132 74 251 / 0.14);
-  --focus-light: #844afb;
-  --lime-300: #844afb;
+  --accent-line: #783cee;
+  --accent-ring: #783cee;
+  --accent-subtle: rgb(120 60 238 / 0.08);
+  --accent-muted: rgb(120 60 238 / 0.14);
+  --focus-light: #783cee;
+  --lime-300: #783cee;
   --lime-800: #7119e9;
   --lime-900: #7119e9;
-  --primary-fill: #844afb;
-  --primary-fill-hover: #844afb;
-  --primary-fill-pressed: #844afb;
-  --theme-fill: #844afb;
+  --primary-fill: #783cee;
+  --primary-fill-hover: #783cee;
+  --primary-fill-pressed: #783cee;
+  --theme-fill: #783cee;
   --theme-rim: #b983f6;
-  --lime-rgb: 132 74 251;
-  --control-range: #844afb;
-  --theme-bloom: rgb(132 74 251 / 0.45);
-  --theme-bloom-hover: rgb(132 74 251 / 0.62);
+  --lime-rgb: 120 60 238;
+  --control-range: #783cee;
+  --theme-bloom: rgb(120 60 238 / 0.45);
+  --theme-bloom-hover: rgb(120 60 238 / 0.62);
 
   /* Selection on the page. */
-  --select: #803ff8;
-  --select-rgb: 128 63 248;
+  --select: #783cee;
+  --select-rgb: 120 60 238;
 
   /* Background glow: theme colour, sky, green. */
   --aura-mint: #a18bf3;
@@ -180,32 +181,32 @@
   --glass-lit-tint: rgb(250 252 254 / var(--glass-lit-alpha));
 
   /* The theme colour: fill, ink, type, lines, rings. */
-  --accent: #0d77ca;
-  --accent-hover: #0d77ca;
-  --accent-pressed: #0d77ca;
-  --accent-fill: #0d77ca;
+  --accent: #0a6ab5;
+  --accent-hover: #0a6ab5;
+  --accent-pressed: #0a6ab5;
+  --accent-fill: #0a6ab5;
   --accent-text: #0f66ac;
-  --accent-line: #0d77ca;
-  --accent-ring: #0d77ca;
-  --accent-subtle: rgb(13 119 202 / 0.08);
-  --accent-muted: rgb(13 119 202 / 0.14);
-  --focus-light: #0d77ca;
-  --lime-300: #0d77ca;
+  --accent-line: #0a6ab5;
+  --accent-ring: #0a6ab5;
+  --accent-subtle: rgb(10 106 181 / 0.08);
+  --accent-muted: rgb(10 106 181 / 0.14);
+  --focus-light: #0a6ab5;
+  --lime-300: #0a6ab5;
   --lime-800: #0f66ac;
   --lime-900: #0f66ac;
-  --primary-fill: #0d77ca;
-  --primary-fill-hover: #0d77ca;
-  --primary-fill-pressed: #0d77ca;
-  --theme-fill: #0d77ca;
+  --primary-fill: #0a6ab5;
+  --primary-fill-hover: #0a6ab5;
+  --primary-fill-pressed: #0a6ab5;
+  --theme-fill: #0a6ab5;
   --theme-rim: #30a9d6;
-  --lime-rgb: 13 119 202;
-  --control-range: #0d77ca;
-  --theme-bloom: rgb(13 119 202 / 0.45);
-  --theme-bloom-hover: rgb(13 119 202 / 0.62);
+  --lime-rgb: 10 106 181;
+  --control-range: #0a6ab5;
+  --theme-bloom: rgb(10 106 181 / 0.45);
+  --theme-bloom-hover: rgb(10 106 181 / 0.62);
 
   /* Selection on the page. */
-  --select: #1477c8;
-  --select-rgb: 20 119 200;
+  --select: #0a6ab5;
+  --select-rgb: 10 106 181;
 
   /* Background glow: theme colour, sky, green. */
   --aura-mint: #4ba3f7;
@@ -388,14 +389,6 @@
 }
 
 /* ── §3 Tinted glass for the primary button and Done (DSN-88) ──────────────────────────── */
-/* The presets' fills as colour names for the Settings swatches (`settings/AccentRow`), which
-   show all three whatever the root carries; the same in both themes. */
-:root {
-  --fener-swatch-indigo: #4650fb;
-  --fener-swatch-violet: #844afb;
-  --fener-swatch-blue: #0d77ca;
-}
-
 :root[data-fener] {
   --fener-fill-mix: 94%;
   --fener-backdrop: blur(12px) saturate(1.6);
@@ -453,11 +446,12 @@
 /* ── §3b The focus ring: ink · theme colour · ink, 2 / 2 / 2 px (DSN-88) ────────────────────
  * The ring's bands are the tokens of `focus.css`: --focus-dark is ink, --focus-light the theme
  * colour (the fill in the light theme, the lighter ring colour in the dark). The outset form is
- * ink 2 · theme 2 · ink 2 from the element out already; the inset form (and the field form in
- * the dark theme) gains the outer ink band, so it is the same three bands drawn from the edge
- * in. On a control the theme colour fills (the primary button, Done, the chosen swatch) the
- * middle band is white, near-white in the dark theme, so the bands next to it differ by 3:1 or
- * more over every surface, in both themes and all three presets (`fener.test.ts`). */
+ * ink 2 · theme 2 · ink 2 from the element out already; the inset form (`focus.css` reads
+ * --focus-shadow-inset) and the field form in the dark theme gain the outer ink band, so it is
+ * the same three bands drawn from the edge in. On a control the theme colour fills (the primary
+ * button, Done, the chosen swatch) the middle band is white, near-white in the dark theme, so the
+ * bands next to it differ by 3:1 or more over every surface, in both themes and all three
+ * presets (`fener.test.ts`). */
 :root[data-fener] {
   --focus-shadow-inset: inset 0 0 0 4px var(--focus-dark), 0 0 0 2px var(--focus-dark);
 }
@@ -468,12 +462,6 @@
 
 :root[data-fener][data-theme='dark'] {
   --focus-field-shadow: var(--focus-shadow-inset);
-}
-
-:root[data-fener] .focus-inset:focus-visible,
-:root[data-fener] [data-focus='inset']:focus-visible,
-:root[data-fener] .mat :focus-visible {
-  box-shadow: var(--focus-shadow-inset), var(--shadow-own, 0 0 #0000);
 }
 
 :root[data-fener]

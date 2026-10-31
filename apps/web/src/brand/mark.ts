@@ -58,7 +58,8 @@ export const MARK_GRADIENT_LIGHT = {
 
 /**
  * Fener's mark (DSN-88; Labs flag `fener`, `state/fener.ts`): the same geometry, angle and knee,
- * the gradient taken from the theme colour to sky to green, the ramp the background glow draws.
+ * the gradient taken from indigo to sky to green, the ramp the background glow draws. The brand
+ * mark is fixed: it does not follow the theme colour preset (Çivit, Mor, Mavi).
  * On a light ground the hand-tuned stops, indigo `#3A42D9` (OKLCH 0.480 0.225 272), cerulean
  * `#0096C3` (0.629 0.123 228) and green `#3BCA60` (0.741 0.190 148), measured against white at
  * 7.1:1 (stem), 3.4:1 (knee) and 2.1:1 (tip).

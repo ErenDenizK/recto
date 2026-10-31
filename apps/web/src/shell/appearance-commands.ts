@@ -20,7 +20,7 @@ import {
   useAppearanceStore,
 } from '../state/appearance-store';
 import { viewTransition } from '../motion/view-transition';
-import { fenerEnabled, type FenerPreset, useFenerStore } from '../state/fener';
+import { fenerEnabled } from '../state/fener';
 import { announce } from './announcer';
 
 /** Each Theme value's command title, which is also what it announces. */
@@ -35,7 +35,7 @@ const THEME_TITLE: Record<ThemeSetting, () => string> = {
  * (DSN-88, Fener only): every colour changes at once, so the fade is the whole motion; without
  * Fener the change is what it was.
  */
-function crossFade(update: () => void): void {
+export function crossFade(update: () => void): void {
   if (fenerEnabled()) void viewTransition(update);
   else update();
 }
@@ -44,19 +44,6 @@ function crossFade(update: () => void): void {
 export function setTheme(theme: ThemeSetting): void {
   crossFade(() => useAppearanceStore.getState().setTheme(theme));
   announce(THEME_TITLE[theme]());
-}
-
-/** Each theme colour's name, for what it announces and the Settings row. */
-export const ACCENT_NAME: Record<FenerPreset, () => string> = {
-  indigo: () => m.settings_accent_indigo(),
-  violet: () => m.settings_accent_violet(),
-  blue: () => m.settings_accent_blue(),
-};
-
-/** Sets Fener's theme colour and announces it ("Theme colour: Violet"). */
-export function setAccent(accent: FenerPreset): void {
-  crossFade(() => useFenerStore.getState().setAccent(accent));
-  announce(m.announce_accent({ name: ACCENT_NAME[accent]() }));
 }
 
 /** Each Glass value's command title, which is also what it announces. */

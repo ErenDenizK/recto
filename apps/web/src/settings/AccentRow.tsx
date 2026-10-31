@@ -19,10 +19,10 @@ import { RadioGroup } from '@base-ui/react/radio-group';
 import { useState } from 'react';
 
 import { m } from '../i18n';
-import { ACCENT_NAME, setAccent } from '../shell/appearance-commands';
 import { FENER_PRESETS, type FenerPreset, useFenerStore } from '../state/fener';
 import { Button } from '../ui/Button';
 import { PopoverPopup } from '../ui/Popover';
+import { ACCENT_NAME, setAccent } from './accent';
 import styles from './AccentRow.module.css';
 import { Line, Row } from './rows';
 

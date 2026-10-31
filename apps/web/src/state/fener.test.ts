@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { applyAppearance, DEFAULT_APPEARANCE, useAppearanceRoot } from './appearance-store';
 import {
   applyFener,
+  decideFener,
   DEFAULT_FENER_PRESET,
   FENER_PRESETS,
   FENER_STORAGE_KEY,
@@ -31,6 +32,16 @@ afterEach(() => {
 });
 
 describe('the flag', () => {
+  it('is decided by the address when it says anything, else by Labs', () => {
+    expect(decideFener('', null)).toBe(false);
+    expect(decideFener('', '1')).toBe(true);
+    expect(decideFener('', '0')).toBe(false);
+    expect(decideFener('?fener=1', null)).toBe(true);
+    expect(decideFener('?fener=0', '1')).toBe(false);
+    expect(decideFener('?fener=yes', '1')).toBe(false);
+    expect(decideFener('?other=1', '1')).toBe(true);
+  });
+
   it('is off unless the address or Labs turns it on', () => {
     expect(fenerEnabled()).toBe(false);
     setFenerForTests(true);
@@ -50,8 +61,7 @@ describe('the preset', () => {
   it('reads the stored object, and anything else as the default', () => {
     expect(parseFenerPreset({ accent: 'violet' })).toBe('violet');
     expect(parseFenerPreset({ accent: 'blue' })).toBe('blue');
-    expect(parseFenerPreset('blue')).toBe('blue');
-    for (const bad of [undefined, null, 3, {}, { accent: 'lime' }, { accent: ['blue'] }]) {
+    for (const bad of [undefined, null, 3, 'blue', {}, { accent: 'lime' }, { accent: ['blue'] }]) {
       expect(parseFenerPreset(bad), JSON.stringify(bad)).toBe('indigo');
     }
   });

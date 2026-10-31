@@ -25,7 +25,8 @@ const rgb = (hex: string) => {
   const n = Number.parseInt(hex.slice(1), 16);
   return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
 };
-const FILL: Record<string, string> = { indigo: '#4650fb', violet: '#844afb', blue: '#0d77ca' };
+/** The light theme's fills (Mor and Mavi deeper than the dark theme's, for white type). */
+const FILL: Record<string, string> = { indigo: '#4650fb', violet: '#783cee', blue: '#0a6ab5' };
 const RING_DARK: Record<string, string> = { indigo: '#8a9ff2', violet: '#a794f2', blue: '#61aaf2' };
 
 describe.each(['light', 'dark'] as const)('the %s theme', (theme) => {

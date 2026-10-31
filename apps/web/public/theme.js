@@ -21,15 +21,21 @@
   } catch {
     // Storage blocked or unreadable: System.
   }
+  // Fener's rule (`decideFener`): the address decides when it says anything, else Labs, whose
+  // storage is read only then, so `?fener=1` still works where storage is blocked.
   let accent = null;
-  try {
-    const asked = new URLSearchParams(location.search).get('fener');
-    const labs = JSON.parse(localStorage.getItem('pdf-editor:labs:v1') ?? 'null');
-    if (asked === null ? labs?.flags?.fener === '1' : asked === '1') accent = 'indigo';
-  } catch {
-    // Storage blocked or unreadable: today's colours.
+  const asked = new URLSearchParams(location.search).get('fener');
+  let fener = asked === '1';
+  if (asked === null) {
+    try {
+      fener =
+        JSON.parse(localStorage.getItem('pdf-editor:labs:v1') ?? 'null')?.flags?.fener === '1';
+    } catch {
+      // Storage blocked or unreadable: today's colours.
+    }
   }
-  if (accent !== null) {
+  if (fener) {
+    accent = 'indigo';
     try {
       const kept = JSON.parse(localStorage.getItem('pdf-editor:fener:v1') ?? 'null')?.accent;
       if (kept === 'violet' || kept === 'blue') accent = kept;

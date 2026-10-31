@@ -1,6 +1,7 @@
 /*
- * Theme colour (AccentRow.tsx; DSN-88). The dots take the presets' fills from the Fener tokens
- * (`--fener-swatch-*`, styles/fener.css): the same fill in both themes. The picker is
+ * Theme colour (AccentRow.tsx; DSN-88). The dots are the presets' fills, set here (this file loads
+ * with Settings, so nothing of it exists with Fener off): Çivit is the same in both themes, Mor
+ * and Mavi deeper in the light theme, as `styles/fener.css` has them. The picker is
  * `ui/Popover`'s: it opens on --spring-quick from 0.96 and closes in --duration-fast. Here only
  * the chosen swatch moves: its ring lands from 0.88 on --spring-pop (a small overshoot), the
  * dot beneath it stays still. Transform and opacity only; reduced motion shows the ring at once.
@@ -49,19 +50,28 @@
 }
 
 .dot {
+  place-self: center;
   box-sizing: border-box;
   width: var(--sw-dot, 18px);
   height: var(--sw-dot, 18px);
   border-radius: 50%;
-  background: var(--fener-swatch-indigo);
+  background: #4650fb;
 }
 
 .dot[data-preset='violet'] {
-  background: var(--fener-swatch-violet);
+  background: #844afb;
 }
 
 .dot[data-preset='blue'] {
-  background: var(--fener-swatch-blue);
+  background: #0d77ca;
+}
+
+:global([data-theme='light']) .dot[data-preset='violet'] {
+  background: #783cee;
+}
+
+:global([data-theme='light']) .dot[data-preset='blue'] {
+  background: #0a6ab5;
 }
 
 /* The dot in the row's button is a glyph-sized one. */

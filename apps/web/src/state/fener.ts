@@ -29,10 +29,18 @@ export type FenerPreset = (typeof FENER_PRESETS)[number];
 
 export const DEFAULT_FENER_PRESET: FenerPreset = 'indigo';
 
+/**
+ * Whether Fener is on for an address `search` and the Labs toggle `labs` (`'1'` or null): the
+ * address decides when it says anything, else Labs. `public/theme.js` restates this rule.
+ */
+export function decideFener(search: string, labs: string | null): boolean {
+  const asked = new URLSearchParams(search).get(FENER_PARAM);
+  return asked === null ? labs === '1' : asked === '1';
+}
+
 const flagged = (() => {
   try {
-    const asked = new URLSearchParams(location.search).get(FENER_PARAM);
-    return asked === null ? labsStored('fener', null) === '1' : asked === '1';
+    return decideFener(location.search, labsStored('fener', null));
   } catch {
     return false;
   }
@@ -52,7 +60,7 @@ export function setFenerForTests(on: boolean | null): void {
 /** The stored value as a preset; anything else is the default. */
 export function parseFenerPreset(value: unknown): FenerPreset {
   const stored =
-    typeof value === 'object' && value !== null ? (value as { accent?: unknown }).accent : value;
+    typeof value === 'object' && value !== null ? (value as { accent?: unknown }).accent : null;
   return FENER_PRESETS.find((preset) => preset === stored) ?? DEFAULT_FENER_PRESET;
 }
 
