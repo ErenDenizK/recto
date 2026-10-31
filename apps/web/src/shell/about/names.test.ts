@@ -144,6 +144,8 @@ describe('names kept by ADR-0015 §3', () => {
       // The page strip flag, ?strip=1|0 (shell/frame/strip/strip-hold.ts, R26 concept 1).
       'pdf-editor:strip:v1',
       // The phone reader's ?top variant for this tab (sessionStorage, shell/compact/top-variant.ts).
+      // The phone text view's reading settings (textview/reading-prefs.ts, DSN-84).
+      'pdf-editor:textview:v1',
       'pdf-editor:top:v1',
       'pdf-editor:ui:colour-view:v1',
       'pdf-editor:ui:eraser:v1',
