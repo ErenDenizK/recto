@@ -1,0 +1,37 @@
+/*
+ * A cover (DeskCover.tsx; DSN-87 masa.md §2.4). The sheet takes the biggest size its proportions
+ * allow inside the box the parent sets: --cover-box-w and --cover-box-h. The page is content:
+ * its own colours and the page hairline, in both themes (ADR-0023 §2.1). Missing, the sheet is
+ * the paper tone with the file glyph centred.
+ */
+.sheet {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  box-sizing: border-box;
+  width: min(var(--cover-box-w, 100%), calc(var(--cover-box-h, 200px) * var(--cover-ratio)));
+  aspect-ratio: var(--cover-ratio);
+  overflow: hidden;
+  border-radius: var(--radius-page);
+  background: var(--page-background);
+  box-shadow: var(--page-shadow);
+  filter: var(--page-filter);
+}
+
+.sheet[data-empty] {
+  background: var(--page-paper);
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.glyph {
+  width: var(--icon-lg, 24px);
+  height: var(--icon-lg, 24px);
+  color: var(--text-secondary);
+}

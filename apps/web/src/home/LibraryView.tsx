@@ -30,27 +30,37 @@
  * selection bar (A-12).
  */
 import type { DocumentId } from '@pdf-editor/document-model';
-import { lazy, Suspense, useEffect, useMemo } from 'react';
+import { lazy, Suspense, useMemo } from 'react';
 
 import { m } from '../i18n';
 import { useResumeStore } from '../session/resume';
 import { useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { deskEnabled } from './desk-flag';
 import { HOME_CONTINUE_FLAG, homeFlagEnabled } from './home-flags';
 import { type HomeCardData, homeCards } from './home-cards';
 import { liveSelection } from './home-model';
 import { Launcher } from './Launcher';
 import { LibraryGrid } from './LibraryGrid';
 import { LibraryHead } from './LibraryHead';
-import { enterSelecting, setSelecting, useSelecting } from './library-store';
+import { useSelecting } from './library-store';
 import styles from './LibraryView.module.css';
 import { RecentList } from './RecentList';
 import { SampleCard } from './SampleCard';
 import { SelectionBarPresence } from './SelectionBar';
 import { useDragFileCount } from './use-drag-file-count';
+import { useSelectionEscape } from './use-selection-escape';
 
 /** Continue, a chunk of its own that loads only behind `?home=continue` (DSN-66). */
 const ContinueDesk = lazy(() => import('./ContinueDesk'));
+
+/**
+ * The desk (DSN-87, Masa), a chunk of its own that loads only behind its Labs flag (PRC-25).
+ * With the flag on, the chunk and the early read of Recents and covers (`desk-prefetch.ts`, so
+ * the first paint finds both under way) start when this module evaluates, not when React asks.
+ */
+const Desk = lazy(() => import('./Desk'));
+if (deskEnabled()) void import('./desk-prefetch');
 
 function Continue() {
   if (!homeFlagEnabled(HOME_CONTINUE_FLAG)) return null;
@@ -77,6 +87,13 @@ function useLibraryCards(): HomeCardData[] {
 export function LibraryView({ dragging }: { readonly dragging: boolean }) {
   const cards = useLibraryCards();
   const dragCount = useDragFileCount(dragging);
+  if (deskEnabled()) {
+    return (
+      <Suspense fallback={null}>
+        <Desk cards={cards} dragging={dragging} dragCount={dragCount} />
+      </Suspense>
+    );
+  }
   if (cards.length === 0) {
     return (
       <section
@@ -118,24 +135,8 @@ function LibraryWithCards({
   const selecting = useSelecting();
   const pages = cards.reduce((sum, c) => sum + c.pageCount, 0);
 
-  // The Esc ladder from anywhere in the Library (L1 §6): the checks first, then Select mode.
-  // The grid handles its own Esc and marks it handled.
-  useEffect(() => {
-    if (!selecting) return undefined;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || event.defaultPrevented) return;
-      const target = event.target;
-      if (target instanceof HTMLElement && target.closest('[role="dialog"], [role="menu"]')) {
-        return;
-      }
-      if (selection.length > 0) {
-        enterSelecting();
-        useUiStore.getState().setHomeSelection([], null);
-      } else setSelecting(false);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [selecting, selection]);
+  // The Esc ladder from anywhere in the Library (L1 §6).
+  useSelectionEscape(selecting, selection);
 
   return (
     <section

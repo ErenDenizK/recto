@@ -24,6 +24,7 @@ export type LabsKey =
   | 'open-light'
   | 'home-search'
   | 'home-continue'
+  | 'desk'
   | 'top'
   | 'drawer'
   | 'phone-capsule'
@@ -104,6 +105,9 @@ export const LABS_FLAGS: readonly LabsFlag[] = [
   sw('open-light', 'open', 'all', 'prototype', local('pdf-editor:open-light:v1'), 'light'),
   sw('home-search', 'home', 'all', 'soon', local('pdf-editor:home-search:v1'), 'search'),
   sw('home-continue', 'home', 'all', 'soon', local('pdf-editor:home-continue:v1'), 'continue'),
+  // Masa, the desk (DSN-87, PRC-25): the new Home on desktop and tablet, behind this flag until
+  // the owner says yes. `home/desk-flag.ts` reads it; on, the Continue card is on too.
+  sw('desk', 'desk', 'full', 'prototype'),
   choice('top', 'top', ['split', 'capsule'], 'compact', session('pdf-editor:top:v1')),
   choice('drawer', 'drawer', ['tiles', 'list'], 'compact', session('pdf-editor:drawer:v1')),
   sw('phone-capsule', 'phonebar', 'compact', 'prototype'),

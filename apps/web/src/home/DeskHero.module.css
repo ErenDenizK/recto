@@ -1,0 +1,115 @@
+/*
+ * The hero slot (DeskHero.tsx; DSN-87 masa.md §2.2): at least 220 tall, the Continue card's
+ * size, so the sample hero, the empty holding card and Continue share one geometry. The sample
+ * hero's cover is the large static drawing; the whole card is one press target through the
+ * button's ::after, with the sample card's hover rim and press sink (GLS-25).
+ */
+.hero {
+  position: relative;
+  box-sizing: border-box;
+  min-height: 220px;
+  border-radius: var(--radius-xl);
+  color: var(--text-primary);
+}
+
+.holding {
+  width: 100%;
+}
+
+.sample {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--space-5);
+  width: 100%;
+  padding: var(--space-5);
+  text-align: start;
+  transition:
+    transform var(--spring-press) var(--ease-spring),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+/* The page is content: its own colours and the page hairline in both themes. */
+.cover {
+  display: block;
+  width: 132px;
+  aspect-ratio: 210 / 297;
+  overflow: hidden;
+  border-radius: var(--radius-page);
+  box-shadow: var(--page-shadow);
+}
+
+.drawing {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.text {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--type-title3);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-title3-lh);
+  letter-spacing: var(--track-body);
+}
+
+.line {
+  margin: 0 0 var(--space-3);
+  color: var(--text-secondary);
+  font-size: var(--type-callout);
+  line-height: var(--type-callout-lh);
+  letter-spacing: var(--track-callout);
+  text-wrap: pretty;
+}
+
+/* One press target: the button's box grows over the whole card. */
+.sample .open {
+  position: static;
+}
+
+.open::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+@media (hover: hover) {
+  .sample:not([data-unavailable]):hover {
+    --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--lens-rim-hover);
+  }
+}
+
+.sample:not([data-unavailable]):active {
+  --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--lens-rim-pressed);
+  transform: scale(var(--press-scale-large));
+  transition-duration: var(--duration-instant);
+}
+
+.sample[data-unavailable] .cover {
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sample:active {
+    transform: none;
+  }
+}
+
+:root[data-motion='reduced'] .sample:active {
+  transform: none;
+}
+
+@media (max-width: 480px) {
+  .sample {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+  }
+}

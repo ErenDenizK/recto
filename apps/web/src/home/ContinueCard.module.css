@@ -149,3 +149,41 @@
     justify-self: stretch;
   }
 }
+
+/*
+ * The Masa desk's card (DSN-87, masa.md §2.2): the hero, at least 220 tall, the page left at
+ * 132 × 172, the name in title3, the page line in callout with tabular numbers. The column
+ * decides the width (8 of 12 beside the intents, the column's width when stacked).
+ */
+.card[data-variant='masa'] {
+  align-content: center;
+  align-items: center;
+  min-height: 220px;
+  padding: var(--space-5);
+  column-gap: var(--space-5);
+}
+
+.card[data-variant='masa'] .thumb {
+  --cover-box-w: 132px;
+  --cover-box-h: 172px;
+  min-width: 132px;
+  align-self: center;
+}
+
+.card[data-variant='masa'] .page {
+  font-size: var(--type-callout);
+  line-height: var(--type-callout-lh);
+  letter-spacing: var(--track-callout);
+}
+
+@media (max-width: 480px) {
+  .card[data-variant='masa'] {
+    grid-template-areas:
+      'thumb text'
+      'go go';
+  }
+
+  .card[data-variant='masa'] .go {
+    justify-self: stretch;
+  }
+}

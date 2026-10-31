@@ -1,0 +1,80 @@
+/*
+ * The desk's layout (Desk.tsx; DSN-87 masa.md §2.2, §2.3). The column, the scroller and the first
+ * visit's third-of-the-way-down grid are the Library's (LibraryView.module.css); this file is the
+ * hero / intents split on 12 columns with 24 px gutters, and the first visit's identity.
+ *
+ * Wide (840 px and up, the container's width): hero 8 columns, intents 4. Narrower (portrait
+ * tablets, medium windows): the hero stacks over the intents, which run as one row of four (two
+ * by two under 720 px). With no hero the intents take the whole row.
+ */
+.top {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: stretch;
+  gap: var(--space-4) var(--space-6);
+  width: 100%;
+}
+
+.hero {
+  grid-column: span 8;
+  min-width: 0;
+}
+
+.intents {
+  grid-column: span 4;
+  min-width: 0;
+}
+
+.top[data-hero='none'] .intents {
+  grid-column: 1 / -1;
+}
+
+@container library (width < 840px) {
+  .hero,
+  .intents {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Returning: the wrapper adds nothing; its slots are the column's own flex items. */
+.stack {
+  display: contents;
+}
+
+/* The first visit: the identity above the hero, centred, as the launcher's welcome was. */
+.welcome {
+  gap: var(--space-6);
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  text-align: center;
+}
+
+.mark {
+  margin-bottom: var(--space-5);
+}
+
+.headline {
+  max-width: 560px;
+  margin: 0;
+  font-size: var(--type-title1);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-title1-lh);
+  letter-spacing: var(--track-title1);
+  text-wrap: balance;
+  font-variant-numeric: tabular-nums;
+}
+
+.promise {
+  margin: var(--space-2) 0 0;
+  /* Body copy over the aurora: primary clears APCA Lc 75 (colour audit 25 Oct 2026, DSN-79). */
+  color: var(--text-primary);
+  font-size: var(--type-callout);
+  line-height: var(--type-callout-lh);
+  letter-spacing: var(--track-callout);
+}

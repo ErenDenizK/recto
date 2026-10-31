@@ -1,0 +1,175 @@
+/*
+ * The intents (DeskIntents.tsx; DSN-87 masa.md §2.2, §2.3): lit tiles in a 2×2 grid beside the
+ * hero (two rows of 98 px, a 24 px gap between the columns, a --space-3 gap between tiles), and
+ * on the hero's own row when the slot is stacked or empty (one row of four; two by two under
+ * 720 px). Tiles take the sample card's press and hover (GLS-25); on coarse pointers they are at
+ * least 108 px tall with a 52 px target. Drag-over lifts the group 2 px with the e3 shadow and a
+ * dashed accent line, as the launcher did (L9); reduced motion keeps the shadow and the line.
+ */
+.group {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(98px, 1fr);
+  gap: var(--space-3);
+  min-width: 0;
+  border-radius: var(--radius-xl);
+  transition:
+    transform var(--spring-quick) var(--ease-spring),
+    outline-color var(--duration-fast) var(--ease-out);
+}
+
+/* Three intents: Open spans the top row (Scan off or no camera). */
+.group[data-count='3'] .tile:first-child {
+  grid-column: 1 / -1;
+}
+
+.tile {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    'glyph label'
+    'hint hint';
+  align-content: center;
+  align-items: center;
+  column-gap: var(--space-3);
+  row-gap: var(--space-1);
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 98px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-xl);
+  color: var(--text-primary);
+  text-align: start;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition:
+    transform var(--spring-press) var(--ease-spring),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.glyph {
+  grid-area: glyph;
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+}
+
+.label {
+  grid-area: label;
+  min-width: 0;
+  font-size: var(--type-body);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-body-lh);
+  letter-spacing: var(--track-body);
+  overflow-wrap: anywhere;
+}
+
+.hint {
+  grid-area: hint;
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  letter-spacing: var(--track-footnote);
+  text-wrap: pretty;
+}
+
+/* The view's one lime while Continue is not showing. */
+.tile[data-prominent] {
+  background: var(--primary-fill);
+  color: var(--primary-ink);
+}
+
+.tile[data-prominent] .hint {
+  color: inherit;
+}
+
+@media (hover: hover) {
+  .tile:hover {
+    --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--lens-rim-hover);
+  }
+}
+
+.tile:active {
+  --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--lens-rim-pressed);
+  transform: scale(var(--press-scale-large));
+  transition-duration: var(--duration-instant);
+}
+
+.tile[aria-busy='true'] {
+  cursor: progress;
+}
+
+/* The arrival focus draws no ring until a key is pressed (DeskView.tsx). */
+.tile[data-quiet-focus]:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+@media (pointer: coarse) {
+  .group {
+    grid-auto-rows: minmax(108px, 1fr);
+  }
+
+  .tile {
+    min-height: 108px;
+  }
+}
+
+/* Dragging, the window is the target: the group lifts and rings in a dashed accent line. */
+.group[data-dragging] {
+  --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--e3);
+  outline: 2px dashed var(--accent-line);
+  outline-offset: var(--space-1);
+  transform: translateY(calc(-1 * var(--space-half)));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .group[data-dragging],
+  .tile:active {
+    transform: none;
+  }
+}
+
+:root[data-motion='reduced'] .group[data-dragging],
+:root[data-motion='reduced'] .tile:active {
+  transform: none;
+}
+
+@media (forced-colors: active) {
+  .group[data-dragging] {
+    outline-color: Highlight;
+  }
+}
+
+/* Stacked or empty hero slot: the intents run as one row of four (two by two when narrow). */
+.group[data-wide] {
+  grid-template-columns: repeat(var(--intents-count, 4), minmax(0, 1fr));
+  grid-auto-rows: auto;
+}
+
+.group[data-wide][data-count] .tile:first-child {
+  grid-column: auto;
+}
+
+@container library (width < 840px) {
+  .group {
+    grid-template-columns: repeat(var(--intents-count, 4), minmax(0, 1fr));
+    grid-auto-rows: auto;
+  }
+
+  .group[data-count] .tile:first-child {
+    grid-column: auto;
+  }
+}
+
+@container library (width < 720px) {
+  .group,
+  .group[data-wide] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .group[data-count='3'] .tile:first-child {
+    grid-column: 1 / -1;
+  }
+}

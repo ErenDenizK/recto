@@ -18,6 +18,7 @@ export const LABS_TEXT: Readonly<
   'open-light': { title: m.labs_open_light, hint: m.labs_open_light_hint },
   'home-search': { title: m.labs_home_search, hint: m.labs_home_search_hint },
   'home-continue': { title: m.labs_home_continue, hint: m.labs_home_continue_hint },
+  desk: { title: m.labs_desk, hint: m.labs_desk_hint },
   top: { title: m.labs_top, hint: m.labs_top_hint },
   drawer: { title: m.labs_drawer, hint: m.labs_drawer_hint },
   'phone-capsule': { title: m.labs_phone_capsule, hint: m.labs_phone_capsule_hint },

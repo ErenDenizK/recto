@@ -57,7 +57,7 @@ const SEARCH_FROM = 5;
 const RecentSearchTools = lazy(() => import('./RecentSearchTools'));
 
 /** The current time, refreshed every minute while mounted ("5 minutes ago" moves on). */
-function useNow(): number {
+export function useNow(): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 60_000);
@@ -67,7 +67,7 @@ function useNow(): number {
 }
 
 /** Name and size of each file open right now, so Recents does not repeat a card. */
-function useOpenFiles(): readonly { readonly name: string; readonly size: number }[] {
+export function useOpenFiles(): readonly { readonly name: string; readonly size: number }[] {
   const workspace = useWorkspaceStore((s) => s.workspace);
   const files = useWorkspaceStore((s) => s.files);
   return useMemo(() => {
@@ -93,7 +93,7 @@ function keptFirst(entries: readonly RecentEntry[]): RecentEntry[] {
  * Clear recents (L7 §6): with kept changes on the list, the confirmation first, since Clear
  * deletes them from this device; without, at once.
  */
-async function clearWithConfirm(entries: readonly RecentEntry[]): Promise<void> {
+export async function clearWithConfirm(entries: readonly RecentEntry[]): Promise<void> {
   const changed = entries.filter((e) => e.kept?.changed === true).length;
   if (changed > 0) {
     const ok = await confirm({
@@ -282,7 +282,7 @@ export function RecentList({ variant }: { readonly variant: 'cards' | 'empty' })
 }
 
 /** The quiet hint a row carries: kept changes, permission to ask for, or the file dialog. */
-function recentHint(entry: RecentEntry, access: string | undefined): string | undefined {
+export function recentHint(entry: RecentEntry, access: string | undefined): string | undefined {
   // A kept snapshot reopens by itself on every browser (ADR-0032 §2.6).
   if (entry.kept !== undefined) return entry.kept.changed ? m.recents_hint_kept() : undefined;
   if (!canReopenRecent(entry) || access === 'unavailable') return m.recents_hint_open_again();
