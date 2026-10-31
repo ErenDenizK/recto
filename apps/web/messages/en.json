@@ -2461,6 +2461,7 @@
   "cmd_redaction_next": "Next redaction mark",
   "cmd_redaction_previous": "Previous redaction mark",
   "cmd_redaction_find": "Find sensitive data",
+  "cmd_redaction_find_keywords": "redact, black out, hide iban, redact iban, personal data, sensitive data, censor",
   "cmd_redaction_mark_matches": "Mark all search matches for redaction",
   "history_redaction_marks": [
     {
@@ -5139,6 +5140,110 @@
   "palette_intent_no_pages": "No pages match that",
   "palette_intent_all_pages": "That would remove every page",
   "palette_intent_ambiguous": "Say a range, like 2–3",
+  "intent_move_before": [
+    {
+      "declarations": [
+        "input count",
+        "input pages",
+        "input target",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Move page {pages} before page {target}",
+        "countPlural=*": "Move pages {pages} before page {target}"
+      }
+    }
+  ],
+  "intent_move_after": [
+    {
+      "declarations": [
+        "input count",
+        "input pages",
+        "input target",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Move page {pages} after page {target}",
+        "countPlural=*": "Move pages {pages} after page {target}"
+      }
+    }
+  ],
+  "intent_move_start": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Move page {pages} to the start",
+        "countPlural=*": "Move pages {pages} to the start"
+      }
+    }
+  ],
+  "intent_move_end": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Move page {pages} to the end",
+        "countPlural=*": "Move pages {pages} to the end"
+      }
+    }
+  ],
+  "intent_reverse": "Reverse the order of pages {pages}",
+  "intent_reverse_all": "Reverse the page order",
+  "intent_split_every": "Split every {n} pages",
+  "intent_split_at": "Split at page {pages}",
+  "intent_split_parts": "Split into {n} parts",
+  "intent_split_choose": "Split…",
+  "intent_page_numbers": "Add page numbers to pages {pages}",
+  "intent_page_numbers_all": "Add page numbers",
+  "intent_watermark": "Add the watermark “{text}”",
+  "intent_watermark_ask": "Add a watermark…",
+  "intent_compress": "Save a smaller copy",
+  "intent_compress_target": "Save a copy under {size}",
+  "intent_export_images": "Save pages {pages} as {format}",
+  "intent_export_images_all": "Save every page as {format}",
+  "intent_export_text": "Save as {format}",
+  "intent_sign_place": "Place your signature on page {page}",
+  "intent_sign_draw": "Draw your signature, then place it on page {page}",
+  "intent_redact_find": "Find {kinds} to redact",
+  "intent_find": "Find “{text}”",
+  "intent_then": "{first}, then {next}",
+  "intent_detail_now": "Now about {size}",
+  "intent_detail_opens": "Opens {name}",
+  "intent_detail_spot": "You choose the spot",
+  "intent_detail_parts": "{count} documents",
+  "intent_undo_one": "One undo takes it all back",
+  "intent_undo_separate": "Each step undoes on its own",
+  "intent_undo_copy": "The copy is a new file; this document stays as it is",
+  "intent_reason_needs_pages": "Say which pages, like 3–5",
+  "intent_reason_not_a_run": "Page numbers go on a run of pages, like 3–10",
+  "intent_reason_shifted": "Add these after the pages are in place, in a second sentence",
+  "intent_reason_shifted_extract": "The extract runs after the delete, and page {page} would be gone; extract first, then delete in a second sentence",
+  "intent_reason_shifted_page": "Page {page} is deleted earlier in this sentence; say this step in a second sentence",
+  "intent_reason_two_finishing": "One save or tool per sentence",
+  "intent_reason_after_split": "Splitting ends the document; put it last",
+  "intent_reason_single_part": "That leaves one part",
+  "intent_reason_phone": "On a larger screen",
+  "intent_unavailable_word": "Recto doesn’t turn PDFs into Word files",
+  "intent_unavailable_excel": "Recto doesn’t turn PDFs into Excel files",
+  "intent_unavailable_powerpoint": "Recto doesn’t turn PDFs into PowerPoint files",
+  "intent_unavailable_translate": "Recto doesn’t translate documents",
+  "history_intent": "{steps}",
+  "toast_intent_done": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 change made",
+        "countPlural=*": "{count} changes made"
+      }
+    }
+  ],
+  "save_copy_target": "Target: under {target} · {size} ≈ {estimate}",
+  "save_copy_target_unmet": "Smallest is about {size}; the target can’t be reached here",
+  "save_copy_target_over": "Target: under {target} · {size} ≈ {estimate}, above the target",
   "recents_search_label": "Search recent files",
   "recents_sort_label": "Sort recent files",
   "recents_sort_recent": "Last opened",

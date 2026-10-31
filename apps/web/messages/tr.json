@@ -1688,6 +1688,7 @@
   "cmd_redaction_next": "Sonraki karartma işareti",
   "cmd_redaction_previous": "Önceki karartma işareti",
   "cmd_redaction_find": "Hassas verileri bul",
+  "cmd_redaction_find_keywords": "karart, iban gizle, kişisel bilgi, hassas veri, sansürle",
   "cmd_redaction_mark_matches": "Tüm arama sonuçlarını karartma için işaretle",
   "history_redaction_marks": "{count} alan karartma için işaretlendi",
   "history_redaction_finds": "{count} hassas veri karartma için işaretlendi",
@@ -3481,6 +3482,110 @@
   "palette_intent_no_pages": "Buna uyan sayfa yok",
   "palette_intent_all_pages": "Bu, tüm sayfaları kaldırırdı",
   "palette_intent_ambiguous": "Bir aralık yazın, örneğin 2–3",
+  "intent_move_before": [
+    {
+      "declarations": [
+        "input count",
+        "input pages",
+        "input target",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{pages}. sayfayı {target}. sayfanın önüne taşı",
+        "countPlural=*": "{pages}. sayfaları {target}. sayfanın önüne taşı"
+      }
+    }
+  ],
+  "intent_move_after": [
+    {
+      "declarations": [
+        "input count",
+        "input pages",
+        "input target",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{pages}. sayfayı {target}. sayfanın arkasına taşı",
+        "countPlural=*": "{pages}. sayfaları {target}. sayfanın arkasına taşı"
+      }
+    }
+  ],
+  "intent_move_start": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{pages}. sayfayı başa taşı",
+        "countPlural=*": "{pages}. sayfaları başa taşı"
+      }
+    }
+  ],
+  "intent_move_end": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{pages}. sayfayı sona taşı",
+        "countPlural=*": "{pages}. sayfaları sona taşı"
+      }
+    }
+  ],
+  "intent_reverse": "{pages}. sayfaların sırasını ters çevir",
+  "intent_reverse_all": "Sayfa sırasını ters çevir",
+  "intent_split_every": "Her {n} sayfada böl",
+  "intent_split_at": "{pages}. sayfadan böl",
+  "intent_split_parts": "{n} parçaya böl",
+  "intent_split_choose": "Böl…",
+  "intent_page_numbers": "{pages}. sayfalara sayfa numarası ekle",
+  "intent_page_numbers_all": "Sayfa numarası ekle",
+  "intent_watermark": "“{text}” filigranını ekle",
+  "intent_watermark_ask": "Filigran ekle…",
+  "intent_compress": "Daha küçük bir kopya kaydet",
+  "intent_compress_target": "{size} altında bir kopya kaydet",
+  "intent_export_images": "{pages}. sayfaları {format} olarak kaydet",
+  "intent_export_images_all": "Tüm sayfaları {format} olarak kaydet",
+  "intent_export_text": "{format} olarak kaydet",
+  "intent_sign_place": "İmzanızı {page}. sayfaya koyun",
+  "intent_sign_draw": "İmzanızı çizin, sonra {page}. sayfaya koyun",
+  "intent_redact_find": "Karartmak için {kinds} bul",
+  "intent_find": "“{text}” ifadesini bul",
+  "intent_then": "{first}, ardından {next}",
+  "intent_detail_now": "Şu an yaklaşık {size}",
+  "intent_detail_opens": "{name} açılır",
+  "intent_detail_spot": "Yerini siz seçersiniz",
+  "intent_detail_parts": "{count} belge",
+  "intent_undo_one": "Tek geri alma hepsini geri alır",
+  "intent_undo_separate": "Her adım ayrı geri alınır",
+  "intent_undo_copy": "Kopya yeni bir dosya; bu belge olduğu gibi kalır",
+  "intent_reason_needs_pages": "Hangi sayfalar? Örneğin 3–5",
+  "intent_reason_not_a_run": "Sayfa numaraları ardışık sayfalara eklenir, örneğin 3–10",
+  "intent_reason_shifted": "Bunu sayfalar yerleşince ayrı bir cümleyle ekleyin",
+  "intent_reason_shifted_extract": "Ayıklama silmeden sonra çalışır ve {page}. sayfa o zaman yok olur; önce ayıklayın, silmeyi ayrı bir cümleyle söyleyin",
+  "intent_reason_shifted_page": "{page}. sayfa bu cümlede daha önce siliniyor; bu adımı ayrı bir cümleyle söyleyin",
+  "intent_reason_two_finishing": "Bir cümlede tek bir kaydetme ya da araç",
+  "intent_reason_after_split": "Bölme belgeyi sonlandırır; en sona koyun",
+  "intent_reason_single_part": "Bu tek parça bırakır",
+  "intent_reason_phone": "Daha geniş bir ekranda",
+  "intent_unavailable_word": "Recto PDF’yi Word dosyasına çevirmez",
+  "intent_unavailable_excel": "Recto PDF’yi Excel dosyasına çevirmez",
+  "intent_unavailable_powerpoint": "Recto PDF’yi PowerPoint dosyasına çevirmez",
+  "intent_unavailable_translate": "Recto belgeleri çevirmez",
+  "history_intent": "{steps}",
+  "toast_intent_done": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 değişiklik yapıldı",
+        "countPlural=*": "{count} değişiklik yapıldı"
+      }
+    }
+  ],
+  "save_copy_target": "Hedef: {target} altı · {size} ≈ {estimate}",
+  "save_copy_target_unmet": "En küçük yaklaşık {size}; hedefe burada ulaşılamıyor",
+  "save_copy_target_over": "Hedef: {target} altı · {size} ≈ {estimate}, hedefin üstünde",
   "recents_search_label": "Son açılan dosyalarda ara",
   "recents_sort_label": "Son açılan dosyaları sırala",
   "recents_sort_recent": "Açılma tarihi",
