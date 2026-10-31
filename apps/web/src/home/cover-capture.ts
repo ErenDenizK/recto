@@ -1,0 +1,344 @@
+/**
+ * Cover capture (DSN-87, `masa.md` §3.2): writes the covers of `covers.ts` and keeps where
+ * reading stopped on the Recents entry. Started once by the session; loaded lazily so the
+ * editor's first load carries the store and its readers alone.
+ *
+ * - **`first`**: when a file is recorded as opened (`onRecentRecorded`), page 1 of its source is
+ *   rendered once at the cover scale through the running engine at `RENDER_PRIORITY.offscreen`
+ *   (never ahead of a visible page), encoded as JPEG and written. A source that is encrypted
+ *   stores none.
+ * - **`left`**: when the page view is left (Home, the grid, another document), the page that was
+ *   on screen is taken from the bitmap cache (`EngineService.preview`, synchronously: no engine
+ *   work), drawn down into a canvas and encoded off the critical path. Only past page 1, and
+ *   only for a document that is one file's pages.
+ * - **Place**: the resume store's point for the open document, written to its Recents entry two
+ *   seconds after the last change (the writer's rhythm).
+ * - **Backfill**: on the full edition, at idle three seconds after the session starts, rows
+ *   that hold a kept snapshot and have no `first` cover get one through `recent-thumbs.ts`,
+ *   one at a time. Never on the phone, where it would start PDFium on the Library.
+ */
+import type { DocumentId, SourceDocument, SourceId, Workspace } from '@pdf-editor/document-model';
+
+import { chooseBucket, getEngineService, RENDER_PRIORITY } from '../engine/engine-service';
+import {
+  onRecentRecorded,
+  type RecentEntry,
+  type RecentPlace,
+  setRecentPlace,
+  useRecentsStore,
+} from '../files/recents';
+import { useResumeStore } from '../session/resume';
+import { snapshotStorage } from '../session/session';
+import { useUiStore } from '../state/ui-store';
+import { useViewStore } from '../state/view-store';
+import { useWorkspaceStore } from '../state/workspace-store';
+import {
+  type CoverKind,
+  coverKey,
+  type CoverRecord,
+  prefetchCovers,
+  watchCoverSweep,
+  writeCover,
+} from './covers';
+import { recentThumb } from './recent-thumbs';
+
+/** A box to fit a page in, device pixels. */
+export interface CoverBox {
+  readonly width: number;
+  readonly height: number;
+}
+
+/** `first`: 2× the large shelf box. `left`: 2× the Continue box (`masa.md` §3.1). */
+export const FIRST_BOX: CoverBox = { width: 304, height: 400 };
+export const LEFT_BOX: CoverBox = { width: 264, height: 344 };
+/** JPEG on every engine: WebKit does not encode WebP. */
+export const COVER_QUALITY = 0.8;
+
+/** How long after the last change the place is written. */
+const PLACE_DELAY_MS = 2000;
+/** The backfill waits this long after the session starts. */
+const BACKFILL_DELAY_MS = 3000;
+
+/** A finished image: JPEG bytes and the pixel size. */
+export interface EncodedCover {
+  readonly bytes: ArrayBuffer;
+  readonly width: number;
+  readonly height: number;
+}
+
+/**
+ * Draws `source` (`width` × `height` pixels) down to fit `box` (never up) and encodes it as a
+ * JPEG on a white ground: `OffscreenCanvas.convertToBlob`, else a canvas' `toBlob`. Null when no
+ * 2D context or no encoder is there.
+ */
+export async function encodeCover(
+  source: CanvasImageSource,
+  width: number,
+  height: number,
+  box: CoverBox,
+): Promise<EncodedCover | null> {
+  if (width <= 0 || height <= 0) return null;
+  const fit = Math.min(1, box.width / width, box.height / height);
+  const w = Math.max(1, Math.round(width * fit));
+  const h = Math.max(1, Math.round(height * fit));
+  let blob: Blob | null;
+  if (typeof OffscreenCanvas !== 'undefined') {
+    const canvas = new OffscreenCanvas(w, h);
+    const context = canvas.getContext('2d');
+    if (!context) return null;
+    context.fillStyle = '#fff';
+    context.fillRect(0, 0, w, h);
+    context.drawImage(source, 0, 0, w, h);
+    blob = await canvas.convertToBlob({ type: 'image/jpeg', quality: COVER_QUALITY });
+  } else {
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const context = canvas.getContext('2d');
+    if (!context) return null;
+    context.fillStyle = '#fff';
+    context.fillRect(0, 0, w, h);
+    context.drawImage(source, 0, 0, w, h);
+    blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, 'image/jpeg', COVER_QUALITY),
+    );
+  }
+  if (blob?.type !== 'image/jpeg') return null;
+  return { bytes: await blob.arrayBuffer(), width: w, height: h };
+}
+
+async function store(
+  kind: CoverKind,
+  file: Pick<RecentEntry, 'name' | 'size'>,
+  page: number,
+  image: EncodedCover,
+): Promise<void> {
+  const record: CoverRecord = {
+    key: coverKey(kind, file),
+    kind,
+    page,
+    width: image.width,
+    height: image.height,
+    type: 'image/jpeg',
+    bytes: image.bytes,
+    at: Date.now(),
+  };
+  await writeCover(record);
+}
+
+// ---------------------------------------------------------------------------
+// Which file a document is
+// ---------------------------------------------------------------------------
+
+/** The one source whose pages make up `documentId`, or undefined (a combine, images, blanks). */
+function soleSource(ws: Workspace, documentId: DocumentId): SourceDocument | undefined {
+  const doc = ws.documents[documentId];
+  if (!doc || doc.pages.length === 0) return undefined;
+  let id: SourceId | undefined;
+  for (const page of doc.pages) {
+    if (page.ref.kind !== 'source') return undefined;
+    if (id !== undefined && id !== page.ref.source) return undefined;
+    id = page.ref.source;
+  }
+  return id === undefined ? undefined : ws.sources[id];
+}
+
+/** The file a document came from, as Recents names it (name and size), or undefined. */
+function fileOf(ws: Workspace, documentId: DocumentId): { name: string; size: number } | undefined {
+  const source = soleSource(ws, documentId);
+  return source === undefined ? undefined : { name: source.name, size: source.byteLength };
+}
+
+// ---------------------------------------------------------------------------
+// first
+// ---------------------------------------------------------------------------
+
+/**
+ * The source whose page 1 is the `first` cover of `file` (Recents knows a file by name and
+ * size), or undefined: not open, or encrypted (its pages are never stored).
+ */
+export function firstCoverSource(
+  sources: Workspace['sources'],
+  file: Pick<RecentEntry, 'name' | 'size'>,
+): SourceDocument | undefined {
+  const source = Object.values(sources).find(
+    (s) => s.name === file.name && s.byteLength === file.size,
+  );
+  return source === undefined || source.flags.encrypted || source.pages.length === 0
+    ? undefined
+    : source;
+}
+
+async function captureFirst(entry: RecentEntry): Promise<void> {
+  const source = firstCoverSource(useWorkspaceStore.getState().workspace.sources, entry);
+  const info = source?.pages[0];
+  if (!source || !info) return;
+  const turned = (info.rotation / 90) % 2 === 1;
+  const widthPt = turned ? info.size.height : info.size.width;
+  const heightPt = turned ? info.size.width : info.size.height;
+  const fit = Math.min(FIRST_BOX.width / widthPt, FIRST_BOX.height / heightPt);
+  const result = await getEngineService().renderPage({
+    sourceId: source.id,
+    index: 0,
+    rotation: 0,
+    bucket: chooseBucket(fit, widthPt, heightPt),
+    priority: RENDER_PRIORITY.offscreen,
+  });
+  if (!result.ok) return;
+  // The cache owns the bitmap: draw it before anything else can evict it.
+  const image = await encodeCover(
+    result.value.bitmap,
+    result.value.width,
+    result.value.height,
+    FIRST_BOX,
+  );
+  if (image) await store('first', entry, 0, image);
+}
+
+// ---------------------------------------------------------------------------
+// left
+// ---------------------------------------------------------------------------
+
+/**
+ * Takes the cover of the page `documentId` was left at. Synchronous up to the encode, so the
+ * bitmap is read before the page view's DOM and cache move on.
+ */
+function captureLeft(ws: Workspace, documentId: DocumentId | null | undefined, page: number): void {
+  if (documentId === null || documentId === undefined || page <= 0) return;
+  const doc = ws.documents[documentId];
+  const source = soleSource(ws, documentId);
+  const virtual = doc?.pages[page];
+  if (!source || virtual?.ref.kind !== 'source' || source.flags.encrypted) return;
+  const info = source.pages[virtual.ref.index];
+  if (!info) return;
+  const turned = ((info.rotation + virtual.rotation) / 90) % 2 === 1;
+  const widthPt = turned ? info.size.height : info.size.width;
+  const heightPt = turned ? info.size.width : info.size.height;
+  const fit = Math.min(LEFT_BOX.width / widthPt, LEFT_BOX.height / heightPt);
+  const cached = getEngineService().preview(
+    source.id,
+    virtual.ref.index,
+    virtual.rotation,
+    chooseBucket(fit, widthPt, heightPt),
+  );
+  if (!cached || cached.width === 0) return;
+  const file = { name: source.name, size: source.byteLength };
+  void encodeCover(cached.bitmap, cached.width, cached.height, LEFT_BOX).then((image) => {
+    if (image) return store('left', file, page, image);
+    return undefined;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// place
+// ---------------------------------------------------------------------------
+
+function watchPlaces(): () => void {
+  let timer = 0;
+  const pending = new Map<DocumentId, RecentPlace>();
+  const flush = () => {
+    const ws = useWorkspaceStore.getState().workspace;
+    for (const [id, place] of pending) {
+      const file = fileOf(ws, id);
+      if (file) void setRecentPlace(file, place);
+    }
+    pending.clear();
+  };
+  const off = useResumeStore.subscribe((state, previous) => {
+    if (state.points === previous.points) return;
+    for (const [key, point] of Object.entries(state.points)) {
+      const id = key as DocumentId;
+      if (previous.points[key] === point) continue;
+      pending.set(id, {
+        page: point.page,
+        total: point.total,
+        at: point.at,
+        zoom: point.zoom,
+        fit: point.fit,
+        offset: point.offset,
+      });
+    }
+    window.clearTimeout(timer);
+    timer = window.setTimeout(flush, PLACE_DELAY_MS);
+  });
+  return () => {
+    window.clearTimeout(timer);
+    off();
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Backfill
+// ---------------------------------------------------------------------------
+
+/** Rows with a kept snapshot and no `first` cover, rendered one at a time. */
+async function backfill(isStopped: () => boolean): Promise<void> {
+  const have = new Set((await prefetchCovers()).map((cover) => cover.key));
+  const rows = useRecentsStore
+    .getState()
+    .entries.filter((e) => e.kept !== undefined && !have.has(coverKey('first', e)));
+  for (const row of rows) {
+    if (isStopped() || !snapshotStorage() || row.kept === undefined) return;
+    const thumb = await recentThumb(
+      row.kept.snapshotId,
+      0,
+      { width: FIRST_BOX.width / 2, height: FIRST_BOX.height / 2 },
+      2,
+    );
+    if (!thumb || isStopped()) continue;
+    const image = await encodeCover(
+      thumb.canvas,
+      thumb.canvas.width,
+      thumb.canvas.height,
+      FIRST_BOX,
+    );
+    if (image) await store('first', row, 0, image);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Start
+// ---------------------------------------------------------------------------
+
+/** Starts the capture for this session; `compact` skips the backfill. Returns the stop. */
+export function startCoverCapture(options: { readonly compact: boolean }): () => void {
+  let stopped = false;
+  const stopSweep = watchCoverSweep();
+  onRecentRecorded((entry) => {
+    // After the first visible page has had its turn; the render is `offscreen` priority anyway.
+    window.setTimeout(() => {
+      if (!stopped) void captureFirst(entry).catch(() => undefined);
+    }, 400);
+  });
+  const stopPlaces = watchPlaces();
+  const leave = (ws: Workspace, documentId: DocumentId | null | undefined) =>
+    captureLeft(ws, documentId, useViewStore.getState().currentPage);
+  const offUi = useUiStore.subscribe((state, previous) => {
+    if (state.destination !== previous.destination && state.destination !== 'document') {
+      const { workspace } = useWorkspaceStore.getState();
+      leave(workspace, workspace.activeDocument);
+    }
+  });
+  const offWorkspace = useWorkspaceStore.subscribe((state, previous) => {
+    const left = previous.workspace.activeDocument;
+    // The document left may be closed by now: its sources are in the state before.
+    if (state.workspace.activeDocument !== left) leave(previous.workspace, left);
+  });
+  let idle = 0;
+  const wait = window.setTimeout(() => {
+    if (options.compact || stopped) return;
+    const run = () => void backfill(() => stopped).catch(() => undefined);
+    if ('requestIdleCallback' in window) idle = window.requestIdleCallback(run);
+    else run();
+  }, BACKFILL_DELAY_MS);
+  return () => {
+    stopped = true;
+    window.clearTimeout(wait);
+    if (idle !== 0) window.cancelIdleCallback(idle);
+    onRecentRecorded(undefined);
+    stopPlaces();
+    offUi();
+    offWorkspace();
+    stopSweep();
+  };
+}

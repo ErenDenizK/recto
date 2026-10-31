@@ -172,10 +172,19 @@ export function recentRowOf(record: KeptRecordV1): { name: string; size: number 
 }
 
 function attachKept(record: KeptRecordV1, bytes = 0): void {
+  const { page, resume } = record.place;
   void keepRecent({
     ...recentRowOf(record),
     pages: record.pages,
     kept: { snapshotId: record.id, keptAt: record.keptAt, bytes, changed: record.place.changed },
+    // Where reading stopped rides on the row, so the desk shows progress without reading OPFS
+    // (DSN-87, `masa.md` §3.2).
+    place: {
+      page: Math.min(Math.max(0, page), Math.max(0, record.pages - 1)),
+      total: record.pages,
+      at: record.keptAt,
+      ...resume,
+    },
   });
 }
 
@@ -320,6 +329,12 @@ export function startSession(options: StartOptions): () => void {
       };
     });
   }
+  // Covers and places for the desk (DSN-87), loaded after the first paint's work.
+  let stopCovers: (() => void) | undefined;
+  void import('../home/cover-capture').then((capture) => {
+    if (stopped) return;
+    stopCovers = capture.startCoverCapture({ compact: options.edition === 'compact' });
+  });
   window.addEventListener('beforeunload', onBeforeUnload);
   const offlineUnsub = useWorkspaceStore.subscribe((state) =>
     offlineTracker.observe(state.workspace),
@@ -395,6 +410,7 @@ export function startSession(options: StartOptions): () => void {
   return () => {
     stopped = true;
     stopResume?.();
+    stopCovers?.();
     unwatch?.();
     offlineUnsub();
     window.removeEventListener('beforeunload', onBeforeUnload);
@@ -644,6 +660,8 @@ export async function reopenFromSnapshot(
  * every Recents row's "changes kept". Final. Resolves false when storage could not be cleared.
  */
 export async function clearKeptChanges(): Promise<boolean> {
+  // The covers are pictures of those documents (DSN-87); a window that keeps none has them in memory.
+  void import('../home/covers').then((covers) => covers.clearCovers());
   const ctl = controller;
   if (!ctl) return true;
   const ok = await ctl.writer.clearAll();
