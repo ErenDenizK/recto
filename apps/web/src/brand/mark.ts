@@ -56,5 +56,36 @@ export const MARK_GRADIENT_LIGHT = {
   ],
 } as const;
 
+/**
+ * Fener's mark (DSN-88; Labs flag `fener`, `state/fener.ts`): the same geometry, angle and knee,
+ * the gradient taken from the theme colour to sky to green, the ramp the background glow draws.
+ * On a light ground the hand-tuned stops, indigo `#3A42D9` (OKLCH 0.480 0.225 272), cerulean
+ * `#0096C3` (0.629 0.123 228) and green `#3BCA60` (0.741 0.190 148), measured against white at
+ * 7.1:1 (stem), 3.4:1 (knee) and 2.1:1 (tip).
+ */
+export const MARK_GRADIENT_FENER_LIGHT = {
+  ...MARK_GRADIENT,
+  stops: [
+    { offset: 0, color: '#3A42D9' },
+    { offset: 0.5944, color: '#0096C3' },
+    { offset: 1, color: '#3BCA60' },
+  ],
+} as const;
+
+/**
+ * Fener's mark on a dark ground: the same three hues (272, 228, 148) lifted to L 0.66, 0.76 and
+ * 0.86 at the light ramp's chroma, so the brand's dark look, a bright ramp that glows on the
+ * graphite, stays recognisable. Against the dark tile (`#17191e` at its lightest) the stem holds
+ * 5.4:1 (WCAG 1.4.11 asks 3:1 of a graphic), the knee 8.4:1 and the tip 12.3:1.
+ */
+export const MARK_GRADIENT_FENER_DARK = {
+  ...MARK_GRADIENT,
+  stops: [
+    { offset: 0, color: '#6E86FD' },
+    { offset: 0.5944, color: '#3FC0F2' },
+    { offset: 1, color: '#6AF286' },
+  ],
+} as const;
+
 /** The mono treatments (the brand's near-black on light, white on dark). */
 export const MARK_INK = { black: '#0B0C0E', white: '#FFFFFF' } as const;
