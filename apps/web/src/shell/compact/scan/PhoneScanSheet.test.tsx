@@ -127,9 +127,18 @@ describe('capture and the photo fallback', () => {
     camera.result = { ok: true, stream: canvas.captureStream() };
     const sheet = await openSheet();
     expect(within(sheet).queryByTestId('scan-done')).toBeNull();
-    // On a phone the two modes are a Select: the cell beside the shutter is too narrow for both.
-    await userEvent.click(await within(sheet).findByRole('combobox', { name: 'Capture mode' }));
-    await userEvent.click(await screen.findByRole('option', { name: 'Manual' }));
+    // The mode control is a Segmented (09-primitives §6): a radiogroup while both labels fit the
+    // cell beside the shutter, a Select when they do not. That depends on the font the engine
+    // has, so the test takes whichever it renders.
+    const modeSelect = await within(sheet)
+      .findByRole('combobox', { name: 'Capture mode' }, { timeout: 500 })
+      .catch(() => null);
+    if (modeSelect) {
+      await userEvent.click(modeSelect);
+      await userEvent.click(await screen.findByRole('option', { name: 'Manual' }));
+    } else {
+      await userEvent.click(within(sheet).getByRole('radio', { name: 'Manual' }));
+    }
     const shutter = within(sheet).getByTestId<HTMLButtonElement>('scan-shutter');
     await waitFor(() => expect(shutter.disabled).toBe(false));
     await waitFor(() =>
