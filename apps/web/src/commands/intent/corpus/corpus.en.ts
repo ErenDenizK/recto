@@ -163,8 +163,6 @@ export const EN: Readonly<Record<string, readonly Row[]>> = {
     ['delete 3 and add page numbers', 'delete 3 ; numbers all'],
     ['add page numbers and delete 3', 'numbers all ; delete 3'],
     ['add watermark DRAFT and print', 'watermark "DRAFT" all ; print'],
-    ['split every 10 and compress', 'split every 10 [1-10 11-20 21-24] ; compress'],
-    ['compress and split every 10', 'split every 10 [1-10 11-20 21-24] ; compress'],
     ['move 5 before 2 and move 9 to the start', 'move 5 before 2 ; move 9 start'],
     ['go to 5 and sign', 'sign 5'],
     ['rotate 3 and reverse', 'rotate 3 +1 ; reverse all'],
@@ -184,6 +182,14 @@ export const EN: Readonly<Record<string, readonly Row[]>> = {
     ['sign', '? sign 7 | ! phone certify', 'PHONE'],
   ],
   mustNotAct: [
+    ['split every 10 and compress', '! after-split split every 10 [1-10 11-20 21-24] ; compress'],
+    ['split every 10 and print', '! after-split split every 10 [1-10 11-20 21-24] ; print'],
+    [
+      'split every 10 and save as jpg',
+      '! after-split split every 10 [1-10 11-20 21-24] ; export jpeg all',
+    ],
+    ['split every 10 and sign page 3', '! after-split split every 10 [1-10 11-20 21-24] ; sign 3'],
+    ['compress and split every 10', '! after-split split every 10 [1-10 11-20 21-24] ; compress'],
     ['rotate here', 'none'],
     ['rotate 3 here', 'none'],
     ['duplicate here', 'none'],

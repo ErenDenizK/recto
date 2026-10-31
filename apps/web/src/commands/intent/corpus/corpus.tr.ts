@@ -195,6 +195,12 @@ export const TR: Readonly<Record<string, readonly Row[]>> = {
     ['word', '? unavailable pdf-to-word ~document.exportMarkdown | office-to-pdf', 'OFFICE'],
   ],
   mustNotAct: [
+    [
+      '10. sayfadan böl ve jpg olarak kaydet',
+      '! after-split split at 10 [1-9 10-24] ; export jpeg all',
+    ],
+    ['10. sayfadan böl ve sıkıştır', '! after-split split at 10 [1-9 10-24] ; compress'],
+    ['böl ve yazdır', '! after-split split choose ; print'],
     ['iki sayfayı sil', '! ambiguous-count delete'],
     ['bir sayfa sil', '! ambiguous-count delete'],
     ['3 sayfa sil', '! ambiguous-count delete'],
