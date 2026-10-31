@@ -106,6 +106,12 @@ describe('New signature', () => {
     expect(within(dialog).getByRole('checkbox', { name: 'Save for next time' })).toBeChecked();
   });
 
+  it('focuses the name field when the Type tab is chosen', async () => {
+    await openSheet();
+    await userEvent.click(page.getByRole('tab', { name: 'Type' }));
+    await expect.element(page.getByRole('textbox', { name: 'Your name' })).toHaveFocus();
+  });
+
   it('keeps one size across Draw, Type and Image; the empty Image well picks the image', async () => {
     const dialog = await openSheet();
     const height = () => dialog.getBoundingClientRect().height;
@@ -161,7 +167,10 @@ describe('New signature', () => {
     const name = within(dialog).getByRole('textbox', { name: /Name for this signature/ });
     name.focus();
     await userEvent.keyboard('Full name{Enter}');
-    await waitFor(() => expect(useSavedSignatures.getState().signatures).toHaveLength(1));
+    // Saving renders the typed face to a stamp first: longer than the default second on a slow runner.
+    await waitFor(() => expect(useSavedSignatures.getState().signatures).toHaveLength(1), {
+      timeout: 5000,
+    });
     expect(useSavedSignatures.getState().signatures[0]).toMatchObject({
       kind: 'typed',
       text: 'Ada Lovelace',
@@ -190,7 +199,10 @@ describe('New signature', () => {
     await userEvent.type(page.getByRole('textbox', { name: 'Your name' }), 'Ada');
     await userEvent.click(page.getByRole('button', { name: 'Use signature' }));
     await waitFor(() => expect(useSheetStore.getState().open).toBeNull(), { timeout: 5000 });
-    await waitFor(() => expect(useAnnotationStore.getState().pendingStamp).not.toBeNull());
+    // Arming renders the stamp (its face loads): give it more than the default second.
+    await waitFor(() => expect(useAnnotationStore.getState().pendingStamp).not.toBeNull(), {
+      timeout: 5000,
+    });
     expect(hasToast('signature-place')).toBe(true);
     // Cancelling the arm (the tool leaves Signature) takes the hint down.
     act(() => useToolStore.getState().setMode('select'));
@@ -210,8 +222,9 @@ describe('New signature', () => {
       within(dialog).getByRole('checkbox', { name: 'Save for next time (replaces the oldest)' }),
     ).toBeChecked();
     await userEvent.click(page.getByRole('button', { name: 'Use signature' }));
-    await waitFor(() =>
-      expect(useSavedSignatures.getState().signatures[0]).toMatchObject({ text: 'Sixth' }),
+    await waitFor(
+      () => expect(useSavedSignatures.getState().signatures[0]).toMatchObject({ text: 'Sixth' }),
+      { timeout: 5000 },
     );
     const ids = useSavedSignatures.getState().signatures.map((s) => s.id);
     expect(ids).toHaveLength(5);

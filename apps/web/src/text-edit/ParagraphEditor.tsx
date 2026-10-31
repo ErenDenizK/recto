@@ -152,7 +152,8 @@ import {
   paragraphLayoutAnalysis,
   useTextEditStore,
 } from './text-edit-store';
-import { type HeaderPlace, placeHeader } from './header-place';
+import { readPointerCapabilities } from '../shell/frame/input-modality';
+import { gripEdge, type HeaderPlace, placeHeader } from './header-place';
 
 /**
  * What an edition changes in the editor (the phone, `shell/compact/mark/edit-text-layer.tsx`):
@@ -168,7 +169,16 @@ export interface ParagraphEditorEdition {
   readonly hint: () => string;
 }
 
-const DESKTOP_EDITION: ParagraphEditorEdition = { minMirrorPx: 0, hint: () => m.paragraph_hint() };
+/** Touch-only devices (no mouse or trackpad beside the screen) have no Esc and no click. */
+const touchOnly = (): boolean => {
+  const { anyCoarse, anyFine } = readPointerCapabilities();
+  return anyCoarse && !anyFine;
+};
+
+const DESKTOP_EDITION: ParagraphEditorEdition = {
+  minMirrorPx: 0,
+  hint: () => (touchOnly() ? m.paragraph_hint_touch() : m.paragraph_hint()),
+};
 let edition = DESKTOP_EDITION;
 
 /** Sets what the edition changes (unset fields keep the desktop's); returns the previous. */
@@ -223,6 +233,8 @@ interface FrameDrag {
 
 /** The grip's and the side bars' touch targets, CSS px (quality bar Q-9). */
 const GRIP_PX = 44;
+/** The grip's drawn notch (`.grip::after`, --space-6 wide) and how far it stands out. */
+const GRIP_NOTCH = { width: 24, reach: 12 };
 const TARGET_PX = 44;
 
 /** Room kept around the drawn area on the canvas, CSS pixels. */
@@ -512,10 +524,12 @@ export function ParagraphEditor({
   const moveRef = useRef<FrameDraft | null>(null);
   const dragRef = useRef<FrameDrag | null>(null);
   const movedOverRef = useRef(false);
-  /** The page's other paragraphs: where a move snaps to and what it must not land on. */
+  /**
+   * The page's other paragraphs: where a move snaps to, what it must not land on, and what
+   * the header and the grip keep off (TXT-26). Detected already for the layer (cached).
+   */
   const [others, setOthers] = useState<readonly ParagraphBlock[]>([]);
   useEffect(() => {
-    if (!framed) return;
     let live = true;
     pageParagraphs(block.ref.source, block.ref.pageIndex).then(
       (blocks) => {
@@ -526,7 +540,7 @@ export function ParagraphEditor({
     return () => {
       live = false;
     };
-  }, [framed, block.ref.source, block.ref.pageIndex, block.ref.index]);
+  }, [block.ref.source, block.ref.pageIndex, block.ref.index]);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
@@ -927,6 +941,28 @@ export function ParagraphEditor({
       height: Math.max(...corners.map((c) => c.y)) - top,
     };
   }, [framed, paragraphBox, frameText, cssOfText]);
+  /** The other paragraphs' boxes in the layer's CSS pixels (TXT-26). */
+  const othersCss = useMemo(
+    () =>
+      others.map((o) => {
+        const r = rectToCss(frame, o.box);
+        return { left: r.left, top: r.top, right: r.left + r.width, bottom: r.top + r.height };
+      }),
+    [others, frame],
+  );
+  /** The grip goes under the frame when its notch would lie on a paragraph above (TXT-26). */
+  const gripBelow =
+    gripEdge(
+      {
+        left: frameBox.left,
+        top: frameBox.top,
+        right: frameBox.left + frameBox.width,
+        bottom: frameBox.top + frameBox.height,
+      },
+      othersCss,
+      GRIP_NOTCH.width,
+      GRIP_NOTCH.reach,
+    ) === 'bottom';
   /** On-screen angle of the writing direction (clockwise degrees): the canvas turns with it. */
   const screenAngle =
     ((Math.round((Math.atan2(cssOfText[1], cssOfText[0]) * 180) / Math.PI) % 360) + 360) % 360;
@@ -1703,6 +1739,7 @@ export function ParagraphEditor({
       header: size,
       above: upright && gapAbove !== undefined ? textTop - contentTop : undefined,
       below: upright && gapBelow !== undefined ? contentBottom - textBottom : undefined,
+      others: othersCss,
     });
     setPlace((prev) =>
       prev.side === next.side &&
@@ -1730,6 +1767,7 @@ export function ParagraphEditor({
     box,
     gapAbove,
     gapBelow,
+    othersCss,
     headerKey,
     scrolled,
     choice,
@@ -1799,6 +1837,9 @@ export function ParagraphEditor({
         : decision?.kind === 'overflow'
           ? m.paragraph_overflow()
           : null;
+  // The overlap choice says the overflow line in its own sentence (craft §4.6), so the line
+  // steps aside while the choice shows: the header never says it twice.
+  const overflowChoice = choice && decision?.kind === 'overflow' && !decision.offPage;
   const ragged = laid?.result.layout.ragged === true;
   const loadError = current && 'error' in current ? current.error : null;
   const shownError =
@@ -2000,12 +2041,13 @@ export function ParagraphEditor({
             <div
               className={styles.grip}
               data-testid="paragraph-grip"
+              data-edge={gripBelow ? 'bottom' : 'top'}
               data-frame-control="move"
               aria-hidden="true"
               title={m.paragraph_move_grip()}
               style={{
                 left: frameBox.left + frameBox.width / 2 - GRIP_PX / 2,
-                top: frameBox.top - 3 - GRIP_PX,
+                top: gripBelow ? frameBox.top + frameBox.height + 3 : frameBox.top - 3 - GRIP_PX,
               }}
               onPointerDown={onFrameDown}
               onPointerMove={onFrameMove}
@@ -2061,7 +2103,7 @@ export function ParagraphEditor({
               {line}
             </p>
           ))}
-          {overflowLine ? (
+          {overflowLine && !overflowChoice ? (
             <p
               className={styles.overflow}
               data-kind={decision?.kind}
@@ -2125,7 +2167,7 @@ export function ParagraphEditor({
             </div>
           </div>
         ) : null}
-        {choice && decision?.kind === 'overflow' && !decision.offPage ? (
+        {overflowChoice ? (
           <div
             className={styles.choice}
             role="group"

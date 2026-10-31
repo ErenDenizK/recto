@@ -32,6 +32,21 @@ No fix before the cause is proven. A fix for a symptom moves the bug and costs a
 - After three killed hypotheses, stop and report what you tried and what the evidence shows; the
   lead decides the next step (charter: a lane parks after two fix rounds).
 
+## E2E red on one engine only (WebKit, Firefox)
+
+Only Chromium runs locally, so the evidence is CI's: the trace, screenshots and video in the
+Playwright report artifact, and the same spec's result on the other engines. The WebKit-only reds
+of R29 (#130, fixed in #141) were in the test's reading of time, not in the app; check these first,
+then the app:
+
+- an animation read before a frame, which a later retarget cancelled (its null time is not "at
+  rest"): read the state after the frame, or wait with `settled(el)`;
+- a frame-time bound that admits a slow frame (60 Hz is about 17 ms, not 34);
+- acting before the app is ready: wait for the visible state the step needs (the page pill counts
+  pages), never a pause.
+
+Fix the read in an engine-agnostic way; no `test.skip` or `browserName` branch for one engine.
+
 ## 4. Fix the cause
 
 - Write a regression test that fails before the fix and passes after it.

@@ -123,6 +123,9 @@
   border-radius: var(--radius-lg);
   color: var(--text-primary);
   font-size: var(--type-footnote);
+  /* The footnote's own leading: the body's 20 px spread a wrapped line on a phone's narrow
+     header (13 px type on 20 px lines) as Notice and Toast never do. */
+  line-height: var(--type-footnote-lh);
   pointer-events: auto;
   cursor: default;
   /* It emerges beside the opening paragraph (motion-2026-10 viewer.md §6): from --enter-scale
@@ -250,7 +253,8 @@
   touch-action: none;
 }
 
-/* The grip: a notch above the frame's top edge in a 44 px touch target (Q-9). */
+/* The grip: a notch above the frame's top edge in a 44 px touch target (Q-9); below its
+   bottom edge when the top would lie on another paragraph (TXT-26). */
 .grip {
   position: absolute;
   z-index: 5;
@@ -264,6 +268,11 @@
   pointer-events: auto;
   cursor: move;
   touch-action: none;
+}
+
+.grip[data-edge='bottom'] {
+  align-items: flex-start;
+  padding-block: var(--space-1) 0;
 }
 
 .grip::after {

@@ -43,9 +43,9 @@ test('opens in Read with the lock; nothing moves or arms; 2 and 1 switch; a tab 
     timeout: 20_000,
   });
 
-  // Read, with the lock; the capsule is the dock: Pages · Markup · Fill & sign · More.
+  // Read, with the lock; the capsule is the dock: Pages · Markup · Fill & sign · Tools · More.
   await expect(readShown(page)).toBeVisible();
-  await expect(dock(page).getByRole('button')).toHaveCount(4);
+  await expect(dock(page).getByRole('button')).toHaveCount(5);
   await expect(readShown(page)).toHaveAttribute('aria-keyshortcuts', 'M 2');
 
   // A drag that starts on the unselected square selects it and moves nothing (S14; D1-5:

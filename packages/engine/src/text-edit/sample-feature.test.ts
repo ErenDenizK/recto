@@ -253,3 +253,43 @@ describe.each(manifest.files.filter((f) => f.edition === 'full' || f.locale === 
     }
   },
 );
+
+// The standfirst is set ragged at 0.87 of the page's measure (tools/fixtures/sample/pages/
+// feature.ts: 56 + 0.87 × 483.28 = 476.4 pt), short of its column. A sentence added at its end
+// rewraps inside that measure; before blocks.ts step 10 bounded the column's edge by the
+// producer's own breaks, it ran to the right column's edge (539.3 pt), about 60 pt wide.
+describe.each(manifest.files.filter((f) => f.edition === 'full'))(
+  'the sample $file, the standfirst',
+  (entry) => {
+    test('a lengthened standfirst wraps at its own measure, not its column', async () => {
+      const source = await h.open(await fixture(URLS[entry.file] as string));
+      try {
+        const blocks = await h.editor.analyzeParagraphs(source, entry.featurePage - 1);
+        const block = target(blocks, entry.locale === 'tr' ? 'Nevin Sarıgül' : 'For thirty-one');
+        if (!block) throw new Error('no standfirst');
+        const analysis = await h.editor.analyzeParagraphLayout(block.ref);
+        const { measure } = analysis.input;
+        expect(measure.right).toBeGreaterThanOrEqual(block.measure.right);
+        expect(measure.right).toBeLessThan(476.4 + block.size / 2);
+        const at = block.text.length;
+        const style = caretStyle(analysis.input.spans, at);
+        const layout = layoutParagraph(analysis.input, {
+          start: at,
+          end: at,
+          text: ' Now she is seventy-four and still climbs every single evening.',
+          ...(style === undefined ? {} : { style }),
+        });
+        const lines = layout.lines;
+        // The untouched lines keep their breaks.
+        for (let i = 0; i < block.lines.length - 1; i++) {
+          expect(lines[i]?.text).toBe(block.lines[i]?.text);
+        }
+        for (const line of lines.filter((l) => l.status === 'rewritten')) {
+          expect(line.x + line.width).toBeLessThanOrEqual(measure.right + 1e-6);
+        }
+      } finally {
+        await h.adapter.close(source);
+      }
+    });
+  },
+);

@@ -36,7 +36,7 @@ function layer(page: Page): Locator {
 }
 
 function bar(page: Page): Locator {
-  return page.getByRole('toolbar', { name: 'Markup', exact: true });
+  return page.getByRole('toolbar', { name: 'Fill & sign', exact: true });
 }
 
 /**

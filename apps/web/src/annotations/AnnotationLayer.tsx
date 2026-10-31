@@ -113,7 +113,7 @@ import { pageText } from './page-text';
 import { glyphIndexAt, quadsForRange } from './quads';
 import styles from './AnnotationLayer.module.css';
 import { type SelectionChrome, useSelectionChrome } from './selection-chrome';
-import { naturalStampSize } from './stamps';
+import { naturalStampSize, placedStampRect } from './stamps';
 import { presentError } from '../errors/present';
 
 /** Smallest drag (CSS px) that counts as a drag rather than a click. */
@@ -1368,18 +1368,13 @@ async function finishDraw(
     case 'signature': {
       const pending = store.pendingStamp;
       if (!pending) return 'none';
-      const natural = naturalStampSize(pending);
-      const ratio = natural.height / natural.width;
-      let rect: Rect;
-      if (dragged(g)) {
-        // The dragged width (along the page's user x axis) decides; the aspect stays.
-        const r = cssBoxToUser(frame, boxFromPoints(g.start, end));
-        const width = Math.max(12, r.width);
-        rect = { x: r.x, y: r.y + r.height - width * ratio, width, height: width * ratio };
-      } else {
-        const p = cssPointToUser(frame, g.start);
-        rect = { x: p.x - natural.width / 2, y: p.y - natural.height / 2, ...natural };
-      }
+      const rect = placedStampRect(
+        naturalStampSize(pending),
+        frame.intrinsicRotation ?? 0,
+        dragged(g)
+          ? { drag: cssBoxToUser(frame, boxFromPoints(g.start, end)) }
+          : { at: cssPointToUser(frame, g.start) },
+      );
       draft = {
         ...base,
         kind: 'stamp',

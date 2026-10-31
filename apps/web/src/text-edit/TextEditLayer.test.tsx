@@ -216,6 +216,21 @@ describe('the Edit text layer by keyboard (mounted)', () => {
       expect(box.height).toBeGreaterThanOrEqual(MIN_TARGET_PX);
       expect(getComputedStyle(target).pointerEvents).toBe('none');
     }
+    // Its inset focus ring (4 px, styles/focus.css) stays outside the ink: every line's run
+    // target (the line box and 2 px) lies at least that far inside the paragraph's target.
+    for (const target of targets) {
+      const box = target.getBoundingClientRect();
+      for (const run of runs) {
+        const r = run.getBoundingClientRect();
+        const x = r.left + r.width / 2;
+        const y = r.top + r.height / 2;
+        if (x < box.left || x > box.right || y < box.top || y > box.bottom) continue;
+        expect(r.left - box.left).toBeGreaterThanOrEqual(4 - 0.5);
+        expect(r.top - box.top).toBeGreaterThanOrEqual(4 - 0.5);
+        expect(box.right - r.right).toBeGreaterThanOrEqual(4 - 0.5);
+        expect(box.bottom - r.bottom).toBeGreaterThanOrEqual(4 - 0.5);
+      }
+    }
 
     const ferry = targets.find((t) => t.getAttribute('aria-label')?.includes('The ferry'));
     if (!ferry) throw new Error('no ferry paragraph');

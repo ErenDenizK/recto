@@ -261,7 +261,7 @@ const EN: SampleCopy = {
     tryLine: {
       full: 'Choose Edit text (E), then any paragraph, to change its words. Put your name in the byline, or add a sentence to the end of the first column and watch it reflow.',
       phone:
-        'Tap Edit, then Edit text, then a paragraph. Put your name in the byline, or add a sentence and watch it reflow.',
+        'Tap Edit, Edit text, then a paragraph. Put your name in the byline, or end column 1 with a sentence and watch it reflow.',
     },
   },
   contact: {
@@ -406,7 +406,7 @@ const EN: SampleCopy = {
       phone: [
         'Pinch any page smaller to see them all. Tap a page to go back into it.',
         'Press and hold a page, then drag it to move it. Select lets you rotate, delete or share pages; Add brings in pages from another file.',
-        'Your changes stay on this device. When you are done, choose Save a copy or Share a copy in the More menu.',
+        'Your changes stay on this device. When you are done, choose Save a copy or Share a copy in the menu.',
         'The scanned letter, the invoice and every other tool are in the sample on a computer or tablet.',
       ],
     },
@@ -533,7 +533,7 @@ const TR: SampleCopy = {
     tryLine: {
       full: 'Metni düzenle’yi (E), ardından bir paragrafı seçip sözcüklerini değiştirin. Künyeye kendi adınızı yazın ya da ilk sütunun sonuna bir cümle ekleyip metnin yeniden dizilişini izleyin.',
       phone:
-        'Düzenle’de Metni düzenle’yi seçip bir paragrafa dokunun. Künyeye adınızı yazın ya da cümle ekleyip akışı izleyin.',
+        'Düzenle’de Metni düzenle’yi seçip bir paragrafa dokunun. Künyeye adınızı yazın ya da 1. sütunun sonuna cümle ekleyip akışı izleyin.',
     },
   },
   contact: {
@@ -678,7 +678,7 @@ const TR: SampleCopy = {
       phone: [
         'Bütün sayfaları görmek için bir sayfayı iki parmağınızla küçültün; geri dönmek için bir sayfaya dokunun.',
         'Bir sayfayı taşımak için basılı tutup sürükleyin. Seç ile sayfaları döndürebilir, silebilir ya da paylaşabilirsiniz; Ekle, başka bir dosyadan sayfa getirir.',
-        'Değişiklikleriniz bu cihazda kalır. Bitince Diğer menüsünden Kopya kaydet’i ya da Kopyasını paylaş’ı seçin.',
+        'Değişiklikleriniz bu cihazda kalır. Bitince menüden Kopya kaydet’i ya da Kopyasını paylaş’ı seçin.',
         'Taranmış mektup, fatura ve diğer bütün araçlar bilgisayar ve tabletteki örnek belgede.',
       ],
     },

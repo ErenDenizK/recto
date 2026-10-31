@@ -86,7 +86,8 @@ describe('the press outside the drawer (EDN-18)', () => {
     expect(pressGoesThrough('text-box')).toBe(true);
     expect(pressGoesThrough('edit-text')).toBe(true);
     expect(pressGoesThrough('signature')).toBe(true);
-    expect(pressGoesThrough('ink')).toBe(false);
+    expect(pressGoesThrough('ink')).toBe(true);
+    expect(pressGoesThrough('highlight')).toBe(true);
     expect(pressGoesThrough('eraser')).toBe(false);
     expect(pressGoesThrough('select')).toBe(false);
   });

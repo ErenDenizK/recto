@@ -67,6 +67,11 @@ import { pageParagraphs, useTextEditStore } from './text-edit-store';
 
 /** Extra hit area around a line box, CSS pixels. */
 const HIT_PADDING = 2;
+/**
+ * Room around a paragraph's ink in its keyboard target, CSS pixels: the inset focus ring's
+ * 4 px (styles/focus.css, PageTarget) and a 2 px gap, so the ring sits outside the ink.
+ */
+const PARAGRAPH_PADDING = 6;
 /** The smallest side of a paragraph's keyboard target, CSS pixels (DESIGN §5). */
 export const MIN_TARGET_PX = 24;
 /** Characters of a paragraph's text its target's name quotes. */
@@ -379,8 +384,8 @@ function ParagraphTargetButton({
   readonly onKeyDown: (event: ReactKeyboardEvent<HTMLButtonElement>) => void;
 }) {
   const box = rectToCss(frame, block.box);
-  const width = Math.max(box.width + 2 * HIT_PADDING, MIN_TARGET_PX);
-  const height = Math.max(box.height + 2 * HIT_PADDING, MIN_TARGET_PX);
+  const width = Math.max(box.width + 2 * PARAGRAPH_PADDING, MIN_TARGET_PX);
+  const height = Math.max(box.height + 2 * PARAGRAPH_PADDING, MIN_TARGET_PX);
   return (
     <OnPage
       className={styles.paragraph}

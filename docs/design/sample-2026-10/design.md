@@ -459,7 +459,7 @@ The Turkish copy contains ğ, ş, ç, ö, ü, ı, â and the capitals İ and I. 
 | Cut | EN | TR |
 |---|---|---|
 | Full | Choose Edit text (E), then any paragraph, to change its words. Put your name in the byline, or add a sentence to the end of the first column and watch it reflow. | Metni düzenle’yi (E), ardından bir paragrafı seçip sözcüklerini değiştirin. Künyeye kendi adınızı yazın ya da ilk sütunun sonuna bir cümle ekleyip metnin yeniden dizilişini izleyin. |
-| Phone | Tap Edit, choose Edit text, then tap any paragraph. Put your name in the byline, or add a sentence and watch the column reflow. | Düzenle’ye dokunun, Metni düzenle’yi seçin ve bir paragrafa dokunun. Künyeye kendi adınızı yazın ya da bir cümle ekleyip sütunun yeniden dizilişini izleyin. |
+| Phone | Tap Edit, Edit text, then a paragraph. Put your name in the byline, or end column 1 with a sentence and watch it reflow. (TXT-29: it names the place, as the full slip does.) | Düzenle’de Metni düzenle’yi seçip bir paragrafa dokunun. Künyeye adınızı yazın ya da 1. sütunun sonuna cümle ekleyip akışı izleyin. |
 
 **Edit targets, in the order a person will meet them:**
 

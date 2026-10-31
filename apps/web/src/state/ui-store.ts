@@ -112,9 +112,15 @@ export const V2_LAYOUT_STORAGE_KEY = 'pdf-editor:ui:v2';
 /** The seven-tab rail's layout, read once when neither `ui:v3` nor `ui:v2` is there. */
 export const LEGACY_LAYOUT_STORAGE_KEY = 'pdf-editor:ui:v1';
 
+/**
+ * The next ladder step in `direction`. A fit zoom is off the ladder (0.674 reads "67 %"), so a
+ * step counts only when it changes the percentage the person reads; otherwise the first press
+ * lands on a step that shows the same number (05-canvas §4 "zoom step").
+ */
 export function nextZoomLevel(current: number, direction: 1 | -1): number {
-  if (direction > 0) return ZOOM_LEVELS.find((z) => z > current + 1e-3) ?? MAX_ZOOM;
-  return [...ZOOM_LEVELS].reverse().find((z) => z < current - 1e-3) ?? MIN_ZOOM;
+  const pct = Math.round(current * 100);
+  if (direction > 0) return ZOOM_LEVELS.find((z) => Math.round(z * 100) > pct) ?? MAX_ZOOM;
+  return [...ZOOM_LEVELS].reverse().find((z) => Math.round(z * 100) < pct) ?? MIN_ZOOM;
 }
 
 export interface PersistedLayout {

@@ -31,6 +31,7 @@ import {
   useRecentsStore,
 } from '../../files/recents';
 import { getLocale, m } from '../../i18n';
+import { formatSize } from '../../i18n/format';
 import { HOME_CONTINUE_FLAG, homeFlagEnabled } from '../../home/home-flags';
 import { openRowMorph } from '../../home/library-morph';
 import { officeEnabled } from '../../office/flag';
@@ -40,8 +41,8 @@ import { loadSampleFile } from '../../sample/sample-file';
 import { flushSession, isDocumentChanged, reopenFromSnapshot } from '../../session/session';
 import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
 import { useViewStore } from '../../state/view-store';
-import { clearSearch } from '../../viewer/search';
 import { toast } from '../../ui/Toast/toast';
+import { clearSearch } from '../../viewer/search';
 import { announce } from '../announcer';
 import { showReader, useCompactStore } from './compact-store';
 
@@ -413,7 +414,12 @@ export async function shareOrDownload(how: 'share' | 'download' = 'share'): Prom
     }
   }
   downloadFile(file);
-  // The same confirmation the desktop's Download a copy gives (`files/save.ts`), in the phone's
-  // toast stack: a download link says nothing on its own.
-  toast.info(m.save_downloaded({ name: file.name }), { testId: 'save-toast' });
+  // The download is silent in the browser: say it as the full edition does (`save-copy-run.ts`
+  // `showCopyDone`; same string and key, so a good copy clears an earlier failure, DSN-77).
+  toast.success(m.save_copy_downloaded({ name: file.name, size: formatSize(file.size) }), {
+    documentId: doc.id,
+    keepOnClose: true,
+    testId: 'save-copy-toast',
+    key: `save-copy:${doc.id}`,
+  });
 }
