@@ -174,8 +174,9 @@ export function applyAppearance(
       readonly accent?: FenerPreset | null;
     },
 ): void {
-  applyTheme(root, settings.theme);
+  // Fener first: the theme-color metas take its canvases when the root carries it.
   applyFener(root, settings.accent ?? null);
+  applyTheme(root, settings.theme);
   root.setAttribute('data-glass', effectiveGlass(settings.glass));
   if (settings.motion === 'reduced') root.setAttribute('data-motion', 'reduced');
   else root.removeAttribute('data-motion');

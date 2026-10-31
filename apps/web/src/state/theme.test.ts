@@ -7,9 +7,12 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import indexHtml from '../../index.html?raw';
 import tokensCss from '../styles/tokens.css?raw';
+import { LABS_KEY } from '../labs/stored';
 import { APPEARANCE_STORAGE_KEY } from './appearance-store';
+import { applyFener, FENER_STORAGE_KEY } from './fener';
 import {
   applyTheme,
+  FENER_THEME_COLOURS,
   resolveTheme,
   subscribeSystemTheme,
   THEME_COLOURS,
@@ -53,8 +56,13 @@ function headWithMetas(): HTMLMetaElement[] {
 afterEach(() => {
   vi.unstubAllGlobals();
   for (const meta of document.head.querySelectorAll('meta[name="theme-color"]')) meta.remove();
-  document.documentElement.removeAttribute('data-theme');
+  for (const name of ['data-theme', 'data-fener', 'data-accent']) {
+    document.documentElement.removeAttribute(name);
+  }
   localStorage.removeItem(APPEARANCE_STORAGE_KEY);
+  localStorage.removeItem(LABS_KEY);
+  localStorage.removeItem(FENER_STORAGE_KEY);
+  history.replaceState(null, '', location.pathname);
 });
 
 describe('the theme setting (ADR-0022 §2.4)', () => {
@@ -81,6 +89,26 @@ describe('the theme setting (ADR-0022 §2.4)', () => {
     applyTheme(root, 'system');
     expect(root.getAttribute('data-theme')).toBe('dark');
     expect([dark.content, light.content]).toEqual(['#08090c', '#e6e8eb']);
+  });
+
+  it('colours the browser’s chrome with Fener’s canvases while the root carries data-fener', () => {
+    emulateScheme('dark');
+    const [dark, light] = headWithMetas() as [HTMLMetaElement, HTMLMetaElement];
+    const root = document.documentElement;
+    applyFener(root, 'violet');
+    applyTheme(root, 'light');
+    expect([dark.content, light.content]).toEqual([
+      FENER_THEME_COLOURS.light,
+      FENER_THEME_COLOURS.light,
+    ]);
+    applyTheme(root, 'system');
+    expect([dark.content, light.content]).toEqual([
+      FENER_THEME_COLOURS.dark,
+      FENER_THEME_COLOURS.light,
+    ]);
+    applyFener(root, null);
+    applyTheme(root, 'system');
+    expect([dark.content, light.content]).toEqual([THEME_COLOURS.dark, THEME_COLOURS.light]);
   });
 
   it('tells its subscribers when the device changes scheme', () => {
@@ -171,6 +199,86 @@ describe('the boot script (public/theme.js), before the first paint', () => {
           theme,
           colours: metas.map((meta) => meta.content),
         });
+        for (const meta of metas) meta.remove();
+      }
+    }
+  });
+
+  it('writes Fener’s attributes and canvases from the address or Labs, and the stored preset', () => {
+    const cases: readonly {
+      label: string;
+      search: string;
+      labs: unknown;
+      kept: string | null;
+      expected: 'indigo' | 'violet' | 'blue' | null;
+    }[] = [
+      { label: 'off', search: '', labs: null, kept: 'violet', expected: null },
+      { label: 'address on', search: '?fener=1', labs: null, kept: null, expected: 'indigo' },
+      {
+        label: 'address off',
+        search: '?fener=0',
+        labs: { flags: { fener: '1' } },
+        kept: 'blue',
+        expected: null,
+      },
+      {
+        label: 'Labs on, violet',
+        search: '',
+        labs: { flags: { fener: '1' } },
+        kept: '{"accent":"violet"}',
+        expected: 'violet',
+      },
+      {
+        label: 'Labs on, blue',
+        search: '?x=1',
+        labs: { flags: { fener: '1' } },
+        kept: '{"accent":"blue"}',
+        expected: 'blue',
+      },
+      {
+        label: 'Labs on, garbled',
+        search: '',
+        labs: { flags: { fener: '1' } },
+        kept: '{nope',
+        expected: 'indigo',
+      },
+      {
+        label: 'Labs on, unknown',
+        search: '',
+        labs: { flags: { fener: '1' } },
+        kept: '{"accent":"lime"}',
+        expected: 'indigo',
+      },
+    ];
+    for (const scheme of ['dark', 'light'] as const) {
+      for (const c of cases) {
+        emulateScheme(scheme);
+        const metas = headWithMetas();
+        history.replaceState(null, '', `${location.pathname}${c.search}`);
+        if (c.labs === null) localStorage.removeItem(LABS_KEY);
+        else localStorage.setItem(LABS_KEY, JSON.stringify(c.labs));
+        if (c.kept === null) localStorage.removeItem(FENER_STORAGE_KEY);
+        else localStorage.setItem(FENER_STORAGE_KEY, c.kept);
+        const root = document.documentElement;
+        const booted = boot();
+        const seen = {
+          fener: root.hasAttribute('data-fener'),
+          accent: root.getAttribute('data-accent'),
+          theme: booted.theme,
+          colours: booted.colours,
+        };
+        // What the app writes: Fener first, then the theme.
+        for (const name of ['data-theme', 'data-fener', 'data-accent']) root.removeAttribute(name);
+        for (const meta of metas) meta.content = '';
+        applyFener(root, c.expected);
+        applyTheme(root, 'system');
+        expect(seen, `${c.label} on a ${scheme} device`).toEqual({
+          fener: c.expected !== null,
+          accent: c.expected,
+          theme: root.getAttribute('data-theme'),
+          colours: metas.map((meta) => meta.content),
+        });
+        for (const name of ['data-fener', 'data-accent']) root.removeAttribute(name);
         for (const meta of metas) meta.remove();
       }
     }

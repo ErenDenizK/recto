@@ -5,18 +5,42 @@
  * root and the theme-color metas, so a Light choice on a dark device (or the reverse) never
  * flashes the other theme. It restates `applyTheme` of src/state/theme.ts in plain script (the
  * CSP allows no inline script, and nothing is bundled before it); src/state/theme.test.ts runs
- * this file against that function. The app takes over once it mounts, and follows the device
+ * this file against that function. It also writes Fener's `data-fener` and `data-accent` (DSN-88,
+ * `state/fener.ts`: the address `?fener=1|0`, else the Labs toggle in `pdf-editor:labs:v1`, and
+ * the preset in `pdf-editor:fener:v1`), so a Fener user never sees today's colours first, and
+ * the metas take Fener's canvases. The app takes over once it mounts, and follows the device
  * while the setting is System.
  */
-/* global document, localStorage, matchMedia */
+/* global document, localStorage, location, matchMedia, URLSearchParams */
 (() => {
-  const colours = { dark: '#08090c', light: '#e6e8eb' };
+  let colours = { dark: '#08090c', light: '#e6e8eb' };
   let setting = 'system';
   try {
     const stored = JSON.parse(localStorage.getItem('pdf-editor:appearance:v1') ?? 'null');
     if (stored && (stored.theme === 'light' || stored.theme === 'dark')) setting = stored.theme;
   } catch {
     // Storage blocked or unreadable: System.
+  }
+  let accent = null;
+  try {
+    const asked = new URLSearchParams(location.search).get('fener');
+    const labs = JSON.parse(localStorage.getItem('pdf-editor:labs:v1') ?? 'null');
+    if (asked === null ? labs?.flags?.fener === '1' : asked === '1') accent = 'indigo';
+  } catch {
+    // Storage blocked or unreadable: today's colours.
+  }
+  if (accent !== null) {
+    try {
+      const kept = JSON.parse(localStorage.getItem('pdf-editor:fener:v1') ?? 'null')?.accent;
+      if (kept === 'violet' || kept === 'blue') accent = kept;
+    } catch {
+      // An unreadable preset is the default.
+    }
+  }
+  if (accent !== null) {
+    document.documentElement.setAttribute('data-fener', '');
+    document.documentElement.setAttribute('data-accent', accent);
+    colours = { dark: '#07090d', light: '#e6e9f2' };
   }
   const light =
     typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: light)').matches;
