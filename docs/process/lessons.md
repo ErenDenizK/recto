@@ -1,0 +1,20 @@
+# Lessons
+
+Every send-back, red CI caused by our change, owner rejection or lead correction becomes a row here the same day, so a failure is turned into a rule once and not paid for twice. A row names what failed, who caught it, what it cost, the root cause, the prevention and where the prevention is encoded (a brief template line, a spec template, a checklist, a test, a hook). Status is `open` until the prevention is encoded and in force, then `applied`.
+
+The lead reads the open lessons before writing a brief and checks recurrence weekly: a lesson whose symptom returns is re-opened and its prevention moved to a hook or a test. Run data is in `agent-metrics.md`; the standing brief rules are `brief-template.md`.
+
+| ID | Date | What failed | Caught by | Cost | Root cause | Prevention | Where encoded | Status |
+|---|---|---|---|---|---|---|---|---|
+| L1 | 2026-10-31 | Builders polled the heavy.sh lock in loops (one lane 508 tool calls) | lead | ~0.5 M tokens | No rule for a busy lock | If the lock is busy, skip build/lint/typecheck and say so (CI runs them); at most 2 heavy users at once | brief-template.md, model-routing.md | applied |
+| L2 | 2026-10-31 | Agents with leftover background work kept re-reporting the same result | lead | wasted tokens | No end-of-task cleanup rule | Leave no background processes; the lead stops finished agents | brief-template.md | applied |
+| L3 | 2026-10-31 | A workflow edit deleted a whole block (invalid deploy.yml) | reviewer, GitHub | 1 blocker, extra round | YAML edited without diffing against base; no actionlint locally | For workflow/YAML edits, diff against base and list every removed key in the report | brief-template.md; reviewer checklist | open |
+| L4 | 2026-10-31 | Parser shipped 10 acting misreads to review | adversarial reviewer (probe corpus) | 10 findings, 349K-token fix lane | Builder tested only its own corpus | Every parser/NLP lane gets an adversarial probe set kept as tests; reviewer's s1–s9 probes move into the corpus | spec template; tests | open |
+| L5 | 2026-10-31 | Chained page operations used stale positions | reviewer | 3 blockers, 168K-token fix lane | Spec did not require id-based mapping | Chains resolve pages to ids before commit | Niyet spec; reviewer checklist | open |
+| L6 | 2026-10-31 | New storage (covers DB) left data after Clear in one path | reviewer (re-check) | 1 privacy blocker | No forget-path test required | Every new storage ships with a Clear/forget test in every edition | brief-template.md; privacy checklist | open |
+| L7 | 2026-10-31 | A test accepted either of two UI controls; another passed vacuously on timing | lead, reviewer | rejected fix, extra round | No determinism rule | Tests are deterministic: no either/or assertions; hold async work on a promise the test releases | testing guide | open |
+| L8 | 2026-10-31 | Lead wrote its own recommendations over the owner's existing board answers | clerk | a cycle of wrong state | Lead did not read board state first | Read the board's current answers before stating or acknowledging any decision | charter (CEO checklist) | open |
+| L9 | 2026-10-31 | HQ fields written with wrong types broke the console silently | clerk | a cycle of broken console | No schema check | Console shows a schema warning; writers validate | HQ | open |
+| L10 | 2026-10-31 | HQ v8 was overdesigned for an iframe on a phone | owner | one publish, 58-item punch list (~0.55 M tokens) | Designed without host constraints; no critic before publish | Design for the host first (iframe, phone, permission prompt); ruthless critic before publish | design checklist | open |
+| L11 | 2026-10-31 | Colour book used the old logo | lead | rework | Latest brand assets not checked | Check brand files on develop before any visual work | design checklist | open |
+| L12 | 2026-10-31 | An agent stopped twice before committing; the lead finished its work | lead | lead time | Long background loops inside the agent | No long background loops; run repeats in the foreground in batches | brief-template.md | open |
