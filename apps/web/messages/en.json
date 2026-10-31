@@ -1793,6 +1793,7 @@
   "cmd_forms_highlight": "Highlight form fields",
   "cmd_forms_clear": "Clear all form fields",
   "forms_fill": "Fill {name}",
+  "forms_fill_my_info_label": "Fill from My info",
   "forms_clear_all_label": "Clear all fields",
   "forms_cleared": [
     {
