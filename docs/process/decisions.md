@@ -69,7 +69,7 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PRD-20](decisions/product.md) | Office package r2: fonts trimmed (GPL faces out by default), Recto's substitution table, about 70 MB | In force; BQ-1 to BQ-3 open to the board, defaults applied | 2026-10-21 |
 | [PRD-21](decisions/product.md) | Settings removes the Office package; About lists its licences | In force | 2026-10-21 |
 | [PRD-22](decisions/product.md) | What must be true before `?office=1` goes on desktop and tablet; then the owner decides | In force; the switch is the owner's | 2026-10-21 |
-| [PRD-23](decisions/product.md) | The palette reads a query with a rule grammar (typed intents carrying resolved pages), a score floor and catalog synonyms; no model | In force; the owner reads the corpus through | 2026-10-21 |
+| [PRD-23](decisions/product.md) | The palette reads a query with a rule grammar (typed intents carrying resolved pages), a score floor and catalog synonyms; no model | In force, amended by PRD-39 (phase 3 in; çıkar shows two readings) | 2026-10-21 |
 | [PRD-26](decisions/product.md) | A failed edition chunk is retried in the page (a facade no chunk imports), then the page reloads once, then a static screen offers Reload | In force | 2026-10-22 |
 | [PRD-24](decisions/product.md) | Images in as a new PDF: one unsaved document, a page per image fitted to A4/Letter by region, EXIF honoured, 4000 px cap; ships after board question 2 | In force; owner's yes pending | 2026-10-22 |
 | [PRD-25](decisions/product.md) | Print… (⌘P, title menu, palette) prints Save a copy's bytes: a blob frame where the browser has a PDF viewer and is not WebKit, else rendered pages | Built; held for board question 2 | 2026-10-22 |
@@ -84,6 +84,9 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PRD-34](decisions/product.md) | Camera scan to PDF: live outline, steady-outline auto capture, review (corners, rotate, filter, retake, reorder), Done makes one new unsaved "Scan <date>" document | Prototype behind `?scan=1`; owner taste open | 2026-10-25 |
 | [PRD-37](decisions/product.md) | My info keeps one local profile (14 fields, ID number off by default and checksummed) in IndexedDB `pdf-editor:my-info:v1`; never in snapshots, export or network; Forget is final; Labs `my-info` to come | In force behind Labs (UI pending the board) | 2026-10-27 |
 | [PRD-38](decisions/product.md) | My info optional lock: PBKDF2-SHA-256 600k + AES-GCM-256, fresh IV per write, key in memory only, wrong passphrase wipes nothing, no recovery | In force behind Labs (UI pending the board) | 2026-10-27 |
+| [PRD-39](decisions/product.md) | Intent bar: the palette reads sentences (TR/EN, chained), previews each step, runs only what was shown; no model | In force | 2026-10-31 |
+| [PRD-40](decisions/product.md) | Save a copy takes a request from the palette (images, text, size target); the bar never writes a file itself | In force | 2026-10-31 |
+| [PRD-41](decisions/product.md) | My info UI: chip plus one-line suggestion, ghost-value preview, one profile with a save chip; a portable module | In force behind Labs | 2026-10-31 |
 | [PRD-14](decisions/product.md) | W0-q findings are assigned to waves: signed fixture opens locked and saves byte-identical (W1-a/W1-b), truncated.pdf… | In force; W1-b and W1-g merged | 2026-10-09 |
 | [PF-18](decisions/product.md) | A closed document's source is parked; the engine worker ends when none is open | In force | 2026-10-22 |
 | [PF-19](decisions/product.md) | Read mode's whole-page bitmap is capped at 4 MP on every edition; tiles keep the visible page 1:1 | In force | 2026-10-22 |
@@ -180,6 +183,8 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-83](decisions/design.md) | Light theme: lime is a fill with ink on it and a lime-800 edge; accent text is lime-900; amends ADR-0023 §2.3 | In force | 2026-10-26 |
 | [DSN-78](decisions/design.md) | Scan lives as a Library launcher button and ⌘K "Scan document…" (one home, not Tools); one overlay sheet holds camera, review and corner editor | Prototype behind `?scan=1`; owner taste open | 2026-10-25 |
 | [DSN-82](decisions/design.md) | A Labs panel in Settings (revealed by five taps on the version) toggles every feature flag; address, then Labs toggle, then the flag's own value, then default | In force | 2026-10-26 |
+| [DSN-87](decisions/design.md) | Masa: Home becomes a desk (Continue, intents, Recent as covers); lands on Continue at launch | In force behind Labs `desk` | 2026-10-31 |
+| [DSN-88](decisions/design.md) | Fener colour system: one theme colour, tinted-glass controls, gradient only in the glow; amends DSN-3, DSN-83 | In force behind Labs `fener` | 2026-10-31 |
 
 ## Motion
 
