@@ -5,7 +5,7 @@ The standing rules every agent brief carries (PRC-35). The lead reads the open r
 ## Header
 
 - **Objective:** one sentence and the done condition.
-- **Role and effort:** judge, builder or reader, and the effort the lead chose (`model-routing.md`).
+- **Role and effort:** judge, builder or reader, and the effort the lead chose (`model-routing.md`, routing matrix: the kind of work, and the experiment arm if the lane runs in one).
 - **Scope:** files the lane owns; files it must not touch. Stray edits are sent back.
 - **Decisions to cite:** the ids (`decisions.md`) and spec sections the behaviour comes from. On an unsettled decision the agent stops and reports the question.
 - **Verify commands:** only what covers the change (`CLAUDE.md`, Verifying cheaply).

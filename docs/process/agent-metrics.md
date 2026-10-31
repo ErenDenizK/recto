@@ -15,10 +15,19 @@ would also have caught it); **false green** counts report claims that a check pa
 failed (`verify-before-done`, target 0); **recur** notes, for root-cause lanes, whether the same
 symptom returned within two weeks (`root-cause`). Each skill is judged after six lanes that load it,
 against the last six lanes of the same kind before it; a skill that does not move its numbers goes.
-Header for new tables:
 
-| Round | Lane | Tier | Effort | Tokens | Minutes | First CI | Fix rounds | Stray | Review | Diff | Review→CI | False green | Recur |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+From 2026-11-01 (the routing experiments, `model-routing.md`), new rows add five more columns. **Kind** is
+the lane's row in the routing matrix (spec, taste, adversarial review, routine review, design critique,
+settled build, logic-heavy build, subtle fix, root cause, flaky root cause, merge, clerical, HQ writing,
+research, log read); **arm** is the experiment and arm the lane ran in (`A-judge-medium`, `B-builder-high`
+…; — outside an experiment); **tools** is the tool-call count the harness reports (loops and polling show
+here first); **escapes** counts blocking problems in the lane's work that its own review missed and that
+another reviewer arm, CI, the re-check or the owner found within seven days; **cost units** are tokens × 2
+for the judge and × 1 for the builder, summed over the chain to merge (the lane, its review, its fix
+rounds) on the lane's own row. Header for new tables:
+
+| Round | Lane | Kind | Arm | Tier | Effort | Tokens | Tools | Minutes | First CI | Fix rounds | Stray | Review | Diff | Review→CI | False green | Escapes | Recur | Cost units |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 
 ## Summary by kind of work (R21–R22, all judge)
 
