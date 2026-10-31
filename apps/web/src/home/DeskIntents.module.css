@@ -108,6 +108,12 @@
   cursor: progress;
 }
 
+/* The arrival focus draws no ring until a key is pressed (Desk.tsx), as the Launcher does (J1). */
+.tile[data-quiet-focus]:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 @media (pointer: coarse) {
   .tile {
     min-height: 52px;
