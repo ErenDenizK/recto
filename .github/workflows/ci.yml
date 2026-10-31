@@ -168,7 +168,10 @@ jobs:
     name: E2E (${{ matrix.project }} ${{ matrix.shard }}/${{ matrix.shards || 3 }})
     needs: verify
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # 25, not 20: shard 1 of Chromium reached 19 min in its tests on 27 Oct (the glass pixel
+    # spec alone takes 6.7 min) and the timeout then cancelled the timings step after a pass.
+    # Rebalancing the shards would rename the jobs; this keeps the names.
+    timeout-minutes: 25
     container:
       image: mcr.microsoft.com/playwright:v1.63.0-noble
       options: --user 1001 --ipc=host --init
