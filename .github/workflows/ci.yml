@@ -344,7 +344,6 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
-          cache: pnpm
 
       - name: List changed unit tests
         id: changed
@@ -354,35 +353,27 @@ jobs:
         if: steps.changed.outputs.unit != ''
         run: pnpm install --frozen-lockfile
 
-      # Five runs in one process each, no retries, one worker; stops at the first failure.
+      # tools/ci/burn-in-unit.ts: five runs per package with that package's own Vitest config,
+      # no retries, one worker, absolute path filters; stops at the first failing repeat.
       - name: Run changed unit tests 5 times
         if: steps.changed.outputs.unit != ''
-        working-directory: apps/web
         env:
           FILES: ${{ steps.changed.outputs.unit }}
-        run: |
-          for i in 1 2 3 4 5; do
-            echo "::group::Burn-in repeat $i of 5"
-            # FILES is word-split on purpose; changed-tests.ts only emits safe path characters.
-            if ! pnpm exec vitest run --maxWorkers=1 --retry=0 $FILES; then
-              echo "::endgroup::"
-              echo "::error::Burn-in failed on repeat $i of 5: $FILES"
-              exit 1
-            fi
-            echo "::endgroup::"
-          done
+        # FILES is word-split on purpose; changed-tests.ts only emits safe path characters.
+        run: node --experimental-strip-types --no-warnings=ExperimentalWarning tools/ci/burn-in-unit.ts $FILES
 
   # The e2e half: Chromium only, three repeats of at most five changed specs, on the build that
   # `verify` uploads (so it runs next to the e2e shards and adds no build of its own). The cap
   # keeps a PR that touches many specs from tripling a whole e2e shard; changed-tests.ts logs
-  # which specs the cap left out. A spec the chromium project does not run (phone-only ones) is
+  # which specs the cap left out. @pixels specs are left out (chromium-nogpu runs them; slow).
+  # No pnpm cache in these jobs: setup-node's cache post step fails when Install is skipped. A spec the chromium project does not run (phone-only ones) is
   # not an error (--pass-with-no-tests).
   burn-in-e2e:
     name: Burn-in (changed e2e specs)
     if: github.event_name == 'pull_request'
     needs: verify
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 35
     container:
       image: mcr.microsoft.com/playwright:v1.63.0-noble
       options: --user 1001 --ipc=host --init
@@ -396,7 +387,6 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
-          cache: pnpm
 
       - name: List changed e2e specs
         id: changed
@@ -420,7 +410,7 @@ jobs:
           SPECS: ${{ steps.changed.outputs.e2e }}
         run: >-
           pnpm --filter @pdf-editor/web test:e2e
-          --project=chromium --retries=0 --repeat-each=3 --pass-with-no-tests
+          --project=chromium --retries=0 --repeat-each=3 --pass-with-no-tests --grep-invert @pixels
           $SPECS
 
       - name: Upload Playwright report
