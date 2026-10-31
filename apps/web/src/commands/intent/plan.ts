@@ -186,6 +186,11 @@ export function relocateStep(
   now: VirtualDocument | undefined,
 ): Step | null {
   if (ids.length === 0) return step;
+  // "All" is every page once the document steps have run.
+  if ((step.action === 'extract' || step.action === 'exportImages') && step.pages.named === 'all') {
+    const every = (now?.pages ?? []).map((_, i) => i + 1);
+    return { ...step, pages: { ...step.pages, pages: every } };
+  }
   const at = ids.map((id) => (now?.pages.findIndex((page) => page.id === id) ?? -1) + 1);
   if (at.includes(0)) return null;
   if (step.action === 'signPlace') return { ...step, page: at[0] as number };
@@ -244,7 +249,11 @@ function applyStep(
   parts: (title: string, count: number) => string[],
 ): Workspace {
   const doc = getDocument(ws, documentId);
-  const pageIds = resolved.pages.get(step) ?? [];
+  // "All" means every page at this point of the chain, copies made by earlier steps included.
+  const pageIds =
+    stepPages(step)?.named === 'all'
+      ? doc.pages.map((page) => page.id)
+      : (resolved.pages.get(step) ?? []);
   switch (step.action) {
     case 'rotate':
       return rotatePages(ws, pageIds, step.turns * 90);

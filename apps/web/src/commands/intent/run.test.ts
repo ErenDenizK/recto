@@ -233,6 +233,13 @@ describe('a finishing step after a chain', () => {
     });
   });
 
+  it('extracts "all" as every page after the chain, copies included', async () => {
+    const text = 'duplicate 3 and extract all';
+    const { reading, key } = read(text);
+    expect(await runReading(reading, key, text)).toBe('ran');
+    expect(extracted).toHaveLength(401);
+  });
+
   it('refuses when the page the finishing step named is gone', async () => {
     const text = 'delete 1 and extract 3';
     const { reading, key } = read(text);
@@ -273,6 +280,24 @@ describe('a chain that moves pages before the step that reads them', () => {
     expect(await runReading(reading, key, text)).toBe('ran');
     expect(doc().pages.length).toBe(401);
     expect(doc().furniture?.[0]).not.toHaveProperty('pages');
+  });
+
+  it('rotates "all" as every page at that point, copies included', async () => {
+    const text = 'duplicate 3 and rotate all';
+    const before = doc().pages.map((p) => p.rotation);
+    const { reading, key } = read(text);
+    expect(await runReading(reading, key, text)).toBe('ran');
+    expect(doc().pages).toHaveLength(401);
+    expect(doc().pages.every((p, i) => p.rotation !== 0 || (before[i] ?? 0) !== 0)).toBe(true);
+    expect(doc().pages.every((p) => p.rotation !== 0)).toBe(true);
+  });
+
+  it('rotates "all" without the pages an earlier step deleted', async () => {
+    const text = 'delete 1 and rotate all';
+    const { reading, key } = read(text);
+    expect(await runReading(reading, key, text)).toBe('ran');
+    expect(doc().pages).toHaveLength(399);
+    expect(doc().pages.every((p) => p.rotation !== 0)).toBe(true);
   });
 
   it('reverses every page when an earlier step added one', async () => {
