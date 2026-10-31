@@ -3,8 +3,9 @@
  * on this device only and always clearable.
  *
  * Stored in IndexedDB, database `pdf-editor:recents:v1`, one record per entry
- * `{ id, name, size, pages?, openedAt, handleStored?, kept? }`, at most `RECENTS_LIMIT` (the
- * oldest go first). No file bytes and no thumbnails are stored here. A closed document's
+ * `{ id, name, size, pages?, openedAt, handleStored?, kept?, place? }`, at most `RECENTS_LIMIT` (the
+ * oldest go first). No file bytes and no thumbnails are stored here (covers have a database
+ * of their own, `home/covers.ts`, DSN-87). A closed document's
  * snapshot (ADR-0032 §2.6) lives in OPFS (`session/`), and its entry names it in `kept`: a
  * click then reopens the snapshot with no prompt or picker on every browser. An entry that
  * leaves (Remove, Clear recents, the cap) takes its snapshot with it (`onKeptRemoved`).
@@ -67,6 +68,22 @@ export interface RecentEntry {
    * click reopens it with no prompt or picker, on every browser. Filled by `session/`.
    */
   readonly kept?: RecentKept;
+  /** Where reading stopped (DSN-87, `masa.md` §3.2); a field of this record, not a new key. */
+  readonly place?: RecentPlace;
+}
+
+/**
+ * Where reading stopped in a file (DSN-87): the page (0-based) of `total`, and, when the page
+ * view was read, its zoom, fit mode and scroll offset (`session/resume.ts`). Lets the desk show
+ * progress without reading OPFS and a plain reopen land on the same place.
+ */
+export interface RecentPlace {
+  readonly page: number;
+  readonly total: number;
+  readonly at: number;
+  readonly zoom?: number;
+  readonly fit?: 'width' | 'page' | null;
+  readonly offset?: number;
 }
 
 /** A kept snapshot of a closed document (session/writer.ts writes it). */
@@ -153,7 +170,7 @@ const isCount = (value: unknown): value is number =>
  */
 export function parseRecentEntry(value: unknown): RecentEntry | null {
   if (!isRecord(value)) return null;
-  const { id, name, size, pages, openedAt, handle, handleStored, kept } = value;
+  const { id, name, size, pages, openedAt, handle, handleStored, kept, place } = value;
   if (typeof id !== 'string' || id.length === 0 || id.length > 128) return null;
   if (typeof name !== 'string' || name.length === 0 || name.length > MAX_NAME_LENGTH) return null;
   if (!isCount(size)) return null;
@@ -167,7 +184,28 @@ export function parseRecentEntry(value: unknown): RecentEntry | null {
     ...(isFileHandle(handle) ? { handle } : {}),
     ...(handleStored === true ? { handleStored } : {}),
     ...(parseKept(kept) ?? {}),
+    ...(parsePlace(place) ?? {}),
   };
+}
+
+/** A stored `place` field, or undefined when absent or malformed (the entry stays, DSN-87). */
+function parsePlace(value: unknown): { place: RecentPlace } | undefined {
+  if (!isRecord(value)) return undefined;
+  const { page, total, at, zoom, fit, offset } = value;
+  if (!isCount(page) || !isCount(total) || total === 0 || page >= total) return undefined;
+  if (typeof at !== 'number' || !Number.isFinite(at) || at < 0) return undefined;
+  // The view detail is all or nothing: a bad half is dropped and the page stays.
+  if (
+    typeof zoom === 'number' &&
+    Number.isFinite(zoom) &&
+    zoom > 0 &&
+    (fit === 'width' || fit === 'page' || fit === null) &&
+    typeof offset === 'number' &&
+    Number.isFinite(offset)
+  ) {
+    return { place: { page, total, at, zoom, fit, offset } };
+  }
+  return { place: { page, total, at } };
 }
 
 /** A stored `kept` field, or undefined when absent or malformed (the entry stays). */
@@ -444,6 +482,16 @@ export function onKeptRemoved(remover: typeof keptRemover): void {
   keptRemover = remover;
 }
 
+/**
+ * Told when a file was recorded as opened (DSN-87): registered by `home/cover-capture.ts`,
+ * which stores the file's cover, so this module does not depend on the engine.
+ */
+let recordedListener: ((entry: RecentEntry, lastModified?: number) => void) | undefined;
+
+export function onRecentRecorded(listener: typeof recordedListener): void {
+  recordedListener = listener;
+}
+
 function removeKeptOf(entries: readonly RecentEntry[], ids?: readonly string[]): void {
   const snapshots = entries
     .filter((entry) => entry.kept !== undefined && (ids === undefined || ids.includes(entry.id)))
@@ -564,6 +612,8 @@ export interface RecordRecentInput {
   readonly size: number;
   readonly pages?: number;
   readonly handle?: RecentFileHandle;
+  /** The file's last-modified time (ms), when known: a cover newer than it is still current (DSN-87). */
+  readonly lastModified?: number;
   /** The entry this open came from (a reopen), replaced even if the size changed. */
   readonly replaces?: string;
   readonly now?: number;
@@ -596,9 +646,17 @@ export async function recordRecent(input: RecordRecentInput): Promise<RecentEntr
     (e) => removed.includes(e.id) && e.kept !== undefined && sameRecentFile(e, entry),
   );
   const replaced = candidates.find((e) => e.kept?.changed === true) ?? candidates[0];
+  // The place a file was left at follows the file to its new row (DSN-87).
+  const placed = state.entries
+    .filter((e) => removed.includes(e.id) && e.place !== undefined && sameRecentFile(e, entry))
+    .sort((a, b) => (b.place?.at ?? 0) - (a.place?.at ?? 0))[0]?.place;
   const inherited =
-    replaced?.kept !== undefined && entries[0] === entry
-      ? { ...entry, kept: replaced.kept }
+    entries[0] === entry && (replaced?.kept !== undefined || placed !== undefined)
+      ? {
+          ...entry,
+          ...(replaced?.kept === undefined ? {} : { kept: replaced.kept }),
+          ...(placed === undefined ? {} : { place: placed }),
+        }
       : undefined;
   if (inherited !== undefined) entries[0] = inherited;
   removeKeptOf(
@@ -621,7 +679,32 @@ export async function recordRecent(input: RecordRecentInput): Promise<RecentEntr
     }
     for (const id of removed) await target.remove(id);
   });
+  recordedListener?.(written, input.lastModified);
   return written;
+}
+
+/**
+ * Keeps where reading stopped on the newest row of the file `file` (name and size; DSN-87).
+ * A row that is not there, or already holds this place, is left alone.
+ */
+export async function setRecentPlace(
+  file: Pick<RecentEntry, 'name' | 'size'>,
+  place: RecentPlace,
+): Promise<void> {
+  const row = sortRecents(useRecentsStore.getState().entries).find((e) => sameRecentFile(e, file));
+  if (row === undefined) return;
+  const known = row.place;
+  if (
+    known !== undefined &&
+    (Object.keys(place) as (keyof RecentPlace)[]).every((k) => k === 'at' || known[k] === place[k])
+  ) {
+    return;
+  }
+  const updated: RecentEntry = { ...row, place };
+  useRecentsStore.setState((s) => ({
+    entries: s.entries.map((entry) => (entry.id === row.id ? updated : entry)),
+  }));
+  await enqueue((target) => target.put(updated));
 }
 
 /** Removes one entry ("Remove from recents", Delete on a row) and its kept snapshot. */
@@ -683,6 +766,8 @@ export interface KeepRecentInput {
   readonly size: number;
   readonly pages?: number;
   readonly kept: RecentKept;
+  /** Where the document was left (DSN-87). */
+  readonly place?: RecentPlace;
 }
 
 /**
@@ -731,6 +816,7 @@ export async function keepRecent(input: KeepRecentInput): Promise<void> {
         : {}),
       openedAt: input.kept.keptAt,
       kept: input.kept,
+      ...(input.place === undefined ? {} : { place: input.place }),
     };
     const { entries, removed } = addRecentEntry(state.entries, entry);
     removeKeptOf(state.entries, removed);
@@ -748,7 +834,11 @@ export async function keepRecent(input: KeepRecentInput): Promise<void> {
   if (existing.kept !== undefined && existing.kept.snapshotId !== snapshotId) {
     keptRemover?.([existing.kept.snapshotId]);
   }
-  const updated: RecentEntry = { ...existing, kept: input.kept };
+  const updated: RecentEntry = {
+    ...existing,
+    kept: input.kept,
+    ...(input.place === undefined ? {} : { place: input.place }),
+  };
   useRecentsStore.setState((s) => ({
     entries: s.entries.map((entry) => (entry.id === existing.id ? updated : entry)),
   }));
