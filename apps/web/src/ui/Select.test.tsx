@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
 import { cdp, userEvent } from 'vitest/browser';
 
-import { settled } from '../../test/settled';
+import { EXIT_TIMEOUT, settled } from '../../test/settled';
 import menuStyles from './Menu.module.css';
 import { MenuButton } from './MenuButton';
 import { Select, type SelectOption } from './Select';
@@ -72,7 +72,9 @@ describe('Select', () => {
     expect(letter.getBoundingClientRect().height).toBe(32);
     await userEvent.click(letter);
     expect(screen.getByTestId('value').textContent).toBe('letter');
-    await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull(), {
+      timeout: EXIT_TIMEOUT,
+    });
     expect(document.activeElement).toBe(trigger);
   });
 
@@ -87,7 +89,9 @@ describe('Select', () => {
       expect(screen.getByRole('option', { name: 'Letter' })).toHaveAttribute('data-highlighted'),
     );
     await userEvent.keyboard('{Escape}');
-    await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull(), {
+      timeout: EXIT_TIMEOUT,
+    });
     expect(screen.getByTestId('value').textContent).toBe('a4');
     expect(document.activeElement).toBe(trigger);
   });

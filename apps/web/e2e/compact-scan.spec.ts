@@ -127,7 +127,12 @@ test('two captures become one document with two pages in the reader', async ({ p
   await sheet.getByTestId('scan-done').tap();
   await expect(page.getByTestId('compact-reader')).toBeVisible({ timeout: 60_000 });
   await expect(sheet).toBeHidden();
-  await expect(page.locator('[data-page-index="1"]').first()).toBeVisible({ timeout: 20_000 });
+  // The page count is the document's own: on a phone on its side page 1 lies below the first
+  // screen and the reader leaves it out of the DOM, so the number "1 / 2" is what tells.
+  await expect(page.getByTestId('compact-page-number')).toHaveText(/1\s*\/\s*2/, {
+    timeout: 20_000,
+  });
+  await expect(page.locator('[data-page-index="0"]').first()).toBeVisible();
   await expect(page.locator('[data-page-index="2"]')).toHaveCount(0);
 });
 

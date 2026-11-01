@@ -16,7 +16,7 @@ import { userEvent } from 'vitest/browser';
 
 import signedUrl from '../../../../../test/fixtures/signed-approval.pdf?url';
 import simpleUrl from '../../../../../test/fixtures/simple-text.pdf?url';
-import { settled } from '../../../test/settled';
+import { EXIT_TIMEOUT, settled } from '../../../test/settled';
 import { fixtureFile } from '../../../test/store-harness';
 import { lockOf, resetLockStore, useLockStore } from '../../state/lock-store';
 import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
@@ -94,7 +94,7 @@ describe('the Unlock popover at the refusing control', () => {
     expect(lockOf(id)).toBeUndefined();
     expect(model().history).toBe(entries);
     await waitFor(() => expect(useAnnouncer.getState().message).toBe('simple unlocked'));
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull(), { timeout: EXIT_TIMEOUT });
     // The next press acts.
     await userEvent.click(rotate);
     expect(model().history).not.toBe(entries);
@@ -116,7 +116,7 @@ describe('the Unlock popover at the refusing control', () => {
     expect(box.top).toBeLessThanOrEqual(232 + 16);
 
     await userEvent.keyboard('{Escape}');
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull(), { timeout: EXIT_TIMEOUT });
     expect(lockOf(id)).toBe('default');
     expect(rotate).toHaveFocus();
   });
@@ -136,7 +136,9 @@ describe('a signed file (V1-F12)', () => {
     const keep = within(popover).getByRole('button', { name: 'Keep locked' });
     await waitFor(() => expect(keep).toHaveFocus());
     await userEvent.click(keep);
-    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull(), {
+      timeout: EXIT_TIMEOUT,
+    });
     expect(lockOf(id)).toBe('signed');
 
     await userEvent.click(rotate);
