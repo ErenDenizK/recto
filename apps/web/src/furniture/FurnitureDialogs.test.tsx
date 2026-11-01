@@ -12,7 +12,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
-import { EXIT_TIMEOUT } from '../../test/settled';
+import { EXIT_TIMEOUT, settled } from '../../test/settled';
 import rotatedUrl from '../../../../test/fixtures/rotated-pages.pdf?url';
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import { App } from '../app';
@@ -59,9 +59,11 @@ describe('furniture dialogs', () => {
     const pastBefore = model().history.past.length;
 
     // The Document menu lists the furniture commands.
-    await userEvent.click(screen.getByTestId('document-menu'));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Page numbers…' }));
-    let dialog = await screen.findByTestId('furniture-dialog-page-numbers');
+    await userEvent.click(await settled(screen.getByTestId('document-menu')));
+    await userEvent.click(
+      await settled(await screen.findByRole('menuitem', { name: 'Page numbers…' })),
+    );
+    let dialog = await settled(await screen.findByTestId('furniture-dialog-page-numbers'));
     await waitFor(() => expect(drawnTexts()).toEqual(['1']));
     await chooseOption(within(dialog).getByTestId('page-number-format'), 'page-of');
     await waitFor(() => expect(drawnTexts()).toEqual(['Page 1 of 4']));
@@ -72,7 +74,7 @@ describe('furniture dialogs', () => {
     expect(model().history.past.length).toBe(pastBefore);
 
     await commandRegistry.execute('document.pageNumbers');
-    dialog = await screen.findByTestId('furniture-dialog-page-numbers');
+    dialog = await settled(await screen.findByTestId('furniture-dialog-page-numbers'));
     await chooseOption(within(dialog).getByTestId('page-number-format'), 'slash');
     await chooseOption(within(dialog).getByTestId('furniture-range'), 'skip-first');
     await userEvent.click(within(dialog).getByRole('radio', { name: 'Top right' }));
@@ -108,7 +110,7 @@ describe('furniture dialogs', () => {
       new MouseEvent('click', { bubbles: true, cancelable: true, clientX: x, clientY: y }),
     );
     await waitFor(() => expect(useFurnitureStore.getState().dialog?.kind).toBe('page-numbers'));
-    dialog = await screen.findByTestId('furniture-dialog-page-numbers');
+    dialog = await settled(await screen.findByTestId('furniture-dialog-page-numbers'));
     expect(within(dialog).getByTestId('page-number-format')).toHaveTextContent('1 / 4');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Remove' }));
     await waitFor(() => expect(useFurnitureStore.getState().dialog).toBeNull());
@@ -131,7 +133,7 @@ describe('furniture dialogs', () => {
     const [first, second] = model().workspace.documentOrder;
     useWorkspaceStore.getState().setActive(first as never);
     await commandRegistry.execute('document.bates');
-    const dialog = await screen.findByTestId('furniture-dialog-bates');
+    const dialog = await settled(await screen.findByTestId('furniture-dialog-bates'));
     await userEvent.type(within(dialog).getByTestId('bates-prefix'), 'ACME');
     await userEvent.click(within(dialog).getByRole('checkbox', { name: /simple-text/ }));
     expect(within(dialog).getByTestId('bates-sample')).toHaveTextContent(
@@ -157,7 +159,7 @@ describe('furniture dialogs', () => {
     await commandRegistry.execute('document.bates.remove');
     expect(model().workspace.documents[second as never]?.bates).toBeUndefined();
     await commandRegistry.execute('document.bates');
-    const again = await screen.findByTestId('furniture-dialog-bates');
+    const again = await settled(await screen.findByTestId('furniture-dialog-bates'));
     const prefix = within(again).getByTestId('bates-prefix');
     await userEvent.clear(prefix);
     await userEvent.type(prefix, 'ACME');

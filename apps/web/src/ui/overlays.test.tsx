@@ -6,7 +6,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
-import { settled } from '../../test/settled';
+import { EXIT_TIMEOUT, settled } from '../../test/settled';
 import { parseShortcut } from '../commands/shortcuts';
 import { installContainerTransform } from './container-transform';
 import { PopoverBody, PopoverHeader, PopoverPopup } from './Popover';
@@ -107,7 +107,9 @@ describe('Tooltip', () => {
     expect(close).toHaveFocus();
     await userEvent.keyboard('{Escape}');
     expect(onKey).toHaveBeenCalledWith('Escape');
-    await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull(), {
+      timeout: EXIT_TIMEOUT,
+    });
   });
 
   it('says why a disabled control is unavailable, and describes the trigger with it', async () => {
@@ -279,6 +281,6 @@ describe('Popover', () => {
     const close = screen.getByRole('button', { name: 'Close' });
     expect(close.parentElement?.getBoundingClientRect().height).toBe(44);
     await userEvent.click(close);
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull(), { timeout: EXIT_TIMEOUT });
   });
 });
