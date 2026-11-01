@@ -405,3 +405,159 @@ describe('ZIP timestamps', () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Text view blocks (PRD-35)
+// ---------------------------------------------------------------------------
+
+describe('text view blocks', () => {
+  test('the fixture: headings, a list, an image and the two-column page, with page anchors', async () => {
+    const result = await convertFixture({ textBlocks: true, format: 'text', images: false });
+    const pages = result.textView!;
+    expect(pages.map((p) => [p.page, p.pageAnchor, p.needsOcr])).toEqual([
+      [0, 'page-1', false],
+      [1, 'page-2', false],
+    ]);
+    const kinds = pages.map((p) => p.blocks.map((b) => b.kind));
+    expect(kinds[0]).toContain('heading');
+    expect(kinds[0]).toContain('list');
+    expect(kinds[0]).toContain('image');
+    expect(kinds.flat()).not.toContain('table');
+    for (const p of pages)
+      for (const b of p.blocks) {
+        expect(b.page).toBe(p.page);
+        expect(b.id.startsWith(`p${p.page + 1}-`)).toBe(true);
+        expect(b.bbox.width).toBeGreaterThan(0);
+      }
+    // Same order as the Markdown headings.
+    const headings = pages.flatMap((p) =>
+      p.blocks.flatMap((b) => (b.kind === 'heading' ? [b] : [])),
+    );
+    expect(headings.map((h) => [h.page, h.level, h.text])).toEqual(
+      result.report.headingList.map((h) => [h.page, h.level, h.text]),
+    );
+    // Two columns: the left column is read before the right one.
+    const texts = pages[1]!.blocks.flatMap((b) => ('text' in b ? [b.text] : []));
+    expect(texts[0]).toBe('Two columns');
+    expect(texts[1]).toMatch(/^The left column/);
+    expect(texts[2]).toMatch(/^The right column/);
+    const list = pages[0]!.blocks.find((b) => b.kind === 'list');
+    expect(list?.kind === 'list' && list.items.map((i) => i.text)).toContain(
+      'Known text in a known place',
+    );
+  });
+
+  test('a page range returns only those pages, and the Markdown does not change', async () => {
+    const only = await convertFixture({ textBlocks: true, pages: [1] });
+    expect(only.textView!.map((p) => p.page)).toEqual([1]);
+    const plain = await convertFixture({ pages: [1] });
+    expect(plain.textView).toBeUndefined();
+    expect(only.text).toBe(plain.text);
+  });
+
+  test('lists nest by indent and keep ordered and unordered lists apart', async () => {
+    const { textView } = await convertPages(
+      [
+        page([
+          run('Body text that is long enough to be the body size.', 72, 740),
+          run('• First item', 72, 700),
+          run('◦ Nested item', 90, 686),
+          run('• Back out', 72, 672),
+          run('1. One', 72, 630),
+          run('2. Two', 72, 616),
+        ]),
+      ],
+      { textBlocks: true },
+    );
+    const blocks = textView![0]!.blocks;
+    expect(blocks.map((b) => b.kind)).toEqual(['paragraph', 'list', 'list']);
+    const [bullets, numbers] = [blocks[1], blocks[2]];
+    expect(
+      bullets?.kind === 'list' && [bullets.ordered, bullets.items.map((i) => i.depth)],
+    ).toEqual([false, [0, 1, 0]]);
+    expect(numbers?.kind === 'list' && numbers.ordered).toBe(true);
+  });
+
+  test('a chunk of only H2-sized headings is level 2 with the document style, level 1 without', async () => {
+    const body = page([
+      run('Body text that is long enough to be the body size, and then some more.', 72, 740),
+      run('More body text that keeps the body size the most common one here.', 72, 720),
+      run('The title', 72, 680, 24, 'Helvetica-Bold'),
+      run('Section', 72, 640, 16, 'Helvetica-Bold'),
+    ]);
+    const docStyle = (await convertPages([body], { textBlocks: true })).style!;
+    expect(docStyle.headingSizes).toEqual([24, 16]);
+    const chunk = [
+      page([
+        run('Another section', 72, 700, 16, 'Helvetica-Bold'),
+        run('Body text again, long enough to count as the body.', 72, 660),
+      ]),
+    ];
+    const level = async (style?: typeof docStyle) => {
+      const { textView } = await convertPages(chunk, {
+        textBlocks: true,
+        ...(style ? { style } : {}),
+      });
+      const h = textView![0]!.blocks.find((b) => b.kind === 'heading');
+      return h?.kind === 'heading' ? h.level : undefined;
+    };
+    expect(await level(docStyle)).toBe(2);
+    expect(await level()).toBe(1);
+  });
+
+  test('an ordered list nested in a bullet list keeps its depth', async () => {
+    const { textView } = await convertPages(
+      [
+        page([
+          run('Body text that is long enough to be the body size.', 72, 740),
+          run('• First item', 72, 700),
+          run('1. Nested one', 90, 686),
+          run('2. Nested two', 90, 672),
+        ]),
+      ],
+      { textBlocks: true },
+    );
+    const blocks = textView![0]!.blocks;
+    expect(blocks.map((b) => b.kind)).toEqual(['paragraph', 'list']);
+    const list = blocks[1];
+    expect(list?.kind === 'list' && list.items.map((i) => i.depth)).toEqual([0, 1, 1]);
+  });
+
+  test('a page without text is flagged for OCR and has no text blocks', async () => {
+    const { textView } = await convertPages(
+      [page([run('Some text on page one, long enough.', 72, 700)]), page([])],
+      { textBlocks: true },
+    );
+    expect(textView![1]).toMatchObject({
+      page: 1,
+      pageAnchor: 'page-2',
+      needsOcr: true,
+      blocks: [],
+    });
+    expect(textView![0]!.needsOcr).toBe(false);
+  });
+
+  test('convertDocument with textBlocks on the local backend honours the page range', async () => {
+    const id = sid(`tv-${++fixtureCounter}`);
+    const opened = await h.adapter.open(id, await (await fetch(markdownUrl)).arrayBuffer());
+    const engine = {
+      getPageText: h.adapter.getPageText.bind(h.adapter),
+      listAnnotations: h.adapter.listAnnotations.bind(h.adapter),
+      locateImages: h.editor.locateImages.bind(h.editor),
+      extractImage: h.editor.extractImage.bind(h.editor),
+    };
+    try {
+      const result = await convertDocument(
+        createLocalAnalysisBackend(),
+        pdfiumConvertSource(engine, id, opened),
+        { pages: [0], format: 'text', images: false, textBlocks: true },
+      );
+      const blocks = result.textView![0]!.blocks;
+      // Image placements are located without extracting pixels.
+      expect(blocks.some((b) => b.kind === 'image')).toBe(true);
+      expect(result.files.map((f) => f.path)).toEqual(['document.txt']);
+    } finally {
+      await h.adapter.close(id);
+    }
+  });
+});

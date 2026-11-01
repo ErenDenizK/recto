@@ -128,6 +128,49 @@ describe('placeHeader (05-canvas §17.3)', () => {
   });
 });
 
+describe('page images as obstacles (TXT-28)', () => {
+  const image = { left: 960, top: 280, right: 1380, bottom: 440 };
+
+  it('a header beside the paragraph passes an image level with it, into the far margin', () => {
+    const place = placeHeader(
+      input({ text: { left: 500, top: 300, right: 940, bottom: 420 }, images: [image] }),
+    );
+    expect(place.side).not.toBe('right');
+    expect(place.side).toBe('left');
+  });
+
+  it('with no margin, goes above when the image sits below, and below when it sits above', () => {
+    const wide = { left: 100, top: 300, right: 1340, bottom: 420 };
+    const under = { left: 100, top: 440, right: 1340, bottom: 700 };
+    const over = { left: 100, top: 60, right: 1340, bottom: 280 };
+    expect(placeHeader(input({ text: wide, above: 200, below: 200, images: [over] })).side).toBe(
+      'below',
+    );
+    expect(placeHeader(input({ text: wide, above: 200, below: 200, images: [under] })).side).toBe(
+      'above',
+    );
+  });
+
+  it('is the same as before when the page has no image', () => {
+    expect(placeHeader(input({ images: [] }))).toEqual(placeHeader(input({})));
+  });
+
+  it('ignores an image under the paragraph itself, such as a full-bleed background', () => {
+    const wide = { left: 100, top: 300, right: 1340, bottom: 420 };
+    const page = { left: 0, top: 0, right: 1440, bottom: 900 };
+    expect(placeHeader(input({ text: wide, above: 200, below: 200, images: [page] })).side).toBe(
+      'above',
+    );
+  });
+
+  it('puts the grip under the frame when an image lies over its top edge', () => {
+    const frame = { left: 100, top: 300, right: 500, bottom: 420 };
+    expect(gripEdge(frame, [{ left: 90, top: 250, right: 520, bottom: 298 }], 40, 12)).toBe(
+      'bottom',
+    );
+  });
+});
+
 describe('gripEdge (TXT-24, TXT-26)', () => {
   const frame = { left: 500, top: 515, right: 715, bottom: 565 };
 

@@ -13,7 +13,7 @@ import { userEvent } from 'vitest/browser';
 
 import simpleUrl from '../../../../../test/fixtures/simple-text.pdf?url';
 import { fixtureFile } from '../../../test/store-harness';
-import { settled } from '../../../test/settled';
+import { EXIT_TIMEOUT, settled } from '../../../test/settled';
 import { registerAppCommands } from '../../commands/app-commands';
 import { commandRegistry } from '../../commands/registry';
 import { registerArrangeCommands } from '../../stage/arrange-commands';
@@ -80,13 +80,17 @@ describe('Tools entry', () => {
     await settled(menu);
     const items = within(menu).getAllByRole('menuitem');
     expect(items.length).toBe(TOOL_ENTRIES.length);
+    // Base UI moves focus along a menu on the next frame, so each arrow is asked after it lands.
     await userEvent.keyboard('{ArrowDown}');
+    await vi.waitFor(() => expect(items).toContain(document.activeElement));
     const first = document.activeElement;
-    expect(menu.contains(first)).toBe(true);
     await userEvent.keyboard('{ArrowDown}');
-    expect(document.activeElement).not.toBe(first);
+    await vi.waitFor(() => expect(document.activeElement).not.toBe(first));
+    expect(items).toContain(document.activeElement);
     await userEvent.keyboard('{Escape}');
-    await vi.waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+    await vi.waitFor(() => expect(screen.queryByRole('menu')).toBeNull(), {
+      timeout: EXIT_TIMEOUT,
+    });
     expect(document.activeElement).toBe(entry);
   });
 

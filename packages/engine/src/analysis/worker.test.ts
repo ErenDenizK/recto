@@ -130,6 +130,18 @@ describe('through the workers', () => {
     await pdfium.close(id);
   });
 
+  test('textBlocks and textStyle cross the worker boundary (structured clone)', async () => {
+    const id = sid('w-tv');
+    const opened = await pdfium.open(id, await fetchBytes(markdownUrl));
+    const source = pdfiumConvertSource(pdfium, id, opened);
+    const style = await analysis.textStyle(source, { samplePages: 2 });
+    expect(style.bodySize).toBeGreaterThan(0);
+    const pages = await analysis.textBlocks(source, { pages: [0], style });
+    expect(pages.map((p) => p.page)).toEqual([0]);
+    expect(pages[0]!.blocks.length).toBeGreaterThan(0);
+    await pdfium.close(id);
+  });
+
   test('a comparison is cancelled at once and the worker stays usable', async () => {
     const bytes = await fetchBytes(manyPagesUrl);
     const a = await open(bytes, 'many.pdf');

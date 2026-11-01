@@ -867,7 +867,10 @@ export function plan(ch: Chained, ctx: IntentContext): Planned | null {
     if (ctx.pageCount < 1 && !NO_DOCUMENT_OK.has(step.action)) report('no-document', k);
     if (sense.problem) report(sense.problem.kind, k, sense.problem.page);
     if (ctx.edition === 'compact' && !PHONE.has(step.action)) report('phone', k);
-    if (split && FAMILY[step.action] === 'document') report('after-split', k);
+    // Split replaces the document: no document step, and no save, tool or print, follows it.
+    if (split && (FAMILY[step.action] === 'document' || isFinishing(step))) {
+      report('after-split', k);
+    }
     if (isFinishing(step) && ++finishing === 2) report('two-finishing', k);
     if (step.action === 'split') {
       split = true;

@@ -22,6 +22,8 @@ import {
   type ConvertOptions,
   type ConvertPageInput,
   type ConvertResult,
+  type TextViewPage,
+  type ConvertStyle,
   type EngineCallOptions,
   EngineError,
   type ProgressCallback,
@@ -40,6 +42,28 @@ export interface AnalysisProxy extends AnalysisBackend {
         readonly onProgress?: ProgressCallback;
       },
   ): Promise<ConvertResult>;
+  /**
+   * The Text view's blocks (PRD-35) of `pages` (0-based; default all), from the same layout
+   * pass as `convert`. Limit: running headers and footers and heading levels are derived from
+   * the pages of one call, so a small chunk can misjudge them. Chunk a long document in ranges of
+   * at least two pages and pass the whole document's `style` (from `textStyle`).
+   */
+  textBlocks(
+    source: ConvertSource,
+    options?: EngineCallOptions & {
+      readonly pages?: readonly number[];
+      readonly style?: ConvertStyle;
+      readonly onProgress?: ProgressCallback;
+    },
+  ): Promise<readonly TextViewPage[]>;
+  /**
+   * The document's body and heading sizes (PRD-35), from up to `samplePages` pages (default 12)
+   * spread across the document. Pass the result as `style` to every `textBlocks` chunk.
+   */
+  textStyle(
+    source: ConvertSource,
+    options?: EngineCallOptions & { readonly samplePages?: number },
+  ): Promise<ConvertStyle>;
   /** Releases the Comlink proxy and terminates the worker. */
   dispose(): void;
 }
@@ -186,6 +210,29 @@ export function createAnalysisProxy(worker: Worker): AnalysisProxy {
     ...backend,
     compare: (a, b, options) => compareDocuments(backend, a, b, options),
     convert: (source, options) => convertDocument(backend, source, options),
+    textBlocks: async (source, options) =>
+      (
+        await convertDocument(backend, source, {
+          ...options,
+          format: 'text',
+          images: false,
+          textBlocks: true,
+        })
+      ).textView ?? [],
+    textStyle: async (source, { samplePages = 12, ...options } = {}) => {
+      const count = Math.min(source.pageCount, Math.max(1, samplePages));
+      const pages = Array.from({ length: count }, (_, i) =>
+        Math.floor((i * source.pageCount) / count),
+      );
+      const result = await convertDocument(backend, source, {
+        ...options,
+        pages,
+        format: 'text',
+        images: false,
+        textBlocks: true,
+      });
+      return result.style ?? { bodySize: undefined, headingSizes: [] };
+    },
     dispose() {
       if (terminated) return;
       terminated = true;

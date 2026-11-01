@@ -35,6 +35,7 @@ export async function addSecondFile(files: readonly File[]): Promise<void> {
     void recordRecent({
       name: file.name,
       size: file.size,
+      lastModified: file.lastModified,
       ...(pages === undefined ? {} : { pages }),
       ...(handle === undefined ? {} : { handle }),
     });

@@ -316,6 +316,32 @@ export function readPages(toks: readonly Tok[], ctx: IntentContext, navigate = f
     count,
   );
 
+  /** "second and third to last": the ordinals of a coordinated list and where its end suffix ends. */
+  function endOrdinals(
+    list: readonly Tok[],
+    from: number,
+  ): { ords: { n: number; word?: boolean }[]; end: number } | null {
+    const ords: { n: number; word?: boolean }[] = [];
+    let k = from;
+    for (;;) {
+      const o = numberAt(list, k);
+      if (!o?.ord) return null;
+      ords.push(o);
+      k += o.len;
+      while (list[k] && !is(list[k], 'to', 'from') && skippable(list[k] as Tok)) k++;
+      if (is(list[k], 'to', 'from')) {
+        let e = k + 1;
+        if (is(list[e], 'the')) e++;
+        if (
+          LAST.includes(full(list[e] ?? (list[k] as Tok))) ||
+          (is(list[k], 'from') && is(list[e], 'end'))
+        )
+          return { ords, end: e };
+        return null;
+      }
+    }
+  }
+
   function skippable(t: Tok): boolean {
     return (t.kind === 'word' && FILLERS.has(full(t))) || isPageWord(t) || t.kind === 'conj';
   }
@@ -334,6 +360,12 @@ export function readPages(toks: readonly Tok[], ctx: IntentContext, navigate = f
     let problem: PageProblem | null = null;
     let pronoun = false;
     let explicit = false;
+    // "sondan" opens a list counted from the end: every ordinal after it, up to the end of the
+    // list, is read from the end too. A front-counted item beside it (a plain number, a range,
+    // "ilk"/"son") has no single reading, so the list is not acted on.
+    let fromEnd = false;
+    // A spelled-out ordinal alone is counted from the end; a digit ordinal beside one is not read.
+    let endSeen = false;
     const add = (from: number, to: number, how: Pages['named']): void => {
       explicit = true;
       named.add(how);
@@ -356,6 +388,14 @@ export function readPages(toks: readonly Tok[], ctx: IntentContext, navigate = f
     for (let i = 0; i < list.length; i++) {
       const t = list[i] as Tok;
       const next = list[i + 1];
+      if (
+        fromEnd &&
+        (t.kind === 'range' ||
+          (t.kind === 'word' && (FIRST.includes(full(t)) || LAST.includes(full(t)))))
+      ) {
+        unknown.push(t);
+        continue;
+      }
       if (t.kind === 'range') {
         add(t.n, t.m, 'list');
         // "3 ile 5 arası", "3-5 arasını": the words that close a range.
@@ -382,12 +422,36 @@ export function readPages(toks: readonly Tok[], ctx: IntentContext, navigate = f
         const arg = numberAt(list, j);
         if (!arg?.ord) unknown.push(t);
         else {
+          fromEnd = true;
           add(count - arg.n + 1, count - arg.n + 1, 'edge');
           i = j + arg.len - 1;
         }
         continue;
       }
       const nm = numberAt(list, i);
+      if (nm && fromEnd) {
+        // The rest of a "sondan" list: "sondan ikinci ve üçüncü sayfa" is 23 and 22.
+        if (nm.ord && !nm.word) unknown.push(t);
+        else if (nm.ord) add(count - nm.n + 1, count - nm.n + 1, 'edge');
+        else unknown.push(t);
+        i += nm.len - 1;
+        continue;
+      }
+      if (nm && endSeen && nm.ord && !nm.word) {
+        unknown.push(t);
+        i += nm.len - 1;
+        continue;
+      }
+      const endList = nm?.ord ? endOrdinals(list, i) : null;
+      if (nm && endList) {
+        // "second and third to last", "second and third from the end": the suffix is for all.
+        if (endList.ords.some((o) => o.n < 2 || (!o.word && endList.ords.length > 1)))
+          unknown.push(t);
+        else for (const o of endList.ords) add(count - o.n + 1, count - o.n + 1, 'edge');
+        endSeen = true;
+        i = endList.end;
+        continue;
+      }
       if (nm) {
         const end = i + nm.len - 1;
         const after = list[end + 1];
@@ -441,13 +505,6 @@ export function readPages(toks: readonly Tok[], ctx: IntentContext, navigate = f
           // "iki sayfayı sil", "3 sayfa", "delete 2 pages": a count, not a page.
           explicit = true;
           problem ??= { kind: 'ambiguous-count' };
-        } else if (nm.ord && is(after, 'to', 'from') && LAST.includes(full(list[end + 2] ?? t))) {
-          // "second to last": counted from the end; "first to last" is a range, not read.
-          if (nm.n < 2) unknown.push(t);
-          else {
-            add(count - nm.n + 1, count - nm.n + 1, 'edge');
-            i = end + 2;
-          }
         } else if (is(after, 'of') && list[end + 2]?.kind === 'number') {
           // "page 3 of 24": only when 24 is the document's own length.
           if ((list[end + 2] as Tok).n === count && count > 0) {

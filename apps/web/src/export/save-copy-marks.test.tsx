@@ -13,6 +13,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
+import { settled } from '../../test/settled';
 import markdownUrl from '../../../../test/fixtures/markdown-source.pdf?url';
 import { fixtureFile } from '../../test/store-harness';
 import { getAnalysisWorkers } from '../engine/engine-service';
@@ -68,7 +69,9 @@ describe('Save a copy with unapplied marks', () => {
     try {
       render(<SaveCopyHost />);
       openSaveCopy(id);
-      const sheet = await screen.findByTestId('save-copy-sheet', {}, { timeout: 15_000 });
+      const sheet = await settled(
+        await screen.findByTestId('save-copy-sheet', {}, { timeout: 15_000 }),
+      );
       const primary = sheet.querySelector<HTMLButtonElement>('[data-sheet-primary]');
       if (!primary) throw new Error('no primary');
       await waitFor(() => expect(pendingMarksOf).toHaveBeenCalled());
