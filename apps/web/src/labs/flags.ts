@@ -30,7 +30,8 @@ export type LabsKey =
   | 'textpre'
   | 'scan'
   | 'paragraph-frame'
-  | 'paragraph-outlines';
+  | 'paragraph-outlines'
+  | 'fener';
 
 export type LabsEdition = 'full' | 'compact' | 'all';
 
@@ -111,6 +112,7 @@ export const LABS_FLAGS: readonly LabsFlag[] = [
   sw('scan', 'scan', 'all', 'prototype'),
   sw('paragraph-frame', 'paraframe', 'full', 'prototype'),
   sw('paragraph-outlines', 'paraoutlines', 'full', 'prototype'),
+  sw('fener', 'fener', 'all', 'prototype'),
 ];
 
 /** Where a flag's value came from. */

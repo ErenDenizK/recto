@@ -31,11 +31,14 @@
  * setting in force: `clear`, `tinted` or `solid`), `data-degrade` (the cost ladder's step,
  * absent at 0), `data-motion="reduced"` (`motion.css`, matched by the same blocks as the
  * media query; `reducedMotion()` reads it for script) and `data-dim-pages` (Dim pages on, read
- * by `tokens.css` together with `data-theme='dark'`).
+ * by `tokens.css` together with `data-theme='dark'`). With the Labs flag `fener` on, the root
+ * also carries `data-fener` and `data-accent` (`state/fener.ts`, read by `styles/fener.css`,
+ * DSN-88).
  */
 import { useLayoutEffect } from 'react';
 import { create } from 'zustand';
 
+import { applyFener, fenerEnabled, type FenerPreset, useFenerStore } from './fener';
 import {
   applyDegrade,
   ensureDegradeStart,
@@ -166,8 +169,13 @@ export function effectiveGlass(glass: GlassSetting | null): GlassSetting {
 export function applyAppearance(
   root: HTMLElement,
   settings: Pick<AppearanceSettings, 'theme' | 'glass' | 'motion'> &
-    Partial<Pick<AppearanceSettings, 'dimPages'>>,
+    Partial<Pick<AppearanceSettings, 'dimPages'>> & {
+      /** Fener's preset when the flag is on (DSN-88); absent or null: today's colours. */
+      readonly accent?: FenerPreset | null;
+    },
 ): void {
+  // Fener first: the theme-color metas take its canvases when the root carries it.
+  applyFener(root, settings.accent ?? null);
   applyTheme(root, settings.theme);
   root.setAttribute('data-glass', effectiveGlass(settings.glass));
   if (settings.motion === 'reduced') root.setAttribute('data-motion', 'reduced');
@@ -182,6 +190,7 @@ function clearAppearance(root: HTMLElement): void {
   root.removeAttribute('data-motion');
   root.removeAttribute('data-dim-pages');
   root.removeAttribute('data-degrade');
+  applyFener(root, null);
 }
 
 /**
@@ -194,6 +203,8 @@ export function useAppearanceRoot(): void {
   const glass = useAppearanceStore((s) => s.glass);
   const motion = useAppearanceStore((s) => s.motion);
   const dimPages = useAppearanceStore((s) => s.dimPages);
+  const fener = useFenerStore((s) => s.accent);
+  const accent = fenerEnabled() ? fener : null;
   const degrade = useRenderQualityStore((s) => s.degrade);
   useLayoutEffect(() => {
     ensureDegradeStart();
@@ -217,10 +228,10 @@ export function useAppearanceRoot(): void {
   }, []);
   useLayoutEffect(() => {
     const root = document.documentElement;
-    applyAppearance(root, { theme, glass, motion, dimPages });
+    applyAppearance(root, { theme, glass, motion, dimPages, accent });
     applyDegrade(root, degrade);
     return () => clearAppearance(root);
-  }, [theme, glass, motion, dimPages, degrade]);
+  }, [theme, glass, motion, dimPages, accent, degrade]);
   // System follows the device while the app runs.
   useLayoutEffect(() => {
     if (theme !== 'system') return;

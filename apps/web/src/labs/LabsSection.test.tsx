@@ -52,6 +52,19 @@ describe('LabsSection', () => {
     expect(screen.queryByRole('button', { name: 'Reload now' })).toBeNull();
   });
 
+  it('lists Fener on every edition, with its description (DSN-88)', () => {
+    const { unmount } = render(<LabsSection />);
+    const fener = screen.getByRole('switch', { name: 'Fener colours' });
+    expect(fener).toHaveAttribute('aria-checked', 'false');
+    expect(fener.closest('[data-row]')).toHaveTextContent(
+      'New colours (Fener): one theme colour, tinted glass buttons and a background glow taken from the logo.',
+    );
+    unmount();
+    launchAs('compact');
+    render(<LabsSection />);
+    expect(screen.getByRole('switch', { name: 'Fener colours' })).toBeVisible();
+  });
+
   it('lists only the rows of this edition', () => {
     launchAs('compact');
     const { unmount } = render(<LabsSection />);
