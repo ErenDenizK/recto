@@ -9,6 +9,8 @@
  * - **The open moment.** From the Library the card's sheet grows into the page (a clone laid on
  *   the window, growing on a spring, gone at rest), the light pulses on the session's first
  *   open only, and nothing of it is left on the page.
+ * - **On the desk** (DSN-87, Masa; `?desk=1`) the grow is on by default and `?open=0` turns it
+ *   off; the desk's own openings (Continue, tiles, the sample) are `masa.spec.ts`'s.
  */
 import { expect, type Page, test } from '@playwright/test';
 
@@ -222,4 +224,37 @@ test.describe('opening in light (?open=light)', () => {
     expect(seen.halos).toBe(0);
     expect(seen.widths.length).toBe(0);
   });
+
+  for (const [title, search, grows] of [
+    ['on the desk the card grows with no flag', '?lang=en&desk=1', true],
+    ['on the desk ?open=0 turns the grow off', '?lang=en&desk=1&open=0', false],
+  ] as const) {
+    test(title, async ({ page, browserName }) => {
+      test.skip(
+        browserName !== 'chromium',
+        'Script-built file picks and frame sampling are Chromium-only',
+      );
+      await page.goto(`./${search}`);
+      await openFixtures(page, ['simple-text.pdf']);
+      await page.getByRole('button', { name: 'Library' }).click();
+      const card = page.getByRole('listbox', { name: 'Files' }).getByRole('option').first();
+      await expect(card).toBeVisible();
+      const widths = () =>
+        page.evaluate(() => (window as unknown as { __open: { widths: number[] } }).__open.widths);
+      const before = (await widths()).length;
+      await card.click();
+      await expect(page.locator(`[data-page-index="0"] ${PAGE_CANVAS}`)).toHaveAttribute(
+        'data-state',
+        'rendered',
+      );
+      await expect(page.locator('[data-open-grow]')).toHaveCount(0, { timeout: 10_000 });
+      const grown = (await widths()).slice(before);
+      if (!grows) {
+        expect(grown).toHaveLength(0);
+        return;
+      }
+      expect(grown.length, 'the clone was drawn').toBeGreaterThanOrEqual(2);
+      expect(Math.max(...grown), 'it grew').toBeGreaterThan(Math.min(...grown) * 1.4);
+    });
+  }
 });

@@ -37,19 +37,24 @@ import {
   useRecentsStore,
 } from '../files/recents';
 import { m } from '../i18n';
-import type { ResumePoint } from '../session/resume';
+import { type ResumePoint, setResume } from '../session/resume';
 import { reopenFromSnapshot } from '../session/session';
 import { announce } from '../shell/announcer';
+import { focusOpenedPage } from '../shell/focus-opened-page';
 import { openOperationDialog } from '../stage/operation-dialogs-store';
 import { validateTitle } from '../stage/operation-plans';
 import { mergeAll } from '../stage/section-operations';
 import { isLocked, lockOpened } from '../state/lock-store';
-import { useUiStore } from '../state/ui-store';
+import { stageView, useUiStore } from '../state/ui-store';
 import { addLoadedSource, type LoadedSources, useWorkspaceStore } from '../state/workspace-store';
 import { toast } from '../ui/Toast/toast';
 import { combinedTitle, combineOrder, compareOrder, liveSelection, movedOrder } from './home-model';
 import { HOME_CONTINUE_FLAG, homeFlagEnabled, OPEN_PAGE_FLAG } from './home-flags';
-import { backToLibraryMorph } from './library-morph';
+import { coverKey, prefetchCovers } from './covers';
+import { deskEnabled } from './desk-flag';
+import './desk-painted';
+import { backToLibraryMorph, openFromDesk } from './library-morph';
+import type { OpenSeed } from './library-transition';
 import { resetLibraryStore, setSelecting } from './library-store';
 
 const ui = () => useUiStore.getState();
@@ -180,14 +185,36 @@ export function openInRead(id: DocumentId): void {
 }
 
 /**
- * Opens a document where it was left (Epic 3, 3c; DSN-66): its zoom first, so the page view
- * mounts at it, then its page, then the scroll offset once the rows are measured.
+ * After a desk open succeeded, focus goes to the page view as after Open files… and the sample
+ * (`focus-opened-page.ts`, 01-frame F3 §6): the pressed tile left with the desk, so the focus
+ * would fall to `<body>`. Only with the desk on; elsewhere the focus is as it was (DSN-87).
  */
-export async function resumeDocument(id: DocumentId, point: ResumePoint): Promise<void> {
-  const view = await import('../session/resume-view');
-  view.applyResumeZoom(point);
-  openInRead(id);
-  view.settleResume(id, point);
+function focusPageAfter(before: Element | null): void {
+  if (!deskEnabled()) return;
+  const active = model().workspace.activeDocument;
+  if (active === undefined || stageView(ui(), active) !== 'page') return;
+  focusOpenedPage(active, before);
+}
+
+/**
+ * Opens a document where it was left (Epic 3, 3c; DSN-66): its zoom first, so the page view
+ * mounts at it, then its page, then the scroll offset once the rows are measured. From the desk's
+ * Continue card, the card's page lifts and grows into the page (DSN-87, `openFromDesk`).
+ */
+export function resumeDocument(id: DocumentId, point: ResumePoint): Promise<void> {
+  const title = model().workspace.documents[id]?.title ?? '';
+  const before = document.activeElement;
+  const resumed = openFromDesk(title, async () => {
+    const view = await import('../session/resume-view');
+    view.applyResumeZoom(point);
+    openInRead(id);
+    view.settleResume(id, point);
+  });
+  void resumed.then(
+    () => focusPageAfter(before),
+    () => undefined,
+  );
+  return resumed;
 }
 
 /** Combine with open documents (S15), pre-ordered: the selection, a card drop's pair. */
@@ -461,13 +488,70 @@ export function closeOnHome(
 }
 
 /** Opens what a Recents reopen produced: one file goes straight to Read, several to Home. */
-async function openFromRecents(files: readonly File[]): Promise<boolean> {
+async function openFromRecents(files: readonly File[]): Promise<readonly DocumentId[]> {
   const wasEmpty = order().length === 0;
   const ids = await openDocuments(files);
   const [only] = ids;
   if (only !== undefined && ids.length === 1) openInRead(only);
   else showOpened(ids, { wasEmpty });
-  return ids.length > 0;
+  return ids;
+}
+
+/** The place a Recents entry was left at, as a resume point (DSN-87, `masa.md` §3.2). */
+function pointOfPlace(entry: RecentEntry): ResumePoint | undefined {
+  const { place } = entry;
+  if (place === undefined || place.page <= 0 || place.total <= 0) return undefined;
+  return {
+    page: place.page,
+    total: place.total,
+    zoom: place.zoom ?? 1,
+    fit: place.fit ?? 'width',
+    offset: place.offset ?? 0,
+    at: place.at,
+  };
+}
+
+/**
+ * A plain reopen (a handle, the file dialog) opens at page 1. When the file is the one the entry
+ * stands for (name and size) and the entry kept a place, the document is brought to it, zoom and
+ * offset included (DSN-87, `masa.md` §3.2). The point is noted at once, so the desk's own resume
+ * after the open (`openEntryAtPlace`) finds the page reached and does nothing more.
+ */
+async function resumeAtPlace(
+  entry: RecentEntry,
+  file: File,
+  ids: readonly DocumentId[],
+): Promise<void> {
+  const [only] = ids;
+  const point = pointOfPlace(entry);
+  if (only === undefined || ids.length !== 1 || point === undefined) return;
+  // A plain reopen landing on its place is the desk's (DSN-87); elsewhere it opens at page 1.
+  if (!deskEnabled()) return;
+  if (file.name !== entry.name || file.size !== entry.size) return;
+  setResume(only, point, { quiet: true });
+  await resumeDocument(only, point);
+}
+
+/**
+ * The cover the arriving page first shows (DSN-87, `masa.md` §2.7 step 4): the one the entry's
+ * tile draws, the page left once past page 1, else the first page, decoded from the stored
+ * record. Nothing if there is none (an encrypted source, not captured yet).
+ */
+async function coverSeedOf(entry: RecentEntry): Promise<OpenSeed | null> {
+  try {
+    const records = await prefetchCovers();
+    const kinds =
+      pointOfPlace(entry) === undefined ? (['first'] as const) : (['left', 'first'] as const);
+    for (const kind of kinds) {
+      const record = records.find((r) => r.key === coverKey(kind, entry));
+      if (record === undefined) continue;
+      const image = await createImageBitmap(new Blob([record.bytes], { type: record.type }));
+      return { page: record.page, image };
+    }
+  } catch {
+    // A cover that cannot be read is no seed: the page keeps the ladder's paper tone.
+  }
+  return null;
 }
 
 /**
@@ -478,8 +562,31 @@ async function openFromRecents(files: readonly File[]): Promise<boolean> {
  * moved), the row turns to "Open again…" and says so in one line; "Open again…" opens the
  * file dialog. Call it straight from the event, with no await before it, so the permission
  * request keeps the click's user activation.
+ *
+ * From the desk (DSN-87) the pressed tile's cover lifts, is held while the reopen runs and grows
+ * into the page, which first shows the same cover (`openFromDesk`); a press that opens the file
+ * dialog has no motion (the dialog covers the moment).
  */
-export async function openRecent(entry: RecentEntry): Promise<void> {
+export function openRecent(entry: RecentEntry): Promise<void> {
+  const dialog =
+    entry.kept === undefined &&
+    (!canReopenRecent(entry) || useRecentsStore.getState().access[entry.id] === 'unavailable');
+  const before = document.activeElement;
+  const opened = dialog
+    ? reopen(entry)
+    : openFromDesk(
+        entry.name,
+        () => reopen(entry),
+        () => coverSeedOf(entry),
+      );
+  void opened.then(
+    () => focusPageAfter(before),
+    () => undefined,
+  );
+  return opened;
+}
+
+async function reopen(entry: RecentEntry): Promise<void> {
   if (entry.kept !== undefined) {
     const kept = await reopenFromSnapshot(entry.kept.snapshotId);
     if (kept?.ok) {
@@ -488,12 +595,10 @@ export async function openRecent(entry: RecentEntry): Promise<void> {
       // Behind `?home=continue` a kept document opens at its zoom and offset too (3c).
       if (place.resume !== undefined && homeFlagEnabled(HOME_CONTINUE_FLAG)) {
         const total = kept.record.pages;
-        await resumeDocument(kept.documentId, {
-          ...place.resume,
-          page: place.page,
-          total,
-          at: Date.now(),
-        });
+        const point = { ...place.resume, page: place.page, total, at: Date.now() };
+        // The desk's own resume after this open (`openEntryAtPlace`) finds the page reached.
+        if (deskEnabled()) setResume(kept.documentId, point, { quiet: true });
+        await resumeDocument(kept.documentId, point);
       } else openInRead(kept.documentId);
       announce(m.announce_opened({ name: kept.record.title }));
       return;
@@ -520,7 +625,7 @@ export async function openRecent(entry: RecentEntry): Promise<void> {
   setRecentNote(null);
   rememberFileHandle(result.file, result.handle);
   noteReopenedFrom(result.file, entry.id);
-  await openFromRecents([result.file]);
+  await resumeAtPlace(entry, result.file, await openFromRecents([result.file]));
 }
 
 /** "Open again…": the file dialog, with one line saying why it opened. */
@@ -535,8 +640,12 @@ export async function openRecentAgain(entry: RecentEntry): Promise<void> {
   for (const file of files) {
     if (file.name === entry.name) noteReopenedFrom(file, entry.id);
   }
-  if (await openFromRecents(files)) {
+  const ids = await openFromRecents(files);
+  if (ids.length > 0) {
     if (useRecentsStore.getState().note === note) setRecentNote(null);
+    // The file picked is the one the row stands for: it opens at the place the row kept.
+    const [picked] = files;
+    if (files.length === 1 && picked !== undefined) await resumeAtPlace(entry, picked, ids);
   }
 }
 
