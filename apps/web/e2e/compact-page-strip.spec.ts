@@ -27,6 +27,13 @@ test('hold the number, scrub the rail, release: the page changes', async ({ page
   await page.mouse.down();
   await expect(rail(page)).toBeVisible();
   await expect(rail(page)).toHaveAttribute('aria-orientation', 'vertical');
+  // The rail comes out of the pill on a spring (`paintOpen`) and is "visible" from its first
+  // frame, a box laid over the pill: measured there, a slow runner scrubs a spot that is not on
+  // the rail's final run and never picks a page. It is out once its inline transform, clip and
+  // opacity are gone; the spring is JS, so `getAnimations()` cannot tell.
+  await expect(rail(page)).toHaveCSS('transform', 'none');
+  await expect(rail(page)).toHaveCSS('clip-path', 'none');
+  await expect(rail(page)).toHaveCSS('opacity', '1');
   // A short rail (landscape) cannot show six pages at once and scrolls its track, so the page
   // under the thumb is read from the rail rather than assumed from where a cell was at the hold.
   const box2 = await rail(page).boundingBox();

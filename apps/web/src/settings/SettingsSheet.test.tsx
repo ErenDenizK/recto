@@ -15,6 +15,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
+import { settled } from '../../test/settled';
 import { useAnnotationStore } from '../annotations/annotation-store';
 import { setLocale } from '../i18n';
 import { usePwaStore } from '../pwa/service-worker';
@@ -48,12 +49,6 @@ afterEach(() => {
   vi.restoreAllMocks();
   setLocale('en');
 });
-
-async function settled(dialog: HTMLElement): Promise<void> {
-  await waitFor(() => expect(dialog.getAnimations({ subtree: true }).length).toBe(0), {
-    timeout: 5000,
-  });
-}
 
 describe('the Settings sheet', () => {
   it('is a centred 600 px form sheet with its sections, the search field focused', async () => {
@@ -106,13 +101,16 @@ describe('the Settings sheet', () => {
     useAnnotationStore.getState().setAuthor('');
     act(() => openSettings({ row: 'commentName' }));
     render(<SettingsSheet />);
+    // Not settled yet: the row's tint is itself a motion (it fades within 1.2 s), and a sheet at
+    // rest has lost it. Asked until it shows, so a slow first frame cannot miss it.
     const dialog = await screen.findByRole('dialog', { name: 'Settings' });
-    // Tinted once as it opens (the tint fades within 1.2 s).
-    expect(dialog.querySelector('[data-row="commentName"]')?.hasAttribute('data-revealed')).toBe(
-      true,
+    await waitFor(() =>
+      expect(dialog.querySelector('[data-row="commentName"]')).toHaveAttribute('data-revealed'),
     );
     const field = within(dialog).getByRole('textbox', { name: 'Name on comments' });
     await waitFor(() => expect(field).toHaveFocus());
+    // The typing goes to a sheet at rest.
+    await settled(dialog);
     await userEvent.type(field, 'Ada');
     expect(useAnnotationStore.getState().author).toBe('Ada');
     useAnnotationStore.getState().setAuthor('');
@@ -264,7 +262,7 @@ describe('the Settings sheet', () => {
   it('Show tips again waits, with its reason, until a tip has been used up', async () => {
     act(() => openSettings({ row: 'showTips' }));
     render(<SettingsSheet />);
-    const dialog = await screen.findByRole('dialog', { name: 'Settings' });
+    const dialog = await settled(await screen.findByRole('dialog', { name: 'Settings' }));
     const button = () => within(dialog).getByRole('button', { name: 'Show again' });
     expect(button()).toHaveAttribute('aria-disabled', 'true');
     expect(button()).toHaveAccessibleDescription('Every tip shows already');
@@ -280,13 +278,13 @@ describe('the Settings sheet', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Settings' });
     await settled(dialog);
     await userEvent.click(within(dialog).getByRole('button', { name: /About Recto/ }));
-    await screen.findByRole('dialog', { name: 'About Recto' });
+    await settled(await screen.findByRole('dialog', { name: 'About Recto' }));
     await settled(dialog);
     expect(within(dialog).getByTestId('settings-about')).toBeVisible();
     const back = within(dialog).getByRole('button', { name: 'Back' });
     await waitFor(() => expect(back).toHaveFocus());
     await userEvent.click(back);
-    await screen.findByRole('dialog', { name: 'Settings' });
+    await settled(await screen.findByRole('dialog', { name: 'Settings' }));
     await waitFor(() =>
       expect(within(dialog).getByRole('button', { name: /About Recto/ })).toHaveFocus(),
     );

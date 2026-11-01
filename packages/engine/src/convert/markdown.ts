@@ -152,6 +152,14 @@ function blockPieces(block: TextBlock, joinHyphens: boolean): Piece[] {
   return collapsed;
 }
 
+/** A text block's plain text, list marker dropped (the Text view's block text). */
+export function blockPlainText(block: TextBlock, joinHyphens: boolean): string {
+  return dropMarker(blockPieces(block, joinHyphens), block.marker)
+    .map((p) => p.ch)
+    .join('')
+    .trim();
+}
+
 function rawText(block: TextBlock): string {
   return blockPieces(block, true)
     .map((p) => p.ch)

@@ -126,8 +126,12 @@ describe('New signature', () => {
     ).toHaveAccessibleDescription(
       'Choose a PNG or JPEG of your signature, ideally on a transparent background.',
     );
-    // The hidden panels keep their room but are out of reach.
-    expect(within(dialog).queryByRole('textbox', { name: 'Your name' })).toBeNull();
+    // The hidden panels keep their room but are out of reach. Base UI marks a panel `hidden`
+    // only once its exit animations have finished, which a slow runner does a frame or more
+    // after the click, so ask until it is.
+    await waitFor(() =>
+      expect(within(dialog).queryByRole('textbox', { name: 'Your name' })).toBeNull(),
+    );
   });
 
   it('draws on the pad, undoes a stroke, clears, and says how many strokes it holds', async () => {

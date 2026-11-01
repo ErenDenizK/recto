@@ -88,11 +88,11 @@ describe('S4 Document info', () => {
     await open(simpleUrl, 'simple-text.pdf');
     renderSheets();
     await act(() => commandRegistry.execute('document.info'));
-    const sheet = await screen.findByRole('dialog', { name: 'Document info' });
+    const sheet = await settled(await screen.findByRole('dialog', { name: 'Document info' }));
     await userEvent.click(within(sheet).getByRole('button', { name: 'Set password…' }));
-    const password = await screen.findByTestId('set-password-dialog');
+    const password = await settled(await screen.findByTestId('set-password-dialog'));
     await userEvent.click(within(password).getByRole('button', { name: 'Cancel' }));
-    const back = await screen.findByRole('dialog', { name: 'Document info' });
+    const back = await settled(await screen.findByRole('dialog', { name: 'Document info' }));
     await expect.poll(() => back.checkVisibility({ opacityProperty: true })).toBe(true);
   });
 });
