@@ -77,6 +77,8 @@ jobs:
   media:
     name: Media
     needs: build
+    # Optional: a failed or timed-out media job never stops the deploy (see `pages`).
+    continue-on-error: true
     # A plain runner, not the Playwright container (its ffmpeg is stripped).
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -115,21 +117,56 @@ jobs:
   pages:
     name: Pages artifact
     needs: [build, media]
+    # Runs whether media succeeded, failed or timed out; only a failed build stops it.
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
+      # Only budgets.json, for the list of media files to carry over.
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: tools/media/budgets.json
+          sparse-checkout-cone-mode: false
+
       - name: Download site
         uses: actions/download-artifact@v8
         with:
           name: site
           path: site
 
-      # Served at <site>/media/<id>.gif; the README points at these URLs.
+      # Served at <site>/media/<id>.gif; the README points at these URLs. Absent when the
+      # media job failed or timed out; the next step then carries the published files over.
       - name: Download media
+        id: media
+        continue-on-error: true
         uses: actions/download-artifact@v8
         with:
           name: media
           path: site/media
+
+      # Fallback: copy every file in budgets.json from the live site, so the README and
+      # about-page media keep working. Missing files are warned about, never fatal.
+      - name: Carry over published media
+        if: ${{ steps.media.outcome != 'success' }}
+        env:
+          LIVE_URL: ${{ vars.CUSTOM_DOMAIN && format('https://{0}', vars.CUSTOM_DOMAIN) || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+        run: |
+          set -euo pipefail
+          echo "::warning title=Media not refreshed::The media job failed or timed out, so this deploy carries the previously published media from $LIVE_URL/media/."
+          mkdir -p site/media
+          got=0
+          for f in $(jq -r '.files | keys[]' tools/media/budgets.json); do
+            if curl -fsSL --connect-timeout 10 --max-time 15 --retry 2 -o "site/media/$f" "$LIVE_URL/media/$f"; then
+              got=$((got + 1))
+            else
+              rm -f "site/media/$f"
+              echo "::warning title=Media file not carried over::$f is not on the live site."
+            fi
+          done
+          echo "Carried over $got media files."
+          if [ "$got" = 0 ]; then
+            echo "::warning title=No media carried over::No media file could be fetched from $LIVE_URL/media/."
+          fi
 
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -138,6 +175,7 @@ jobs:
   deploy:
     name: Deploy
     needs: pages
+    if: ${{ !cancelled() && needs.pages.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     environment:
