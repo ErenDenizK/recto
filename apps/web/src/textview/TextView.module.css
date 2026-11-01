@@ -1,0 +1,375 @@
+/*
+ * The Text view's reading surface (DSN-84, PRD-36 §2): a solid column on the `--reader-*` tokens,
+ * with the chrome (the bar, the top strip) glass over it. The root carries `data-theme`, which
+ * re-scopes the app's tokens to the reader's look, so the buttons and the glass inside it read
+ * on it whatever the app's theme is; the column's own colours are `--rv-*`, set per look below.
+ *
+ * Size (`--rv-size`, in rem so browser text scaling applies) and line height (`--rv-line`) are
+ * set by the view. Type: Inter Recto with optical sizes, weight 450 (430 in the dark look, where
+ * light on dark reads heavier); the system serif when the owner picks it. Measure 34 em, about
+ * 66 to 70 characters. Motion: the column fades in with a 4 px rise (transform and opacity
+ * only); under reduced motion the rise is 0 and the fade 150 ms (styles/motion.css).
+ */
+.root {
+  --rv-bg: var(--reader-light-bg);
+  --rv-text: var(--reader-light-text);
+  --rv-muted: var(--reader-light-muted);
+  --rv-rule: var(--reader-light-rule);
+  --rv-card: var(--reader-light-card);
+  /* DSN-84: body 450 (430 in the dark look), headings 650 and 600. */
+  --rv-weight: 450;
+  --rv-weight-heading: 650;
+  --rv-weight-sub: 600;
+  --rv-face: var(--font-ui);
+  --rv-estimate: 900px;
+  --rv-top: calc(48px + max(env(safe-area-inset-top, 0px), 12px) + var(--space-4));
+  --rv-bottom: calc(56px + max(env(safe-area-inset-bottom, 0px), 12px) + var(--space-4));
+
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--rv-bg);
+  color: var(--rv-text);
+}
+
+.root[data-theme='dark'] {
+  --rv-bg: var(--reader-dark-bg);
+  --rv-text: var(--reader-dark-text);
+  --rv-muted: var(--reader-dark-muted);
+  --rv-rule: var(--reader-dark-rule);
+  --rv-card: var(--reader-dark-card);
+  --rv-weight: 430;
+}
+
+.root[data-face='serif'] {
+  --rv-face: ui-serif, 'New York', 'Iowan Old Style', Georgia, 'Noto Serif', serif;
+}
+
+.root[data-hidden] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.scroller {
+  box-sizing: border-box;
+  height: 100%;
+  padding-top: var(--rv-top);
+  padding-bottom: var(--rv-bottom);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-top: var(--rv-top);
+  scroll-padding-bottom: var(--rv-bottom);
+  /* Pinch is the view's own (it steps the size), so the browser keeps only the vertical pan. */
+  touch-action: pan-y;
+  font-family: var(--rv-face);
+  font-optical-sizing: auto;
+  font-size: var(--rv-size);
+  font-weight: var(--rv-weight);
+  line-height: var(--rv-line);
+  -webkit-text-size-adjust: 100%;
+}
+
+.scroller[lang] {
+  hyphens: auto;
+}
+
+/*
+ * The view enters when it is shown (restarted by `data-hidden` leaving). The rise is on the
+ * root, not the column, so the column and its scroll box move together and the place held
+ * (measured between them) never feels it.
+ */
+.root:not([data-hidden]) {
+  animation: rise var(--duration-base) var(--ease-out) both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--rise-distance));
+  }
+}
+
+.column {
+  box-sizing: border-box;
+  max-width: min(100%, 34em);
+  margin-inline: auto;
+  padding-inline: max(20px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+}
+
+@media (min-width: 430px) {
+  .column {
+    padding-inline: max(24px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+  }
+}
+
+/* The honesty note: once at the top, footnote size, quiet (PRD-36 §2). */
+.note {
+  margin: 0 0 var(--space-4);
+  color: var(--rv-muted);
+  font-size: var(--type-footnote);
+  font-weight: var(--weight-regular);
+  line-height: var(--type-footnote-lh);
+  letter-spacing: var(--track-footnote);
+  text-wrap: pretty;
+}
+
+/* A page: it skips its layout until it is near, and reserves the average height so far. */
+.page {
+  content-visibility: auto;
+  contain-intrinsic-block-size: auto var(--rv-estimate);
+}
+
+.page :where(h2, h3, h4, h5, p, ul, ol) {
+  margin: 0;
+}
+
+.pageHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--hit-min);
+  margin-block: var(--space-4) var(--space-2);
+  border-top: 1px solid var(--rv-rule);
+  color: var(--rv-muted);
+}
+
+.pageLabel {
+  font-size: var(--type-footnote);
+  font-weight: var(--weight-medium);
+  line-height: var(--type-footnote-lh);
+  letter-spacing: var(--track-footnote);
+  font-variant-numeric: tabular-nums;
+}
+
+.showPage {
+  flex: none;
+  /* Its label ends on the column's edge, with the rule. */
+  margin-inline-end: calc(-1 * var(--btn-pad));
+  color: var(--rv-muted);
+}
+
+/* Headings (DSN-84): primary ink, balanced, 1.4 em above and 0.4 em below. */
+.page :where(h2, h3, h4, h5) {
+  color: var(--rv-text);
+  text-wrap: balance;
+  margin-block: 1.4em 0.4em;
+}
+
+/* The first heading of a page sits under the page's rule, with no room of its own above. */
+.page .pageHead + :where(h2, h3, h4, h5) {
+  margin-block-start: 0;
+}
+
+.page h2 {
+  font-size: calc(var(--rv-size) * 1.55);
+  font-weight: var(--rv-weight-heading);
+  line-height: 1.2;
+}
+
+.page h3 {
+  font-size: calc(var(--rv-size) * 1.3);
+  font-weight: var(--rv-weight-heading);
+  line-height: 1.25;
+}
+
+.page h4 {
+  font-size: calc(var(--rv-size) * 1.12);
+  font-weight: var(--rv-weight-sub);
+  line-height: 1.3;
+}
+
+.page h5 {
+  font-size: var(--rv-size);
+  font-weight: var(--rv-weight-sub);
+  line-height: 1.4;
+}
+
+.page p {
+  margin-block: 0 0.8em;
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+
+/* Lists (DSN-84): nested by depth, 1.4 em in per level, numbers in tabular figures. */
+.list {
+  margin-block: 0 0.8em;
+}
+
+.list ul,
+.list ol {
+  padding-inline-start: 1.4em;
+}
+
+.list ul {
+  list-style: disc;
+}
+
+.list ul ul {
+  list-style: circle;
+}
+
+.list ul ul ul {
+  list-style: square;
+}
+
+.list ol {
+  list-style: decimal;
+  font-variant-numeric: tabular-nums;
+}
+
+.list li {
+  margin-block: 0 0.3em;
+  overflow-wrap: anywhere;
+}
+
+.list li::marker {
+  color: var(--rv-muted);
+}
+
+/* Images: a crop of the page; its box is reserved from the aspect ratio. */
+.figure {
+  margin: 0 0 0.8em;
+}
+
+.crop {
+  display: block;
+  box-sizing: border-box;
+  width: calc(100% * var(--rv-fraction, 1));
+  max-width: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--rv-rule);
+  border-radius: var(--radius-sm);
+  background: var(--rv-card);
+  cursor: pointer;
+}
+
+.crop[data-loaded] {
+  background: transparent;
+}
+
+.cropImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* Dim pages (PF-19) applies to the page's pixels like it does in the page view. */
+  filter: var(--page-filter);
+}
+
+/* Find's mark: the lime as a fill with ink on it (DSN-83); soft over a whole block. */
+.page mark {
+  border-radius: var(--radius-xs);
+  background: var(--reader-mark);
+  color: var(--reader-mark-ink);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.page mark[data-soft] {
+  background: var(--reader-mark-soft);
+  color: inherit;
+}
+
+/* Loading: grey bars where the lines will be; nothing moves (the view is at rest). */
+.skeleton {
+  display: grid;
+  gap: 0.8em;
+  padding-block: 0.4em;
+}
+
+.skeletonGroup {
+  display: grid;
+  gap: 0.5em;
+}
+
+.skeletonLine {
+  display: block;
+  height: 0.7em;
+  border-radius: var(--radius-xs);
+  background: var(--rv-rule);
+}
+
+.skeletonLine[data-last] {
+  width: 60%;
+}
+
+/* Cards: a page that failed, a scan, the scans' offer. */
+.card {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  box-sizing: border-box;
+  margin-block: 0 var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--rv-rule);
+  border-radius: var(--radius-lg);
+  background: var(--rv-card);
+  font-size: var(--type-body);
+  line-height: var(--type-body-lh);
+}
+
+.cardText,
+.cardNote {
+  margin: 0;
+  color: var(--rv-text);
+  font-size: var(--type-body);
+  line-height: var(--type-body-lh);
+}
+
+.page .cardText,
+.page .cardNote {
+  margin: 0;
+}
+
+.cardNote {
+  color: var(--rv-muted);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.cardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* A scan: the thumbnail centred, the card as wide as its caption wants, not a grey field. */
+.card[data-testid='text-view-scanned'] {
+  justify-items: center;
+  width: 100%;
+  max-width: 280px;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.card[data-testid='text-view-scanned'] .cardText {
+  text-wrap: balance;
+}
+
+.scanThumb {
+  width: min(180px, 100%);
+}
+
+.scanRun {
+  width: 100%;
+}
+
+@media (forced-colors: active) {
+  .root {
+    background: Canvas;
+    color: CanvasText;
+  }
+
+  .page mark,
+  .page mark[data-soft] {
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .skeletonLine {
+    background: GrayText;
+  }
+}

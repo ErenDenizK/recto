@@ -1055,6 +1055,26 @@
   /* The signature pad's "Sign here" hint and line: ink on the white page, so theme-free. The
      signature's navy at 0.75 composites to #535a9e, 6.32:1 on white (was 0.45, 2.66:1; DSN-80). */
   --sign-hint: rgb(26 35 126 / 0.75);
+  /* The Text view's reading surface (DSN-84, PRD-36), for both looks at once: the view picks
+     one by its Auto, Light or Dark setting, whatever the app's theme is, so these are not in
+     the theme blocks. Light: the page white (n1) with the ink (n12) and n10 for the quieter
+     text. Dark: n2 with a softer white for long reading, n9 for the quieter text. Body 7:1 or
+     more and the quieter text 4.5:1 or more, asserted by tokens.test.ts. The mark is Find's
+     lime as a fill with ink on it (DSN-83); the soft one marks a whole block when the words
+     were not found in it. */
+  --reader-light-bg: #fdfdff;
+  --reader-light-text: #15171c;
+  --reader-light-muted: #4a4d54;
+  --reader-light-rule: #dee0e4;
+  --reader-light-card: #f1f2f5;
+  --reader-dark-bg: #101215;
+  --reader-dark-text: #dcdee3;
+  --reader-dark-muted: #a8abb0;
+  --reader-dark-rule: #2a2d33;
+  --reader-dark-card: #191b20;
+  --reader-mark: #c8fb3d;
+  --reader-mark-ink: #15171c;
+  --reader-mark-soft: rgb(200 251 61 / 0.35);
   /* Type (ADR-0027, language.md §4; spec D3-5). One face, 'Inter Recto' (styles/fonts.css),
      with its metric-matched fallback next so a cold load moves nothing (quality-bar Q-8).
      JetBrains Mono left the UI: technical strings use the `.technical` class (fonts.css). */

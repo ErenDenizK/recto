@@ -59,6 +59,7 @@ import styles from './CompactReader.module.css';
 import { CompactSheets } from './CompactSheets';
 import { phoneCapsule } from './phone-capsule-flag';
 import { openFind, setChromeHidden, setZoom, useCompactStore } from './compact-store';
+import { registerTextViewReader, TextViewSlot } from './textview-host';
 import type { PinchMorph } from './overview';
 import {
   canOpenOverview,
@@ -175,6 +176,7 @@ export function CompactReader() {
       <CompactCapsule doc={doc} />
       <CompactSheets doc={doc} />
       <OverviewSlot doc={doc} />
+      <TextViewSlot doc={doc} />
     </div>
   );
 }
@@ -225,6 +227,7 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
   const ws = useWorkspaceStore((s) => s.workspace);
   const zoom = useCompactStore((s) => s.zoom);
   const overviewOpen = useCompactStore((s) => s.overview === 'open');
+  const textViewOpen = useCompactStore((s) => s.textView);
   const chromeHidden = useCompactStore((s) => s.chromeHidden);
   const insets = useSafeAreaInsets();
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -409,6 +412,19 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
         if (page) useViewStore.getState().scrollToPage(page.id);
       },
     });
+  }, []);
+
+  // The Text view keeps the place with the reader (PRD-36): it reads where the reader is and
+  // puts the reader where the view was left (`textview-shown.tsx`).
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    return registerTextViewReader({
+      scroller: el,
+      latest: () => latest.current,
+      scrollTo: scrollToPosition,
+    });
+    // The port reads the latest layout through `latest`.
   }, []);
 
   /** Whether scrolling may hide the chrome now (01-frame F12 §4). */
@@ -1002,8 +1018,8 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
         data-testid="compact-pages"
         data-zoom={layout.zoom}
         // Hidden under the open page overview (MOB-2), which is the place then.
-        data-overview={overviewOpen || undefined}
-        inert={overviewOpen}
+        data-overview={overviewOpen || textViewOpen || undefined}
+        inert={overviewOpen || textViewOpen}
         role="region"
         aria-label={m.a11y_pages_viewport({ title: doc.title })}
         // A scrollable region takes focus (WCAG 2.1.1), so the arrows scroll it.
@@ -1020,7 +1036,7 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
           </div>
         </div>
       </div>
-      <PagePill visible={pill && chromeHidden} total={doc.pages.length} />
+      <PagePill visible={pill && chromeHidden && !textViewOpen} total={doc.pages.length} />
     </>
   );
 }

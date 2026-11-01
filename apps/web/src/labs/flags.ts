@@ -32,6 +32,7 @@ export type LabsKey =
   | 'scan'
   | 'paragraph-frame'
   | 'paragraph-outlines'
+  | 'text-view'
   | 'fener';
 
 export type LabsEdition = 'full' | 'compact' | 'all';
@@ -116,6 +117,7 @@ export const LABS_FLAGS: readonly LabsFlag[] = [
   sw('scan', 'scan', 'all', 'prototype'),
   sw('paragraph-frame', 'paraframe', 'full', 'prototype'),
   sw('paragraph-outlines', 'paraoutlines', 'full', 'prototype'),
+  sw('text-view', 'textview', 'compact', 'prototype'),
   sw('fener', 'fener', 'all', 'prototype'),
 ];
 
