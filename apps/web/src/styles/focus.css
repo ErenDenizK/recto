@@ -85,9 +85,7 @@
 [data-focus='inset']:focus-visible,
 .mat :focus-visible {
   outline-offset: var(--focus-offset-in);
-  box-shadow:
-    inset 0 0 0 4px var(--focus-dark),
-    var(--shadow-own, 0 0 #0000);
+  box-shadow: var(--focus-shadow-inset), var(--shadow-own, 0 0 #0000);
 }
 
 /* Gap: an ink gap of 4 px, the light band, then the dark band outside it. */

@@ -1,0 +1,142 @@
+/*
+ * Theme colour (AccentRow.tsx; DSN-88). The dots are the presets' fills, set here (this file loads
+ * with Settings, so nothing of it exists with Fener off): Çivit is the same in both themes, Mor
+ * and Mavi deeper in the light theme, as `styles/fener.css` has them. The picker is
+ * `ui/Popover`'s: it opens on --spring-quick from 0.96 and closes in --duration-fast. Here only
+ * the chosen swatch moves: its ring lands from 0.88 on --spring-pop (a small overshoot), the
+ * dot beneath it stays still. Transform and opacity only; reduced motion shows the ring at once.
+ */
+.group {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.swatch {
+  composes: focus-inset from global;
+  --sw-dot: 28px;
+  --sw-ring-size: calc(var(--sw-dot) + 2 * var(--space-half) + 4px);
+
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: var(--space-1);
+  box-sizing: border-box;
+  min-height: var(--control-h);
+  padding: var(--space-2) var(--space-1);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  forced-color-adjust: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .swatch {
+    --sw-dot: 32px;
+  }
+}
+
+/* The chosen swatch is filled with the theme colour: its focus ring's middle band is white
+   (styles/fener.css §3b). */
+.swatch[data-checked]:focus-visible {
+  --focus-light: var(--focus-on-fill);
+}
+
+.swatch > .dot,
+.swatch > .ring {
+  grid-area: 1 / 1;
+}
+
+.dot {
+  place-self: center;
+  box-sizing: border-box;
+  width: var(--sw-dot, 18px);
+  height: var(--sw-dot, 18px);
+  border-radius: 50%;
+  background: #4650fb;
+}
+
+.dot[data-preset='violet'] {
+  background: #844afb;
+}
+
+.dot[data-preset='blue'] {
+  background: #0d77ca;
+}
+
+:global([data-theme='light']) .dot[data-preset='violet'] {
+  background: #783cee;
+}
+
+:global([data-theme='light']) .dot[data-preset='blue'] {
+  background: #0a6ab5;
+}
+
+/* The dot in the row's button is a glyph-sized one. */
+:global(.btn) .dot {
+  --sw-dot: 16px;
+}
+
+.ring {
+  box-sizing: border-box;
+  align-self: center;
+  justify-self: center;
+  width: var(--sw-ring-size);
+  height: var(--sw-ring-size);
+  border: 2px solid var(--text-primary);
+  border-radius: 50%;
+  opacity: 0;
+  transform: scale(0.88);
+  pointer-events: none;
+}
+
+.swatch[data-checked] .ring {
+  opacity: 1;
+  transform: none;
+  animation: land var(--spring-pop) var(--ease-spring-pop);
+}
+
+.name {
+  grid-column: 1;
+  grid-row: 2;
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  font-weight: var(--weight-medium);
+  text-align: center;
+}
+
+.swatch[data-checked] .name {
+  color: var(--text-primary);
+}
+
+@media (hover: hover) {
+  .swatch:not([data-checked]):hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+}
+
+@keyframes land {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swatch[data-checked] .ring {
+    animation: none;
+  }
+}
+
+:global(:root[data-motion='reduced']) .swatch[data-checked] .ring {
+  animation: none;
+}
+
+@media (forced-colors: active) {
+  .swatch[data-checked] .ring {
+    border-color: Highlight;
+  }
+}

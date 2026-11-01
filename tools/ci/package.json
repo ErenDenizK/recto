@@ -1,0 +1,13 @@
+{
+  "name": "@pdf-editor/ci-tool",
+  "version": "0.0.0",
+  "private": true,
+  "description": "CI helpers: lists the unit tests and e2e specs a pull request adds or changes, for the burn-in jobs in .github/workflows/ci.yml.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "changed-tests": "node --experimental-strip-types --no-warnings=ExperimentalWarning changed-tests.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  }
+}
