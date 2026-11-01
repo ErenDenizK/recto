@@ -461,11 +461,29 @@ describe('motion (quality-bar Q-7)', () => {
     // Hidden from the tree while the modal sheet is open.
     const under = screen.getByRole('button', { name: 'On the page', hidden: true });
     const box = under.getBoundingClientRect();
-    await userEvent.keyboard('{Escape}');
+    // Read the scrim in the observer's callback: it runs as a microtask right after the
+    // attribute lands, before any frame, so the exit cannot have finished however slow the
+    // runner is. Polling for the attribute and reading afterwards races the unmount (L13, L16).
+    let exiting: { connected: boolean; pointerEvents: string; hit: Element | null } | null = null;
+    const observer = new MutationObserver(() => {
+      if (exiting !== null || !scrim?.hasAttribute('data-ending-style')) return;
+      exiting = {
+        connected: scrim.isConnected,
+        pointerEvents: getComputedStyle(scrim).pointerEvents,
+        hit: document.elementFromPoint(box.left + 2, box.top + 2),
+      };
+    });
+    observer.observe(scrim as HTMLElement, {
+      attributes: true,
+      attributeFilter: ['data-ending-style'],
+    });
+    try {
+      await userEvent.keyboard('{Escape}');
+      await waitFor(() => expect(exiting).not.toBeNull());
+    } finally {
+      observer.disconnect();
+    }
     // Still fading out, and still covering the page: a press reaches what is under it.
-    await waitFor(() => expect(scrim).toHaveAttribute('data-ending-style'));
-    expect(scrim?.isConnected).toBe(true);
-    expect(getComputedStyle(scrim as HTMLElement).pointerEvents).toBe('none');
-    expect(document.elementFromPoint(box.left + 2, box.top + 2)).toBe(under);
+    expect(exiting).toEqual({ connected: true, pointerEvents: 'none', hit: under });
   });
 });

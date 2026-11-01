@@ -207,16 +207,28 @@ describe('Segmented, radio semantics', () => {
   });
 });
 
+/**
+ * The tab panel a screen reader can reach. A panel that is leaving stays mounted for its exit,
+ * `inert` from its first frame (A-13), and `inert` takes it out of the accessibility tree; Testing
+ * Library's role queries do not know `inert`, so the query skips it itself instead of racing the
+ * unmount (L13, L16).
+ */
+function livePanel(): HTMLElement {
+  const live = screen.getAllByRole('tabpanel').filter((panel) => panel.closest('[inert]') === null);
+  expect(live).toHaveLength(1);
+  return live[0] as HTMLElement;
+}
+
 describe('Segmented, tabs semantics', () => {
   it('is a tab list whose arrows move and activate, with its panels', async () => {
     render(<Host semantics="tabs" />);
     const list = screen.getByRole('tablist', { name: 'View' });
     expect(list.getBoundingClientRect().height).toBe(32);
-    expect(screen.getByRole('tabpanel')).toHaveTextContent('Grid panel');
+    expect(livePanel()).toHaveTextContent('Grid panel');
     screen.getByRole('tab', { name: 'Grid' }).focus();
     await userEvent.keyboard('{ArrowRight}');
     expect(screen.getByRole('tab', { name: 'Spectrum' })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('tabpanel')).toHaveTextContent('Spectrum panel');
+    expect(livePanel()).toHaveTextContent('Spectrum panel');
     await settled(thumbOf(list));
     expectOver(thumbOf(list), screen.getByRole('tab', { name: 'Spectrum' }));
   });

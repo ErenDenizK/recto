@@ -286,6 +286,8 @@ export function watchPlaces(
     DocumentId,
     { readonly file: { name: string; size: number }; readonly place: RecentPlace }
   >();
+  /** The file of each document seen, so the place read as it closes is not lost. */
+  const known = new Map<DocumentId, { name: string; size: number }>();
   const flush = () => {
     window.clearTimeout(timer);
     for (const { file, place } of pending.values()) void setRecentPlace(file, place);
@@ -293,11 +295,16 @@ export function watchPlaces(
   };
   const off = useResumeStore.subscribe((state, previous) => {
     if (state.points === previous.points) return;
+    let closing = false;
     for (const [key, point] of Object.entries(state.points)) {
       const id = key as DocumentId;
       if (previous.points[key] === point) continue;
-      const file = resolve(id);
+      // A document closing is read for its place (`watchResume`) after the workspace has let it
+      // go, so it is named by what was seen of it before.
+      const file = resolve(id) ?? known.get(id);
       if (!file) continue;
+      known.set(id, file);
+      closing ||= resolve(id) === undefined;
       pending.set(id, {
         file,
         place: {
@@ -311,7 +318,10 @@ export function watchPlaces(
       });
     }
     window.clearTimeout(timer);
-    timer = window.setTimeout(flush, PLACE_DELAY_MS);
+    // The place a document is left at is final: it is written at once, so a reopen straight
+    // after the close finds it, not the one from before the last scroll.
+    if (closing) flush();
+    else timer = window.setTimeout(flush, PLACE_DELAY_MS);
   });
   const onHide = () => {
     if (document.visibilityState === 'hidden') flush();
