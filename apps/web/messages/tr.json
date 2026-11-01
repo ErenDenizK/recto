@@ -1180,6 +1180,7 @@
   "cmd_forms_highlight": "Form alanlarını vurgula",
   "cmd_forms_clear": "Tüm form alanlarını temizle",
   "forms_fill": "{name} alanını doldur",
+  "forms_fill_my_info_label": "Bilgilerimden doldur",
   "forms_clear_all_label": "Tüm alanları temizle",
   "forms_cleared": "{count} alan temizlendi",
   "forms_nothing_to_clear": "Temizlenecek alan yok",
@@ -2309,6 +2310,13 @@
   "settings_theme_dark": "Koyu",
   "settings_theme_hint": "Sistem, cihazınızın temasına uyar.",
   "settings_theme_keywords": "tema, açık, koyu, aydınlık, karanlık, mod, açık mod, koyu mod, gece, gündüz, renk, sistem, görünüş, görünüm",
+  "settings_accent": "Tema rengi",
+  "settings_accent_hint": "Düğmelerin, seçimin ve arka plan ışığının rengi.",
+  "settings_accent_keywords": "tema rengi, vurgu, renk, çivit, mor, mavi, ton, fener",
+  "settings_accent_indigo": "Çivit",
+  "settings_accent_violet": "Mor",
+  "settings_accent_blue": "Mavi",
+  "announce_accent": "Tema rengi: {name}",
   "cmd_view_theme_system": "Tema: Sistem",
   "cmd_view_theme_light": "Tema: Açık",
   "cmd_view_theme_dark": "Tema: Koyu",
@@ -3714,5 +3722,7 @@
   "labs_scan": "Kamerayla tara",
   "labs_scan_hint": "Kâğıdı kamerayla tarayıp yeni bir PDF yapar.",
   "labs_phone_capsule": "Telefonda tek kapsül",
-  "labs_phone_capsule_hint": "Telefonun alt çubuğu tek kapsül olur: okurken simgeler, düzenlerken araçlar, renk ve kalınlık için bir tepsi. Araç çekmecesinin yerini alır."
+  "labs_phone_capsule_hint": "Telefonun alt çubuğu tek kapsül olur: okurken simgeler, düzenlerken araçlar, renk ve kalınlık için bir tepsi. Araç çekmecesinin yerini alır.",
+  "labs_fener": "Fener renkleri",
+  "labs_fener_hint": "Yeni renkler (Fener): tek tema rengi, renkli cam düğmeler, logodan gelen arka plan ışığı. Ayarlar’dan çivit, mor ya da mavi seçilebilir."
 }

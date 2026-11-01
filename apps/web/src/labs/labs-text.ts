@@ -28,6 +28,7 @@ export const LABS_TEXT: Readonly<
     title: m.labs_paragraph_outlines,
     hint: m.labs_paragraph_outlines_hint,
   },
+  fener: { title: m.labs_fener, hint: m.labs_fener_hint },
 };
 
 /** The names of a choice flag's values. */
