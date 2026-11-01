@@ -8,6 +8,7 @@
  * `localStorage`; when storage is unavailable it lasts as long as the address carries it.
  */
 import { labsStored } from '../labs/stored';
+import { deskEnabled } from './desk-flag';
 
 export interface HomeFlag {
   /** Its key in the Labs registry (`labs/flags.ts`, DSN-82). */
@@ -54,6 +55,8 @@ export function decideHomeFlag(flag: HomeFlag, search: string, stored: string | 
 
 /** Whether `flag` is on in this browser; the address wins and is remembered. */
 export function homeFlagEnabled(flag: HomeFlag): boolean {
+  // The desk (DSN-87) brings the Continue card, progress and exact resume with it.
+  if (flag === HOME_CONTINUE_FLAG && deskEnabled()) return true;
   const value = new URLSearchParams(location.search).get(flag.param);
   let stored: string | null = null;
   try {

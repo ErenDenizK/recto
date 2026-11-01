@@ -1,0 +1,220 @@
+/*
+ * The cover shelf (RecentShelf.tsx; DSN-87 masa.md §2.4): tiles in a grid of at least 176 px with
+ * a 24 px gutter (six per row at the 1184 column, five at the tablet's 1148, fewer in a narrow
+ * one), each a lit card: the cover on a 152 × 200 stage, the name in two lines, one meta line and
+ * the 3 px neutral bar. The ⋯ sits in the tile's corner: shown on hover and focus on fine
+ * pointers, always on coarse ones. The cover inside is content (solid).
+ */
+.shelf {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--type-body);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-body-lh);
+  letter-spacing: var(--track-body);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+  gap: var(--space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
+
+.tile {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-1);
+  box-sizing: border-box;
+  min-width: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-xl);
+  color: var(--text-primary);
+  text-align: start;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition:
+    transform var(--spring-press) var(--ease-spring),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.stage {
+  --cover-box-w: 128px;
+  --cover-box-h: 168px;
+  display: grid;
+  /* Every sheet stands on one baseline, whatever its proportions. */
+  place-items: end center;
+  height: 168px;
+  margin-bottom: var(--space-2);
+}
+
+.name {
+  /* One line, before the ⋯ at its end; the full name is the tile's accessible name. */
+  min-width: 0;
+  padding-inline-end: calc(var(--control-h) + var(--space-1));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--type-body);
+  font-weight: var(--weight-medium);
+  line-height: var(--type-body-lh);
+  letter-spacing: var(--track-body);
+}
+
+.meta {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Tiles in a row share a height; the facts and the bar sit at the bottom, aligned. */
+  margin-top: auto;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  letter-spacing: var(--track-footnote);
+  font-variant-numeric: tabular-nums;
+}
+
+.badge {
+  color: var(--text-primary);
+}
+
+.badge::before {
+  content: ' · ';
+}
+
+.bar {
+  margin-top: var(--space-1);
+}
+
+/* The sample's static drawing, on the same sheet the covers take. */
+.drawing {
+  display: block;
+  width: min(128px, calc(168px * 210 / 297));
+  aspect-ratio: 210 / 297;
+  overflow: hidden;
+  border-radius: var(--radius-page);
+  box-shadow: var(--page-shadow);
+}
+
+.drawingSvg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.tile[aria-disabled='true'] .drawing {
+  opacity: 0.5;
+}
+
+@media (hover: hover) {
+  .tile:hover:not([aria-disabled='true']) {
+    --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--lens-rim-hover);
+  }
+}
+
+.tile:active:not([aria-disabled='true']) {
+  --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--lens-rim-pressed);
+  transform: scale(var(--press-scale-large));
+  transition-duration: var(--duration-instant);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile:active {
+    transform: none;
+  }
+}
+
+:root[data-motion='reduced'] .tile:active {
+  transform: none;
+}
+
+.more {
+  composes: focus-inset from global;
+  position: absolute;
+  /* On the name row: under the 168 px stage and its margin, centred on the line. */
+  top: calc(var(--space-3) + 168px + var(--space-2) + (var(--type-body-lh) - var(--control-h)) / 2);
+  right: var(--space-3);
+  display: grid;
+  place-items: center;
+  width: var(--control-h);
+  height: var(--control-h);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-capsule);
+  background: transparent;
+  color: var(--text-secondary);
+  opacity: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.more svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+.more:hover,
+.item:hover .more,
+.item:focus-within .more,
+.more[data-popup-open],
+.more:focus-visible {
+  opacity: 1;
+}
+
+@media (pointer: coarse) {
+  .more {
+    opacity: 1;
+  }
+}
+
+/* Text controls start on the column's edges: their own padding is pulled out (DSN-87). */
+.clear {
+  margin-inline-end: calc(-1 * var(--space-3));
+}
+
+.note,
+.footnote {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.footnote {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-1);
+}
+
+.footnoteIcon {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  color: var(--warning);
+}
+
+.manage {
+  margin-inline: calc(-1 * var(--space-2)) 0;
+}

@@ -43,8 +43,9 @@ compact edition, editable since EDN-7 (pen, highlight, text, edit text, signatur
 ## Model routing (PRC-23, owner)
 
 Opus 5.5 decides the "what" (plans, research, taste, unknown-cause bugs, final review); Sonnet 5.5
-builds settled specs through the `implementer` agent; Haiku 5.5 reads and reports (`Explore`,
-`log-reader`). Effort `medium`, never `xhigh`/`max`, only 5.5 models. Implementers stay inside the
+builds settled specs through the `implementer` agent and also reads and reports (`Explore`,
+`log-reader`); nothing runs below Sonnet (PRC-35). The lead sets effort per task, `high` or
+`medium`, never `xhigh`/`max`, only 5.5 models. Implementers stay inside the
 files their brief owns and stop to ask on an unsettled decision. Details, guards and the metrics
 loop: `docs/process/model-routing.md`; one row per lane in `docs/process/agent-metrics.md`.
 

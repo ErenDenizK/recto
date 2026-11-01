@@ -584,6 +584,26 @@ test.describe('axe', () => {
     await axe(page, 'Home with files');
   });
 
+  test('the desk (DSN-87): first visit, with open documents, returning with covers', async ({
+    page,
+  }) => {
+    await page.goto('./?lang=en&desk=1');
+    await expect(page.getByTestId('desk-sample')).toBeVisible();
+    await axe(page, 'desk, first visit');
+    await openFixtures(page, ['simple-text.pdf', 'rotated-pages.pdf']);
+    await page.keyboard.press('0');
+    await expect(page.getByTestId('home')).toBeVisible();
+    await expect(page.getByRole('group', { name: 'Ways to start' })).toBeVisible();
+    await axe(page, 'desk, with open documents');
+    // Close both: the desk returns with Recent as covers.
+    await page.keyboard.press('ControlOrMeta+w');
+    await page.keyboard.press('ControlOrMeta+w');
+    const shelf = page.getByRole('list', { name: 'Recent files' });
+    await expect(shelf.locator('button[data-desk-tile]').first()).toBeVisible();
+    await expect(shelf.locator('img[data-cover]').first()).toBeVisible({ timeout: 30_000 });
+    await axe(page, 'desk, returning with covers');
+  });
+
   test('Read and Edit with the bar open on each group, the page menu and an options tier', async ({
     page,
   }) => {
