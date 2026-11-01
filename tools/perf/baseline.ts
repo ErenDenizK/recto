@@ -781,9 +781,7 @@ async function deskPainted(browser: Browser, profile: Profile): Promise<Row> {
   if (profile.touch) return row;
   const markAt = async (page: Page) => {
     await until(page, DESK_MARK, 60_000);
-    return page.evaluate(
-      () => performance.getEntriesByName('desk:painted')[0]?.startTime ?? -1,
-    );
+    return page.evaluate(() => performance.getEntriesByName('desk:painted')[0]?.startTime ?? -1);
   };
   const { ctx, page } = await context(browser, profile);
   server.reset();
