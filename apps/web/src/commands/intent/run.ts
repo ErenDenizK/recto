@@ -26,8 +26,8 @@ import { goToPageIndex } from '../../viewer/navigation';
 import { openFind, runSearch, setSearchQuery } from '../../viewer/search';
 import { commandRegistry } from '../registry';
 import { gatherIntentContext, workspaceVersion } from './context';
+import { composeSteps } from './compose';
 import {
-  composeSteps,
   deletedIdsOf,
   documentStepsOf,
   finishesAfterSplit,

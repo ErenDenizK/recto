@@ -30,6 +30,19 @@ async function type(page: Page, query: string): Promise<void> {
 
 const intentRow = (page: Page) => page.locator('[data-intent] [role="option"]').first();
 
+/**
+ * Enter on the active reading, once it is runnable: the bar marks a reading's row `data-painted`
+ * in the frame after it is drawn, and an Enter before that frame does nothing (spec niyet §2.13,
+ * never run a reading the user did not see). Waiting on the mark, not a clock, is what keeps an
+ * engine that is a beat behind from losing the key.
+ */
+async function enterOnReading(page: Page): Promise<void> {
+  await expect(
+    page.locator('[data-intent] [role="option"][aria-selected="true"][data-painted]'),
+  ).toBeVisible();
+  await page.keyboard.press('Enter');
+}
+
 /** A page's box, to see a turn: a quarter turn swaps its width and height. */
 async function shape(page: Page, index: number): Promise<'portrait' | 'landscape'> {
   const box = await page.locator(`[data-page-index="${index}"]`).boundingBox();
@@ -43,15 +56,53 @@ test.describe('palette intents', () => {
     await type(page, '5');
     await expect(intentRow(page)).toHaveText(/Go to page 5/);
     await expect(intentRow(page)).toHaveAttribute('aria-selected', 'true');
-    await page.keyboard.press('Enter');
+    await enterOnReading(page);
     await expect(page.getByTestId('page-pill')).toHaveText(new RegExp(`^5 / ${FULL.pageCount}`));
 
     await type(page, 'son sayfa');
     await expect(intentRow(page)).toHaveText(new RegExp(`Go to page ${FULL.pageCount}`));
-    await page.keyboard.press('Enter');
+    await enterOnReading(page);
     await expect(page.getByTestId('page-pill')).toHaveText(
       new RegExp(`^${FULL.pageCount} / ${FULL.pageCount}`),
     );
+  });
+
+  test('Enter before the row is painted does nothing; the next one, after, runs it', async ({
+    page,
+  }) => {
+    await openSample(page);
+    await page.keyboard.press('ControlOrMeta+k');
+    const input = page.getByRole('combobox', { name: 'Search commands' });
+    await expect(input).toBeVisible();
+    // A mutation observer fires in the microtask after React's commit, before the frame the row
+    // is painted in: an Enter there is the one the rule is about (§2.13), and it is exact in
+    // every engine, which a key sent from the test is not.
+    await input.evaluate((el) => {
+      const seen = window as unknown as { early?: { painted: boolean; open: boolean } };
+      const watcher = new MutationObserver(() => {
+        const row = document.querySelector('[data-intent] [role="option"]');
+        if (!row) return;
+        watcher.disconnect();
+        el.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+        );
+        seen.early = {
+          painted: row.hasAttribute('data-painted'),
+          open: document.querySelector('[role="dialog"]') !== null,
+        };
+      });
+      watcher.observe(document.body, { childList: true, subtree: true, characterData: true });
+    });
+    await input.fill('5');
+    await expect(intentRow(page)).toHaveText(/Go to page 5/);
+    expect(await page.evaluate(() => (window as unknown as { early?: unknown }).early)).toEqual({
+      painted: false,
+      open: true,
+    });
+    await expect(page.getByTestId('page-pill')).toHaveText(new RegExp(`^1 / ${FULL.pageCount}`));
+    await expect(page.getByRole('dialog', { name: 'Command palette' })).toBeVisible();
+    await enterOnReading(page);
+    await expect(page.getByTestId('page-pill')).toHaveText(new RegExp(`^5 / ${FULL.pageCount}`));
   });
 
   test('"rotate 2-3 right" shows the pages, rotates them, and can be undone', async ({ page }) => {
@@ -60,7 +111,7 @@ test.describe('palette intents', () => {
     await type(page, 'rotate 2-3 right');
     await expect(intentRow(page)).toContainText('Rotate pages 2–3 right');
     await expect(intentRow(page)).toContainText('2 pages');
-    await page.keyboard.press('Enter');
+    await enterOnReading(page);
     await expect(page.getByRole('dialog', { name: 'Command palette' })).toHaveCount(0);
     await expect.poll(() => shape(page, 1)).toBe('landscape');
     await page.keyboard.press('ControlOrMeta+z');
@@ -71,13 +122,13 @@ test.describe('palette intents', () => {
     await openSample(page);
     await type(page, 'rotate 2-3 180');
     await expect(intentRow(page)).toContainText('Rotate pages 2–3 180°');
-    await page.keyboard.press('Enter');
+    await enterOnReading(page);
     await expect(page.getByRole('dialog', { name: 'Command palette' })).toHaveCount(0);
     await expect(page.getByRole('status').filter({ hasText: '180°' })).toHaveCount(1);
     // One undo takes the half turn back: the next step down is opening the sample, not a
     // second half of the turn.
     const undo = page.getByTestId('undo-button');
-    await expect(page.getByText(/^Undo rotate 2 pages/)).toBeAttached();
+    await expect(page.getByText(/^Undo rotate pages 2–3 180°/i)).toBeAttached();
     await undo.click();
     await expect(page.getByText(/^Undo open Recto sample/)).toBeAttached();
     await expect(page.getByRole('button', { name: 'Redo', exact: true })).toBeEnabled();
@@ -88,10 +139,14 @@ test.describe('palette intents', () => {
     await type(page, 'go to Contributor agreement');
     const row = intentRow(page);
     await expect(row).toContainText('Go to ‘Contributor agreement’');
-    const detail = (await row.locator('[data-reason]').textContent()) ?? '';
+    const detail =
+      (await row
+        .getByText(/^Page \d+$/)
+        .first()
+        .textContent()) ?? '';
     const target = /\d+/.exec(detail)?.[0];
     expect(target).toBeDefined();
-    await page.keyboard.press('Enter');
+    await enterOnReading(page);
     await expect(page.getByTestId('page-pill')).toHaveText(
       new RegExp(`^${target} / ${FULL.pageCount}`),
     );
@@ -104,7 +159,7 @@ test.describe('palette intents', () => {
     await expect(row).toHaveAttribute('aria-disabled', 'true');
     await expect(row).toContainText(`This document has ${FULL.pageCount} pages`);
     await expect(row).toHaveAttribute('aria-selected', 'true');
-    await page.keyboard.press('Enter');
+    await enterOnReading(page);
     // The palette stays, and no page turned.
     await expect(page.getByRole('combobox', { name: 'Search commands' })).toBeVisible();
     expect(await shape(page, 1)).toBe('portrait');

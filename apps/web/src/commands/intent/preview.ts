@@ -415,7 +415,18 @@ export function previewOf(
   version: number,
   text: string,
 ): IntentPreview {
-  const steps = reading.steps.map((step) => previewStep(step, ctx));
+  // A step that named no page (out of range, none left) keeps the pages as typed in its sentence
+  // and quotes no count: the reason speaks.
+  const steps = reading.steps.map((step, i) => {
+    const pages = stepPages(step);
+    if (pages === undefined || pages.pages.length > 0) return previewStep(step, ctx);
+    const typed = typedPages(text, reading.spans[i]);
+    const { detail: _count, ...rest } = previewStep(
+      typed.length === 0 ? step : ({ ...step, pages: { ...pages, pages: typed } } as Step),
+      ctx,
+    );
+    return { ...rest, pages: [] };
+  });
   const key = `${version}|${foldForSearch(text).trim().replace(/\s+/g, ' ')}|${JSON.stringify(reading.steps)}`;
   const unavailable = reading.steps.find((step) => step.action === 'unavailable');
   let reason: string | undefined;
@@ -503,6 +514,20 @@ export function guardReason(reading: Reading): string | undefined {
     }
   }
   return undefined;
+}
+
+/** The pages a clause names as typed ("2-999", "2, 5, 9"), for a sentence whose pages did not resolve. */
+function typedPages(text: string, span: readonly [number, number] | undefined): number[] {
+  const clause = span === undefined ? text : text.slice(span[0], span[1]);
+  const run = /(\d+)\s*(?:-|–|\.\.|to|ile)\s*(\d+)/i.exec(clause);
+  if (run) {
+    const [from, to] = [Number(run[1]), Number(run[2])];
+    return to >= from && to - from < 10_000
+      ? Array.from({ length: to - from + 1 }, (_, k) => from + k)
+      : [from, to];
+  }
+  const list = /\d+(?:\s*(?:,|and|ve)?\s*\d+)*/.exec(clause);
+  return list ? (list[0].match(/\d+/g) ?? []).map(Number) : [];
 }
 
 /** `previewOf` plus the guard's answer and the document's size where a row quotes it. */

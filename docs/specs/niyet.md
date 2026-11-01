@@ -542,6 +542,7 @@ module, which reads the stores. Tests use `previewOf`.
 | `partial` | One quiet, non-runnable row: "Didn't understand “yamuk” · rotate takes pages, a direction or degrees", then the command list (ranked on the whole text) | Runs the command list's first enabled row only if the person moved to it; on the partial row, nothing |
 | `unavailable` | Row "Recto doesn't turn PDFs into Word files" (non-runnable) and right under it the nearest command as a normal row ("Export as Markdown / text…") | On the nearest row: runs it |
 | `none` | Today's command ranking | As today |
+| The text is a command's exact title (folded, a trailing "…" ignored) | `none`: never read as a sentence, so the command is the active row (PRD-39 amendment, 2026-11-01) | Runs the command |
 | Nothing at all | FB11 empty: "No commands match “…”" plus one example sentence in the UI language | — |
 
 ### 2.15 Accessibility

@@ -33,6 +33,18 @@
  * - `engineClient`: the closure of the `client` chunk, `@pdf-editor/engine/client` (PF-2): the
  *   engine code the main thread loads to open the first document (the worker proxies and pure
  *   helpers, never pdf-lib or EmbedPDF), JS gzip. The audit's ceiling is 120 KB.
+ * - `intentBar` (PRD-39, spec niyet §2.19): what the palette's first open loads for sentences, the
+ *   closure of the lazy `palette-intent` chunk (the parser, lexicon and the reading rows) minus
+ *   the chunks already in the `editor` closure, JS gzip. Only its absolute gate applies: it is
+ *   lazy, so it never grows the editor's first load.
+ * - `intentPreview` (PRD-39, spec niyet §2.19): what a reading adds on top of that, the closure of
+ *   the lazy `preview` chunk (`commands/intent/preview.ts`, which the palette imports when a
+ *   reading appears, never when ⌘K opens) minus the editor's chunks and `intentBar`'s, JS gzip.
+ *   Gate history: the first definition summed both under one 20 KB gate (25.6 KB) because the
+ *   preview was then a static import of the intent chunk; the gate's definition was wrong, not the
+ *   budget. `intentBar` keeps its 20 KB for the chunk ⌘K loads and `intentPreview` gets 10 KB for
+ *   the chunk a reading loads. Both are new gates set by that change (no existing baseline was
+ *   raised), and each has only its absolute gate, as the chunks are lazy.
  * - `pdfiumWorker`: the PDFium worker script and its closure, raw (parsed before the first
  *   render).
  * - `precache`: the bytes the service worker precaches.
@@ -78,6 +90,8 @@ type MeasureName =
   | 'compact'
   | 'compactSession'
   | 'engineClient'
+  | 'intentBar'
+  | 'intentPreview'
   | 'pdfiumWorker'
   | 'precache';
 
@@ -103,6 +117,8 @@ const MEASURE_LABELS: Readonly<Record<MeasureName, string>> = {
   compact: 'Compact edition JS gzip (static)',
   compactSession: 'Compact read session JS gzip',
   engineClient: 'First-open engine JS gzip (PF-2)',
+  intentBar: 'Intent bar chunk JS gzip (PRD-39)',
+  intentPreview: 'Intent preview chunk JS gzip (PRD-39)',
   pdfiumWorker: 'PDFium worker script, raw',
   precache: 'Service-worker precache, raw',
 };
@@ -191,6 +207,22 @@ function main(): void {
   const editor = closure([chunk('app')]);
   const compact = closure([chunk('CompactApp')]);
   const engineClient = closure([chunk('client')]);
+  // The lazy intent chunk, without what the editor loads anyway (PRD-39, §2.19).
+  const inEditor = new Set(editor.files);
+  const intentFiles = closure([chunk('palette-intent')]).files.filter(
+    (file) => !inEditor.has(file),
+  );
+  const sumOf = (files: readonly string[]): Closure => ({
+    files,
+    raw: files.reduce((sum, file) => sum + sizeOf(file).raw, 0),
+    gzip: files.reduce((sum, file) => sum + sizeOf(file).gzip, 0),
+  });
+  const intentBar = sumOf(intentFiles);
+  // The preview chunk loads when a reading appears: its own files, without the editor's or the bar's.
+  const inBar = new Set(intentFiles);
+  const intentPreview = sumOf(
+    closure([chunk('preview')]).files.filter((file) => !inEditor.has(file) && !inBar.has(file)),
+  );
   const pdfiumWorker = closure([chunk('pdfium.worker')]);
   const session = readSession(dist, assetFiles, compact, sizeOf);
   const measures: Partial<Record<MeasureName, number>> = {
@@ -199,6 +231,8 @@ function main(): void {
     compact: compact.gzip,
     ...(session ? { compactSession: session.measured.gzip } : {}),
     engineClient: engineClient.gzip,
+    intentBar: intentBar.gzip,
+    intentPreview: intentPreview.gzip,
     pdfiumWorker: pdfiumWorker.raw,
     precache: precacheBytes,
   };
@@ -208,6 +242,8 @@ function main(): void {
     compact: compact.files.length,
     ...(session ? { compactSession: session.measured.files.length } : {}),
     engineClient: engineClient.files.length,
+    intentBar: intentBar.files.length,
+    intentPreview: intentPreview.files.length,
     pdfiumWorker: pdfiumWorker.files.length,
     precache: precacheList.length,
   };
@@ -305,6 +341,8 @@ function main(): void {
     [MEASURE_LABELS.editor, editor],
     [MEASURE_LABELS.compact, compact],
     [MEASURE_LABELS.engineClient, engineClient],
+    [MEASURE_LABELS.intentBar, intentBar],
+    [MEASURE_LABELS.intentPreview, intentPreview],
   ];
   for (const [label, measured] of breakdown) {
     console.log(`\n${label}, largest chunks:`);
