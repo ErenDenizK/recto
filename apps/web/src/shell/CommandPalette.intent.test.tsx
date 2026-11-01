@@ -97,14 +97,20 @@ describe('the intent bar in the palette', () => {
     expect(pages()).toBeGreaterThan(2);
   });
 
-  it('does not run a reading that was never painted for the typed text', async () => {
+  it('keeps an Enter that lands before the reading was painted, and runs it once it is', async () => {
     const before = pages();
-    act(() => {
-      fireEvent.change(combobox(), { target: { value: 'delete 2' } });
+    // A mutation observer fires in the microtask after the commit that draws the row, before the
+    // frame that paints it: the earliest Enter there is.
+    const watcher = new MutationObserver(() => {
+      if (!screen.queryByRole('option', { name: 'Delete page 2' })) return;
+      watcher.disconnect();
       fireEvent.keyDown(combobox(), { key: 'Enter' });
     });
-    await frame();
-    expect(pages()).toBe(before);
+    watcher.observe(document.body, { childList: true, subtree: true, characterData: true });
+    await userEvent.keyboard('delete 2');
+    await expect.poll(pages).toBe(before - 1);
+    await expect.poll(() => screen.queryByRole('combobox')).toBeNull();
+    watcher.disconnect();
   });
 
   it('runs a painted reading on Enter and closes the palette', async () => {

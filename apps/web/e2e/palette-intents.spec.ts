@@ -54,6 +54,28 @@ test.describe('palette intents', () => {
     );
   });
 
+  test('Enter in the task the row lands in still runs it', async ({ page }) => {
+    await openSample(page);
+    await page.keyboard.press('ControlOrMeta+k');
+    const input = page.getByRole('combobox', { name: 'Search commands' });
+    await expect(input).toBeVisible();
+    // A mutation observer fires in the microtask after React's commit, before the frame the
+    // row is painted in: the earliest Enter a fast typist, a paste or a slow engine can land.
+    await input.evaluate((el) => {
+      const watcher = new MutationObserver(() => {
+        if (!document.querySelector('[data-intent] [role="option"]')) return;
+        watcher.disconnect();
+        el.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+        );
+      });
+      watcher.observe(document.body, { childList: true, subtree: true, characterData: true });
+    });
+    await input.fill('5');
+    await expect(page.getByTestId('page-pill')).toHaveText(new RegExp(`^5 / ${FULL.pageCount}`));
+    await expect(page.getByRole('dialog', { name: 'Command palette' })).toHaveCount(0);
+  });
+
   test('"rotate 2-3 right" shows the pages, rotates them, and can be undone', async ({ page }) => {
     await openSample(page);
     expect(await shape(page, 1)).toBe('portrait');
