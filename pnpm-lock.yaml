@@ -201,6 +201,8 @@ importers:
         specifier: 6.3.289
         version: 6.3.289
 
+  tools/ci: {}
+
   tools/copy-check: {}
 
   tools/fixtures:
