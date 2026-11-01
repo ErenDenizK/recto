@@ -262,6 +262,22 @@
   transform: translateX(calc((var(--slider-pos) - 1) * 100cqw - var(--sl-knob) / 2));
 }
 
+/* Fener (DSN-88): the strong fill would show milky through the glass knob, so it ends at the
+   knob's leading edge, which grows with the knob (--sl-scale), and the lens shows only track. */
+:global(:root[data-fener]) .fill {
+  transform: translateX(
+    calc(
+      (var(--slider-pos) - 1) *
+      100cqw -
+      var(--sl-knob) /
+      2 -
+      var(--sl-knob) *
+      var(--sl-scale) /
+      2
+    )
+  );
+}
+
 .root[data-disabled] .art,
 .root[data-disabled] .fill {
   background: var(--sl-disabled);

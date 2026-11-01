@@ -6,11 +6,12 @@
  * document's last copy for the toast's Details (memory only, like the sheet's drafts).
  */
 import type { DocumentId } from '@pdf-editor/document-model';
+import type { RasterFormat } from '@pdf-editor/engine/client';
 import { create } from 'zustand';
 
 import type { SaveReceipt } from './receipt';
 
-import { closeSheet, openSheet, useSheetStore } from '../ui/sheet/sheet-store';
+import { closeSheet, type OpenSheet, openSheet, useSheetStore } from '../ui/sheet/sheet-store';
 
 /** The sheet's id in `sheet-store` (drafts key on it). */
 export const SAVE_COPY_SHEET = 'save-copy';
@@ -32,9 +33,34 @@ export function isSaveCopyPreset(value: string | null): value is SaveCopyPreset 
   );
 }
 
+/**
+ * What the palette asks of Save a copy (PRD-40, spec niyet §2.12): a preset as above, or a preset
+ * with the facts a sentence named. `size` carries the byte target of "under 2 MB" (the sheet
+ * picks the least lossy Size that meets it once its estimates arrive), `images` the type and
+ * the 1-based page range text of the Images section ("" for every page), `text` the format.
+ * The sheet only opens set up: it never writes a file by itself.
+ */
+export type SaveCopyRequest =
+  | SaveCopyPreset
+  | { readonly kind: 'size'; readonly targetBytes: number }
+  | { readonly kind: 'images'; readonly type: RasterFormat; readonly range: string }
+  | { readonly kind: 'text'; readonly format: 'markdown' | 'text' };
+
+/** The requests that carry facts, by the sheet request they opened (memory only, like drafts). */
+const requests = new WeakMap<OpenSheet, Exclude<SaveCopyRequest, string>>();
+
+/** The request that opened `open`, when it carried facts; null for a plain preset. */
+export function saveCopyRequestOf(open: object | null): Exclude<SaveCopyRequest, string> | null {
+  return open === null ? null : (requests.get(open as OpenSheet) ?? null);
+}
+
 /** Opens Save a copy for `documentId`, replacing any open sheet (its draft stays). */
-export function openSaveCopy(documentId: DocumentId, preset: SaveCopyPreset | null = null): void {
+export function openSaveCopy(documentId: DocumentId, request: SaveCopyRequest | null = null): void {
+  const preset = typeof request === 'object' && request !== null ? request.kind : request;
   openSheet(SAVE_COPY_SHEET, { docId: documentId, preset });
+  if (typeof request !== 'object' || request === null) return;
+  const { open } = useSheetStore.getState();
+  if (open) requests.set(open, request);
 }
 
 export function closeSaveCopy(): void {

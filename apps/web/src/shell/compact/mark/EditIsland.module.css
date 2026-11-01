@@ -107,6 +107,22 @@
   height: 20px;
 }
 
+/* Fener (DSN-88): the spark marks "on", an 8 px green dot ringed in ink on the glyph while a tool
+   is armed. */
+:global(:root[data-fener]) .chip[data-armed] .glyph::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--tool-active-fill);
+  box-shadow: 0 0 0 1px var(--tool-active-ink);
+  pointer-events: none;
+}
+
 .glyph > svg {
   grid-area: 1 / 1;
   width: 20px;

@@ -862,7 +862,7 @@ export function startGpuGlass(root: HTMLElement, startPaused: boolean): GpuGlass
   });
   theme.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ['data-theme', 'data-short'],
+    attributeFilter: ['data-theme', 'data-short', 'data-accent', 'data-fener'],
   });
   cleanups.push(() => theme.disconnect());
   cleanups.push(
