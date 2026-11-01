@@ -20,7 +20,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
-import { EXIT_TIMEOUT } from '../../test/settled';
+import { EXIT_TIMEOUT, settled } from '../../test/settled';
 import mixedUrl from '../../../../test/fixtures/mixed-sizes.pdf?url';
 import rotatedUrl from '../../../../test/fixtures/rotated-pages.pdf?url';
 import { App } from '../app';
@@ -103,7 +103,7 @@ describe('resize pages dialog', () => {
       .getState()
       .apply({ selected: new Set([second.id]), anchor: second.id, focused: second.id });
     await commandRegistry.execute('pages.resize');
-    const dialog = await screen.findByTestId('resize-dialog');
+    const dialog = await settled(await screen.findByTestId('resize-dialog'));
     await waitFor(() => {
       expect(within(dialog).getByRole('heading', { name: 'Resize pages' })).toBeVisible();
     });
@@ -181,7 +181,7 @@ describe('resize pages dialog', () => {
   it('resizes all pages of a section to A4 and exports the new sizes', async () => {
     const id = await open(mixedUrl, 'mixed-sizes.pdf');
     await runSectionCommand('section.resize', id);
-    const dialog = await screen.findByTestId('resize-dialog');
+    const dialog = await settled(await screen.findByTestId('resize-dialog'));
     expect(
       within(dialog).getByRole('radio', { name: 'All pages of mixed-sizes (5)' }),
     ).toBeChecked();

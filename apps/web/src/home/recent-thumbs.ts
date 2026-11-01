@@ -45,21 +45,23 @@ let queue: Promise<unknown> = Promise.resolve();
 /**
  * The thumbnail of kept snapshot `snapshotId`, rendered once per session (null: glyph): its
  * first page in the row's box, or page `page` in a bigger `box` for the Library's Continue card
- * (DSN-66).
+ * (DSN-66). `scale` fixes the device pixels per CSS pixel (default: the screen's); the cover
+ * backfill asks for 2 so a stored cover is the same on every screen (DSN-87).
  */
 export function recentThumb(
   snapshotId: string,
   page = 0,
   box: ThumbBox = RECENT_THUMB,
+  scale?: number,
 ): Promise<RecentThumb | null> {
-  const key = `${snapshotId}:${page}:${box.width}x${box.height}`;
+  const key = `${snapshotId}:${page}:${box.width}x${box.height}:${scale ?? 'screen'}`;
   const known = cache.get(key);
   if (known) return known;
   // Before the session has opened its storage there is nothing to read yet: ask again later
   // (the row asks once the session says it keeps documents) rather than remember "none".
   if (!snapshotStorage()) return Promise.resolve(null);
   // One render at a time, after the ones asked for before.
-  const next = queue.then(() => render(snapshotId, page, box)).catch(() => null);
+  const next = queue.then(() => render(snapshotId, page, box, scale)).catch(() => null);
   queue = next;
   cache.set(key, next);
   return next;
@@ -88,6 +90,7 @@ async function render(
   snapshotId: string,
   index: number,
   box: ThumbBox,
+  scale?: number,
 ): Promise<RecentThumb | null> {
   const storage = snapshotStorage();
   if (!storage) return null;
@@ -112,7 +115,7 @@ async function render(
     const widthPt = turned ? info.size.height : info.size.width;
     const heightPt = turned ? info.size.width : info.size.height;
     const fit = Math.min(box.width / widthPt, box.height / heightPt);
-    const dpr = Math.max(1, globalThis.devicePixelRatio || 1);
+    const dpr = scale ?? Math.max(1, globalThis.devicePixelRatio || 1);
     const result = await engine.renderPage({
       sourceId: id,
       index: page.ref.index,

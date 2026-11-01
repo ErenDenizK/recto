@@ -353,6 +353,27 @@ const synonyms: readonly (readonly [string, string])[] = [
   ['images to pdf', 'section.insertImages'],
   ['batch', 'document.batch'],
   ['toplu işlem', 'document.batch'],
+  // Folk words the intent bar also reads as sentences (PRD-39, spec §2.18).
+  ['jpg yap', 'document.exportImages'],
+  ["jpg'ye çevir", 'document.exportImages'],
+  ['resme çevir', 'document.exportImages'],
+  ['fotoğraf olarak kaydet', 'document.exportImages'],
+  ['convert to jpg', 'document.exportImages'],
+  ['as jpg', 'document.exportImages'],
+  ["pdf'i böl", 'section.split'],
+  ['sayfalara ayır', 'section.split'],
+  ['split every', 'section.split'],
+  ['mb altına', 'document.compress'],
+  ['boyut düşür', 'document.compress'],
+  ['compress to', 'document.compress'],
+  ['word', 'document.exportMarkdown'],
+  ['docx', 'document.exportMarkdown'],
+  ['pdf to word', 'document.exportMarkdown'],
+  ["word'e çevir", 'document.exportMarkdown'],
+  ['metne çevir', 'document.exportMarkdown'],
+  ['pdf birleştir', 'documents.mergeAll'],
+  ['dosyaları birleştir', 'documents.mergeAll'],
+  ['merge pdf', 'documents.mergeAll'],
 ];
 
 describe('synonym corpus (Epic 4)', () => {
