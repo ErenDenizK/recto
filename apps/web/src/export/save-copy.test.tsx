@@ -68,7 +68,16 @@ describe('the sheet', () => {
       picker === 'function' ? 'Save copy' : 'Download copy',
     );
 
-    await userEvent.click(within(sheet).getByRole('radio', { name: /^Smallest/ }));
+    // A size option is named with its estimate ("Smallest, Estimating…", then "Smallest, about
+    // 1.1 MB"). `userEvent.click(element)` pins the locator to the name the element has when it
+    // is pressed, so a press that straddles the estimate landing waits for the old name for
+    // ever. Wait for the estimate, then press an option whose name no longer changes.
+    const smallest = await within(sheet).findByRole(
+      'radio',
+      { name: /^Smallest, about / },
+      { timeout: 30_000 },
+    );
+    await userEvent.click(smallest);
     await userEvent.click(within(sheet).getByRole('radio', { name: 'Images' }));
     await userEvent.click(within(sheet).getByRole('radio', { name: 'JPEG' }));
     await userEvent.click(within(sheet).getByRole('radio', { name: 'PDF' }));
