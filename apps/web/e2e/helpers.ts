@@ -21,6 +21,13 @@ export const FIXTURES = new URL('../../../test/fixtures/', import.meta.url);
  */
 export const PAGE_CANVAS = 'canvas[data-layer="page"]';
 
+/**
+ * The armed Edit text tool's button by its whole name: "Edit text" in the palette, "More tools,
+ * Edit text armed" on the dock's More. Whole names, because the sample's feature page has a
+ * paragraph that says "Choose Edit text (E)…", and its edit target is a button too.
+ */
+export const EDIT_TEXT_ARMED = /^(Edit text|More tools, Edit text armed)$/;
+
 export function fixturePath(name: string): string {
   return fileURLToPath(new URL(name, FIXTURES));
 }
