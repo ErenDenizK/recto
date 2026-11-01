@@ -31,6 +31,15 @@ export const THEME_COLOURS: Readonly<Record<Theme, string>> = {
   light: '#e6e8eb',
 };
 
+/**
+ * Each theme's canvas under Fener (DSN-88, `styles/fener.css`: `--n1` in the dark theme,
+ * `--canvas` in the light), the browser chrome's colour while the root carries `data-fener`.
+ */
+export const FENER_THEME_COLOURS: Readonly<Record<Theme, string>> = {
+  dark: '#07090d',
+  light: '#e6e9f2',
+};
+
 const LIGHT_QUERY = '(prefers-color-scheme: light)';
 
 const lightList = (): MediaQueryList | null =>
@@ -55,16 +64,18 @@ export function subscribeSystemTheme(listener: () => void): () => void {
 
 /**
  * Writes the theme a setting puts in force onto `root` (`data-theme`) and the document's
- * `theme-color` metas, and returns it.
+ * `theme-color` metas, and returns it. With `data-fener` on the root (the caller writes it
+ * first, DSN-88) the metas take Fener's canvases.
  */
 export function applyTheme(root: HTMLElement, setting: ThemeSetting): Theme {
   const theme = resolveTheme(setting);
   if (root.getAttribute('data-theme') !== theme) root.setAttribute('data-theme', theme);
+  const colours = root.hasAttribute('data-fener') ? FENER_THEME_COLOURS : THEME_COLOURS;
   for (const meta of root.ownerDocument.querySelectorAll<HTMLMetaElement>(
     'meta[name="theme-color"]',
   )) {
     const scheme: Theme = meta.media.includes('light') ? 'light' : 'dark';
-    meta.content = THEME_COLOURS[setting === 'system' ? scheme : theme];
+    meta.content = colours[setting === 'system' ? scheme : theme];
   }
   return theme;
 }

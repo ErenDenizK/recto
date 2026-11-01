@@ -13,6 +13,7 @@ import { type ActionResult, executeEdit, runAction } from '../annotations/edit-r
 import { m } from '../i18n';
 import { fillCreatedField } from './create/field-actions';
 import type { ActiveField } from './form-store';
+import { markFieldOrigin } from './my-info/fill-origin';
 
 export type FieldValue = FormField['value'];
 
@@ -64,10 +65,100 @@ export async function fillField(
  * Commits a value typed or picked in a field editor: created fields (forms/create) are
  * model operations, source fields engine edits. Resolves to whether a change was committed.
  */
-export async function commitFieldValue(here: ActiveField, value: FieldValue): Promise<boolean> {
-  if (here.fieldId !== undefined) return fillCreatedField(here.fieldId, value);
-  if (here.source === undefined) return false;
-  return fillField(here.source, here.name, value);
+export async function commitFieldValue(
+  here: ActiveField,
+  value: FieldValue,
+  origin: 'manual' | 'stamp' = 'manual',
+): Promise<boolean> {
+  const done =
+    here.fieldId !== undefined
+      ? fillCreatedField(here.fieldId, value)
+      : here.source !== undefined && (await fillField(here.source, here.name, value));
+  // A value typed or picked by hand: the "save to My info?" chip reads this (BM-4, DSN-86).
+  // A date stamp is marked `stamp` instead, which the chip ignores.
+  if (done) markFieldOrigin(here, origin);
+  return done;
+}
+
+/** One field for `fillFields`: `expected` is the text it must still hold ('' when empty). */
+export interface FieldFill {
+  readonly source: SourceId;
+  readonly name: string;
+  readonly value: string;
+  readonly expected?: string;
+}
+
+/**
+ * The fields `fillFields` changed. `stale`: it changed none because one moved on (or the
+ * `guard` said so). `failed`: it had edits to make and committed none (engine error, the
+ * history moved meanwhile, the lock refused).
+ */
+export interface FieldsFilled {
+  readonly done: readonly { readonly source: SourceId; readonly name: string }[];
+  readonly stale: boolean;
+  readonly failed: boolean;
+}
+
+/**
+ * Sets many fields of the document's sources as one history entry labelled `label` (BM-4,
+ * PRD-32: "Fill from My info"): one `runAction` of `form.set-value` edits, so one undo
+ * clears them all. All or nothing on staleness: when a field is gone or no longer holds its
+ * `expected` text, nothing is written. Read-only fields and unchanged values are skipped.
+ * With `coalesceKey`, a model entry pushed right after with the same key (created fields)
+ * joins this one. Values are never logged.
+ */
+export async function fillFields(
+  fills: readonly FieldFill[],
+  label: string,
+  coalesceKey?: string,
+  guard?: () => boolean,
+): Promise<FieldsFilled> {
+  // `runAction` drops the value of an action with no edits, so these are told here.
+  let stale = false;
+  let planned = 0;
+  try {
+    const result = await runAction(async (ctx): Promise<ActionResult<FieldsFilled> | undefined> => {
+      const found = new Map<SourceId, readonly FormField[]>();
+      const targets: { fill: FieldFill; field: FormField }[] = [];
+      for (const fill of fills) {
+        let fields = found.get(fill.source);
+        if (!fields) {
+          fields = await ctx.editor.listFormFields(fill.source);
+          found.set(fill.source, fields);
+        }
+        const field = fields.find((f) => f.name === fill.name);
+        const held = typeof field?.value === 'string' ? field.value : '';
+        if (!field || (fill.expected !== undefined && held !== fill.expected)) {
+          stale = true;
+          return undefined;
+        }
+        targets.push({ fill, field });
+      }
+      // The caller's last check (created fields), in the same step as the writes.
+      if (guard !== undefined && !guard()) {
+        stale = true;
+        return undefined;
+      }
+      const edits: EngineEdit[] = [];
+      const done: { source: SourceId; name: string }[] = [];
+      for (const { fill, field } of targets) {
+        if (field.readOnly || sameValue(field.value, fill.value)) continue;
+        planned += 1;
+        edits.push((await executeEdit(ctx, formEdit(fill.source, field, fill.value))).recorded);
+        done.push({ source: fill.source, name: fill.name });
+      }
+      return {
+        edits,
+        label,
+        value: { done, stale: false, failed: false },
+        ...(coalesceKey === undefined ? {} : { coalesceKey }),
+      };
+    });
+    return result ?? { done: [], stale, failed: !stale && planned > 0 };
+  } catch (error) {
+    console.warn('Filling the fields failed', error);
+    return { done: [], stale: false, failed: true };
+  }
 }
 
 /** The value that empties a field (`{ value: undefined }`: a radio group with none on). */

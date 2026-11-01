@@ -1,0 +1,529 @@
+/*
+ * Fener: one theme colour, tinted controls, neutral glass (DSN-88; behind the Labs flag `fener`,
+ * `state/fener.ts`). Imported after `tokens.css`; with the flag off the root carries no
+ * `data-fener` and nothing here applies, so the app is what `tokens.css` says.
+ *
+ * The recipe, measured from the owner's reference: one theme colour, `data-accent="indigo |
+ * violet | blue"` (Çivit · Mor · Mavi), does the same jobs in the light and the dark theme: the
+ * primary button's fill (white type), the Markup Done button, the slider fill, the selection of
+ * pages, the focus ring, the rare coloured type (13 px at 500 or more in the dark theme) and the
+ * main hue of the background glow. Controls are tinted glass (about 94 % fill, a 12 px blur, a
+ * lighter hue-shifted inner edge, a soft glow of 0.45 in the light theme and 0.55 in the dark),
+ * never a gradient fill. Large glass and the neutrals stay neutral: the theme hue in them is at
+ * most C 0.004 in the light theme and 0.014 in the dark. The green spark `#3fdd62` with ink
+ * `#07130b` marks only "on" (the armed tool, the selected-page badge) in both themes; lime is
+ * gone from the primary button. The gradient lives only in the background glow, theme colour →
+ * sky → green: bold on the Library, dimmed and still behind the reader (`home/Aura.module.css`).
+ *
+ * Status (danger, warning, success) stays as `tokens.css` has it: the lab's greener success fell to
+ * 4.27:1 on the light canvas, under the 4.5 floor `tokens.test.ts` holds.
+ *
+ * Hover and press never lighten the fill (white type on it would fall under 4.5:1): the edge and
+ * the glow light instead, and the press keeps Recto's sink (the press scale, no lift). The light
+ * theme's Mor (#783cee) and Mavi (#0a6ab5) are deeper than the lab's, so white type holds 4.5:1
+ * on the fill as drawn, after the 94 % mix over the lightest glass beneath (`fener.test.ts`).
+ * The light scrim is today's.
+ *
+ * How it wins: the token blocks use `:where()`, so each is exactly as specific as the theme
+ * blocks of `tokens.css` (0,1,0) and wins by coming after them, yet still loses to
+ * `[data-glass='solid']` (0,2,0). The three media blocks that make glass solid (reduced
+ * transparency, more contrast, forced colours) are `:root` (0,1,0) there, so §5 restates them
+ * above Fener's tints and filters. `tokens.test.ts` keeps `tokens.css` to its own name set; the
+ * values here are asserted by `fener.test.ts` (WCAG 2.2 and APCA, every role × preset × theme).
+ */
+
+/* ── §2 Fener, light theme ──────────────────────────────────────────────────────────── */
+/* Every preset: the neutrals and glass, which stay neutral, and what the presets share. */
+[data-fener]:where([data-theme='light']) {
+  /* Neutrals and the canvas. */
+  --n1: #fdfdfe;
+  --n2: #f6f7fa;
+  --n3: #eff0f4;
+  --n4: #e6e8ed;
+  --n5: #dddfe6;
+  --n6: #d5d7df;
+  --n7: #c4c7cf;
+  --n8: #a7aab5;
+  --n9: #5d606b;
+  --n10: #494d58;
+  --n11: #3f424d;
+  --n12: #15171e;
+  --canvas: #e6e9f2;
+
+  /* Glass: tints and filters (large glass stays neutral). */
+  --glass-chip-filter: saturate(1.3) contrast(0.9) brightness(1.18);
+  --glass-bar-filter: saturate(1.3) contrast(0.9) brightness(1.18);
+  --glass-panel-filter: saturate(1.3) contrast(0.9) brightness(1.18);
+  --glass-menu-filter: saturate(1.3) contrast(0.9) brightness(1.18);
+  --glass-menu-alpha: 0.9;
+  --glass-sheet-filter: saturate(1.3) contrast(0.9) brightness(1.18);
+  --glass-sheet-alpha: 0.94;
+  --glass-lit-filter: saturate(1.3) contrast(0.9) brightness(1.18);
+
+  /* The theme colour: fill, ink, type, lines, rings. */
+  --accent-ink: #ffffff;
+  --accent-on-fill: #ffffff;
+  --accent-edge: transparent;
+  --primary-ink: #ffffff;
+  --focus-dark: #08090c;
+  --focus-on-fill: #ffffff;
+
+  /* The spark: only "on" (armed tool, selected-page badge). */
+  --check-badge-fill: #3fdd62;
+  --check-badge-ink: #07130b;
+  --tool-active-fill: #3fdd62;
+  --tool-active-fill-hover: #4ce76c;
+  --tool-active-fill-pressed: #39ce5b;
+  --tool-active-ink: #07130b;
+
+  /* Background glow: theme colour, sky, green. */
+  --aura-lime: #5cc3ec;
+  --aura-yellow: #6be38c;
+  --aurora-mint: #60bdeb;
+  --aurora-lime: #65ea92;
+  --aurora-lemon: #bff5d6;
+}
+
+/* Çivit. */
+[data-fener]:where([data-theme='light'][data-accent='indigo']) {
+  /* Glass: tints and filters (large glass stays neutral). */
+  --glass-chip-tint: rgb(251 252 255 / var(--glass-chip-alpha));
+  --glass-bar-tint: rgb(251 252 255 / var(--glass-bar-alpha));
+  --glass-panel-tint: rgb(251 252 255 / var(--glass-panel-alpha));
+  --glass-menu-tint: rgb(251 252 255 / var(--glass-menu-alpha));
+  --glass-sheet-tint: rgb(251 252 255 / var(--glass-sheet-alpha));
+  --glass-lit-tint: rgb(251 252 255 / var(--glass-lit-alpha));
+
+  /* The theme colour: fill, ink, type, lines, rings. */
+  --accent: #4650fb;
+  --accent-hover: #4650fb;
+  --accent-pressed: #4650fb;
+  --accent-fill: #4650fb;
+  --accent-text: #3d39f7;
+  --accent-line: #4650fb;
+  --accent-ring: #4650fb;
+  --accent-subtle: rgb(70 80 251 / 0.08);
+  --accent-muted: rgb(70 80 251 / 0.14);
+  --focus-light: #4650fb;
+  --lime-300: #4650fb;
+  --lime-800: #3d39f7;
+  --lime-900: #3d39f7;
+  --primary-fill: #4650fb;
+  --primary-fill-hover: #4650fb;
+  --primary-fill-pressed: #4650fb;
+  --theme-fill: #4650fb;
+  --theme-rim: #8785f5;
+  --lime-rgb: 70 80 251;
+  --control-range: #4650fb;
+  --theme-bloom: rgb(70 80 251 / 0.45);
+  --theme-bloom-hover: rgb(70 80 251 / 0.62);
+
+  /* Selection on the page. */
+  --select: #4c5cf8;
+  --select-rgb: 76 92 248;
+
+  /* Background glow: theme colour, sky, green. */
+  --aura-mint: #7e96fb;
+  --aurora-teal: #7e96fb;
+}
+
+/* Mor. */
+[data-fener]:where([data-theme='light'][data-accent='violet']) {
+  /* Glass: tints and filters (large glass stays neutral). */
+  --glass-chip-tint: rgb(252 251 254 / var(--glass-chip-alpha));
+  --glass-bar-tint: rgb(252 251 254 / var(--glass-bar-alpha));
+  --glass-panel-tint: rgb(252 251 254 / var(--glass-panel-alpha));
+  --glass-menu-tint: rgb(252 251 254 / var(--glass-menu-alpha));
+  --glass-sheet-tint: rgb(252 251 254 / var(--glass-sheet-alpha));
+  --glass-lit-tint: rgb(252 251 254 / var(--glass-lit-alpha));
+
+  /* The theme colour: fill, ink, type, lines, rings. */
+  --accent: #783cee;
+  --accent-hover: #783cee;
+  --accent-pressed: #783cee;
+  --accent-fill: #783cee;
+  --accent-text: #7119e9;
+  --accent-line: #783cee;
+  --accent-ring: #783cee;
+  --accent-subtle: rgb(120 60 238 / 0.08);
+  --accent-muted: rgb(120 60 238 / 0.14);
+  --focus-light: #783cee;
+  --lime-300: #783cee;
+  --lime-800: #7119e9;
+  --lime-900: #7119e9;
+  --primary-fill: #783cee;
+  --primary-fill-hover: #783cee;
+  --primary-fill-pressed: #783cee;
+  --theme-fill: #783cee;
+  --theme-rim: #b983f6;
+  --lime-rgb: 120 60 238;
+  --control-range: #783cee;
+  --theme-bloom: rgb(120 60 238 / 0.45);
+  --theme-bloom-hover: rgb(120 60 238 / 0.62);
+
+  /* Selection on the page. */
+  --select: #783cee;
+  --select-rgb: 120 60 238;
+
+  /* Background glow: theme colour, sky, green. */
+  --aura-mint: #a18bf3;
+  --aurora-teal: #a18bf3;
+}
+
+/* Mavi. */
+[data-fener]:where([data-theme='light'][data-accent='blue']) {
+  /* Glass: tints and filters (large glass stays neutral). */
+  --glass-chip-tint: rgb(250 252 254 / var(--glass-chip-alpha));
+  --glass-bar-tint: rgb(250 252 254 / var(--glass-bar-alpha));
+  --glass-panel-tint: rgb(250 252 254 / var(--glass-panel-alpha));
+  --glass-menu-tint: rgb(250 252 254 / var(--glass-menu-alpha));
+  --glass-sheet-tint: rgb(250 252 254 / var(--glass-sheet-alpha));
+  --glass-lit-tint: rgb(250 252 254 / var(--glass-lit-alpha));
+
+  /* The theme colour: fill, ink, type, lines, rings. */
+  --accent: #0a6ab5;
+  --accent-hover: #0a6ab5;
+  --accent-pressed: #0a6ab5;
+  --accent-fill: #0a6ab5;
+  --accent-text: #0f66ac;
+  --accent-line: #0a6ab5;
+  --accent-ring: #0a6ab5;
+  --accent-subtle: rgb(10 106 181 / 0.08);
+  --accent-muted: rgb(10 106 181 / 0.14);
+  --focus-light: #0a6ab5;
+  --lime-300: #0a6ab5;
+  --lime-800: #0f66ac;
+  --lime-900: #0f66ac;
+  --primary-fill: #0a6ab5;
+  --primary-fill-hover: #0a6ab5;
+  --primary-fill-pressed: #0a6ab5;
+  --theme-fill: #0a6ab5;
+  --theme-rim: #30a9d6;
+  --lime-rgb: 10 106 181;
+  --control-range: #0a6ab5;
+  --theme-bloom: rgb(10 106 181 / 0.45);
+  --theme-bloom-hover: rgb(10 106 181 / 0.62);
+
+  /* Selection on the page. */
+  --select: #0a6ab5;
+  --select-rgb: 10 106 181;
+
+  /* Background glow: theme colour, sky, green. */
+  --aura-mint: #4ba3f7;
+  --aurora-teal: #4ba3f7;
+}
+
+/* ── §1 Fener, dark theme ──────────────────────────────────────────────────────────── */
+/* Every preset: the neutrals and glass, which stay neutral, and what the presets share. */
+[data-fener]:where([data-theme='dark']) {
+  /* Neutrals and the canvas. */
+  --n1: #07090d;
+  --n2: #0f1217;
+  --n3: #161a21;
+  --n4: #1d222a;
+  --n5: #252a33;
+  --n6: #2e333c;
+  --n7: #3d434c;
+  --n8: #535862;
+  --n9: #8f949d;
+  --n10: #9fa5ae;
+  --n11: #b9bec6;
+  --n12: #e7eaee;
+
+  /* Glass: tints and filters (large glass stays neutral). */
+  --glass-menu-filter: saturate(1.6) contrast(1) brightness(0.5);
+  --glass-bar-filter: saturate(1.6) contrast(1) brightness(0.5);
+  --glass-chip-filter: saturate(1.6) contrast(1) brightness(0.5);
+
+  /* The theme colour: fill, ink, type, lines, rings. */
+  --accent-ink: #ffffff;
+  --accent-on-fill: #ffffff;
+  --accent-edge: transparent;
+  --primary-ink: #ffffff;
+  --focus-dark: #08090c;
+  --focus-on-fill: #f4f6ff;
+
+  /* The spark: only "on" (armed tool, selected-page badge). */
+  --tool-active-fill: #3fdd62;
+  --tool-active-fill-hover: #4ce76c;
+  --tool-active-fill-pressed: #39ce5b;
+  --tool-active-ink: #07130b;
+  --check-badge-fill: #3fdd62;
+  --check-badge-ink: #07130b;
+
+  /* Background glow: theme colour, sky, green. */
+  --aura-lime: #0a7fae;
+  --aura-yellow: #2a9f4f;
+  --aurora-mint: #1d86b0;
+  --aurora-lime: #3bb75f;
+  --aurora-lemon: #7fdc9c;
+}
+
+/* Çivit. */
+[data-fener]:where([data-theme='dark'][data-accent='indigo']) {
+  /* Glass: tints and filters (large glass stays neutral). */
+  --glass-chip-tint: rgb(21 23 30 / var(--glass-chip-alpha));
+  --glass-bar-tint: rgb(22 24 31 / var(--glass-bar-alpha));
+  --glass-panel-tint: rgb(21 23 30 / var(--glass-panel-alpha));
+  --glass-menu-tint: rgb(25 27 34 / var(--glass-menu-alpha));
+  --glass-sheet-tint: rgb(31 33 41 / var(--glass-sheet-alpha));
+  --glass-lit-tint: rgb(36 38 45 / var(--glass-lit-alpha));
+
+  /* The theme colour: fill, ink, type, lines, rings. */
+  --accent: #4650fb;
+  --accent-hover: #4650fb;
+  --accent-pressed: #4650fb;
+  --accent-fill: #4650fb;
+  --primary-fill: #4650fb;
+  --primary-fill-hover: #4650fb;
+  --primary-fill-pressed: #4650fb;
+  --theme-fill: #4650fb;
+  --theme-rim: #8785f5;
+  --lime-rgb: 70 80 251;
+  --control-range: #4650fb;
+  --lime-300: #4650fb;
+  --lime-800: #9badf0;
+  --lime-900: #9badf0;
+  --accent-text: #9badf0;
+  --accent-line: #8a9ff2;
+  --accent-ring: #8a9ff2;
+  --focus-light: #8a9ff2;
+  --accent-subtle: rgb(70 80 251 / 0.14);
+  --accent-muted: rgb(70 80 251 / 0.22);
+  --theme-bloom: rgb(70 80 251 / 0.55);
+  --theme-bloom-hover: rgb(70 80 251 / 0.72);
+
+  /* Selection on the page. */
+  --select: #4c5cf8;
+  --select-rgb: 76 92 248;
+
+  /* Background glow: theme colour, sky, green. */
+  --aura-mint: #4556d9;
+  --aurora-teal: #4556d9;
+}
+
+/* Mor. */
+[data-fener]:where([data-theme='dark'][data-accent='violet']) {
+  /* Glass: tints and filters (large glass stays neutral). */
+  --glass-chip-tint: rgb(23 22 29 / var(--glass-chip-alpha));
+  --glass-bar-tint: rgb(24 23 30 / var(--glass-bar-alpha));
+  --glass-panel-tint: rgb(23 22 29 / var(--glass-panel-alpha));
+  --glass-menu-tint: rgb(28 27 34 / var(--glass-menu-alpha));
+  --glass-sheet-tint: rgb(34 32 40 / var(--glass-sheet-alpha));
+  --glass-lit-tint: rgb(38 37 45 / var(--glass-lit-alpha));
+
+  /* The theme colour: fill, ink, type, lines, rings. */
+  --accent: #844afb;
+  --accent-hover: #844afb;
+  --accent-pressed: #844afb;
+  --accent-fill: #844afb;
+  --primary-fill: #844afb;
+  --primary-fill-hover: #844afb;
+  --primary-fill-pressed: #844afb;
+  --theme-fill: #844afb;
+  --theme-rim: #b983f6;
+  --lime-rgb: 132 74 251;
+  --control-range: #844afb;
+  --lime-300: #844afb;
+  --lime-800: #b2a5f0;
+  --lime-900: #b2a5f0;
+  --accent-text: #b2a5f0;
+  --accent-line: #a794f2;
+  --accent-ring: #a794f2;
+  --focus-light: #a794f2;
+  --accent-subtle: rgb(132 74 251 / 0.14);
+  --accent-muted: rgb(132 74 251 / 0.22);
+  --theme-bloom: rgb(132 74 251 / 0.55);
+  --theme-bloom-hover: rgb(132 74 251 / 0.72);
+
+  /* Selection on the page. */
+  --select: #803ff8;
+  --select-rgb: 128 63 248;
+
+  /* Background glow: theme colour, sky, green. */
+  --aura-mint: #7046cf;
+  --aurora-teal: #7046cf;
+}
+
+/* Mavi. */
+[data-fener]:where([data-theme='dark'][data-accent='blue']) {
+  /* Glass: tints and filters (large glass stays neutral). */
+  --glass-chip-tint: rgb(18 24 29 / var(--glass-chip-alpha));
+  --glass-bar-tint: rgb(19 25 31 / var(--glass-bar-alpha));
+  --glass-panel-tint: rgb(18 24 29 / var(--glass-panel-alpha));
+  --glass-menu-tint: rgb(23 28 34 / var(--glass-menu-alpha));
+  --glass-sheet-tint: rgb(29 34 40 / var(--glass-sheet-alpha));
+  --glass-lit-tint: rgb(33 39 45 / var(--glass-lit-alpha));
+
+  /* The theme colour: fill, ink, type, lines, rings. */
+  --accent: #0d77ca;
+  --accent-hover: #0d77ca;
+  --accent-pressed: #0d77ca;
+  --accent-fill: #0d77ca;
+  --primary-fill: #0d77ca;
+  --primary-fill-hover: #0d77ca;
+  --primary-fill-pressed: #0d77ca;
+  --theme-fill: #0d77ca;
+  --theme-rim: #30a9d6;
+  --lime-rgb: 13 119 202;
+  --control-range: #0d77ca;
+  --lime-300: #0d77ca;
+  --lime-800: #7eb6f0;
+  --lime-900: #7eb6f0;
+  --accent-text: #7eb6f0;
+  --accent-line: #61aaf2;
+  --accent-ring: #61aaf2;
+  --focus-light: #61aaf2;
+  --accent-subtle: rgb(13 119 202 / 0.14);
+  --accent-muted: rgb(13 119 202 / 0.22);
+  --theme-bloom: rgb(13 119 202 / 0.55);
+  --theme-bloom-hover: rgb(13 119 202 / 0.72);
+
+  /* Selection on the page. */
+  --select: #1477c8;
+  --select-rgb: 20 119 200;
+
+  /* Background glow: theme colour, sky, green. */
+  --aura-mint: #076bb8;
+  --aurora-teal: #076bb8;
+}
+
+/* ── §3 Tinted glass for the primary button and Done (DSN-88) ──────────────────────────── */
+:root[data-fener] {
+  --fener-fill-mix: 94%;
+  --fener-backdrop: blur(12px) saturate(1.6);
+  /* Rest: the hue-shifted inner edge lit from above, a thinner one below, a 1 px ring and the soft
+     glow. Hover lights the edge and the glow; the press sinks (below), the fill never moves. */
+  --fener-edge:
+    inset 0 1px 0 0 var(--theme-rim),
+    inset 0 -1px 0 0 color-mix(in oklab, var(--theme-rim) 55%, transparent),
+    inset 0 0 0 1px color-mix(in oklab, var(--theme-rim) 40%, transparent),
+    0 6px 18px -8px var(--theme-bloom);
+  --fener-edge-hover:
+    inset 0 1px 0 0 color-mix(in oklab, var(--theme-rim) 55%, white),
+    inset 0 -1px 0 0 color-mix(in oklab, var(--theme-rim) 80%, transparent),
+    inset 0 0 0 1px color-mix(in oklab, var(--theme-rim) 70%, transparent),
+    0 8px 22px -8px var(--theme-bloom-hover);
+  --fener-edge-pressed:
+    inset 0 1px 0 0 color-mix(in oklab, var(--theme-rim) 70%, transparent),
+    inset 0 0 0 1px color-mix(in oklab, var(--theme-rim) 40%, transparent),
+    inset 0 2px 6px 0 rgb(0 0 0 / 0.22), 0 2px 8px -6px var(--theme-bloom);
+  /* The armed tool's spark: its edge lit from above, a ring in ink and a green glow. */
+  --fener-spark-edge:
+    inset 0 1px 0 0 #91ec7d, inset 0 0 0 1px rgb(7 19 11 / 0.14),
+    0 4px 14px -6px rgb(63 221 98 / 0.45);
+}
+
+:root[data-fener][data-theme] :is(.btn-prominent, [data-markup-done]):not([aria-disabled='true']) {
+  --shadow-own: var(--fener-edge);
+  background: color-mix(in oklab, var(--theme-fill) var(--fener-fill-mix), transparent);
+  -webkit-backdrop-filter: var(--fener-backdrop);
+  backdrop-filter: var(--fener-backdrop);
+  color: var(--primary-ink);
+}
+
+@media (hover: hover) {
+  :root[data-fener][data-theme]
+    :is(.btn-prominent, [data-markup-done]):not([aria-disabled='true']):hover {
+    --shadow-own: var(--fener-edge-hover);
+  }
+}
+
+:root[data-fener][data-theme]
+  :is(.btn-prominent, [data-markup-done]):not([aria-disabled='true']):is(
+    :active,
+    [data-popup-open],
+    [data-origin-open]
+  ) {
+  --shadow-own: var(--fener-edge-pressed);
+}
+
+/* The spark: the armed tool is the one place green marks "on" (the fill is the token's). */
+:root[data-fener][data-theme] [data-size='bar'][data-tool][aria-pressed='true'] {
+  --shadow-own: var(--fener-spark-edge);
+}
+
+/* ── §3b The focus ring: ink · theme colour · ink, 2 / 2 / 2 px (DSN-88) ────────────────────
+ * The ring's bands are the tokens of `focus.css`: --focus-dark is ink, --focus-light the theme
+ * colour (the fill in the light theme, the lighter ring colour in the dark). The outset form is
+ * ink 2 · theme 2 · ink 2 from the element out already; the inset form (`focus.css` reads
+ * --focus-shadow-inset) and the field form in the dark theme gain the outer ink band, so it is
+ * the same three bands drawn from the edge in. On a control the theme colour fills (the primary
+ * button, Done, the chosen swatch) the middle band is white, near-white in the dark theme, so the
+ * bands next to it differ by 3:1 or more over every surface, in both themes and all three
+ * presets (`fener.test.ts`). */
+:root[data-fener] {
+  --focus-shadow-inset: inset 0 0 0 4px var(--focus-dark), 0 0 0 2px var(--focus-dark);
+}
+
+:root[data-fener][data-theme='light'] {
+  --focus-field-shadow: var(--focus-shadow-outset);
+}
+
+:root[data-fener][data-theme='dark'] {
+  --focus-field-shadow: var(--focus-shadow-inset);
+}
+
+:root[data-fener]
+  :is(.btn-prominent, [data-markup-done]):not([aria-disabled='true']):focus-visible {
+  --focus-light: var(--focus-on-fill);
+}
+
+/* ── §4 Solid, more contrast, forced colours: opaque fill, no glow ─────────────────────────── */
+:root[data-fener][data-glass='solid'] {
+  --fener-fill-mix: 100%;
+  --fener-backdrop: none;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-fener] {
+    --fener-fill-mix: 100%;
+    --fener-backdrop: none;
+  }
+}
+
+@media (prefers-contrast: more), (forced-colors: active) {
+  :root[data-fener] {
+    --fener-fill-mix: 100%;
+    --fener-backdrop: none;
+    --fener-edge: 0 0 #0000;
+    --fener-edge-hover: 0 0 #0000;
+    --fener-edge-pressed: 0 0 #0000;
+    --fener-spark-edge: 0 0 #0000;
+  }
+}
+
+/* ── §5 The glass that Solid, more contrast and forced colours make solid ──────────────────── */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  :root[data-fener] {
+    --glass-chip-tint: var(--glass-chip-solid);
+    --glass-chip-filter: none;
+    --glass-bar-tint: var(--glass-bar-solid);
+    --glass-bar-filter: none;
+    --glass-panel-tint: var(--glass-panel-solid);
+    --glass-panel-filter: none;
+    --glass-menu-tint: var(--glass-menu-solid);
+    --glass-menu-filter: none;
+    --glass-sheet-tint: var(--glass-sheet-solid);
+    --glass-sheet-filter: none;
+    --glass-lit-tint: var(--glass-lit-solid);
+    --glass-lit-filter: none;
+  }
+}
+
+@media (forced-colors: active) {
+  :root[data-fener] {
+    --glass-chip-tint: Canvas;
+    --glass-chip-filter: none;
+    --glass-bar-tint: Canvas;
+    --glass-bar-filter: none;
+    --glass-panel-tint: Canvas;
+    --glass-panel-filter: none;
+    --glass-menu-tint: Canvas;
+    --glass-menu-filter: none;
+    --glass-sheet-tint: Canvas;
+    --glass-sheet-filter: none;
+    --glass-lit-tint: Canvas;
+    --glass-lit-filter: none;
+  }
+}

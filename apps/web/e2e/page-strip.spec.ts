@@ -25,12 +25,45 @@ async function centre(target: Locator): Promise<{ x: number; y: number }> {
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
 
-/** Presses the pill and holds until the strip is open. */
+/**
+ * Waits until nothing finite is running on the element, its subtree or its ancestors (the
+ * Playwright side of `test/settled.ts`). The pill rides in on a Web Animation after a document
+ * opens, so a press at its centre read while it slides lands beside it, on the page.
+ */
+async function atRest(target: Locator): Promise<void> {
+  await expect
+    .poll(async () =>
+      target.evaluate((el) => {
+        const all = [...el.getAnimations({ subtree: true })];
+        for (let up = el.parentElement; up; up = up.parentElement) all.push(...up.getAnimations());
+        return all.filter(
+          (a) => a.playState === 'running' && a.effect?.getComputedTiming().endTime !== Infinity,
+        ).length;
+      }),
+    )
+    .toBe(0);
+}
+
+/**
+ * Waits for the strip to come out of the pill. It is "visible" from its first frame, a box laid
+ * over the pill, on a JS spring (`paintOpen`) that `getAnimations()` cannot see; it is out once
+ * its inline transform, clip and opacity are gone. Measured before, a cell is somewhere it will
+ * not stay.
+ */
+async function comeOut(target: Locator): Promise<void> {
+  await expect(target).toHaveCSS('transform', 'none');
+  await expect(target).toHaveCSS('clip-path', 'none');
+  await expect(target).toHaveCSS('opacity', '1');
+}
+
+/** Presses the pill and holds until the strip is open and out. */
 async function holdPill(page: Page): Promise<void> {
+  await atRest(pill(page));
   const at = await centre(pill(page));
   await page.mouse.move(at.x, at.y);
   await page.mouse.down();
   await expect(strip(page)).toBeVisible();
+  await comeOut(strip(page));
 }
 
 test('hold the pill, scrub to page 3, release: the page changes', async ({ page }) => {

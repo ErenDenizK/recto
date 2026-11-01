@@ -266,6 +266,8 @@ const synonyms: readonly (readonly [string, string])[] = [
   ['ara', 'search.open'],
   ['ARA', 'search.open'],
   ['belgede ara', 'search.open'],
+  ['iban gizle', 'redaction.find'],
+  ['kişisel bilgi', 'redaction.find'],
   ['ocr', 'document.ocr'],
   ['make searchable', 'document.ocr'],
   ['scanned pdf', 'document.ocr'],

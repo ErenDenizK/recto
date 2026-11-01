@@ -1627,8 +1627,9 @@ describe('tokens.css', () => {
         /\.focus-inset:focus-visible,\s*\[data-focus='inset'\]:focus-visible,\s*\.mat :focus-visible/,
       );
       expect(inset.get('outline-offset')).toBe('var(--focus-offset-in)');
+      // The dark band is the host token's, so Fener's three-band form needs no rule of its own.
       expect(inset.get('box-shadow')).toBe(
-        'inset 0 0 0 4px var(--focus-dark), var(--shadow-own, 0 0 #0000)',
+        'var(--focus-shadow-inset), var(--shadow-own, 0 0 #0000)',
       );
       const gap = rule(/\.focus-gap:focus-visible,\s*\[data-focus='gap'\]:focus-visible/);
       expect(gap.get('outline-offset')).toBe('var(--focus-offset-gap)');
@@ -2404,6 +2405,8 @@ describe('tokens.css', () => {
         'rgb(255 255 255 / 0.12)',
       ],
       'ui/Swatch.module.css': ['#e5322d', '#ffffff'],
+      // Fener's three presets as dots (DSN-88); the light theme's own are in a light-only rule.
+      'settings/AccentRow.module.css': ['#4650fb', '#844afb', '#0d77ca'],
     };
     const LITERAL = /#[0-9a-f]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\)/gi;
     /** The rules of a module outside any `:global([data-theme='light'])` selector. */

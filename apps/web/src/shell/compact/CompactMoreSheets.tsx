@@ -40,10 +40,12 @@ import {
 } from '../../i18n';
 import { RevealTap } from '../../labs/RevealTap';
 import { useLabsVisible } from '../../labs/store';
+import { AccentRow } from '../../settings/AccentRow';
 import { DimPagesRow } from '../../settings/DimPagesRow';
 import { ReduceMotionRow } from '../../settings/ReduceMotionRow';
 import { ThemeRow } from '../../settings/ThemeRow';
 import { NavRow, Row, Section } from '../../settings/rows';
+import { fenerEnabled } from '../../state/fener';
 import { useViewStore } from '../../state/view-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { Icon } from '../../ui/Icon';
@@ -159,6 +161,7 @@ function SettingsSheet({ open }: { readonly open: boolean }) {
         <div className={styles.settings}>
           <Section title={m.appearance_heading()}>
             <ThemeRow />
+            {fenerEnabled() ? <AccentRow /> : null}
             <ReduceMotionRow />
             <DimPagesRow />
           </Section>
