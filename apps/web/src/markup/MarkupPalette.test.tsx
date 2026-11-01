@@ -16,7 +16,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { page, userEvent } from 'vitest/browser';
 
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
-import { settled } from '../../test/settled';
+import { EXIT_TIMEOUT, settled } from '../../test/settled';
 import { fixtureFile } from '../../test/store-harness';
 import {
   type PageTarget,
@@ -27,7 +27,7 @@ import {
 import { readAnnotations, resetEditRunner, whenIdle } from '../annotations/edit-runner';
 import { INK } from '../annotations/palette';
 import { PEN_PRESETS_STORAGE_KEY } from '../annotations/pen/presets';
-import { builtinPendingStamp } from '../annotations/stamps';
+import { builtinPendingStamp, loadSignatureFont } from '../annotations/stamps';
 import { ANNOTATION_TOOLS } from '../annotations/tools';
 import { registerAppCommands } from '../commands/app-commands';
 import { useShortcuts } from '../commands/use-shortcuts';
@@ -339,7 +339,7 @@ describe('Markup palette', () => {
       ),
     );
     await userEvent.keyboard('{Escape}');
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull(), { timeout: EXIT_TIMEOUT });
     expect(useToolStore.getState().mode).toBe('ink');
     expect(isMarkupOpenActive()).toBe(true);
   });
@@ -430,20 +430,22 @@ describe('Markup palette', () => {
   it('the Fill & sign door bar shows saved signatures as chips; a chip arms it (DSN-75)', async () => {
     await page.viewport(1440, 900);
     await saveSignature({ kind: 'typed', text: 'Ada Lindqvist' });
+    // Arming renders the typed signature to a stamp (`stampOfSignature`), and that first loads
+    // its face (`loadSignatureFont`, a request to the dev server). Have the face in before the
+    // press, so the wait below is on the arm and not on a font that a loaded runner serves late.
+    await loadSignatureFont();
     await mount();
     await openMarkup('Fill & sign');
-    const chips = await waitFor(() => {
-      const found = bar().querySelectorAll<HTMLElement>('[data-saved-signature]');
-      if (found.length === 0) throw new Error('no chips');
-      return found;
-    });
-    expect(chips).toHaveLength(1);
+    const chipOf = () => bar().querySelector<HTMLElement>('[data-saved-signature]');
+    await waitFor(() => expect(chipOf()).not.toBeNull());
+    expect(bar().querySelectorAll('[data-saved-signature]')).toHaveLength(1);
+    // The bar enters in motion; a press before it rests can land beside the chip. The chip is
+    // asked for again once it has, so the press goes to the one that is in the bar now.
     await settled(bar());
-    await userEvent.click(chips[0] as HTMLElement);
-    // Arming renders the typed signature to a stamp first (`stampOfSignature`: its face loads),
-    // which takes longer than waitFor's default second on a slow CI runner.
+    const chip = chipOf() as HTMLElement;
+    await userEvent.click(chip);
     await waitFor(() => expect(useToolStore.getState().mode).toBe('signature'), { timeout: 5000 });
-    expect(chips[0]).toHaveAttribute('aria-pressed', 'true');
+    await waitFor(() => expect(chipOf()).toHaveAttribute('aria-pressed', 'true'));
     // One pressed control across the bar.
     expect(bar().querySelectorAll('[aria-pressed="true"]')).toHaveLength(1);
   });

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
+import { EXIT_TIMEOUT } from '../../../test/settled';
 import { setLocale } from '../../i18n';
 import type { PixelSampler } from '../../viewer/page-pixels';
 import { ColourPanel, COLOUR_VIEW_KEY, COMMIT_PAUSE_MS } from './ColourPanel';
@@ -292,7 +293,9 @@ describe('ColourPicker', () => {
     await userEvent.click(cells[12]!);
     expect(screen.getByTestId('picked').textContent).not.toBe('#1760EE');
     await userEvent.keyboard('{Escape}');
-    await vi.waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await vi.waitFor(() => expect(screen.queryByRole('dialog')).toBeNull(), {
+      timeout: EXIT_TIMEOUT,
+    });
     expect(screen.getByTestId('picked').textContent).toBe('#1760EE');
     await vi.waitFor(() => expect(document.activeElement).toBe(well));
   });

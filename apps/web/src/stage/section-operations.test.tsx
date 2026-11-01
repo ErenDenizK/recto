@@ -15,7 +15,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
-import { EXIT_TIMEOUT } from '../../test/settled';
+import { EXIT_TIMEOUT, settled } from '../../test/settled';
 import outlineUrl from '../../../../test/fixtures/outline-named-dests.pdf?url';
 import rotatedUrl from '../../../../test/fixtures/rotated-pages.pdf?url';
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
@@ -96,7 +96,7 @@ describe('section operations', () => {
     const [outline] = await open([outlineUrl, 'outline-named-dests.pdf']);
     if (outline === undefined) throw new Error('not opened');
     await runSectionCommand('section.split', outline);
-    const dialog = await screen.findByTestId('split-dialog');
+    const dialog = await settled(await screen.findByTestId('split-dialog'));
     await waitFor(() => {
       expect(
         within(dialog).getByRole('heading', { name: 'Split outline-named-dests' }),
@@ -188,7 +188,7 @@ describe('section operations', () => {
       // One document open: Combine with open documents… is live and asks for files first.
       expect(commandRegistry.isEnabled(commandRegistry.get('documents.mergeAll')!)).toBe(true);
       await commandRegistry.execute('documents.mergeAll');
-      const sheet = await screen.findByTestId('combine-sheet');
+      const sheet = await settled(await screen.findByTestId('combine-sheet'));
       expect(asked).toBe(1);
       await waitFor(() => expect(rows(sheet)).toHaveLength(2));
       // The open document first, the picked file after it, both checked; it stays in view.
@@ -218,7 +218,7 @@ describe('section operations', () => {
       // ⌘K's Merge files… opens Combine with the picker too.
       await commandRegistry.execute('documents.mergeFiles');
       expect(asked).toBe(3);
-      const again = await screen.findByTestId('combine-sheet');
+      const again = await settled(await screen.findByTestId('combine-sheet'));
       await waitFor(() => expect(again).toBeVisible());
       await waitFor(() =>
         expect(within(again).getAllByTestId('combine-row').at(-1)).toHaveTextContent('third'),
@@ -238,7 +238,7 @@ describe('section operations', () => {
       [rotatedUrl, 'rotated-pages.pdf'],
     );
     await commandRegistry.execute('documents.mergeAll');
-    const sheet = await screen.findByTestId('combine-sheet');
+    const sheet = await settled(await screen.findByTestId('combine-sheet'));
     const rows = () =>
       within(sheet)
         .getAllByTestId('combine-row')
@@ -281,7 +281,7 @@ describe('section operations', () => {
     const [simple] = await open([simpleUrl, 'simple-text.pdf'], [rotatedUrl, 'rotated-pages.pdf']);
     if (simple === undefined) throw new Error('not opened');
     await runSectionCommand('section.interleave', simple);
-    const dialog = await screen.findByTestId('interleave-dialog');
+    const dialog = await settled(await screen.findByTestId('interleave-dialog'));
     expect(within(dialog).getByRole('radio', { name: /rotated-pages/ })).toBeChecked();
     await userEvent.click(within(dialog).getByRole('radio', { name: /Duplex scan/ }));
     const preview = within(dialog).getByTestId('interleave-preview');
@@ -319,7 +319,7 @@ describe('section operations', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('The title cannot be empty.');
     await userEvent.type(input, 'Contract');
     await userEvent.keyboard('{Enter}');
-    expect(await screen.findByRole('tab', { name: 'Contract' })).toBeVisible();
+    expect(await settled(await screen.findByRole('tab', { name: 'Contract' }))).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Contract' })).toBeVisible();
     expect(lastLabel()).toBe('Rename to Contract');
   }, 40_000);
@@ -368,7 +368,9 @@ describe('section operations', () => {
     ]);
     // The question (S18's InsertImagesSheet) comes after both images are decoded and the WebP
     // re-encoded as PNG: about 150 ms here, past findBy's 1 s default on a loaded CI runner.
-    const question = await screen.findByTestId('image-size-dialog', {}, { timeout: 10_000 });
+    const question = await settled(
+      await screen.findByTestId('image-size-dialog', {}, { timeout: 10_000 }),
+    );
     await waitFor(() => {
       expect(within(question).getByRole('heading', { name: 'Insert 2 images' })).toBeVisible();
     });

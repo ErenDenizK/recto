@@ -255,6 +255,8 @@ describe('focus, keys and drafts (07 §2.6)', () => {
     render(<Harness kind="task" onClose={onClose} initialOpen={false} />);
     await userEvent.click(screen.getByRole('button', { name: 'Open Page numbers' }));
     const field = await screen.findByRole('textbox', { name: 'Start at' });
+    // Typing and the Esc that follows go to a panel at rest, not one still entering.
+    await settle(await screen.findByTestId('sheet-sheet'));
     await userEvent.clear(field);
     await userEvent.type(field, '7');
     await userEvent.keyboard('{Escape}');
@@ -269,10 +271,13 @@ describe('focus, keys and drafts (07 §2.6)', () => {
   it('✕ closes with its reason; Cancel with its own', async () => {
     const onClose = vi.fn();
     const view = render(<Harness kind="task" onClose={onClose} />);
+    // A press on a panel still entering can miss its button on a slow runner: let it rest first.
+    await settle(await screen.findByTestId('sheet-sheet'));
     await userEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(onClose).toHaveBeenLastCalledWith('close');
     view.unmount();
     render(<Harness kind="task" onClose={onClose} />);
+    await settle(await screen.findByTestId('sheet-sheet'));
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(onClose).toHaveBeenLastCalledWith('cancel');
   });
@@ -281,6 +286,7 @@ describe('focus, keys and drafts (07 §2.6)', () => {
     const onApply = vi.fn();
     render(<Harness kind="task" onApply={onApply} withTextArea />);
     const field = await screen.findByRole('textbox', { name: 'Start at' });
+    await settle(await screen.findByTestId('sheet-sheet'));
     await userEvent.click(field);
     await userEvent.keyboard('{Enter}');
     expect(onApply).toHaveBeenCalledTimes(1);
@@ -295,6 +301,7 @@ describe('focus, keys and drafts (07 §2.6)', () => {
     const onUnlock = vi.fn();
     const onApply = vi.fn();
     render(<Harness kind="task" onApply={onApply} locked={{ name: 'report.pdf', onUnlock }} />);
+    await settle(await screen.findByTestId('sheet-sheet'));
     expect(screen.getByTestId('sheet-lock-banner')).toHaveTextContent('report.pdf is locked');
     const primary = screen.getByRole('button', { name: 'Locked' });
     await userEvent.click(primary);

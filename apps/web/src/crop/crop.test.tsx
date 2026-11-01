@@ -35,7 +35,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
-import { CHUNK_LOAD_TIMEOUT, EXIT_TIMEOUT } from '../../test/settled';
+import { CHUNK_LOAD_TIMEOUT, EXIT_TIMEOUT, settled } from '../../test/settled';
 import rotatedUrl from '../../../../test/fixtures/rotated-pages.pdf?url';
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import { fixtureFile } from '../../test/store-harness';
@@ -154,9 +154,11 @@ describe('crop pages dialog', () => {
     const first = pageAt(id, 0);
     select(first.id);
     await commandRegistry.execute('pages.crop');
-    const dialog = await screen.findByTestId('crop-dialog', undefined, {
-      timeout: CHUNK_LOAD_TIMEOUT,
-    });
+    const dialog = await settled(
+      await screen.findByTestId('crop-dialog', undefined, {
+        timeout: CHUNK_LOAD_TIMEOUT,
+      }),
+    );
     await waitFor(() => {
       expect(within(dialog).getByRole('heading', { name: 'Crop pages' })).toBeVisible();
     });
@@ -236,9 +238,11 @@ describe('crop pages dialog', () => {
     // The dialog opens again with the crop as its margins (millimetres by default).
     select(pageAt(id, 0).id);
     await commandRegistry.execute('pages.crop');
-    const again = await screen.findByTestId('crop-dialog', undefined, {
-      timeout: CHUNK_LOAD_TIMEOUT,
-    });
+    const again = await settled(
+      await screen.findByTestId('crop-dialog', undefined, {
+        timeout: CHUNK_LOAD_TIMEOUT,
+      }),
+    );
     expect(within(again).getByTestId('crop-top')).toHaveValue('38.1');
     expect(within(again).getByTestId('crop-left')).toHaveValue('25.4');
     await userEvent.click(within(again).getByTestId('crop-reset'));
@@ -261,9 +265,11 @@ describe('crop pages dialog', () => {
     useUiStore.getState().showSurface('grid');
     expect(await screen.findAllByRole('grid')).toHaveLength(1);
     await runSectionCommand('section.crop', id);
-    const dialog = await screen.findByTestId('crop-dialog', undefined, {
-      timeout: CHUNK_LOAD_TIMEOUT,
-    });
+    const dialog = await settled(
+      await screen.findByTestId('crop-dialog', undefined, {
+        timeout: CHUNK_LOAD_TIMEOUT,
+      }),
+    );
     expect(
       within(dialog).getByRole('radio', { name: 'All pages of simple-text (3)' }),
     ).toBeChecked();
@@ -295,9 +301,11 @@ describe('crop pages dialog', () => {
     const second = pageAt(id, 1);
     select(second.id);
     await commandRegistry.execute('pages.crop');
-    const dialog = await screen.findByTestId('crop-dialog', undefined, {
-      timeout: CHUNK_LOAD_TIMEOUT,
-    });
+    const dialog = await settled(
+      await screen.findByTestId('crop-dialog', undefined, {
+        timeout: CHUNK_LOAD_TIMEOUT,
+      }),
+    );
     await chooseOption(within(dialog).getByTestId('crop-unit'), 'pt');
     await typeMargin(dialog, 'top', '72');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Crop' }));
@@ -338,9 +346,11 @@ describe('crop pages dialog: removal and resized pages', () => {
     const { source, body } = await markHeaderAndBody(id);
     select(pageAt(id, 0).id);
     await commandRegistry.execute('pages.crop');
-    const dialog = await screen.findByTestId('crop-dialog', undefined, {
-      timeout: CHUNK_LOAD_TIMEOUT,
-    });
+    const dialog = await settled(
+      await screen.findByTestId('crop-dialog', undefined, {
+        timeout: CHUNK_LOAD_TIMEOUT,
+      }),
+    );
     await waitFor(() => expect(within(dialog).getByTestId('crop-unit')).toBeVisible());
     await chooseOption(within(dialog).getByTestId('crop-unit'), 'pt');
     await typeMargin(dialog, 'top', '108');
@@ -364,7 +374,7 @@ describe('crop pages dialog: removal and resized pages', () => {
     await userEvent.keyboard('{Escape}');
     expect(screen.getByTestId('crop-dialog')).toBeVisible();
 
-    const sheet = await screen.findByTestId('crop-result', {}, { timeout: 30_000 });
+    const sheet = await settled(await screen.findByTestId('crop-result', {}, { timeout: 30_000 }));
     expect(within(sheet).getByTestId('redaction-removed-marks')).toHaveTextContent(
       '1 mark that was not applied reached into a removed area',
     );
@@ -381,9 +391,11 @@ describe('crop pages dialog: removal and resized pages', () => {
 
     // Opened again: the form, not the old sheet.
     await commandRegistry.execute('pages.crop');
-    const again = await screen.findByTestId('crop-dialog', undefined, {
-      timeout: CHUNK_LOAD_TIMEOUT,
-    });
+    const again = await settled(
+      await screen.findByTestId('crop-dialog', undefined, {
+        timeout: CHUNK_LOAD_TIMEOUT,
+      }),
+    );
     await waitFor(() => expect(within(again).getByTestId('crop-summary')).toBeVisible());
     expect(within(again).queryByTestId('crop-result')).toBeNull();
   }, 90_000);
@@ -400,9 +412,11 @@ describe('crop pages dialog: removal and resized pages', () => {
     expect(size.width).toBeCloseTo(419.53, 1);
     select(first.id);
     await commandRegistry.execute('pages.crop');
-    const dialog = await screen.findByTestId('crop-dialog', undefined, {
-      timeout: CHUNK_LOAD_TIMEOUT,
-    });
+    const dialog = await settled(
+      await screen.findByTestId('crop-dialog', undefined, {
+        timeout: CHUNK_LOAD_TIMEOUT,
+      }),
+    );
     await waitFor(() => expect(within(dialog).getByTestId('crop-unit')).toBeVisible());
     expect(within(dialog).getByTestId('crop-resized-notice')).toHaveTextContent(
       'the margins are measured on the original page',
