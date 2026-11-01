@@ -87,8 +87,8 @@ async function readAndClose(page: Page): Promise<Left> {
   const label = await pill.innerText();
   const offset = await offsetOf(page, 3);
   expect(offset).not.toBeNull();
-  // The reader notes the place after a short quiet; then the document closes into Recent.
-  await page.waitForTimeout(400);
+  // Closing reads the place from the page view before it leaves (`watchResume`), so there is
+  // nothing to wait for: the document closes into Recent where it is.
   await page.keyboard.press('ControlOrMeta+w');
   await expect(page.getByTestId('home')).toBeVisible();
   return { label, offset: offset ?? 0 };
@@ -179,27 +179,66 @@ test('Continue after a cold start: covers from storage, no engine, the paint mar
   await continueAndExpectPlace(fresh, left);
 });
 
-/** Records the clone's width on every frame it is on the window, and the arriving page's state. */
+interface Box {
+  readonly left: number;
+  readonly top: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+interface Frame {
+  /** The lifted or flying cover's box and opacity, when it is on the window. */
+  readonly clone: (Box & { readonly opacity: number; readonly phase: string }) | null;
+  /** The reader's computed opacity, when it is mounted. */
+  readonly reader: number | null;
+  readonly inline: string | null;
+  readonly viewports: number;
+  /** The first page's box, when it is laid out. */
+  readonly page: Box | null;
+  /** The arriving page canvas's state. */
+  readonly state: string | null;
+  /** The reader's chrome is being held out of sight (`data-open-hold`), and its highest opacity. */
+  readonly hold: boolean;
+  readonly chrome: number;
+}
+
+/** Records, on every frame of an opening, the cover, the reader, its first page and its chrome. */
 async function recordOpening(page: Page): Promise<void> {
   await page.addInitScript(() => {
-    interface Frame {
-      readonly clone: number;
-      readonly viewport: string | null;
-      readonly state: string | null;
-    }
-    const frames: Frame[] = [];
-    (window as unknown as { __opening: Frame[] }).__opening = frames;
+    const frames: unknown[] = [];
+    (window as unknown as { __opening: unknown[] }).__opening = frames;
+    const box = (el: Element): unknown => {
+      const r = el.getBoundingClientRect();
+      return { left: r.left, top: r.top, width: r.width, height: r.height };
+    };
     const loop = () => {
-      const clone = document.querySelector('[data-open-grow]');
+      const clone = document.querySelector<HTMLElement>('[data-open-grow]');
       const viewport = document.querySelector<HTMLElement>('[data-read-viewport]');
       if (clone || viewport) {
+        const first = viewport?.querySelector('[data-page-index="0"]');
         const canvas = viewport?.querySelector<HTMLElement>(
           '[data-page-index] canvas[data-layer="page"]',
         );
+        const chrome = [
+          ...document.querySelectorAll(
+            '[data-top-piece]:not([data-top-piece="home"]), [data-capsule], [data-region="pill"]',
+          ),
+        ].map((el) => Number(getComputedStyle(el).opacity));
         frames.push({
-          clone: clone ? clone.getBoundingClientRect().width : 0,
-          viewport: viewport ? viewport.style.opacity : null,
+          clone: clone
+            ? {
+                ...(box(clone) as object),
+                opacity: Number(getComputedStyle(clone).opacity),
+                phase: clone.dataset.openPhase ?? '',
+              }
+            : null,
+          reader: viewport ? Number(getComputedStyle(viewport).opacity) : null,
+          inline: viewport ? viewport.style.opacity : null,
+          viewports: document.querySelectorAll('[data-read-viewport]').length,
+          page: first ? box(first) : null,
           state: canvas?.dataset.state ?? null,
+          hold: document.documentElement.hasAttribute('data-open-hold'),
+          chrome: Math.max(0, ...chrome),
         });
       }
       requestAnimationFrame(loop);
@@ -209,14 +248,45 @@ async function recordOpening(page: Page): Promise<void> {
 }
 
 const framesOf = (page: Page) =>
-  page.evaluate(
-    () =>
-      (
-        window as unknown as {
-          __opening: { clone: number; viewport: string | null; state: string | null }[];
-        }
-      ).__opening,
-  );
+  page.evaluate(() => (window as unknown as { __opening: Frame[] }).__opening);
+
+/** What every opening from the desk must show, frame by frame (DSN-87, `masa.md` §2.7). */
+function expectOneObjectTravelling(frames: readonly Frame[]): void {
+  const widths = frames.flatMap((f) => (f.clone ? [f.clone.width] : []));
+  expect(widths.length, 'the cover was drawn').toBeGreaterThanOrEqual(2);
+  expect(Math.max(...widths), 'it grew').toBeGreaterThan(Math.min(...widths) * 1.4);
+  // The desk is the only screen until the cover flies: no reader chrome while it is held.
+  const held = frames.filter((f) => f.hold && f.clone && !f.clone.phase.startsWith('flying'));
+  for (const frame of held) {
+    expect(frame.chrome, 'the reader chrome while the cover is held').toBe(0);
+  }
+  // The reader shows (any opacity) only over the cover, and then it already holds the cover's
+  // picture or a render, never its bare sheet.
+  const shown = frames.filter((f) => f.clone && f.reader !== null && f.reader > 0.02);
+  expect(shown.length, 'the cross-fade was seen').toBeGreaterThan(0);
+  for (const frame of shown) {
+    expect(frame.state, 'the page under the fading cover').not.toBe('placeholder');
+  }
+  // The cover lands: when the page starts to show, the cover lies on its box to within 2 px.
+  const [first] = shown;
+  if (first?.clone && first.page) {
+    const { clone, page } = first;
+    console.log(
+      `[masa] landing: cover ${[clone.left, clone.top, clone.width, clone.height].map((v) => v.toFixed(1)).join(',')}` +
+        ` page ${[page.left, page.top, page.width, page.height].map((v) => v.toFixed(1)).join(',')}`,
+    );
+  }
+  for (const frame of shown) {
+    const { clone, page } = frame;
+    if (!clone || !page) continue;
+    for (const side of ['left', 'top', 'width', 'height'] as const) {
+      expect(
+        Math.abs(clone[side] - page[side]),
+        `cover vs page ${side} in phase ${clone.phase} (reader ${frame.reader}, inline '${frame.inline ?? ''}', ${frame.viewports} viewports, hold ${frame.hold})`,
+      ).toBeLessThanOrEqual(2);
+    }
+  }
+}
 
 test('the sample hero lifts and grows into the page, which never shows its bare sheet', async ({
   page,
@@ -233,18 +303,9 @@ test('the sample hero lifts and grows into the page, which never shows its bare 
     { timeout: 30_000 },
   );
   await expect(page.locator('[data-open-grow]')).toHaveCount(0, { timeout: 10_000 });
-  const frames = await framesOf(page);
-  const grown = frames.map((f) => f.clone).filter((w) => w > 0);
-  expect(grown.length, 'the clone was drawn').toBeGreaterThanOrEqual(2);
-  expect(Math.max(...grown), 'it grew').toBeGreaterThan(Math.min(...grown) * 1.4);
-  // Any frame in which the reader fades in shows more than the bare sheet.
-  for (const frame of frames) {
-    // The dissolve: the reader is fading in (a number) under the clone.
-    const dissolving = frame.viewport !== '' && Number(frame.viewport) > 0.02;
-    if (dissolving && frame.clone > 0 && frame.state !== null) {
-      expect(frame.state, 'the page under the dissolving clone').not.toBe('placeholder');
-    }
-  }
+  expectOneObjectTravelling(await framesOf(page));
+  // Focus lands where Open files… and the sample put it: the page view.
+  await expect(page.locator('[data-read-viewport]')).toBeFocused();
 });
 
 test('a kept document reopened from its tile holds, then grows into a page that is never bare', async ({
@@ -283,17 +344,28 @@ test('a kept document reopened from its tile holds, then grows into a page that 
     { timeout: 30_000 },
   );
   await expect(page.locator('[data-open-grow]')).toHaveCount(0, { timeout: 10_000 });
-  const frames = (await framesOf(page)).slice(mark);
-  const grown = frames.map((f) => f.clone).filter((w) => w > 0);
-  expect(grown.length, 'the clone was drawn').toBeGreaterThanOrEqual(2);
-  expect(Math.max(...grown), 'it grew').toBeGreaterThan(Math.min(...grown) * 1.4);
-  for (const frame of frames) {
-    // The dissolve: the reader is fading in (a number) under the clone.
-    const dissolving = frame.viewport !== '' && Number(frame.viewport) > 0.02;
-    if (dissolving && frame.clone > 0 && frame.state !== null) {
-      expect(frame.state, 'the page under the dissolving clone').not.toBe('placeholder');
-    }
-  }
+  expectOneObjectTravelling((await framesOf(page)).slice(mark));
+  await expect(page.locator('[data-read-viewport]')).toBeFocused();
+});
+
+test('an open that fails settles the cover back into its tile and changes nothing', async ({
+  page,
+}) => {
+  // The sample's file cannot be fetched: the press lifts the cover, nothing opens, and after the
+  // wait for an action it settles back (masa.md §2.7 step 6).
+  await page.route(/recto-sample-.*\.pdf/, (route) => route.abort());
+  await page.goto('/?lang=en&desk=1');
+  await sessionSettled(page);
+  const sheet = page.locator('[data-testid="desk-sample"] [data-library-sheet]');
+  await page.getByTestId('desk-sample-open').click();
+  await expect(page.locator('[data-open-grow]')).toHaveCount(1);
+  await expect(page.locator('[data-open-grow]')).toHaveCount(0, { timeout: 20_000 });
+  // The desk never changed: its cover is back, nothing is busy, no reader mounted.
+  await expect(page.getByTestId('home')).toBeVisible();
+  await expect(sheet).toHaveCSS('opacity', '1');
+  await expect(page.getByTestId('desk-sample-open')).not.toHaveAttribute('aria-busy', 'true');
+  await expect(page.locator('[data-read-viewport]')).toHaveCount(0);
+  await expect(page.locator('html')).not.toHaveAttribute('data-open-hold', '');
 });
 
 test('under reduced motion nothing lifts or grows', async ({ page, browserName }) => {
@@ -308,7 +380,9 @@ test('under reduced motion nothing lifts or grows', async ({ page, browserName }
     'rendered',
     { timeout: 30_000 },
   );
-  await page.waitForTimeout(500);
+  // The copy of the desk has faded away and the reader is no longer held.
+  await expect(page.locator('html')).not.toHaveAttribute('data-open-hold', '');
+  await expect(page.locator('[data-read-viewport]')).toHaveCSS('opacity', '1');
   const frames = await framesOf(page);
-  expect(frames.filter((f) => f.clone > 0)).toHaveLength(0);
+  expect(frames.filter((f) => f.clone)).toHaveLength(0);
 });

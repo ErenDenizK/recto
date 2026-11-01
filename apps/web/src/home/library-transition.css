@@ -114,11 +114,20 @@
    without this the bare page would show through. Layout is untouched, so an exact resume
    measures and scrolls as usual. */
 :root[data-open-hold] [data-read-viewport] {
-  visibility: hidden;
+  /* Not `visibility`: the page view still takes focus while it waits (`focusOpenedPage`). */
+  opacity: 0;
+}
+
+/* The reader's chrome waits too (the strip's document pieces, the capsule, the page pill), so the
+   desk is the only screen until the cover flies; the flight fades it in on its own spring. The ◆
+   piece is on both sides and stays. */
+:root[data-open-hold]
+:is([data-top-piece]:not([data-top-piece='home']), [data-capsule], [data-region='pill']) {
+  opacity: 0;
 }
 
 /* The busy ring (after 400 ms): a turning arc on a soft disc over the held cover. */
-[data-open-grow] [data-open-busy] {
+[data-open-busy] {
   position: absolute;
   inset: 0;
   margin: auto;
@@ -130,6 +139,22 @@
   border-radius: 50%;
   background: color-mix(in srgb, var(--page-background) 55%, transparent);
   animation: open-busy-spin var(--loop-spinner) linear infinite;
+}
+
+/* The tile's own sheet carries the ring when there is no lifted copy (reduced motion). */
+[data-library-sheet]:has(> [data-open-busy]) {
+  position: relative;
+}
+
+/* Reduced motion: a still arc, not a turning one (A-9). */
+@media (prefers-reduced-motion: reduce) {
+  [data-open-busy] {
+    animation: none;
+  }
+}
+
+:root[data-motion='reduced'] [data-open-busy] {
+  animation: none;
 }
 
 @keyframes open-busy-spin {

@@ -253,54 +253,102 @@ const LIBRARY_VIEW = '[data-testid="home"], [data-testid="compact-library"]';
 /**
  * The flight (DSN-64): `clone`, laid over the window at `from`, grows into `to`, the reader's
  * page, on `glide` (a spring from the motion core, so it takes the time its physics take). The
- * reader waits out of sight until the clone is most of the way there, then the two
- * cross-dissolve as the sizes meet; the page shows the same image (the thumbnail from the cache,
- * or the desk's seed) and the sharp render cross-fades over that (`PageCanvas`). `veil`, a still
- * copy of the leaving view, fades under the clone. `done` runs once at rest. Returns the
- * function that ends the flight now (the view changed again, a safety).
+ * reader waits out of sight; the cover keeps its size to within 2 px of the page until the spring
+ * is at rest (`LANDED`), and only then do the two cross-fade over `CROSS_FADE` (the clone is
+ * re-laid on the page's own rect first, so the fade changes the picture and never the place).
+ * The page shows the same image (the thumbnail from the cache, or the desk's seed) and the sharp
+ * render cross-fades over that (`PageCanvas`). `veil`, a still copy of the leaving view, fades
+ * under the clone, and the reader's `chrome` (kept out of sight until now) fades in with the
+ * flight, on the same spring. `done` runs once everything is at rest. Returns the function that
+ * ends the flight now (the view changed again, a safety).
  */
 function fly(
   from: DOMRect,
   clone: HTMLElement,
   veil: HTMLElement | null,
-  to: HTMLElement,
+  first: HTMLElement,
+  find: () => HTMLElement | null,
   done: () => void,
+  chrome: readonly HTMLElement[] = [],
 ): () => void {
-  const end = to.getBoundingClientRect();
-  placeAt(clone, end);
-  clone.style.opacity = '';
-  const [dx, dy] = [from.left - end.left, from.top - end.top];
-  const [sx, sy] = [from.width / end.width, from.height / end.height];
-  // The whole reader waits, so no neighbouring page shows beside the flying sheet.
-  const hidden = to.closest<HTMLElement>('[data-read-viewport]') ?? to;
-  const at = (p: number) => {
-    clone.style.transform =
-      `translate(${dx * (1 - p)}px,${dy * (1 - p)}px) ` +
-      `scale(${lerp(sx, 1, p)},${lerp(sy, 1, p)})`;
-    // The page stays out of sight until the sizes are within a few per cent, then the two
-    // dissolve; the Library's copy is gone by the middle of the flight.
-    const dissolve = clamp((p - 0.85) / 0.12, 0, 1);
-    clone.style.opacity = String(1 - dissolve);
-    hidden.style.opacity = String(dissolve);
-    if (veil) veil.style.opacity = String(1 - clamp(p / 0.5, 0, 1));
+  // The page it flies to is followed live: the reader may lay the page out again (a resume's
+  // nudge, a zoom) or remount while the cover is in the air, and the cover must still land on
+  // the page that is there, not on where it was.
+  let to = first;
+  let hidden = to.closest<HTMLElement>('[data-read-viewport]') ?? to;
+  let end = to.getBoundingClientRect();
+  const follow = () => {
+    const now = find();
+    if (now?.isConnected && now !== to) {
+      hidden.style.opacity = '';
+      to = now;
+      hidden = to.closest<HTMLElement>('[data-read-viewport]') ?? to;
+    }
+    end = to.getBoundingClientRect();
   };
-  at(0);
+  const fades: Animation[] = [];
+  let crossing = false;
   let finished = false;
-  const flight = animate(0, 1, { spring: 'glide', onUpdate: at });
   const finish = () => {
     if (finished) return;
     finished = true;
     flight.stop();
+    for (const fade of fades) fade.cancel();
     clone.remove();
     veil?.remove();
     hidden.style.opacity = '';
+    for (const el of chrome) el.style.opacity = '';
     done();
   };
-  void flight.finished.then(finish);
+  /** The cross-fade from the cover to the page, the cover laid exactly on the page first. */
+  const cross = () => {
+    if (crossing || finished) return;
+    follow();
+    crossing = true;
+    placeAt(clone, end);
+    clone.style.transform = '';
+    for (const el of chrome) el.style.opacity = '1';
+    const options = {
+      duration: duration('fast'),
+      easing: EASE.standard,
+      fill: 'forwards',
+    } as const;
+    fades.push(
+      clone.animate([{ opacity: 1 }, { opacity: 0 }], options),
+      hidden.animate([{ opacity: 0 }, { opacity: 1 }], options),
+    );
+    // The fade now holds the reader at its own opacity, so the opening's hold can go.
+    document.documentElement.removeAttribute(HOLD);
+    void Promise.all(fades.map((fade) => fade.finished)).then(finish, finish);
+  };
+  const at = (p: number) => {
+    if (crossing) return;
+    follow();
+    placeAt(clone, end);
+    clone.style.transform =
+      `translate(${(from.left - end.left) * (1 - p)}px,${(from.top - end.top) * (1 - p)}px) ` +
+      `scale(${lerp(from.width / end.width, 1, p)},${lerp(from.height / end.height, 1, p)})`;
+    clone.style.opacity = '1';
+    hidden.style.opacity = '0';
+    // The Library's copy is gone by the middle of the flight; the reader's chrome follows it in.
+    if (veil) veil.style.opacity = String(1 - clamp(p / 0.5, 0, 1));
+    for (const el of chrome) el.style.opacity = String(clamp(p, 0, 1));
+    if (p >= LANDED) cross();
+  };
+  at(0);
+  const flight = animate(0, 1, { spring: 'glide', onUpdate: at });
+  void flight.finished.then(cross);
   // A safety: a spring that never reports rest must not leave the page hidden.
   setTimeout(finish, SAFETY_MS);
   return finish;
 }
+
+/**
+ * How far along the flight the cover must be before it cross-fades into the page: the size and
+ * place left are then under 2 px of the page's at 1440 (the page is about 1300 px wide, so
+ * 0.0015 of the travel is 2 px).
+ */
+const LANDED = 0.9985;
 
 /**
  * `?open=light` (R26 concept 2, DSN-64): `clone`, a copy of the leaving sheet laid over the
@@ -337,7 +385,7 @@ function growInto(
       }
       return;
     }
-    fly(from, clone, veil, to, () => void lightPulse(to));
+    fly(from, clone, veil, to, arriving, () => void lightPulse(to));
   };
   requestAnimationFrame(land);
 }
@@ -398,8 +446,21 @@ export interface OpenSeed {
   readonly image: SeedImage;
 }
 
+/**
+ * The reader's chrome that the desk does not have (the strip's document pieces, the capsule, the
+ * page pill): kept out of sight while the cover is held over the desk, then faded in with the
+ * flight (`library-transition.css`). The ◆ piece is on both sides and stays.
+ */
+const HELD_CHROME =
+  '[data-top-piece]:not([data-top-piece="home"]), [data-capsule], [data-region="pill"]';
+
 /** Set on `<html>` while the arriving reader waits behind the desk's copy (see the stylesheet). */
 const HOLD = 'data-open-hold';
+
+/** Frees a seed's decoded cover (a bitmap holds memory until it is closed). */
+function closeSeed(seed: OpenSeed | null): void {
+  if (seed && 'close' in seed.image) seed.image.close();
+}
 
 /** The opening that runs now, if any: one at a time (`canLift`). */
 let opening: OpenState | null = null;
@@ -556,9 +617,12 @@ export function liftOpen(
   name: string,
   seed?: Promise<OpenSeed | null>,
 ): void {
-  if (!canLift(opening) || !openLightOn()) return;
   const view = sheet.closest<HTMLElement>(LIBRARY_VIEW);
-  if (!view) return;
+  if (!canLift(opening) || !openLightOn() || !view) {
+    // Nothing will use the cover read for the seed: free it.
+    void seed?.then(closeSeed);
+    return;
+  }
   const reduced = reducedMotion();
   const tile = sheet.closest<HTMLElement>('button, [role="button"]');
   const from = sheet.getBoundingClientRect();
@@ -570,13 +634,19 @@ export function liftOpen(
   let land: OpenSeed | null = null;
   let seeded = false;
   let flying: (() => void) | undefined;
+  let ring: HTMLElement | undefined;
   let frame = 0;
   let stable = 0;
   let lastBox = '';
   const offs: (() => void)[] = [];
 
+  let ended = false;
+  /** The page the seed is registered for (source and page index), to drop that very key. */
+  let planted: { readonly source: string; readonly index: number } | undefined;
   void seed?.then((value) => {
-    land = value;
+    // An opening that ended before the cover was decoded has no use for it.
+    if (ended) closeSeed(value);
+    else land = value;
   });
 
   if (copy) {
@@ -598,6 +668,7 @@ export function liftOpen(
     const ref = doc?.pages[land.page]?.ref;
     if (ref?.kind !== 'source') return;
     seedPage(ref.source, ref.index, land.image);
+    planted = { source: ref.source, index: ref.index };
     const canvas = document
       .querySelector<HTMLElement>(`[data-read-viewport] [data-page-index="${land.page}"]`)
       ?.querySelector<HTMLCanvasElement>('canvas[data-layer="page"]');
@@ -611,6 +682,8 @@ export function liftOpen(
     const result = step(state, event);
     state = result.state;
     opening = state;
+    // Says where the opening is (the end-to-end specs read it).
+    if (copy) copy.dataset.openPhase = state.phase;
     for (const effect of result.effects) run(effect);
   };
 
@@ -631,11 +704,12 @@ export function liftOpen(
   const run = (effect: OpenEffect) => {
     switch (effect) {
       case 'ring': {
-        if (!copy) break;
-        const ring = document.createElement('span');
+        // Over the lifted cover, or, with no copy (reduced motion), on the tile's own sheet as a
+        // still glyph: a cue that is not only `aria-busy`.
+        ring = document.createElement('span');
         ring.dataset.openBusy = '';
         ring.setAttribute('aria-hidden', 'true');
-        copy.append(ring);
+        (copy ?? sheet).append(ring);
         ring.animate([{ opacity: 0 }, { opacity: 1 }], {
           duration: duration('base'),
           easing: EASE.out,
@@ -671,7 +745,14 @@ export function liftOpen(
         plant();
         copy?.querySelector('[data-open-busy]')?.remove();
         if (!copy) {
-          // Reduced motion: the copy of the desk cross-fades away over the arrived page.
+          // Reduced motion: the copy of the desk cross-fades away over the arrived page, and the
+          // chrome fades in with it.
+          for (const el of document.querySelectorAll<HTMLElement>(HELD_CHROME)) {
+            el.animate([{ opacity: 0 }, { opacity: 1 }], {
+              duration: duration('slow'),
+              easing: EASE.standard,
+            });
+          }
           document.documentElement.removeAttribute(HOLD);
           const fade = veil?.animate([{ opacity: 1 }, { opacity: 0 }], {
             duration: duration('slow'),
@@ -686,15 +767,29 @@ export function liftOpen(
         stopTransform(copy);
         copy.style.transform = '';
         copy.style.transformOrigin = '0 0';
-        flying = fly(box, copy, veil, to, () => {
-          void lightPulse(to);
-          send({ type: 'landed' });
-        });
-        // The flight holds the reader at opacity 0 itself now.
-        document.documentElement.removeAttribute(HOLD);
+        flying = fly(
+          box,
+          copy,
+          veil,
+          to,
+          () => landingPage(land),
+          () => {
+            void lightPulse(to);
+            send({ type: 'landed' });
+          },
+          [...document.querySelectorAll<HTMLElement>(HELD_CHROME)],
+        );
+        // The hold stays until the cross-fade (`fly`): it is what keeps the reader out of sight
+        // if anything else clears its inline opacity (an exact resume's release) mid-flight.
         break;
       }
       case 'dissolve': {
+        for (const el of document.querySelectorAll<HTMLElement>(HELD_CHROME)) {
+          el.animate([{ opacity: 0 }, { opacity: 1 }], {
+            duration: duration('base'),
+            easing: EASE.out,
+          });
+        }
         document.documentElement.removeAttribute(HOLD);
         const out = [copy, veil].filter((el): el is HTMLElement => el !== null);
         const fades = out.map(
@@ -717,11 +812,12 @@ export function liftOpen(
         tile?.removeAttribute('aria-busy');
         for (const off of offs) off();
         cancelAnimationFrame(frame);
-        // A real render has landed or the open is over: the seeds are not needed.
-        const ws = useWorkspaceStore.getState().workspace;
-        const doc = ws.activeDocument === undefined ? undefined : ws.documents[ws.activeDocument];
-        const ref = land === null ? undefined : doc?.pages[land.page]?.ref;
-        if (ref?.kind === 'source') dropSeed(ref.source, ref.index);
+        // The open is over: the seed is dropped by the key it was stored under, and the decoded
+        // cover freed, whether the open succeeded, was refused or hit the cap.
+        ended = true;
+        if (planted) dropSeed(planted.source, planted.index);
+        closeSeed(land);
+        ring?.remove();
         break;
       }
     }
@@ -731,7 +827,7 @@ export function liftOpen(
   const watch = () => {
     const shows = homeShows();
     if (!shows && state.phase === 'lifted') send({ type: 'left' });
-    else if (shows && (state.phase === 'left' || state.phase === 'flying'))
+    else if (shows && (state.phase === 'flying' || (state.phase === 'left' && state.worked)))
       send({ type: 'returned' });
   };
   // The open's first change to the workspace (a file loaded, a document added) re-renders the
@@ -748,10 +844,13 @@ export function liftOpen(
     }),
   );
 
-  void work?.then(
-    () => send({ type: 'worked' }),
-    () => send({ type: 'worked' }),
-  );
+  // An open passes through states where the desk shows again (the document is there before its
+  // view is chosen), so Home coming back counts only once the action has ended.
+  const settled = () => {
+    send({ type: 'worked' });
+    if (state.phase === 'left' && homeShows()) send({ type: 'returned' });
+  };
+  void work?.then(settled, settled);
 
   // One frame loop for the whole opening: time events, the seed, and the landing page's settling.
   const tick = () => {
@@ -770,7 +869,7 @@ export function liftOpen(
       stable = page && box === lastBox ? stable + 1 : 0;
       lastBox = box;
       if (stable >= SETTLED_FRAMES) send({ type: 'ready' });
-      else if (!showsPage()) send({ type: 'nowhere' });
+      else if (state.worked && !showsPage() && !homeShows()) send({ type: 'nowhere' });
     }
     if (state.phase === 'lifted' || state.phase === 'left') frame = requestAnimationFrame(tick);
   };
