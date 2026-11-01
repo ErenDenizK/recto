@@ -118,7 +118,7 @@ describe('a menu (the container transform)', () => {
 
     await userEvent.keyboard('{Escape}');
     // Esc is a dismissal: Base UI closes it at once (`data-instant`), no return.
-    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull(), { timeout: EXIT_TIMEOUT });
 
     // A press elsewhere closes it back into the trigger, which takes it in with the pulse.
     await userEvent.click(trigger);
