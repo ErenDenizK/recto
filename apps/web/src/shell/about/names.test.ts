@@ -13,6 +13,7 @@ import viteConfigSource from '../../../vite.config.ts?raw';
 import recipesStoreSource from '../../batch/recipes-store.ts?raw';
 import openFilesSource from '../../files/open-files.ts?raw';
 import recentsSource from '../../files/recents.ts?raw';
+import coversSource from '../../home/covers.ts?raw';
 import savedSignaturesSource from '../../signatures/saved-signatures.ts?raw';
 import { PRODUCT_NAME, REPOSITORY_URL } from './build-info';
 
@@ -62,6 +63,11 @@ describe('names kept by ADR-0015 §3', () => {
     expect(recentsSource).toMatch(/export const RECENTS_DB_NAME = 'pdf-editor:recents:v1';/);
   });
 
+  it('keeps the covers IndexedDB database and store names (DSN-87)', () => {
+    expect(coversSource).toMatch(/export const COVERS_DB_NAME = 'pdf-editor:covers:v1';/);
+    expect(coversSource).toMatch(/const COVERS_STORE = 'covers';/);
+  });
+
   it('keeps the saved signatures IndexedDB database name', () => {
     expect(savedSignaturesSource).toMatch(
       /export const SAVED_SIGNATURES_DB = 'pdf-editor:signatures:v1';/,
@@ -95,6 +101,7 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:bates-last-number',
       // The tab's last reload for a failed launch chunk (sessionStorage, pwa/boot-reload.ts).
       'pdf-editor:boot-reload:v1',
+      'pdf-editor:covers:v1',
       'pdf-editor:dev:glass-stats',
       'pdf-editor:dev:ink-stats',
       'pdf-editor:drawer:v1',

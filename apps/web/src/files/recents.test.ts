@@ -18,12 +18,14 @@ import {
   parseRecentEntry,
   RECENTS_DB_NAME,
   RECENTS_LIMIT,
+  type RecentPlace,
   type RecentEntry,
   type RecentFileHandle,
   type RecentsBackend,
   recordRecent,
   removeRecent,
   reopenRecent,
+  setRecentPlace,
   setRecentsBackend,
   storedHandlesReadable,
   useRecentsStore,
@@ -688,5 +690,62 @@ describe('kept snapshots (ADR-0032 §2.6)', () => {
       await recordRecent({ name: `f${i}.pdf`, size: 1, now: Date.now() + 1000 + i });
     }
     expect(removed).toEqual(['kept-old']);
+  });
+});
+
+describe('where reading stopped (DSN-87)', () => {
+  beforeEach(() => setRecentsBackend(memoryRecentsBackend()));
+
+  const place: RecentPlace = { page: 3, total: 8, at: 5, zoom: 1.5, fit: 'width', offset: -12 };
+
+  it('parses a stored place, and drops a bad one with the entry kept', () => {
+    expect(parseRecentEntry(entry('a', 1, { place }))?.place).toEqual(place);
+    // The page is outside the document, or a field is the wrong kind: the place goes.
+    for (const bad of [
+      { ...place, page: 8 },
+      { ...place, total: 0 },
+      { ...place, page: -1 },
+      { ...place, at: 'now' },
+      'page 4',
+    ]) {
+      const parsed = parseRecentEntry({ ...entry('a', 1), place: bad });
+      expect(parsed?.id).toBe('a');
+      expect(parsed?.place).toBeUndefined();
+    }
+  });
+
+  it('keeps the page when only the view detail is damaged', () => {
+    const parsed = parseRecentEntry({ ...entry('a', 1), place: { ...place, zoom: 'big' } });
+    expect(parsed?.place).toEqual({ page: 3, total: 8, at: 5 });
+  });
+
+  it('writes the place on the newest row of the file and stores it', async () => {
+    await recordRecent({ name: 'a.pdf', size: 10, now: 1 });
+    await setRecentPlace({ name: 'a.pdf', size: 10 }, place);
+    expect(useRecentsStore.getState().entries[0]?.place).toEqual(place);
+    // A file with no row is ignored.
+    await setRecentPlace({ name: 'zzz.pdf', size: 1 }, place);
+    expect(useRecentsStore.getState().entries).toHaveLength(1);
+  });
+
+  it('follows the file when a reopen replaces its row', async () => {
+    await recordRecent({ name: 'a.pdf', size: 10, now: 1 });
+    await setRecentPlace({ name: 'a.pdf', size: 10 }, place);
+    const reopened = await recordRecent({ name: 'a.pdf', size: 10, now: 9 });
+    expect(reopened?.place).toEqual(place);
+    expect(useRecentsStore.getState().entries).toHaveLength(1);
+    // Another file's row does not inherit it.
+    const other = await recordRecent({ name: 'b.pdf', size: 10, now: 10 });
+    expect(other?.place).toBeUndefined();
+  });
+
+  it('is carried by a kept snapshot', async () => {
+    await keepRecent({
+      name: 'a.pdf',
+      size: 10,
+      place,
+      kept: { snapshotId: 'kept-a', keptAt: Date.now(), bytes: 1, changed: false },
+    });
+    expect(useRecentsStore.getState().entries[0]?.place).toEqual(place);
   });
 });

@@ -7,17 +7,22 @@ import { screen, waitFor } from '@testing-library/react';
 import { expect } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
+import { EXIT_TIMEOUT, settled } from './settled';
+
 export async function chooseOption(
   trigger: HTMLElement,
   option: string | { readonly name: string | RegExp },
 ): Promise<void> {
   await userEvent.click(trigger);
-  const listbox = await screen.findByRole('listbox');
+  // The popup rises in from opacity 0: the option is pressed once it has come to rest.
+  const listbox = await settled(await screen.findByRole('listbox'));
   const target =
     typeof option === 'string'
       ? listbox.querySelector<HTMLElement>(`[role="option"][data-value="${CSS.escape(option)}"]`)
       : await screen.findByRole('option', { name: option.name });
   if (!target) throw new Error(`no option ${JSON.stringify(option)}`);
   await userEvent.click(target);
-  await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull());
+  await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull(), {
+    timeout: EXIT_TIMEOUT,
+  });
 }
