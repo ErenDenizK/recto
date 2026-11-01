@@ -149,3 +149,60 @@
     justify-self: stretch;
   }
 }
+
+/*
+ * The Masa desk's card (DSN-87, masa.md §2.2): the hero, at least 220 tall. The page left is
+ * fitted to height in a 172 px box (portrait 132 × 172, landscape up to 240 × 172), the name in
+ * title3, the page line in callout with tabular numbers, the bar capped at 320 px. At a stacked
+ * width (under 840 px) the card is 180 tall with a page of 104 × 136 (zoom scales the live page
+ * and the stored cover alike).
+ */
+.card[data-variant='masa'] {
+  align-content: center;
+  align-items: center;
+  height: 100%;
+  min-height: 220px;
+  padding: var(--space-5);
+  column-gap: var(--space-5);
+}
+
+.card[data-variant='masa'] .thumb {
+  --cover-box-w: 240px;
+  --cover-box-h: 172px;
+  min-width: 0;
+  align-self: center;
+}
+
+.card[data-variant='masa'] .text > :where(span) {
+  max-width: 320px;
+}
+
+.card[data-variant='masa'] .page {
+  font-size: var(--type-callout);
+  line-height: var(--type-callout-lh);
+  letter-spacing: var(--track-callout);
+}
+
+@container library (max-width: 839.98px) {
+  .card[data-variant='masa'] {
+    height: auto;
+    min-height: 180px;
+    padding: var(--space-4);
+  }
+
+  .card[data-variant='masa'] .thumb {
+    zoom: 0.79;
+  }
+}
+
+@media (max-width: 480px) {
+  .card[data-variant='masa'] {
+    grid-template-areas:
+      'thumb text'
+      'go go';
+  }
+
+  .card[data-variant='masa'] .go {
+    justify-self: stretch;
+  }
+}

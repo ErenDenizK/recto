@@ -35,6 +35,17 @@ function allCommands(): CommandRegistry {
   return registry;
 }
 
+/** Runs `fn` with the desk flag on (`?desk=1`, DSN-87), then puts the address back. */
+function withDesk<T>(fn: () => T): T {
+  const before = location.href;
+  history.replaceState(null, '', '/?desk=1');
+  try {
+    return fn();
+  } finally {
+    history.replaceState(null, '', before);
+  }
+}
+
 /** Palette results in order, as the palette lists them for a query. */
 function search(registry: CommandRegistry, query: string): string[] {
   return buildSections(query, registry.list(), [], () => true).flatMap((s) =>
@@ -86,7 +97,7 @@ describe('keyword catalogs', () => {
   });
 
   it('names only commands that exist', () => {
-    const registry = allCommands();
+    const registry = withDesk(allCommands);
     const known = new Set(registry.list().map((c) => keywordMessageKey(c.id)));
     expect(enKeys.filter((key) => !known.has(key))).toEqual([]);
   });
@@ -192,6 +203,35 @@ describe('conversion names (R23-8)', () => {
     setLocale(locale);
     const registry = allCommands();
     for (const [query, id] of cases) expect(search(registry, query)[0], query).toBe(id);
+  });
+});
+
+describe('the desk’s file commands (DSN-87)', () => {
+  const cases: [string, string][] = [
+    ['pdf to jpg', 'file.pdfToImages'],
+    ["pdf'ten png", 'file.pdfToImages'],
+    ['images to pdf', 'file.imagesToPdf'],
+    ['resimden pdf', 'file.imagesToPdf'],
+    ['sign a pdf', 'file.signPdf'],
+    ['pdf imzala', 'file.signPdf'],
+  ];
+  it.each(['en', 'tr'] as const)('finds each by name with nothing open in the %s UI', (locale) => {
+    setLocale(locale);
+    const registry = withDesk(allCommands);
+    for (const [query, id] of cases) {
+      expect(search(registry, query), query).toContain(id);
+      const command = registry.list().find((c) => c.id === id);
+      expect(command === undefined ? false : registry.isEnabled(command), id).toBe(true);
+    }
+  });
+
+  it('registers none of them with the flag off', () => {
+    const ids = allCommands()
+      .list()
+      .map((c) => c.id);
+    expect(ids).not.toContain('file.signPdf');
+    expect(ids).not.toContain('file.imagesToPdf');
+    expect(ids).not.toContain('file.pdfToImages');
   });
 });
 
