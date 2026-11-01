@@ -18,10 +18,15 @@ import { clearAllFields } from './actions';
 import { clearCreatedFields } from './create/field-actions';
 import { documentSources, useFormStore } from './form-store';
 import { CreatedFieldLayer, registerCreateFieldCommands } from './create';
+import { commitOpenFieldEditor } from './FieldEditors';
 import { FormLayer } from './FormLayer';
+import { applyFillPlan, type FillOutcome, type FillPlan } from './my-info/apply-fill';
 
 export { clearAllFields, fieldLabel, fillField } from './actions';
 export { useFormStore } from './form-store';
+export { originOf } from './my-info/fill-origin';
+export type { FillOutcome, FillPlan } from './my-info/apply-fill';
+export { createFillPlan } from './my-info/apply-fill';
 
 registerPageOverlay(FormLayer);
 // Created fields draw above the source fields' targets (forms/create).
@@ -60,6 +65,18 @@ export async function clearActiveForm(): Promise<number> {
   const count = engine + created;
   announce(count === 0 ? m.forms_nothing_to_clear() : m.forms_cleared({ count }));
   return count;
+}
+
+/**
+ * Applies a My info plan to the active document as one history entry "Fill from My info"
+ * (BM-4; see `my-info/apply-fill.ts`). Closes the field editor first. Refused while the
+ * document is locked or when the plan went stale.
+ */
+export async function fillActiveFormFromMyInfo(plan: FillPlan): Promise<FillOutcome> {
+  // Typed text is committed first, never overwritten (as the date button does).
+  commitOpenFieldEditor();
+  close();
+  return applyFillPlan(plan);
 }
 
 export function registerFormCommands(registry: CommandRegistry): () => void {
