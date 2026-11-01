@@ -62,9 +62,16 @@ test('More ways… lists the conversions by the names ⌘K finds', async ({ page
 
 test('a closed document is a cover on the shelf, one tab stop, and a press reopens it', async ({
   page,
+  browserName,
 }) => {
   await page.goto('/?desk=1');
   await sessionSettled(page);
+  if ((await page.locator('html').getAttribute('data-session')) === 'off') {
+    // An engine whose test context refuses OPFS keeps nothing, and says so (session.spec.ts,
+    // J14 in jobs.spec.ts): there is no shelf to test. Chromium always keeps.
+    expect(browserName, 'Chromium always keeps').not.toBe('chromium');
+    test.skip(true, `${browserName} keeps nothing in this test context`);
+  }
   const chooser = page.waitForEvent('filechooser');
   await page.getByTestId('library-open').click();
   await (await chooser).setFiles([fixturePath('simple-text.pdf')]);
