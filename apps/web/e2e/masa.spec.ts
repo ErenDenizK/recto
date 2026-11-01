@@ -87,15 +87,19 @@ async function readAndClose(page: Page): Promise<Left> {
   const label = await pill.innerText();
   const offset = await offsetOf(page, 3);
   expect(offset).not.toBeNull();
-  // Closing reads the place from the page view before it leaves (`watchResume`), so there is
-  // nothing to wait for: the document closes into Recent where it is.
+  // Where the session keeps changes, the snapshot of this place is written before the document
+  // closes into Recent (its kept record carries the place); where it does not, closing reads the
+  // place from the page view before it leaves (`watchResume`) and writes it at once.
+  if ((await page.evaluate(() => document.documentElement.dataset.session)) !== 'off') {
+    await waitForSnapshot(page);
+  }
   await page.keyboard.press('ControlOrMeta+w');
   await expect(page.getByTestId('home')).toBeVisible();
   return { label, offset: offset ?? 0 };
 }
 
-/** The page of the place kept on the newest Recents row in IndexedDB, or -1 (`files/recents.ts`). */
-const storedPlacePage = (page: Page) =>
+/** The offset of the place kept on a Recents row in IndexedDB, or -1 (`files/recents.ts`). */
+const storedPlaceOffset = (page: Page) =>
   page.evaluate(
     () =>
       new Promise<number>((resolve) => {
@@ -111,10 +115,10 @@ const storedPlacePage = (page: Page) =>
           const all = db.transaction('entries').objectStore('entries').getAll();
           all.onsuccess = () => {
             db.close();
-            const pages = (all.result as { place?: { page?: number } }[]).map(
-              (entry) => entry.place?.page ?? -1,
+            const offsets = (all.result as { place?: { page?: number; offset?: number } }[]).map(
+              (entry) => (entry.place?.page === 3 ? (entry.place.offset ?? -1) : -1),
             );
-            resolve(Math.max(-1, ...pages));
+            resolve(Math.max(-1, ...offsets));
           };
           all.onerror = () => {
             db.close();
@@ -168,9 +172,10 @@ test('Continue after a cold start: covers from storage, no engine, the paint mar
 }) => {
   const left = await readAndClose(page);
   await expectContinueCover(page);
-  // The reader's place is on its Recents row in storage (the cover is: the card shows it from
-  // there), so the new page below starts from what is kept on the device.
-  await expect.poll(() => storedPlacePage(page), { timeout: 30_000 }).toBeGreaterThanOrEqual(3);
+  // The place the reader was left at (page 4 and its offset) is on the Recents row in storage, as
+  // the close wrote it, and the cover is: the card shows it from there. The new page below
+  // starts from what is kept on the device.
+  await expect.poll(() => storedPlaceOffset(page), { timeout: 30_000 }).toBe(left.offset);
   await page.close();
 
   const fresh = await context.newPage();
