@@ -11,6 +11,7 @@
  * it in (`withPreviews`, `stillShown`), so this module imports it as a type only and the bar's
  * first open does not pay for it.
  */
+import { foldForSearch } from './fuzzy';
 import { gatherIntentContext, workspaceVersion } from './intent/context';
 import { parseIntent } from './intent/parse';
 import type { IntentPreview, previewOf, previewWithGuard } from './intent/preview';
@@ -63,8 +64,32 @@ export function exampleLine(): string {
   return m.intent_bar_try({ example: m.intent_bar_example() });
 }
 
-/** What `text` reads as against the open document now (§2.2, §2.11), without the previews. */
-export function readIntent(text: string): IntentParsed {
+/** A title as typed to find it: folded, one space between words, no trailing ellipsis. */
+function titleKey(text: string): string {
+  return foldForSearch(text)
+    .replace(/\s+/g, ' ')
+    .replace(/\s*(…|\.\.\.)\s*$/, '')
+    .trim();
+}
+
+/**
+ * Whether `text` is, in full, the name of one of `titles` (case, accents, spacing and a trailing
+ * "…" aside). Typing a command's own name and pressing Enter runs that command, whatever the
+ * grammar could make of the words ("OCR languages" is the command, not OCR with an unknown word);
+ * niyet §2.14 does not cover this overlap, so the command wins.
+ */
+export function namesCommand(text: string, titles: readonly string[]): boolean {
+  const key = titleKey(text);
+  return key !== '' && titles.some((title) => titleKey(title) === key);
+}
+
+/**
+ * What `text` reads as against the open document now (§2.2, §2.11), without the previews.
+ * `commandTitles` are the palette's commands: a text that is exactly one of them is not read as a
+ * sentence, so the command stays the active row.
+ */
+export function readIntent(text: string, commandTitles: readonly string[] = []): IntentParsed {
+  if (namesCommand(text, commandTitles)) return { kind: 'none' };
   const ctx = gatherIntentContext();
   const result = parseIntent(text, ctx);
   if (result.kind === 'none') return { kind: 'none' };

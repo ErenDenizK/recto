@@ -377,9 +377,15 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
   // preview never outlives the state it was drawn from (§2.13).
   const selectionKey = selection.join(',');
   const parsed = useMemo(
-    () => (emptyQuery || !intents ? null : intents.readIntent(deferredQuery)),
+    () =>
+      emptyQuery || !intents
+        ? null
+        : intents.readIntent(
+            deferredQuery,
+            commands.map((c) => c.title),
+          ),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `workspace` and `selectionKey` are the stores' state the read takes through `getState`.
-    [emptyQuery, intents, deferredQuery, workspace, selectionKey],
+    [emptyQuery, intents, deferredQuery, commands, workspace, selectionKey],
   );
   // The first reading asks for the preview chunk; the rows show once it is here.
   const readingAppeared = parsed?.kind === 'readings';

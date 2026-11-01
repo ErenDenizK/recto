@@ -11,6 +11,7 @@ import { setLocale } from '../i18n';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import {
   announcementOf,
+  namesCommand,
   type Previews,
   readIntent,
   stillShown,
@@ -55,6 +56,17 @@ describe('readIntent', () => {
     expect(got.kind).toBe('partial');
   });
 
+  it('does not read a text that is exactly a command name as a sentence', () => {
+    // "OCR languages" alone is a partial reading ("languages" is no word); with the command it is
+    // the command's name, so the list ranks it as it did before the bar.
+    expect(readIntent('OCR languages').kind).toBe('partial');
+    expect(readIntent('OCR languages', ['OCR languages…']).kind).toBe('none');
+    expect(readIntent('ocr  LANGUAGES…', ['OCR languages…']).kind).toBe('none');
+    expect(readIntent('Delete pages', ['Delete pages']).kind).toBe('none');
+    // Only the whole name counts: a sentence that merely starts with it is still read.
+    expect(readIntent('rotate 2-3 right', ['Rotate pages right']).kind).toBe('readings');
+  });
+
   it('keeps a problem legible with its reason', () => {
     const got = read('rotate 2-999 right');
     if (got.kind !== 'readings') throw new Error('no readings');
@@ -67,6 +79,16 @@ describe('readIntent', () => {
     const got = read('2-3. sayfaları sağa döndür');
     if (got.kind !== 'readings') throw new Error('no readings');
     expect(got.rows[0]?.preview.sentence).toContain('döndür');
+  });
+});
+
+describe('namesCommand', () => {
+  it('folds case, accents, spaces and a trailing ellipsis, and wants the whole title', () => {
+    expect(namesCommand('metni tani (ocr)', ['Metni tanı (OCR)…'])).toBe(true);
+    expect(namesCommand('Print...', ['Print…'])).toBe(true);
+    expect(namesCommand('Print', ['Print…', 'Print all'])).toBe(true);
+    expect(namesCommand('Pri', ['Print…'])).toBe(false);
+    expect(namesCommand('  ', ['Print…'])).toBe(false);
   });
 });
 

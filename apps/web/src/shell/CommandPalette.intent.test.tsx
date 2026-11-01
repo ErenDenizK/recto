@@ -139,4 +139,18 @@ describe('the intent bar in the palette', () => {
     const option = await screen.findByRole('option', { name: /Didn’t understand “yamuk”/ });
     expect(option).toHaveAttribute('aria-disabled', 'true');
   });
+
+  it('keeps a command active when the text is exactly its name, whatever the grammar reads', async () => {
+    // "OCR" is an action word and "languages" is not one: as a sentence this is a partial reading
+    // with no active row. Typed in full, it is the command's name and the command is active.
+    await userEvent.keyboard('OCR languages');
+    await waitFor(() => {
+      expect(screen.getByRole('option', { selected: true })).toHaveTextContent('OCR languages…');
+    });
+    expect(screen.queryByRole('option', { name: /Didn’t understand/ })).toBeNull();
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => {
+      expect(useUiStore.getState().paletteOpen).toBe(false);
+    });
+  });
 });
