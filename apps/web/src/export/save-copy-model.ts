@@ -24,7 +24,7 @@ import {
 } from '@pdf-editor/engine/client';
 
 import { type ConvertChoice, DEFAULT_CHOICE } from '../convert/convert-run';
-import type { SaveCopyPreset } from './export-store';
+import type { SaveCopyPreset, SaveCopyRequest } from './export-store';
 import type { ExportProgress } from './export-service';
 import { exportFileName } from './filename';
 import { clamp as clampTo } from '../motion/velocity';
@@ -125,9 +125,52 @@ export function applyPreset(draft: SaveCopyDraft, preset: SaveCopyPreset | null)
   }
 }
 
+/**
+ * The draft as a palette request leaves it (PRD-40): a preset as `applyPreset`; a size request
+ * opens on Size with Smaller until the estimates choose (`chooseForTarget`); an images request
+ * sets the type and the page range; a text request the format. The rest of the draft stays.
+ */
+export function applyRequest(draft: SaveCopyDraft, request: SaveCopyRequest | null): SaveCopyDraft {
+  if (request === null || typeof request === 'string') return applyPreset(draft, request);
+  switch (request.kind) {
+    case 'size':
+      return { ...draft, format: 'pdf', size: draft.size === 'same' ? 'smaller' : draft.size };
+    case 'images':
+      return {
+        ...draft,
+        format: 'images',
+        images: { ...draft.images, type: request.type, range: request.range },
+      };
+    case 'text':
+      return { ...draft, format: 'text', text: { ...draft.text, format: request.format } };
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Size
 // ---------------------------------------------------------------------------
+
+/**
+ * The Size a byte target picks (PRD-40): the least lossy of Same, Smaller, Smallest whose
+ * estimate is at or under `targetBytes`; when none is, Smallest with `meets: false`. No dpi
+ * search. Before the estimates arrive (`null`) the copy's quick size decides only whether it is
+ * already under; otherwise Smaller, as `applyPreset('size')` opens, and `meets` is false.
+ */
+export function chooseForTarget(
+  estimates: SizeEstimates | null,
+  quick: number | null,
+  targetBytes: number,
+): { readonly size: SizeChoice; readonly meets: boolean } {
+  if (estimates === null) {
+    return quick !== null && quick <= targetBytes
+      ? { size: 'same', meets: true }
+      : { size: 'smaller', meets: false };
+  }
+  if (estimates.same <= targetBytes) return { size: 'same', meets: true };
+  if (estimates.smaller.after <= targetBytes) return { size: 'smaller', meets: true };
+  if (estimates.smallest.after <= targetBytes) return { size: 'smallest', meets: true };
+  return { size: 'smallest', meets: false };
+}
 
 /** `value` rounded and held to [min, max]; `min` when it is not a number. */
 const clamp = (value: number, min: number, max: number) =>

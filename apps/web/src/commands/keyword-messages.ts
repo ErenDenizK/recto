@@ -47,6 +47,7 @@ export {
   cmd_pages_resize_keywords,
   cmd_pages_rotate_left_keywords,
   cmd_pages_rotate_right_keywords,
+  cmd_redaction_find_keywords,
   cmd_search_open_keywords,
   cmd_section_insert_images_keywords,
   cmd_section_interleave_keywords,
