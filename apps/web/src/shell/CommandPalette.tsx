@@ -400,22 +400,22 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
           : null,
     [parsed, intents, previews],
   );
-  // Previews are runnable once painted: their keys join the set a frame after the commit.
+  // Previews are runnable once painted: their keys join the set a frame after the commit. Enter
+  // before that frame does nothing, and the next one runs (spec niyet §2.13, "never run a reading
+  // the user did not see"). `paintedShown` mirrors the set into the DOM as `data-painted` on the
+  // reading's row, in the same frame, so a test (or a script) waits on the row being runnable
+  // instead of on a clock; the ref is the gate, it is current the moment the frame fires.
   const paintedKeys = useRef(new Set<string>());
+  const [paintedShown, setPaintedShown] = useState<ReadonlySet<string>>(() => new Set());
   const shownKeys = useMemo(
     () => (read?.kind === 'readings' ? read.rows.map((row) => row.key) : []),
     [read],
   );
-  // An Enter that came before the row was ready waits here and runs the moment it is (§2.13):
-  // the engine's frame, the preview chunk or the deferred query may each be a beat behind the
-  // keyboard, and a lost Enter reads as the bar ignoring the person.
-  const enterQueued = useRef(false);
-  const [paintTick, setPaintTick] = useState(0);
   useLayoutEffect(() => {
     if (shownKeys.length === 0) return;
     const frame = requestAnimationFrame(() => {
       for (const key of shownKeys) paintedKeys.current.add(key);
-      if (enterQueued.current) setPaintTick((tick) => tick + 1);
+      setPaintedShown(new Set(paintedKeys.current));
     });
     return () => {
       cancelAnimationFrame(frame);
@@ -666,32 +666,16 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
   }, [activeOptionId]);
   usePaletteFill(list, activeOptionId);
 
-  /**
-   * Runs a row; a reading only when its rows are the typed text's and have been painted. Enter
-   * on a reading that is not there yet is kept, not dropped, and runs when the reading is.
-   */
+  /** Runs a row; a reading only when its rows are the typed text's and have been painted. */
   const runRow = (row: ListRow | undefined) => {
     if (!row) return;
     if (row.intent) {
-      if (query !== deferredQuery || !paintedKeys.current.has(row.intent.key)) {
-        enterQueued.current = true;
-        return;
-      }
+      if (query !== deferredQuery || !paintedKeys.current.has(row.intent.key)) return;
     }
-    enterQueued.current = false;
     row.run();
   };
-  const readingPending = parsed?.kind === 'readings' && read === null;
-  useEffect(() => {
-    if (!enterQueued.current || readingPending) return;
-    // Whatever row the list settled on must be a reading, or the Enter was for nothing visible.
-    if (active?.intent) runRow(active);
-    else enterQueued.current = false;
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `runRow` closes over the render's own state, which these cover.
-  }, [paintTick, active, readingPending, query, deferredQuery]);
 
   const move = (delta: 1 | -1) => {
-    enterQueued.current = false;
     if (rows.length === 0) return;
     let next = idle ? (delta === 1 ? -1 : 0) : activeIndex;
     let remaining = rows.length;
@@ -712,8 +696,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
       move(-1);
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      if (readingPending) enterQueued.current = true;
-      else runRow(active);
+      runRow(active);
     } else if (event.key === 'Backspace' && query === '' && scopeCount > 0) {
       // Backspace in an empty input removes the scope chip: every command again (08-feedback §6).
       event.preventDefault();
@@ -776,7 +759,6 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
           spellCheck={false}
           value={query}
           onChange={(event) => {
-            enterQueued.current = false;
             setQuery(event.target.value);
             setActiveId(null);
           }}
@@ -861,6 +843,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
                               : reasonId
                           }
                           data-intent-invalid={row.invalidIntent ? '' : undefined}
+                          data-painted={reading && paintedShown.has(reading.key) ? '' : undefined}
                           data-reading-row={reading ? '' : undefined}
                           className={styles.option}
                           data-indented={row.indented ? '' : undefined}
