@@ -17,6 +17,7 @@ import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
+import { EXIT_TIMEOUT } from '../../test/settled';
 import menuStyles from './Menu.module.css';
 import { MENU_HANDOFF_MS } from './menu-handoff';
 import { Sheet } from './sheet/Sheet';
@@ -185,6 +186,8 @@ describe('the menu → sheet hand-off (Q-7)', () => {
     menu.removeEventListener('transitionrun', onRun);
     expect(marked).toBe(false);
     expect(document.documentElement.hasAttribute('data-menu-handoff')).toBe(false);
-    await waitFor(() => expect(screen.queryByRole('menu', { name: 'File' })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('menu', { name: 'File' })).toBeNull(), {
+      timeout: EXIT_TIMEOUT,
+    });
   });
 });
