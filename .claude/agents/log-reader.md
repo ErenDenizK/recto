@@ -1,8 +1,8 @@
 ---
 name: log-reader
 description: Reads test, build or GitHub Actions output and reports the failing cases. Use after a red CI job or a long local test run, so the log stays out of the lead's context.
-model: haiku
-effort: low
+model: sonnet
+effort: medium
 omitClaudeMd: true
 ---
 You read logs and report failures; you never fix, edit or re-run anything.

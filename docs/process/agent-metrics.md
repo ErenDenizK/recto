@@ -15,10 +15,19 @@ would also have caught it); **false green** counts report claims that a check pa
 failed (`verify-before-done`, target 0); **recur** notes, for root-cause lanes, whether the same
 symptom returned within two weeks (`root-cause`). Each skill is judged after six lanes that load it,
 against the last six lanes of the same kind before it; a skill that does not move its numbers goes.
-Header for new tables:
 
-| Round | Lane | Tier | Effort | Tokens | Minutes | First CI | Fix rounds | Stray | Review | Diff | Review→CI | False green | Recur |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+From 2026-11-01 (the routing experiments, `model-routing.md`), new rows add five more columns. **Kind** is
+the lane's row in the routing matrix (spec, taste, adversarial review, routine review, design critique,
+settled build, logic-heavy build, subtle fix, root cause, flaky root cause, merge, clerical, HQ writing,
+research, log read); **arm** is the experiment and arm the lane ran in (`A-judge-medium`, `B-builder-high`
+…; — outside an experiment); **tools** is the tool-call count the harness reports (loops and polling show
+here first); **escapes** counts blocking problems in the lane's work that its own review missed and that
+another reviewer arm, CI, the re-check or the owner found within seven days; **cost units** are tokens × 2
+for the judge and × 1 for the builder, summed over the chain to merge (the lane, its review, its fix
+rounds) on the lane's own row. Header for new tables:
+
+| Round | Lane | Kind | Arm | Tier | Effort | Tokens | Tools | Minutes | First CI | Fix rounds | Stray | Review | Diff | Review→CI | False green | Escapes | Recur | Cost units |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 
 ## Summary by kind of work (R21–R22, all judge)
 
@@ -91,3 +100,37 @@ of the cycle's judge spend (about 0.8 M of 1.05 M).
 
 Cycles 2–4 lanes (#29–#46) have no rows: their numbers were not kept at the time. From cycle 5 on,
 each lane gets its row in the cycle that merges it.
+
+## 2026-10-31 (27 runs, 5.84 M tokens)
+
+Source: harness subagent totals (cache reads included). Columns the harness does not give are —; the fuller per-run data (tool calls, outcome) is in the HQ console's metrics doc. Lessons from these runs: `lessons.md`.
+
+| Round | Lane | Tier | Effort | Tokens | Minutes | First CI | Fix rounds | Stray | Review | Diff | Review→CI | False green | Recur |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| R31 | colour lab (light theme, 9 variants, 137 renders): delivered; owner decision pending | judge | high | 258K | 45 | — | — | — | — | — | — | — | — |
+| R31 | log read: deploy Media hang: root cause: apt mirror stall | reader | medium | 122K | 0.8 | — | — | — | — | — | — | — | — |
+| R31 | PR queue driver + close-undo flake: #165 merged, #166 conflict resolved, #170 opened | builder | medium | 131K | 18.7 | — | — | — | — | — | — | — | — |
+| R31 | spec: Niyet çubuğu: 973-line spec, 4 lanes | judge | high | 247K | 15.7 | — | — | — | — | — | — | — | — |
+| R31 | spec: Masa: spec, 4 lanes, 4 owner questions | judge | high | 231K | 13.2 | — | — | — | — | — | — | — | — |
+| R31 | deploy media optional (#169) build+fixes: first push deleted a workflow block (invalid file); reviewer found 1 blocker + 6 warnings; merged | builder | medium | 132K | 1.4 | — | — | — | — | — | — | — | — |
+| R31 | review #169: 1 blocker (deploy skipped when media fails) | judge | high | 28K | 1.5 | — | — | — | — | — | — | — | — |
+| R31 | Masa M1 covers (#171) build+fixes: review: 3 blockers + 5 warnings, re-check: 1 privacy blocker; merged | builder | medium | 276K | 37 | — | — | — | — | — | — | — | — |
+| R31 | review #171 + re-check: 3 blockers, then 1 | judge | high | 96K | 5.1 | — | — | — | — | — | — | — | — |
+| R31 | Niyet N1 parser (#172) build: waited on heavy lock in a loop; 10 misreads found in review | builder | medium | 478K | 57 | — | — | — | — | — | — | — | — |
+| R31 | review #172 adversarial + re-check: 10 acting misreads, then 1 | judge | high | 146K | 6.8 | — | — | — | — | — | — | — | — |
+| R31 | N1 misread fixes: all fixed; 1671 tests | builder | high | 349K | 54 | — | — | — | — | — | — | — | — |
+| R31 | Niyet N2 runner (#173) build: 508 tool calls, most polling the heavy lock | builder | medium | 529K | 35 | — | — | — | — | — | — | — | — |
+| R31 | review #173 + re-check: 3 blockers (page mapping), then 1 | judge | high | 130K | 4.6 | — | — | — | — | — | — | — | — |
+| R31 | N2 fixes: all fixed; 1790 tests | builder | high | 168K | 62 | — | — | — | — | — | — | — | — |
+| R31 | Niyet N3 bar UI (#175) build+trim+design fixes: chunk over gate (25.5 KB), design send-back 8 items, fixed | builder | medium | 253K | 92 | — | — | — | — | — | — | — | — |
+| R31 | Masa M2 desk (#176) build+design fixes: design send-back 8 items, fixed | builder | medium | 395K | 72 | — | — | — | — | — | — | — | — |
+| R31 | design director: Masa + Niyet UI: both sent back, 16 items | judge | high | 107K | 3.4 | — | — | — | — | — | — | — | — |
+| R31 | #160 scan test fix: first fix branched on control type; lead rejected; deterministic fix | builder | medium | 80K | 36 | — | — | — | — | — | — | — | — |
+| R31 | container-transform flake root cause (#174): root cause found; agent stopped twice before finishing; lead committed and opened PR | builder | high | 213K | 19 | — | — | — | — | — | — | — | — |
+| R31 | sondan list fix: fixed + lead tightened rule | builder | medium | 72K | 10 | — | — | — | — | — | — | — | — |
+| R31 | #159 merge conflict: resolved; names test missed, lead fixed | builder | medium | 65K | 15 | — | — | — | — | — | — | — | — |
+| R31 | phone-land e2e red on develop (#177): test bug from #160; fixed | builder | high | 109K | 5.5 | — | — | — | — | — | — | — | — |
+| R31 | merge passes x4: 9 PRs merged | builder | medium | 426K | 3.7 | — | — | — | — | — | — | — | — |
+| R31 | HQ clerk (state, board, issue): done; wrote my recommendations over owner answers (lead error in brief) | builder | high | 246K | 8.3 | — | — | — | — | — | — | — | — |
+| R31 | HQ redesign v8 feed: published; owner: usability bad | judge | high | 320K | 19.7 | — | — | — | — | — | — | — | — |
+| R31 | ruthless design review of HQ: 58-item punch list | judge | high | 233K | 10.9 | — | — | — | — | — | — | — | — |
