@@ -25,6 +25,7 @@ import {
 } from '../annotations';
 import { registerCompareCommands } from '../compare/compare-commands';
 import { registerConvertCommands } from '../convert/convert-commands';
+import { openSaveCopy } from '../export/export-store';
 import { fileHandleOf, partitionFiles, pickFiles } from '../files/open-files';
 import { openTextFiles, takeTextFiles } from '../files/text-files';
 import { clearRecents, recordRecent } from '../files/recents';
@@ -34,7 +35,8 @@ import { registerFurnitureCommands } from '../furniture';
 import { registerFormCommands } from '../forms';
 import { redoStep, undoStep } from '../history/actions';
 import { openHistoryScrubber } from '../history/scrubber-store';
-import { showHome, showOpened, watchDestination } from '../home/home-actions';
+import { deskEnabled } from '../home/desk-flag';
+import { openInRead, showHome, showOpened, watchDestination } from '../home/home-actions';
 import { closeMarkupDoor, openMarkupDoor } from '../markup/doors';
 import { isLocked } from '../state/lock-store';
 import { useViewStore } from '../state/view-store';
@@ -234,6 +236,56 @@ export async function convertTextFromPicker(): Promise<void> {
   if (active && ui().destination !== 'home') focusOpenedPage(active, before);
 }
 
+/**
+ * Picks `kind` of files and opens them. One document goes straight to its page (the desk's
+ * door commands, DSN-87); several land as Open files… does, on the Library with the new cards
+ * checked. Resolves to the one document opened, else undefined (cancelled, or several).
+ */
+async function openPickedInRead(
+  kind: 'pdf' | 'images',
+  first: boolean,
+): Promise<DocumentId | undefined> {
+  const picked = await pickFiles(kind);
+  const files = first ? picked.slice(0, 1) : picked;
+  if (files.length === 0) return undefined;
+  const wasEmpty = model().workspace.documentOrder.length === 0;
+  const ids = await openDocuments(files);
+  const [only] = ids;
+  if (ids.length === 1 && only !== undefined) {
+    openInRead(only);
+    return only;
+  }
+  showOpened(ids, { wasEmpty });
+  return undefined;
+}
+
+/**
+ * "Sign a PDF…" (DSN-87, masa.md §2.9): pick one PDF, open it and arm Fill & sign. A recorded
+ * second door to Fill & sign (the dock's stays the first, DSN-68's rule for a second door).
+ * Works with nothing open.
+ */
+export async function signPdfFromPicker(): Promise<void> {
+  const id = await openPickedInRead('pdf', true);
+  if (id !== undefined) openMarkupDoor('sign');
+}
+
+/**
+ * "Images to PDF…" (DSN-87): pick images and open them as one new unsaved document (the
+ * existing image-pages path, PRD-24). Works with nothing open.
+ */
+export async function imagesToPdfFromPicker(): Promise<void> {
+  await openPickedInRead('images', false);
+}
+
+/**
+ * "PDF to images…" (DSN-87): pick one PDF, open it and Save a copy on Images. Works with
+ * nothing open.
+ */
+export async function pdfToImagesFromPicker(): Promise<void> {
+  const id = await openPickedInRead('pdf', true);
+  if (id !== undefined) openSaveCopy(id, 'images');
+}
+
 const hasTargets = () => targetPages().length > 0;
 
 /**
@@ -419,6 +471,33 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
             act: null,
             keywords: ['camera', 'photo', 'document', 'scanner'],
             run: openScan,
+          }),
+        ]
+      : []),
+    // The desk's three file commands (DSN-87, PRC-25: behind the desk flag). They work with
+    // nothing open and carry the conversion names people search for in ⌘K.
+    ...(deskEnabled()
+      ? [
+          registry.register({
+            id: 'file.signPdf',
+            title: m.desk_sign(),
+            group: m.group_file(),
+            act: null,
+            run: signPdfFromPicker,
+          }),
+          registry.register({
+            id: 'file.imagesToPdf',
+            title: m.cmd_images_to_pdf(),
+            group: m.group_file(),
+            act: null,
+            run: imagesToPdfFromPicker,
+          }),
+          registry.register({
+            id: 'file.pdfToImages',
+            title: m.cmd_pdf_to_images(),
+            group: m.group_file(),
+            act: null,
+            run: pdfToImagesFromPicker,
           }),
         ]
       : []),

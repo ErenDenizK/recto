@@ -30,6 +30,8 @@ import { setContinueShown } from './continue-shown';
 /** The page's box, CSS px: the page you left, large enough to recognise. */
 export const THUMB = {
   desk: { width: 88, height: 116 },
+  /** The Masa desk's card (DSN-87): the page left, fitted to a 172 px high box, up to 240 wide. */
+  masa: { width: 240, height: 172 },
   phone: { width: 68, height: 90 },
 } as const;
 
@@ -53,15 +55,23 @@ export interface ContinueSource {
   readonly point: ResumePoint;
   readonly pending: Pending;
   readonly thumb: React.ReactNode;
+  /** When it was read ("yesterday"), after the page line; the desk's card (DSN-87). */
+  readonly when?: string | undefined;
   readonly resume: () => void;
 }
 
 export function ContinueView({
   variant,
   source,
+  rise = true,
 }: {
   readonly variant: ContinueVariant;
   readonly source: ContinueSource;
+  /**
+   * Whether the card rises in. The desk's first paint has no entrance (DSN-87, `masa.md` §4
+   * rule 4): it passes false until the desk has painted, so only a card that arrives later rises.
+   */
+  readonly rise?: boolean;
 }) {
   const ref = useRef<HTMLElement>(null);
   // Continue holds the view's one lime while it shows (DSN-66).
@@ -71,9 +81,11 @@ export function ContinueView({
   }, []);
   useLayoutEffect(() => {
     const el = ref.current;
-    if (!el) return;
+    if (!el || !rise) return;
     animateStyle(el, 'transform', [0, 14, 0.97], [0, 0, 1], { spring: 'smooth' });
     animateStyle(el, 'opacity', 0, 1, { spring: 'quick' });
+    // Once, on arrival: a later change of `rise` never replays it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const { title, point, pending } = source;
   const page = point.page + 1;
@@ -99,6 +111,7 @@ export function ContinueView({
         </p>
         <p className={styles.page} data-testid="continue-page">
           {m.continue_page({ page, total })}
+          {source.when === undefined ? '' : ` · ${source.when}`}
         </p>
         <ProgressBar value={progressOf(point)} label={m.continue_progress()} />
         {hasPending(pending) ? <PendingLines pending={pending} /> : null}
