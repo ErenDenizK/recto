@@ -9,7 +9,7 @@
  *   the file dialog ("Open again…") where there is none, which the test serves.
  * - **Continue after a cold start.** The same in a new page of the same context (the tab lock is
  *   released): the covers are `blob:` images served from storage, the engine is never started
- *   before the first open (no worker, no `.wasm` request), and `recto:desk-painted` exists.
+ *   before the first open (no worker, no `.wasm` request), and `desk:painted` exists.
  *   Its time is recorded as an annotation; the 1 s target is checked on the perf baseline run
  *   (`tools/perf/baseline.ts`, "Desk painted"), this spec allows the CI noise (2.5 s).
  * - **The motion.** The sample hero and a reopened tile lift, hold and grow into the page (a
@@ -34,7 +34,7 @@ test.setTimeout(120_000);
 
 /** CI noise allowance for the desk's paint mark (ms); the 1 s target is the perf baseline's. */
 const PAINT_CEILING_MS = 2500;
-const MARK = 'recto:desk-painted';
+const MARK = 'desk:painted';
 
 test.beforeEach(async ({ page }) => {
   await useFileInputPicker(page);

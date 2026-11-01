@@ -1,5 +1,5 @@
 /**
- * The desk's paint mark (DSN-87, `masa.md` §4 rules 3 and 6): `performance.mark('recto:desk-painted')`
+ * The desk's paint mark (DSN-87, `masa.md` §4 rules 3 and 6): `performance.mark('desk:painted')`
  * once the desk is on screen with its hero settled (Recents read; the slot stops holding after
  * `HERO_WAIT_MS`, `desk-model.ts`) and its visible covers decoded, or `COVER_WAIT_MS` after
  * that, whichever is first (a slow decode never holds the mark hostage; the cover then fades in).
@@ -12,7 +12,7 @@ import { prefetchCovers } from './covers';
 import { deskEnabled } from './desk-flag';
 import { LOADING_FALLBACK_MS } from './desk-model';
 
-export const DESK_PAINTED_MARK = 'recto:desk-painted';
+export const DESK_PAINTED_MARK = 'desk:painted';
 /** The most the mark waits for the hero slot to leave its holding state (ms). */
 export const HERO_WAIT_MS = LOADING_FALLBACK_MS;
 /** The most the mark waits for covers after the hero is settled (ms). */

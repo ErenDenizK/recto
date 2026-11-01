@@ -5,7 +5,7 @@
  * 1. First visit: first paint, Home visible and interactive, bytes by type, the service
  *    worker's share, time until the link is quiet (precache installed, wasm warmed).
  * 2. Repeat visit: the same, with the service worker in control. On the desktop profile also
- *    "Desk painted" (DSN-87, `masa.md` §4): `performance.mark('recto:desk-painted')` of the new
+ *    "Desk painted" (DSN-87, `masa.md` §4): `performance.mark('desk:painted')` of the new
  *    Home (`?desk=1`) on a first visit and, with the service worker in control, on a returning
  *    desk with a stored cover. The 1 s target is for the repeat row.
  * 3. Opening the sample (warm) and a generated large PDF: time to the first page and to the
@@ -769,7 +769,7 @@ async function firstAndRepeat(browser: Browser, profile: Profile): Promise<Row> 
 }
 
 /** `performance.mark` of the desk's first paint (`home/desk-painted.ts`), or null before it. */
-const DESK_MARK = `(performance.getEntriesByName('recto:desk-painted')[0] ?? null)`;
+const DESK_MARK = `(performance.getEntriesByName('desk:painted')[0] ?? null)`;
 
 /**
  * "Desk painted" (DSN-87, `masa.md` §4): the mark's time from navigation start, on a first visit
@@ -782,7 +782,7 @@ async function deskPainted(browser: Browser, profile: Profile): Promise<Row> {
   const markAt = async (page: Page) => {
     await until(page, DESK_MARK, 60_000);
     return page.evaluate(
-      () => performance.getEntriesByName('recto:desk-painted')[0]?.startTime ?? -1,
+      () => performance.getEntriesByName('desk:painted')[0]?.startTime ?? -1,
     );
   };
   const { ctx, page } = await context(browser, profile);

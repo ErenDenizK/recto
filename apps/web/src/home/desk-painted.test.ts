@@ -1,5 +1,5 @@
 /**
- * The desk's paint mark (`desk-painted.ts`; DSN-87, `masa.md` §4): `recto:desk-painted` is set
+ * The desk's paint mark (`desk-painted.ts`; DSN-87, `masa.md` §4): `desk:painted` is set
  * once, when the desk is on screen with its hero settled and its covers decoded or the waits are
  * over, and only with the desk on.
  */
