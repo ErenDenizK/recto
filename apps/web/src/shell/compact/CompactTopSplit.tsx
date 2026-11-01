@@ -153,6 +153,7 @@ function FileMenu({
                 <span>{m.compact_contents()}</span>
               </Menu.Item>
             ) : null}
+            <parts.TextViewRow doc={doc} className={classes.menuItem} />
             <Menu.Separator className={classes.menuSeparator} />
             <Menu.Item className={classes.menuItem} onClick={toSheet('settings')}>
               <Icon name="gear-six" />
