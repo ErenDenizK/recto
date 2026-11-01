@@ -345,4 +345,19 @@ describe('the place write', () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(placeOf()?.page).toBe(4);
   });
+
+  it('writes the place read as a document closes, at once and with its own offset', async () => {
+    vi.useFakeTimers();
+    const { setResume } = await import('../session/resume');
+    // Open while the reader scrolls (its place is queued), then the last place is read after the
+    // workspace let the document go: that one wins, with no wait for the two seconds.
+    let open = true;
+    const stop = watchPlaces(() => (open ? file : undefined));
+    setResume(id, { ...point(3), offset: 0 });
+    open = false;
+    setResume(id, { ...point(3), offset: 90, at: 6 });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(placeOf()?.offset).toBe(90);
+    stop();
+  });
 });

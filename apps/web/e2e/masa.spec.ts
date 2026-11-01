@@ -94,6 +94,36 @@ async function readAndClose(page: Page): Promise<Left> {
   return { label, offset: offset ?? 0 };
 }
 
+/** The page of the place kept on the newest Recents row in IndexedDB, or -1 (`files/recents.ts`). */
+const storedPlacePage = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<number>((resolve) => {
+        const open = indexedDB.open('pdf-editor:recents:v1');
+        open.onerror = () => resolve(-1);
+        open.onsuccess = () => {
+          const db = open.result;
+          if (!db.objectStoreNames.contains('entries')) {
+            db.close();
+            resolve(-1);
+            return;
+          }
+          const all = db.transaction('entries').objectStore('entries').getAll();
+          all.onsuccess = () => {
+            db.close();
+            const pages = (all.result as { place?: { page?: number } }[]).map(
+              (entry) => entry.place?.page ?? -1,
+            );
+            resolve(Math.max(-1, ...pages));
+          };
+          all.onerror = () => {
+            db.close();
+            resolve(-1);
+          };
+        };
+      }),
+  );
+
 /** The Continue card shows page 4 from a stored cover (a `blob:` image). */
 async function expectContinueCover(page: Page): Promise<void> {
   const card = page.getByTestId('continue-card');
@@ -138,8 +168,9 @@ test('Continue after a cold start: covers from storage, no engine, the paint mar
 }) => {
   const left = await readAndClose(page);
   await expectContinueCover(page);
-  // The reader's place is on its Recents row and the cover is stored; let the writes settle.
-  await waitForSnapshot(page).catch(() => undefined);
+  // The reader's place is on its Recents row in storage (the cover is: the card shows it from
+  // there), so the new page below starts from what is kept on the device.
+  await expect.poll(() => storedPlacePage(page), { timeout: 30_000 }).toBeGreaterThanOrEqual(3);
   await page.close();
 
   const fresh = await context.newPage();
