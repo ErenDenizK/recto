@@ -19,6 +19,7 @@ import {
   historyStep,
   useFileInputPicker,
   openFindPanel,
+  EDIT_TEXT_ARMED,
 } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
@@ -90,7 +91,7 @@ test('type a word into a paragraph, preview, Esc commits once; the export reads 
 
   // E arms Edit text (switching to Edit); the page's runs become targets.
   await page.keyboard.press('e');
-  await expect(page.getByRole('button', { name: 'Edit text' })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: EDIT_TEXT_ARMED })).toHaveAttribute(
     'aria-pressed',
     'true',
   );

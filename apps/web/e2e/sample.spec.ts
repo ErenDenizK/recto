@@ -17,6 +17,7 @@ import {
   useFileInputPicker,
   waitForSnapshot,
   openDocumentTitles,
+  EDIT_TEXT_ARMED,
 } from './helpers';
 import { SAMPLE_FILES, sampleEntry } from './sample-manifest';
 
@@ -135,7 +136,7 @@ async function openFeatureParagraph(page: Page, start: string, touch: boolean) {
     await page.locator('[data-read-viewport]').focus();
     await page.keyboard.press('e');
   }
-  await expect(page.getByRole('button', { name: 'Edit text' })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: EDIT_TEXT_ARMED })).toHaveAttribute(
     'aria-pressed',
     'true',
   );

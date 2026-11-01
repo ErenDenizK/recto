@@ -37,6 +37,7 @@ import {
   useDownloadPath,
   useFileInputPicker,
   waitForSnapshot,
+  EDIT_TEXT_ARMED,
 } from './helpers';
 import { Job, type Presses } from './support/job-report';
 
@@ -596,7 +597,7 @@ test.describe('core jobs', () => {
     /** E, a click on the word, its selection, the new text, Esc. */
     const change = async (p: Presses, word: string, text: string): Promise<void> => {
       await p.key('e');
-      await expect(page.getByRole('button', { name: 'Edit text' })).toHaveAttribute(
+      await expect(page.getByRole('button', { name: EDIT_TEXT_ARMED })).toHaveAttribute(
         'aria-pressed',
         'true',
       );

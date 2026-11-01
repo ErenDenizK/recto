@@ -19,6 +19,7 @@ import {
   openFindPanel,
   openSaveCopy,
   useFileInputPicker,
+  EDIT_TEXT_ARMED,
 } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
@@ -45,7 +46,7 @@ async function openCorpus(page: Page, file: string): Promise<void> {
   });
   await page.locator('[data-read-viewport]').focus();
   await page.keyboard.press('e');
-  await expect(page.getByRole('button', { name: 'Edit text' })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: EDIT_TEXT_ARMED })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
