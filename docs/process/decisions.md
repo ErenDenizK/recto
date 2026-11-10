@@ -94,6 +94,8 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PF-21](decisions/product.md) | Sheets opened from menus load on first use behind a lazy host; commands and stores never import the sheet module | In force | 2026-10-22 |
 | [PF-22](decisions/product.md) | In WebKit page renders leave the worker as RGBA pixels and the main thread makes the bitmap (a transferred ImageBitmap can carry a later same-size tile's pixels); other engines keep the transferred bitmap | In force | 2026-10-22 |
 | [PF-23](decisions/product.md) | The phone size gate measures a read session (compactSession): baseline 533.6 KB gzip, 1 % growth cap; the static compact closure keeps only its 320 KB ceiling | In force | 2026-10-24 |
+| [PF-24](decisions/product.md) | The engine starts when the first screen is idle (full edition), and Read-mode page renders go ahead of the app's other calls to the PDFium worker (a call gate on the main thread; the worker is unchanged) | In force | 2026-11-10 |
+| [PF-25](decisions/product.md) | The Smaller save deflates raster with the browser's native zlib above 64 KiB; fflate stays for small inputs and the fallback | In force | 2026-11-10 |
 
 ## Design
 

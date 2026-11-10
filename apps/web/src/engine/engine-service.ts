@@ -71,6 +71,7 @@ import {
   type PageShape,
   unionRect,
 } from './clipped-repaint';
+import { CallGate } from './engine-gate';
 import type * as Parking from './engine-parking';
 import { type EngineResult, fail, ok, toFailure } from './engine-result';
 import { setPdfiumModule, startupMark } from './engine-startup';
@@ -200,6 +201,11 @@ export interface EngineServiceOptions {
   /** Render jobs in flight at once. PDFium has one worker; 2 keeps it busy. */
   readonly concurrency?: number;
   readonly newSourceId?: () => SourceId;
+  /**
+   * Gate the renderer's non-render calls behind Read-mode page renders (engine-gate.ts, PF-24).
+   * Off by default, so a test double sees its calls at once; the app's service turns it on.
+   */
+  readonly gateCalls?: boolean;
   /** Record `performance` marks for renders (defaults to dev builds). */
   readonly timings?: boolean;
   /**
@@ -211,6 +217,9 @@ export interface EngineServiceOptions {
 
 /** How long the engine worker lives with no source open (PF-18). */
 export const WORKER_IDLE_MS = 10_000;
+
+/** How long a pre-warmed worker (`prewarm`, PF-24) is kept for a first open before PF-18 ends it. */
+export const PREWARM_HOLD_MS = 45_000;
 
 type ParkingModule = typeof Parking;
 
@@ -230,6 +239,7 @@ export class EngineService {
   private readonly newSourceId: () => SourceId;
   private readonly timings: boolean;
   private readonly queue: RenderQueue;
+  private readonly gate: CallGate | undefined;
   /** Original bytes of every open source (see the module comment). */
   /** @internal engine-parking.ts */
   readonly retained = new Map<SourceId, Blob>();
@@ -296,7 +306,14 @@ export class EngineService {
   constructor(options: EngineServiceOptions) {
     this.createRenderer = options.createRenderer;
     this.cache = new BitmapCache(options.cacheBudgetBytes);
-    this.queue = new RenderQueue(Math.max(1, options.concurrency ?? 2), (job) => this.run(job));
+    this.gate = options.gateCalls
+      ? new CallGate({ visibleSources: () => this.queue.visibleSources() })
+      : undefined;
+    this.queue = new RenderQueue(
+      Math.max(1, options.concurrency ?? 2),
+      (job) => this.run(job),
+      () => this.gate?.poke(),
+    );
     this.idleMs = options.idleMs ?? WORKER_IDLE_MS;
     const ids = createRandomIdGenerator();
     this.newSourceId = options.newSourceId ?? (() => ids.source());
@@ -309,7 +326,9 @@ export class EngineService {
   engine(): Promise<RendererLike> {
     this.lastUse = Date.now();
     if (this.renderer === undefined) {
-      const created = Promise.resolve().then(() => this.createRenderer());
+      const created = Promise.resolve()
+        .then(() => this.createRenderer())
+        .then((renderer) => this.gate?.wrap(renderer) ?? renderer);
       created.catch(() => {
         if (this.renderer === created) this.renderer = undefined;
       });
@@ -317,6 +336,19 @@ export class EngineService {
       this.armIdle();
     }
     return this.renderer;
+  }
+
+  /**
+   * Starts the worker ahead of the first open (PF-24): its script, the wasm fetch and compile,
+   * the instantiate. It is kept `PREWARM_HOLD_MS`, then PF-18's idle end applies as for any
+   * worker with nothing open. A no-op while a worker is running.
+   */
+  prewarm(): void {
+    if (this.renderer !== undefined) return;
+    const release = this.hold();
+    void this.engine().then(() => {
+      setTimeout(release, PREWARM_HOLD_MS);
+    }, release);
   }
 
   /** Called when the worker ended for idleness: holders of its proxies drop them. */
@@ -1338,6 +1370,7 @@ let instance: EngineService | undefined;
  */
 export function getEngineService(): EngineService {
   instance ??= new EngineService({
+    gateCalls: true,
     createRenderer: async () => {
       startupMark('engine-requested');
       // The wasm download starts now, beside the worker's script and the client chunk (PF-2);

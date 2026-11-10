@@ -8,8 +8,9 @@
  *   (02.14), so the test reads `many-pages.pdf`; it comes back from its kept snapshot, or through
  *   the file dialog ("Open again…") where there is none, which the test serves.
  * - **Continue after a cold start.** The same in a new page of the same context (the tab lock is
- *   released): the covers are `blob:` images served from storage, the engine is never started
- *   before the first open (no worker, no `.wasm` request), and `desk:painted` exists.
+ *   released): the covers are `blob:` images served from storage, the engine does not start
+ *   before the desk has painted (no `.wasm` request ahead of `desk:painted`; it starts in an idle
+ *   moment after it, PF-24), and `desk:painted` exists.
  *   Its time is recorded as an annotation; the 1 s target is checked on the perf baseline run
  *   (`tools/perf/baseline.ts`, "Desk painted"), this spec allows the CI noise (2.5 s).
  * - **The motion.** The sample hero and a reopened tile lift, hold and grow into the page (a
@@ -166,7 +167,7 @@ test('Continue after closing the document lands on the same page, zoom and offse
   await continueAndExpectPlace(page, left);
 });
 
-test('Continue after a cold start: covers from storage, no engine, the paint mark', async ({
+test('Continue after a cold start: covers from storage, no engine before the paint, the paint mark', async ({
   page,
   context,
 }) => {
@@ -181,9 +182,10 @@ test('Continue after a cold start: covers from storage, no engine, the paint mar
   const fresh = await context.newPage();
   await useFileInputPicker(fresh);
   fresh.on('dialog', (dialog) => void dialog.accept());
-  const wasm: string[] = [];
+  /** Wall-clock ms of each `.wasm` request, to compare with the paint mark's. */
+  const wasm: number[] = [];
   fresh.on('request', (request) => {
-    if (request.url().includes('.wasm')) wasm.push(request.url());
+    if (request.url().includes('.wasm')) wasm.push(Date.now());
   });
   await fresh.goto('/?lang=en&desk=1');
   await sessionSettled(fresh);
@@ -198,16 +200,22 @@ test('Continue after a cold start: covers from storage, no engine, the paint mar
     expect(src).toMatch(/^blob:/);
   }
 
-  // No engine before the first open: no worker of the page, no wasm requested.
-  expect(fresh.workers(), 'no worker before the first open').toHaveLength(0);
-  expect(wasm, 'no .wasm request before the first open').toEqual([]);
-
   // The paint mark exists and is within the CI allowance; the number is recorded.
-  const painted = await fresh.evaluate(
-    (name) => performance.getEntriesByName(name)[0]?.startTime ?? null,
-    MARK,
-  );
+  const { painted, paintedAt } = await fresh.evaluate((name) => {
+    const startTime = performance.getEntriesByName(name)[0]?.startTime ?? null;
+    return {
+      painted: startTime,
+      paintedAt: startTime === null ? null : performance.timeOrigin + startTime,
+    };
+  }, MARK);
   expect(painted, `${MARK} exists`).not.toBeNull();
+  // The engine (PF-24's pre-warm) never starts ahead of the desk's paint: no `.wasm` request
+  // before the mark (both clocks are this machine's wall clock).
+  for (const at of wasm) {
+    expect(at, 'a .wasm request before the desk painted').toBeGreaterThanOrEqual(
+      (paintedAt ?? Infinity) - 50,
+    );
+  }
   expect(painted ?? Infinity).toBeLessThan(PAINT_CEILING_MS);
   test.info().annotations.push({ type: 'desk painted (ms)', description: String(painted) });
   console.log(`[masa] ${MARK} at ${painted} ms (cold start, service worker in control)`);

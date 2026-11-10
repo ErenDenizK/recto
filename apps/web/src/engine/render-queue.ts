@@ -85,7 +85,21 @@ export class RenderQueue {
     private readonly concurrency: number,
     /** Runs one job to its end (it resolves the job's subscribers itself). */
     private readonly runJob: (job: Job) => Promise<void>,
+    /** Called after a job ended or was cancelled (the call gate re-reads `visibleSources`). */
+    private readonly onSettle?: () => void,
   ) {}
+
+  /**
+   * The sources a Read-mode page render (`RENDER_PRIORITY.page`) is queued or running for: the
+   * renders the call gate lets nothing overtake (engine-gate.ts).
+   */
+  visibleSources(): ReadonlySet<string> {
+    const sources = new Set<string>();
+    for (const job of this.jobs.values()) {
+      if (this.priorityOf(job) >= RENDER_PRIORITY.page) sources.add(job.request.sourceId);
+    }
+    return sources;
+  }
 
   /** The job for `key`, a new queued one when there is none. */
   job(key: string, page: string, request: RenderRequest): Job {
@@ -118,6 +132,7 @@ export class RenderQueue {
     job.controller.abort(new DOMException(reason, 'AbortError'));
     for (const s of job.subscribers) s.resolve(fail('aborted', reason));
     job.subscribers.clear();
+    this.onSettle?.();
   }
 
   private next(): Job | undefined {
@@ -143,6 +158,7 @@ export class RenderQueue {
       this.running += 1;
       void this.runJob(job).finally(() => {
         this.running -= 1;
+        this.onSettle?.();
         this.pump();
       });
     }
