@@ -24,8 +24,11 @@ import { ICONS, type IconName } from './icons.generated';
 
 export type { IconName } from './icons.generated';
 
-/** The icon boxes of language.md §5.1: rows and menus, bars, coarse-pointer bars. */
-export type IconSize = 16 | 20 | 24;
+/**
+ * The icon boxes of language.md §5.1 and DSN-95: rows and menus, bars, the desktop capsule's 22,
+ * coarse-pointer bars and Home's actions.
+ */
+export type IconSize = 16 | 20 | 22 | 24;
 
 interface IconProps extends Omit<ComponentPropsWithoutRef<'svg'>, 'children' | 'name'> {
   readonly name: IconName;

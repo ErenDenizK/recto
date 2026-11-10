@@ -87,6 +87,10 @@
   --aurora-mint: #58da98;
   --aurora-lime: #bbed26;
   --aurora-lemon: #faee40;
+  /* Layer 1: the mark's mint and teal (DSN-90), atmosphere only: Home's beam and lobes and the
+     hero cover's glow. Never a control, a line of text or a state. */
+  --mint: #6eedbb;
+  --teal: #2fb3a8;
 
   /* Layer 2: surfaces. Docked surfaces are flat: a tonal step plus a hairline. The canvas sits
      darkest, so the white page and the floating chrome stand out of a near-black field and the
@@ -115,14 +119,21 @@
   --border-glass: rgb(var(--white-rgb) / 0.1);
   --border-swatch: rgb(var(--white-rgb) / 0.28);
   --border-opaque: var(--n7);
+  /* Colophon (DSN-89): the quiet hairline between Home's rows and under a shelf's cover, the key
+     outline of a keycap, and the ghost fill of a standard button on Home. */
+  --border-quiet: rgb(var(--white-rgb) / 0.08);
+  --border-key: rgb(var(--white-rgb) / 0.14);
+  --fill-ghost: rgb(var(--white-rgb) / 0.06);
 
-  /* Layer 2: text (language.md §1.7). Primary 14.48:1 on the frame (APCA Lc 92); secondary
-     7.11:1 (Lc 52, a warning: under 60); tertiary 5.78:1, never on n6; disabled is exempt
-     (WCAG 1.4.3) and stays visible. On glass, secondary and tertiary step up to n11 and danger
-     to its glass variant (global.css): every text colour stays AA over a white page. */
+  /* Layer 2: text (language.md §1.7; DSN-89). Primary 14.48:1 on the frame (APCA Lc 92);
+     secondary #aeb2b8, 9.35:1 on n1 and 7.49:1 on n4; tertiary #858990, 5.67:1 on n1 and
+     4.54:1 on n4, so never on n5 or n6 (a surface that needs text there uses secondary); disabled
+     is exempt (WCAG 1.4.3) and stays visible. On glass, secondary and tertiary step up to n11
+     and danger to its glass variant (global.css): every text colour stays AA over a white
+     page. */
   --text-primary: var(--n12);
-  --text-secondary: var(--n10);
-  --text-tertiary: var(--n9);
+  --text-secondary: #aeb2b8;
+  --text-tertiary: #858990;
   --text-disabled: var(--n8);
   --glass-text-secondary: var(--n11);
   --glass-text-disabled: #7d8086; /* 2.42:1 worst over white, 4.65:1 over the canvas */
@@ -231,42 +242,79 @@
      §2.5); the light itself is ADR-0025's (D3-8). */
   --light-cap-under-glass: 0.6;
 
+  /* Layer 2: Colophon (DSN-89, DSN-94). The glyph on glass, the solid tooltip, the object
+     shadows of a cover, the shelf lines, Home's reading progress and the beam's ramps. Beam and
+     lobe stops are the mark's teal, mint and lime in rgb() so their alphas stay literal (the
+     test reads them). Lime is the accent in the reading progress and the lit shelf line only
+     (DSN-89's list); `--progress-fill` stays neutral for jobs. */
+  --glyph-on-glass: #d5d8dc;
+  --tooltip-fill: rgb(30 32 37 / 0.94);
+  --tooltip-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.07),
+    0 18px 48px rgb(0 0 0 / 0.45);
+  --reading-progress: var(--accent);
+  --reading-track: rgb(var(--white-rgb) / 0.14);
+  --cover-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.07), 0 2px 4px rgb(0 0 0 / 0.4),
+    0 18px 40px -8px rgb(0 0 0 / 0.7);
+  --cover-shadow-hero:
+    0 0 0 1px rgb(255 255 255 / 0.09), 0 30px 80px -10px rgb(0 0 0 / 0.8),
+    0 0 120px -20px rgb(110 237 187 / 0.25);
+  --shelf-line: linear-gradient(
+    90deg,
+    rgb(255 255 255 / 0.06),
+    rgb(255 255 255 / 0.12) 40%,
+    rgb(200 251 61 / 0.45) 70%,
+    rgb(255 255 255 / 0.08)
+  );
+  --shelf-line-lit: linear-gradient(
+    90deg,
+    rgb(110 237 187 / 0.18),
+    rgb(200 251 61 / 0.35) 55%,
+    rgb(255 255 255 / 0.14)
+  );
+  --beam-ramp:
+    rgb(31 153 150 / 0) 0%, rgb(47 179 168 / 0.35) 30%, rgb(88 218 152 / 0.7) 62%,
+    rgb(200 251 61 / 0.95) 88%, rgb(250 255 220 / 1) 100%;
+  --beam-core-ramp:
+    rgb(47 179 168 / 0) 0%, rgb(110 237 187 / 0.35) 45%, rgb(200 251 61 / 0.9) 85%, #fbffe8 100%;
+  --home-lobe-teal: rgb(31 153 150 / 0.35);
+  --home-lobe-mint: rgb(88 218 152 / 0.22);
+
   /* Layer 2: materials (language.md §2.2–§2.4, ADR-0024), one per tier: a neutral tint whose
      alpha is its own token (Tinted overrides it, D3-3), the filter after the blur (σ comes per
      surface from the coverage registry), the solid it falls back to, and its shadow. Panel
      and sheet hold body text on their denser recipe: over a white page #34363a, #34363b,
-     L ≤ 0.062, so primary text keeps ≥ 9.96:1 and glass-secondary ≥ 6.49:1. Menus and popovers
-     wear the chips' and bars' CSS+ recipe (GLS-23, one glass for every floating piece) at a
-     0.64 tint: #424347 over white, primary 8.13:1, glass-secondary 5.30:1, Lc 83.
-     Over the canvas the panel equals the frame (n3) exactly, so a docked panel at rest looks
-     solid. Chip and bar are CSS+ (GLS-7, GLS-8) on a lighter filter than the page tiers. Their
-     tone is the theme's over any page (GLS-20), so their worst backdrop is white, as the page
-     tiers' is: a 0.60 tint keeps them dark there (#434447, Y ≤ 0.062, G-4) with primary text at
-     7.89:1 or more (glass-secondary 5.14:1, Lc 82), and the page shows through at about 0.19
-     of its contrast. Their chain names
-     contrast(1) so it matches the light chain function for function. Lit glass is for surfaces
-     no page passes under (Library cards, About), worst over the field's brightest allowed
-     pixel. */
+     L ≤ 0.062, so primary text keeps ≥ 9.96:1 and glass-secondary ≥ 6.49:1. Chips, bars and
+     menus wear one smoked recipe (DSN-89; GLS-23, one glass for every floating piece):
+     rgb(18 20 24) at 0.60 under saturate(1.6) brightness(0.42), a 1 px black edge at 0.55, a
+     top light of 0.07 and one deep shadow, σ unchanged (Q-11's GPU budget). Over white that is
+     #363739 (Y 0.038, G-4), primary text at 9.8:1 and glass-secondary at 7.3:1. Over the canvas
+     the panel equals the frame (n3) exactly, so a docked panel at rest looks solid. Their tone
+     is the theme's over any page (GLS-20), so their worst backdrop is white, as the page
+     tiers' is. Their chain names contrast(1) so every tier's chain reads alike. Lit glass is
+     for surfaces no page passes under (Library cards, About), worst over the field's brightest
+     allowed pixel. */
   --glass-chip-alpha: 0.6;
-  --glass-chip-tint: rgb(30 32 37 / var(--glass-chip-alpha));
-  --glass-chip-filter: saturate(2.2) contrast(1) brightness(0.48);
+  --glass-chip-tint: rgb(18 20 24 / var(--glass-chip-alpha));
+  --glass-chip-filter: saturate(1.6) contrast(1) brightness(0.42);
   --glass-chip-solid: var(--n4);
-  --glass-chip-shadow: var(--e2);
+  --glass-chip-shadow: 0 18px 48px rgb(0 0 0 / 0.45);
   --glass-bar-alpha: 0.6;
-  --glass-bar-tint: rgb(32 34 39 / var(--glass-bar-alpha));
-  --glass-bar-filter: saturate(2.2) contrast(1) brightness(0.48);
+  --glass-bar-tint: rgb(18 20 24 / var(--glass-bar-alpha));
+  --glass-bar-filter: saturate(1.6) contrast(1) brightness(0.42);
   --glass-bar-solid: var(--n4);
-  --glass-bar-shadow: var(--e3);
+  --glass-bar-shadow: 0 18px 48px rgb(0 0 0 / 0.45);
   --glass-panel-alpha: 0.74;
   --glass-panel-tint: rgb(30 32 38 / var(--glass-panel-alpha));
   --glass-panel-filter: saturate(1.5) brightness(0.45);
   --glass-panel-solid: var(--n3);
   --glass-panel-shadow: var(--e4);
-  --glass-menu-alpha: 0.64;
-  --glass-menu-tint: rgb(34 36 42 / var(--glass-menu-alpha));
-  --glass-menu-filter: saturate(2.2) contrast(1) brightness(0.48);
+  --glass-menu-alpha: 0.6;
+  --glass-menu-tint: rgb(18 20 24 / var(--glass-menu-alpha));
+  --glass-menu-filter: saturate(1.6) contrast(1) brightness(0.42);
   --glass-menu-solid: var(--n4);
-  --glass-menu-shadow: var(--e4);
+  --glass-menu-shadow: 0 18px 48px rgb(0 0 0 / 0.45);
   --glass-sheet-alpha: 0.86;
   --glass-sheet-tint: rgb(40 42 48 / var(--glass-sheet-alpha));
   --glass-sheet-filter: saturate(1.4) brightness(0.5);
@@ -277,16 +325,14 @@
   --glass-lit-filter: saturate(1.8) brightness(0.55);
   --glass-lit-solid: var(--n4);
   --glass-lit-shadow: var(--e3);
-  /* Rims (language.md §2.4; GLS-8, softened by GLS-22): light from the top left, as research
-     23 §5.2's two lobes, and nothing drawn as a line. A soft dark edge (2 px of blur, no
-     spread) holds the shape over a white page; the rim light is two soft inset lobes in the rim
-     colours (top 0.42 with the leading side, bottom 0.16; `RIM_LIGHT` in materials.css),
-     brightest at the edge and gone within 3 px; the inner light a soft top light (0.10 fading
-     within 12 px). All blurred shadows: no backdrop pass, no line, no band edge. */
-  --rim-edge: 0 0 2px rgb(0 0 0 / 0.35);
-  --rim-top: rgb(var(--white-rgb) / 0.42);
-  --rim-bottom: rgb(var(--white-rgb) / 0.16);
-  --rim-inner: inset 0 12px 12px -12px rgb(var(--white-rgb) / 0.1);
+  /* Rims (language.md §2.4; GLS-8, softened by GLS-22, set smoked by DSN-89): a 1 px black edge
+     at 0.55 holds the shape over a white page; the rim light is two soft inset lobes in the rim
+     colours (top 0.10 with the leading side, bottom 0.04; `RIM_LIGHT` in materials.css), gone
+     within 3 px; the inner light is a 1 px top light of 0.07. No backdrop pass, no band edge. */
+  --rim-edge: 0 0 0 1px rgb(0 0 0 / 0.55);
+  --rim-top: rgb(var(--white-rgb) / 0.1);
+  --rim-bottom: rgb(var(--white-rgb) / 0.04);
+  --rim-inner: inset 0 1px 0 rgb(var(--white-rgb) / 0.07);
   /* The denser tiers' rims (§2.4): sheets a firmer edge, unblurred (half a pixel at 0.50: a
      large surface that slides repaints no new blur, GLS-22), and with the floating panel a
      0.24 / 0.08 rim and a fainter top light; docked M3 only a soft inner light of 0.06 under
@@ -449,11 +495,21 @@
      with its metric-matched fallback next so a cold load moves nothing (quality-bar Q-8).
      JetBrains Mono left the UI: technical strings use the `.technical` class (fonts.css). */
   --font-ui: 'Inter Recto', 'Inter Recto Fallback', ui-sans-serif, system-ui, sans-serif;
-  /* Weights are 400, 500 and 600 only (Q-8, which rounds language.md §4.3's 450 · 550 · 650):
-     running text, buttons and labels, titles. */
+  /* The document face (DSN-89): Noto Serif Recto, 400, for document titles only (Home's covers
+     and Continue, the editor's tab titles, the phone's shelf and reader bar). Its stack ends in
+     the system serifs, so a title that shows before the face arrives sits in a single-line box
+     and moves nothing (Q-8). */
+  --font-serif: 'Noto Serif Recto', Georgia, 'Times New Roman', serif;
+  /* Weights: 400, 500 and 600 for running text, buttons and labels, titles (Q-8), and since
+     DSN-89 the four Colophon steps of the variable face: 450 reading text, 550 a label or a
+     tooltip, 560 a button and the hero line, 620 the brand's wordmark. */
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
+  --weight-book: 450;
+  --weight-label: 550;
+  --weight-button: 560;
+  --weight-brand: 620;
   --tracking-ui: 0.01em;
   --tracking-label: 0.04em;
   --tracking-display: -0.011em;
@@ -489,6 +545,31 @@
   --track-display: -0.022em;
   --leading-tight: 16px;
   --leading-base: 20px;
+  /* The Colophon steps (DSN-89), size / line height / tracking, with the weight each is set at
+     (the numbers are the desktop's; the tablet and phone steps are set in the component):
+     hero 60/64, −0.028em, 560 with `opsz` 32 · doc-xl 34/39, −0.005em, serif (tablet 30/35,
+     phone 24/28) · doc 15/20, serif (the editor's tab title 16/20, the phone's shelf 14/18) ·
+     action 15/20 at 500 · button 13.5/18, +0.002em at 560 · section is the body step with
+     +0.005em at 600 in the secondary colour · key is the caption step with +0.02em at 500 and
+     `font-feature-settings: 'case'` · brand 19, +0.005em at 620 with `opsz` 22 (phone 18) ·
+     status is the footnote step at 500. */
+  --type-hero: 60px;
+  --type-hero-lh: 64px;
+  --track-hero: -0.028em;
+  --type-doc-xl: 34px;
+  --type-doc-xl-lh: 39px;
+  --track-doc-xl: -0.005em;
+  --type-doc: 15px;
+  --type-doc-lh: 20px;
+  --type-action: 15px;
+  --type-action-lh: 20px;
+  --type-button: 13.5px;
+  --type-button-lh: 18px;
+  --track-button: 0.002em;
+  --track-section: 0.005em;
+  --track-key: 0.02em;
+  --type-brand: 19px;
+  --track-brand: 0.005em;
 
   /* Concentric radii (system-audit-2026-10 §3.2, language.md §6.1 S-1): an inner radius is its
      outer radius minus the inset between them, rounded to a step, and anything that floats is a
@@ -507,6 +588,10 @@
   --radius-xl: 20px;
   --radius-2xl: 28px;
   --radius-capsule: 999px;
+  /* Colophon (DSN-89): a keycap's 5, and the button's 10 (it was the capsule). The panel is
+     --radius-lg 16, the tooltip --radius-sm 8 and a cover --radius-page 2. */
+  --radius-key: 5px;
+  --button-radius: var(--radius-control);
 
   /* One 4 px grid with a 2 px half-step for optical fixes (system-audit-2026-10 §3.1,
      language.md §6.2): 2 segment inset, gap between tabs · 4 between controls in a piece · 6
@@ -571,6 +656,9 @@
   --icon-sm: 16px;
   --icon-md: 20px;
   --icon-lg: 32px;
+  /* DSN-95: the desktop capsule's 22 and a Home action's 24; the phone's bars use 24 too. */
+  --icon-capsule: 22px;
+  --icon-action: 24px;
   --gap-target: 4px;
   --control-text: var(--type-body);
   --control-lh: var(--type-body-lh);
@@ -580,6 +668,19 @@
      and an S close. A tooltip is 24 / 28 with a footnote label. */
   --toast-h: var(--piece-h);
   --tooltip-h: 24px;
+
+  /* The Colophon frame (DSN-89, DSN-91): the Home strip, the capsule (56 high, 44 slots, 6 pad,
+     14 of air between groups) and the options strip that sits 10 above it. The compact edition
+     overrides these on its own root: capsule-h 60, slot 48, options-gap 12. --piece-h stays 40
+     / 48 for the strip's pieces and the page pill. */
+  --strip-h: 64px;
+  --strip-control: 36px;
+  --capsule-h: 56px;
+  --capsule-slot: 44px;
+  --capsule-pad: 6px;
+  --capsule-group-gap: 14px;
+  --options-h: 44px;
+  --options-gap: 10px;
 
   /* The sheet (07-sheets §2.2; system-audit-2026-10 §3.6.1): radius 20 (28 for a phone's bottom
      sheet), padding 20 fine and 16 coarse, a 56 / 64 header; its grouped lists sit
@@ -722,8 +823,7 @@
 }
 
 /* Dim pages (DESIGN.md §3's comfort toggle; decisions MOB-16 step 1, MOB-17), set in Settings ›
-   Appearance and written as `data-dim-pages` by `state/appearance-store.ts`: in the dark theme
-   only, the page bitmaps composite at 80 % brightness (`--page-filter`, read by the page canvases
+   Appearance and written as `data-dim-pages` by `state/appearance-store.ts`: the page bitmaps composite at 80 % brightness (`--page-filter`, read by the page canvases
    and the text editor's canvases) and the paper every DOM piece on a page shows (the sheet under
    a bitmap still rendering, fields, handles) is the same white at 80 %, #cccccc, so nothing on
    the page stays bright. A filter, not a translucent overlay: the document's pixels, saves and

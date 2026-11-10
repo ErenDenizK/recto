@@ -1,8 +1,8 @@
 /**
  * Every token `tokens.css` defines, by block and layer (components/09-primitives.md §25;
  * language.md §10.1). `tokens.test.ts` holds the file to this list both ways (nothing missing,
- * nothing unlisted), keeps raw layer-1 names out of every module, and checks that the light
- * theme (D3-7) redefines exactly the names of §1. A new token is added here first.
+ * nothing unlisted) and keeps raw layer-1 names out of every module. Recto is dark only
+ * (PRD-42), so there is one theme block. A new token is added here first.
  */
 
 const steps = (prefix: string, values: readonly (number | string)[]): string[] =>
@@ -17,6 +17,9 @@ export const RAW_TOKENS: readonly string[] = [
   '--ink-rgb',
   '--select-rgb',
   ...steps('--aurora-', ['teal', 'mint', 'lime', 'lemon']),
+  // The mark's mint and teal (DSN-90): atmosphere, read by the Colophon tokens only.
+  '--mint',
+  '--teal',
 ];
 
 const TIERS = ['chip', 'bar', 'panel', 'menu', 'sheet', 'lit'] as const;
@@ -46,6 +49,10 @@ export const SEMANTIC_TOKENS: readonly string[] = [
   '--border-glass',
   '--border-swatch',
   '--border-opaque',
+  // Colophon (DSN-89): the quiet hairline, a keycap's outline, the ghost button's fill.
+  '--border-quiet',
+  '--border-key',
+  '--fill-ghost',
   // Text.
   '--text-primary',
   '--text-secondary',
@@ -107,6 +114,21 @@ export const SEMANTIC_TOKENS: readonly string[] = [
   // Tags and atmosphere.
   ...steps('--tag-', [0, 1, 2, 3, 4, 5]),
   '--light-cap-under-glass',
+  // Colophon (DSN-89, DSN-94): glyph on glass, the solid tooltip, covers, shelf lines, Home's
+  // reading progress, the beam's ramps and the lobes.
+  '--glyph-on-glass',
+  '--tooltip-fill',
+  '--tooltip-shadow',
+  '--reading-progress',
+  '--reading-track',
+  '--cover-shadow',
+  '--cover-shadow-hero',
+  '--shelf-line',
+  '--shelf-line-lit',
+  '--beam-ramp',
+  '--beam-core-ramp',
+  '--home-lobe-teal',
+  '--home-lobe-mint',
   // Materials.
   ...TIERS.flatMap((tier) =>
     ['alpha', 'tint', 'filter', 'solid', 'shadow'].map((part) => `--glass-${tier}-${part}`),
@@ -201,7 +223,8 @@ export const THEME_FREE_TOKENS: readonly string[] = [
   // Type (ADR-0027, language.md §4; spec D3-5): the face, three weights (Q-8), the scale with
   // a line height and a tracking per step.
   '--font-ui',
-  ...steps('--weight-', ['regular', 'medium', 'semibold']),
+  '--font-serif',
+  ...steps('--weight-', ['regular', 'medium', 'semibold', 'book', 'label', 'button', 'brand']),
   '--tracking-ui',
   '--tracking-label',
   '--tracking-display',
@@ -214,8 +237,27 @@ export const THEME_FREE_TOKENS: readonly string[] = [
   '--type-display-lg-lh',
   '--leading-tight',
   '--leading-base',
+  // The Colophon steps (DSN-89), each size with its line height and tracking.
+  ...['hero', 'doc-xl', 'doc', 'action', 'button'].flatMap((step) => [
+    `--type-${step}`,
+    `--type-${step}-lh`,
+  ]),
+  ...steps('--track-', ['hero', 'doc-xl', 'button', 'section', 'key', 'brand']),
+  '--type-brand',
   // Concentric radii, the 4 px grid and its half-step (system-audit-2026-10 §3.1, §3.2).
-  ...steps('--radius-', ['page', 'xs', 'sm', 'control', 'md', 'lg', 'xl', '2xl', 'capsule']),
+  ...steps('--radius-', [
+    'page',
+    'xs',
+    'sm',
+    'control',
+    'md',
+    'lg',
+    'xl',
+    '2xl',
+    'capsule',
+    'key',
+  ]),
+  '--button-radius',
   ...steps('--space-', ['half', 1, '1h', 2, 3, 4, 5, 6, 8, 10, 12, 16]),
   '--focus-offset-out',
   '--focus-offset-in',
@@ -236,7 +278,7 @@ export const THEME_FREE_TOKENS: readonly string[] = [
   '--check',
   '--switch-w',
   '--switch-h',
-  ...steps('--icon-', ['xs', 'sm', 'md', 'lg']),
+  ...steps('--icon-', ['xs', 'sm', 'md', 'lg', 'capsule', 'action']),
   '--gap-target',
   '--control-text',
   '--control-lh',
@@ -244,6 +286,15 @@ export const THEME_FREE_TOKENS: readonly string[] = [
   // The toast and tooltip heights, and the sheet's public metrics (§3.6, §3.6.1).
   '--toast-h',
   '--tooltip-h',
+  // The Colophon frame (DSN-89, DSN-91): strip, capsule and options strip.
+  '--strip-h',
+  '--strip-control',
+  '--capsule-h',
+  '--capsule-slot',
+  '--capsule-pad',
+  '--capsule-group-gap',
+  '--options-h',
+  '--options-gap',
   '--sheet-radius',
   '--sheet-radius-bottom',
   '--sheet-pad',
@@ -253,7 +304,7 @@ export const THEME_FREE_TOKENS: readonly string[] = [
   '--sheet-row-pad',
 ];
 
-/** Every name §1 defines; the light blocks (§2, D3-7) define exactly these. */
+/** Every name §1 defines. */
 export const THEME_TOKENS: readonly string[] = [
   ...RAW_TOKENS,
   ...SEMANTIC_TOKENS,
