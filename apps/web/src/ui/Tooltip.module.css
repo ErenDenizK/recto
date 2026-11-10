@@ -1,10 +1,10 @@
 /*
- * The tooltip (09-primitives §20, 04-context §20): solid, never glass (G-29), so it reads the
- * same over any page and costs no backdrop. Raised surface with the rim; --tooltip-h tall (24
- * on fine pointers, 28 on coarse), --radius-sm, a footnote label (system-audit-2026-10 §3.6);
- * at most 280 px, then two lines. Hoverable (A-24), so it takes the
- * pointer. It stays flat until the elevation tokens arrive (D3): today's rule keeps tooltips,
- * dialogs and docked surfaces without a drop shadow (tokens.test.ts).
+ * The tooltip (09-primitives §20, 04-context §20; DSN-89): solid, never glass (G-29), so it
+ * reads the same over any page and costs no backdrop. --tooltip-fill with --tooltip-shadow (a
+ * 1 px black edge, a 0.07 top light and one deep shadow) and no border; at least --tooltip-h
+ * tall (24 on fine pointers, 28 on coarse), --radius-sm, a 12 px label at --weight-label with
+ * room of 6 8 6 10 so a keycap can sit at its end 8 px away; at most 280 px, then two lines.
+ * Hoverable (A-24), so it takes the pointer.
  */
 .popup {
   display: flex;
@@ -13,13 +13,14 @@
   box-sizing: border-box;
   max-width: min(280px, calc(100vw - 16px));
   min-height: var(--tooltip-h);
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--border-glass);
+  padding: 6px 8px 6px 10px;
+  border: 0;
   border-radius: var(--radius-sm);
-  background: var(--surface-raised, var(--surface-on));
+  background: var(--tooltip-fill);
+  box-shadow: var(--tooltip-shadow);
   color: var(--text-primary);
   font-size: var(--type-footnote);
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-label);
   line-height: var(--type-footnote-lh);
   transform-origin: var(--transform-origin);
   transition:
@@ -73,6 +74,6 @@
 
 @media (forced-colors: active) {
   .popup {
-    border-color: CanvasText;
+    border: 1px solid CanvasText;
   }
 }
