@@ -47,6 +47,9 @@ function gateWith(waiting: Set<string>, maxHoldMs?: number) {
   });
 }
 
+/** A gate with nothing waiting: every call is posted at the next drain. */
+const gate0 = () => gateWith(new Set());
+
 describe('CallGate', () => {
   it('posts calls in the order they were made once no page render waits', async () => {
     const { renderer, posted } = recorder();
@@ -231,5 +234,18 @@ describe('CallGate', () => {
     gate.poke();
     await scratch;
     expect(posted).toEqual(['create a', 'open scratch']);
+  });
+
+  it('gates a method replaced after its first use (a spy), not the one it replaced', async () => {
+    const { renderer, posted } = recorder();
+    const gated = gate0().wrap(renderer);
+    await gated.getPageText('a', 0);
+    const original = renderer.getPageText;
+    renderer.getPageText = (id: string, index: number) => {
+      posted.push(`spy ${id}:${index}`);
+      return original(id, index);
+    };
+    await gated.getPageText('a', 1);
+    expect(posted).toEqual(['text a:0', 'spy a:1', 'text a:1']);
   });
 });

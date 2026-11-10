@@ -96,6 +96,7 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PF-23](decisions/product.md) | The phone size gate measures a read session (compactSession): baseline 533.6 KB gzip, 1 % growth cap; the static compact closure keeps only its 320 KB ceiling | In force | 2026-10-24 |
 | [PF-24](decisions/product.md) | The engine starts when the first screen is idle (full edition), and Read-mode page renders go ahead of the app's other calls to the PDFium worker (a call gate on the main thread; the worker is unchanged) | In force | 2026-11-10 |
 | [PF-25](decisions/product.md) | The Smaller save deflates raster with the browser's native zlib above 64 KiB; fflate stays for small inputs and the fallback | In force | 2026-11-10 |
+| [PF-26](decisions/product.md) | The read-only second PDFium worker (PF-16) was built and measured: pixels identical, thumbnails unchanged, zoom 200 → 184 ms, +68 MB; not built into the app because PF-24 meets every target alone | Measured, not built | 2026-11-10 |
 
 ## Design
 

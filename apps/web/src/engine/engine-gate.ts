@@ -150,17 +150,21 @@ export class CallGate {
 
   /** `renderer` with its calls gated. Methods the gate does not know pass straight through. */
   wrap<T extends object>(renderer: T): T {
-    const bound = new Map<string, unknown>();
+    // One wrapper per method, made again when the method itself is replaced (a spy in a test).
+    const wrappers = new Map<string, { readonly method: unknown; readonly wrapped: unknown }>();
     return new Proxy(renderer, {
       get: (target, property) => {
         const value: unknown = Reflect.get(target, property, target);
         if (typeof property !== 'string' || typeof value !== 'function') return value;
-        let wrapped = bound.get(property);
-        if (wrapped === undefined) {
-          wrapped = this.gated(property, value.bind(target) as (...args: unknown[]) => unknown);
-          bound.set(property, wrapped);
+        let cached = wrappers.get(property);
+        if (cached?.method !== value) {
+          cached = {
+            method: value,
+            wrapped: this.gated(property, value.bind(target) as (...args: unknown[]) => unknown),
+          };
+          wrappers.set(property, cached);
         }
-        return wrapped;
+        return cached.wrapped;
       },
     });
   }
