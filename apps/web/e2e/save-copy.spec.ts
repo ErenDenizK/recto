@@ -440,7 +440,7 @@ test.describe('the form in English and Turkish (A-21, 07 §4.5, Q-7)', () => {
     tr: {
       menu: /^Kopyasını kaydet/,
       formats: ['PDF', 'Görüntüler', 'Metin'],
-      same: /^Özgün boyut, \d+,\d KB$/,
+      same: /^Sıkıştırmasız, \d+,\d KB$/,
       size: '· \\d+,\\d KB$',
       estimating: 'Hesaplanıyor…',
     },
