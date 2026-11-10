@@ -101,22 +101,6 @@
   transition-timing-function: var(--sl-ease-spring), var(--sl-ease-pop);
 }
 
-:global([data-theme='light']) .root {
-  --sl-track-fill: var(--control-track, rgb(21 23 28 / 0.28));
-  --sl-range: var(--control-range, #15171c);
-  --sl-tick: #a8abb1;
-  --sl-tick-passed: #4f535a;
-  --sl-disabled: #a8abb1;
-  --sl-readout-colour: #15171c;
-  --sl-label-colour: #4f535a;
-  --sl-e2: 0 4px 12px -4px rgb(21 23 28 / 0.2);
-  --sl-dot-edge: rgb(255 255 255 / 0.8);
-  --sl-checker-a: #ffffff;
-  --sl-checker-b: #d5d7dc;
-  --sl-bubble-fill: #fbfbfd;
-  --sl-bubble-rim: rgb(21 23 28 / 0.1);
-}
-
 @media (pointer: coarse), (any-pointer: coarse) {
   .root {
     --sl-track: 8px;
@@ -260,22 +244,6 @@
   inset: 0;
   background: var(--sl-range);
   transform: translateX(calc((var(--slider-pos) - 1) * 100cqw - var(--sl-knob) / 2));
-}
-
-/* Fener (DSN-88): the strong fill would show milky through the glass knob, so it ends at the
-   knob's leading edge, which grows with the knob (--sl-scale), and the lens shows only track. */
-:global(:root[data-fener]) .fill {
-  transform: translateX(
-    calc(
-      (var(--slider-pos) - 1) *
-      100cqw -
-      var(--sl-knob) /
-      2 -
-      var(--sl-knob) *
-      var(--sl-scale) /
-      2
-    )
-  );
 }
 
 .root[data-disabled] .art,

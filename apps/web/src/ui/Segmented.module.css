@@ -52,16 +52,6 @@
   --seg-lh: var(--type-body-lh);
 }
 
-:global([data-theme='light']) .root,
-:global([data-theme='light']) .measure {
-  --seg-track: var(--control-fill, rgb(21 23 28 / 0.06));
-  --seg-thumb: #fdfdff;
-  --seg-thumb-ring: var(--control-border, rgb(21 23 28 / 0.18));
-  --seg-on: #15171c;
-  --seg-off: #4f535a;
-  --seg-e1: 0 1px 2px rgb(21 23 28 / 0.12);
-}
-
 .thumb {
   z-index: -1;
   grid-row: 1;

@@ -200,13 +200,11 @@ function floorChain(chain: string): string {
 
 export interface MaterialsInputs {
   readonly entries: readonly GlassSurfaceEntry[];
-  /** The dark theme's chains (tokens.css §1). */
+  /** The chains of the one theme (tokens.css §1). */
   readonly filters: TierFilters;
-  /** The light theme's chains (tokens.css §2, D3-7): every σ rule again under `[data-theme='light']`. */
-  readonly lightFilters?: TierFilters;
 }
 
-export function renderMaterialsCss({ entries, filters, lightFilters }: MaterialsInputs): string {
+export function renderMaterialsCss({ entries, filters }: MaterialsInputs): string {
   const out: string[] = [];
   out.push(`/*
  * Materials (components/09-primitives.md §26; language.md §2.3, §2.4, §2.8; ADR-0024; D3-3;
@@ -285,8 +283,8 @@ ${SUPPORTS} {
   out.push('}\n');
 
   // 4. σ.
+  // One theme since PRD-42; the rules still take their root suffix from this list.
   const themes: [string, TierFilters][] = [['', filters]];
-  if (lightFilters) themes.push(["[data-theme='light']", lightFilters]);
   const chainOf = (tier: GlassTier, sigma: number, theme: TierFilters) =>
     `blur(${renderedSigma(tier, sigma)}px) ${theme[tier]}`;
   /** The rules of one class kind, per root theme. */
@@ -481,7 +479,7 @@ ${block('.mat', ['border-color: CanvasText;'], '  ')}}
 export function tierFiltersOf(tokensCss: string, selector: string): TierFilters | undefined {
   const source = tokensCss.replace(/\/\*[\s\S]*?\*\//g, '');
   // The boundary is looked behind, not consumed, so a rule that follows another's `}` directly
-  // (the light block after the dark one) is found too.
+  // is found too.
   for (const match of source.matchAll(/(^|(?<=[{};]))\s*([^{};@]+?)\s*\{([^{}]*)\}/g)) {
     if ((match[2] ?? '').replace(/\s+/g, ' ') !== selector) continue;
     const body = match[3] ?? '';
@@ -496,14 +494,12 @@ export function tierFiltersOf(tokensCss: string, selector: string): TierFilters 
   return undefined;
 }
 
-/** The dark theme block's selector, and the light one (D3-7). */
+/** The theme block's selector. */
 export const DARK_BLOCK = ":root, [data-theme='dark']";
-export const LIGHT_BLOCK = "[data-theme='light']";
 
 /** The whole file from the two sources. */
 export function materialsFrom(entries: readonly GlassSurfaceEntry[], tokensCss: string): string {
   const filters = tierFiltersOf(tokensCss, DARK_BLOCK);
   if (!filters) throw new Error(`tokens.css has no ${DARK_BLOCK} block with every tier filter`);
-  const lightFilters = tierFiltersOf(tokensCss, LIGHT_BLOCK);
-  return renderMaterialsCss({ entries, filters, ...(lightFilters ? { lightFilters } : {}) });
+  return renderMaterialsCss({ entries, filters });
 }

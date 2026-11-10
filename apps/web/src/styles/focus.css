@@ -54,19 +54,6 @@
   --focus-field-shadow: var(--focus-shadow-inset);
 }
 
-/* Light (option A): outset, ink 2 at the field's edge and the lime outside it. */
-[data-theme='light'] {
-  --focus-field-offset: var(--focus-offset-out);
-  --focus-field-shadow: 0 0 0 2px var(--focus-dark);
-}
-
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme]) {
-    --focus-field-offset: var(--focus-offset-out);
-    --focus-field-shadow: 0 0 0 2px var(--focus-dark);
-  }
-}
-
 :focus {
   outline: none;
 }

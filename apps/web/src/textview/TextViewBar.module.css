@@ -21,11 +21,6 @@
   color: var(--text-primary);
 }
 
-/* Over white pages, as the capsule: the sheet tier's denser tint in the light theme. */
-:global([data-theme='light']) .bar {
-  --mat-tint: var(--glass-sheet-tint);
-}
-
 /* Find has the bottom (a docked field): one glass piece at a time. */
 .bar[data-away] {
   opacity: 0;

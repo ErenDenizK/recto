@@ -1,11 +1,11 @@
 /**
- * Palette commands for the appearance settings (language.md §2.8, §7.6; ADR-0022 §2.4; spec
- * D3-3, D3-4, D3-7): "Theme: System", "Theme: Light" and "Theme: Dark" set the Theme setting and
- * say it, as the Glass ones do; "Glass: Clear", "Glass: Tinted" and "Glass: Solid" set the Glass setting (as the language
+ * Palette commands for the appearance settings (language.md §2.8, §7.6; spec D3-3, D3-4):
+ * "Glass: Clear", "Glass: Tinted" and "Glass: Solid" set the Glass setting (as the language
  * commands set the language) and say it; "Reduce motion" switches between System and On and
  * says the new state, its title carrying the current one ("Reduce motion: System");
  * "Background glow" (G5) does the same for the aura behind the reader, and "Dim pages"
- * (DESIGN.md §3; MOB-17) for the dark theme's dimmed pages. The
+ * (DESIGN.md §3; MOB-17) for the dimmed pages. There is no Theme command: Recto is dark only
+ * (PRD-42). The
  * Settings sheet's Appearance rows (components/07-sheets.md S3; spec redesign D0-10) set the
  * same values through the same setters, and "Appearance settings…"
  * (`settings/settings-commands.ts`) opens the sheet there: the Document menu's Appearance
@@ -16,35 +16,9 @@ import { m } from '../i18n';
 import {
   type GlassSetting,
   type MotionSetting,
-  type ThemeSetting,
   useAppearanceStore,
 } from '../state/appearance-store';
-import { viewTransition } from '../motion/view-transition';
-import { fenerEnabled } from '../state/fener';
 import { announce } from './announcer';
-
-/** Each Theme value's command title, which is also what it announces. */
-const THEME_TITLE: Record<ThemeSetting, () => string> = {
-  system: () => m.cmd_view_theme_system(),
-  light: () => m.cmd_view_theme_light(),
-  dark: () => m.cmd_view_theme_dark(),
-};
-
-/**
- * Runs a change of the theme or the theme colour as one root cross-fade in `--vt-duration`
- * (DSN-88, Fener only): every colour changes at once, so the fade is the whole motion; without
- * Fener the change is what it was.
- */
-export function crossFade(update: () => void): void {
-  if (fenerEnabled()) void viewTransition(update);
-  else update();
-}
-
-/** Sets Theme and announces it ("Theme: Light"). */
-export function setTheme(theme: ThemeSetting): void {
-  crossFade(() => useAppearanceStore.getState().setTheme(theme));
-  announce(THEME_TITLE[theme]());
-}
 
 /** Each Glass value's command title, which is also what it announces. */
 const GLASS_TITLE: Record<GlassSetting, () => string> = {
@@ -82,15 +56,6 @@ export function setDimPages(dimPages: boolean): void {
 /** Found in either UI language, as the language commands are. */
 const SHARED_KEYWORDS = ['appearance', 'settings', 'görünüm', 'görünüş', 'ayarlar'] as const;
 
-/** Every Theme command, in both languages, and the value's own words. */
-const THEME_KEYWORDS = [...SHARED_KEYWORDS, 'theme', 'mode', 'tema', 'mod'] as const;
-
-const THEME_VALUE_KEYWORDS: Record<ThemeSetting, readonly string[]> = {
-  system: ['system', 'auto', 'automatic', 'device', 'sistem', 'otomatik', 'cihaz'],
-  light: ['light', 'light mode', 'day', 'açık', 'aydınlık', 'gündüz'],
-  dark: ['dark', 'dark mode', 'night', 'koyu', 'karanlık', 'gece'],
-};
-
 /** Every Glass command: transparency and its Turkish words, and the value's own. */
 const GLASS_KEYWORDS = [
   ...SHARED_KEYWORDS,
@@ -110,7 +75,7 @@ const GLASS_VALUE_KEYWORDS: Record<GlassSetting, readonly string[]> = {
 };
 
 /**
- * Registers the nine commands and registers them again whenever Reduce motion, Background glow
+ * Registers the six commands and registers them again whenever Reduce motion, Background glow
  * or Dim pages changes, so their titles always say the current value.
  */
 export function registerAppearanceCommands(registry: CommandRegistry): () => void {
@@ -119,16 +84,6 @@ export function registerAppearanceCommands(registry: CommandRegistry): () => voi
     for (const dispose of disposers) dispose();
     const { motion, glow, dimPages } = useAppearanceStore.getState();
     disposers = [
-      ...(['system', 'light', 'dark'] as const).map((theme) =>
-        registry.register({
-          id: `view.theme.${theme}`,
-          title: THEME_TITLE[theme](),
-          group: m.group_view(),
-          act: null,
-          keywords: [...THEME_KEYWORDS, ...THEME_VALUE_KEYWORDS[theme]],
-          run: () => setTheme(theme),
-        }),
-      ),
       ...(['clear', 'tinted', 'solid'] as const).map((glass) =>
         registry.register({
           id: `view.glass.${glass}`,

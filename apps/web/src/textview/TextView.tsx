@@ -32,7 +32,6 @@ import {
 
 import { m } from '../i18n';
 import { announce } from '../shell/announcer';
-import { systemTheme, type Theme } from '../state/theme';
 import type { OcrOfferInfo, TextViewHostProps, TextViewLoader, TextViewPlace } from './contract';
 import { anchorAt } from './position';
 import { LINE_HEIGHTS, setReadingPrefs, TEXT_SIZES, useReadingPrefs } from './reading-prefs';
@@ -52,17 +51,6 @@ export function pinchStep(base: number, distance: number): 1 | -1 | 0 {
   if (distance / base >= PINCH_STEP) return 1;
   if (distance / base <= 1 / PINCH_STEP) return -1;
   return 0;
-}
-
-function subscribeAppTheme(listener: () => void): () => void {
-  const observer = new MutationObserver(listener);
-  observer.observe(document.documentElement, { attributeFilter: ['data-theme'] });
-  return () => observer.disconnect();
-}
-
-function appTheme(): Theme {
-  const set = document.documentElement.getAttribute('data-theme');
-  return set === 'light' || set === 'dark' ? set : systemTheme();
 }
 
 /** Whether every page read so far is a scan, once a whole first chunk has been read. */
@@ -87,8 +75,8 @@ interface Held {
 export function TextView(props: TextViewHostProps) {
   const { title, loader, crops, ocr, place, jump, mark, hidden } = props;
   const prefs = useReadingPrefs();
-  const app = useSyncExternalStore(subscribeAppTheme, appTheme);
-  const look: Theme = prefs.theme === 'auto' ? app : prefs.theme;
+  // Auto is the app's own look, which is dark (PRD-42); Light and Dark are the view's own.
+  const look: 'light' | 'dark' = prefs.theme === 'auto' ? 'dark' : prefs.theme;
   const px = TEXT_SIZES[prefs.size] ?? TEXT_SIZES[2];
 
   const root = useRef<HTMLDivElement>(null);

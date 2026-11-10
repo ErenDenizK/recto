@@ -68,14 +68,6 @@
   grid-column: 1 / -1;
 }
 
-:global([data-theme='light']) .panel {
-  --cp-primary: #15171c;
-  --cp-secondary: #3f424a;
-  --cp-hover: rgb(21 23 28 / 0.04);
-  --cp-pressed: rgb(21 23 28 / 0.07);
-  --cp-add-ring: var(--control-border, rgb(21 23 28 / 0.55));
-}
-
 @media (pointer: coarse), (any-pointer: coarse) {
   .panel {
     --cp-col: 324px;

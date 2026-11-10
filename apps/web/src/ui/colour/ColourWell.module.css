@@ -83,14 +83,6 @@
   box-shadow: inset 0 0 0 1px var(--well-contrast);
 }
 
-:global([data-theme='light']) .well .disc {
-  box-shadow: none;
-}
-
-:global([data-theme='light']) .well[data-ring-light] .disc {
-  box-shadow: inset 0 0 0 1px var(--well-contrast);
-}
-
 @media (hover: hover) {
   .well:not(:disabled):hover .disc {
     transform: scale(1.06);

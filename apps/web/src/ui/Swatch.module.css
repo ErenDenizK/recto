@@ -91,15 +91,6 @@
   box-shadow: inset 0 0 0 1px var(--sw-contrast);
 }
 
-/* Light theme: the light-theme rule replaces the dark one. */
-:global([data-theme='light']) .swatch .dot {
-  box-shadow: none;
-}
-
-:global([data-theme='light']) .swatch[data-ring-light] .dot {
-  box-shadow: inset 0 0 0 1px var(--sw-contrast);
-}
-
 /* No fill: a white dot with a red diagonal (the ⊘ form). */
 .swatch[data-none] .dot {
   background:

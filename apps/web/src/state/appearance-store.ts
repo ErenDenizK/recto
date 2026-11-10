@@ -1,12 +1,10 @@
 /**
- * Appearance settings (language.md §2.8, §7.6; ADR-0022 §2.4; ADR-0024 §2.4; spec D3-3, D3-4,
- * D3-7; components/07-sheets.md S3): **Theme: System · Light · Dark**, **Glass: Clear · Tinted ·
- * Solid**, **Reduce motion: System · On**, **Background glow** (on by default) and **Dim pages**
- * (off by default).
+ * Appearance settings (language.md §2.8, §7.6; ADR-0024 §2.4; spec D3-3, D3-4; components/
+ * 07-sheets.md S3): **Glass: Clear · Tinted · Solid**, **Reduce motion: System · On**,
+ * **Background glow** (on by default) and **Dim pages** (off by default). Recto is dark only
+ * (PRD-42): there is no Theme setting, and a `theme` value an older version stored is ignored
+ * and never migrated.
  *
- * - Theme: System follows the device's light or dark scheme, live; Light and Dark hold whatever
- *   the device says. Resolved and written by `theme.ts` (the boot script `public/theme.js` does
- *   the same before the first paint).
  * - Glass replaces M8's "Glass panels" and "Reduce transparency" switches. Until the person
  *   picks one it is `null` and the start state applies (`render-quality.ts`: Tinted on a
  *   software rasteriser, else Clear); the system's `prefers-reduced-transparency` forces Solid
@@ -19,26 +17,22 @@
  * - Background glow (owner feedback 2026-10-09, G5, and the owner's decision that it starts on):
  *   the Library's aura, dimmer, behind the reader's canvas (`home/Aura.tsx`, shown by the app
  *   shell in the page view). On unless the stored value is `false`.
- * - Dim pages (DESIGN.md §3's comfort toggle; decisions MOB-16 step 1, MOB-17): in the dark
- *   theme the page bitmaps are composited darker (`--page-filter`, `--page-background` in
- *   `tokens.css` §5); the document, its saves and exports are untouched. Off unless the stored
- *   value is `true`; it does nothing in the light theme or under forced colours.
+ * - Dim pages (DESIGN.md §3's comfort toggle; decisions MOB-16 step 1, MOB-17): the page
+ *   bitmaps are composited darker (`--page-filter`, `--page-background` in `tokens.css` §5); the
+ *   document, its saves and exports are untouched. Off unless the stored value is `true`; it
+ *   does nothing under forced colours.
  *
  * Persisted in `pdf-editor:appearance:v1`, validated field by field. The settings reach CSS as
- * attributes on the document element, applied by `useAppearanceRoot`: `data-theme` (the theme
- * in force, `light` or `dark`, kept after unmount: the boot script owns it from the first
- * paint), `data-glass` (the
+ * attributes on the document element, applied by `useAppearanceRoot`: `data-glass` (the
  * setting in force: `clear`, `tinted` or `solid`), `data-degrade` (the cost ladder's step,
  * absent at 0), `data-motion="reduced"` (`motion.css`, matched by the same blocks as the
  * media query; `reducedMotion()` reads it for script) and `data-dim-pages` (Dim pages on, read
- * by `tokens.css` together with `data-theme='dark'`). With the Labs flag `fener` on, the root
- * also carries `data-fener` and `data-accent` (`state/fener.ts`, read by `styles/fener.css`,
- * DSN-88).
+ * by `tokens.css` together with `data-theme='dark'`, which `index.html` carries from the first
+ * byte).
  */
 import { useLayoutEffect } from 'react';
 import { create } from 'zustand';
 
-import { applyFener, fenerEnabled, type FenerPreset, useFenerStore } from './fener';
 import {
   applyDegrade,
   ensureDegradeStart,
@@ -48,10 +42,8 @@ import {
   useRenderQualityStore,
 } from './render-quality';
 import { readJson, writeJson } from './safe-storage';
-import { applyTheme, subscribeSystemTheme, THEME_SETTINGS, type ThemeSetting } from './theme';
 
 export type { GlassSetting } from './render-quality';
-export type { Theme, ThemeSetting } from './theme';
 
 export const APPEARANCE_STORAGE_KEY = 'pdf-editor:appearance:v1';
 
@@ -59,8 +51,6 @@ export const APPEARANCE_STORAGE_KEY = 'pdf-editor:appearance:v1';
 export type MotionSetting = 'system' | 'reduced';
 
 export interface AppearanceSettings {
-  /** System · Light · Dark (ADR-0022 §2.4); System until a choice is made. */
-  readonly theme: ThemeSetting;
   /** The person's Glass choice; `null` until they make one (the start state applies). */
   readonly glass: GlassSetting | null;
   readonly motion: MotionSetting;
@@ -71,7 +61,6 @@ export interface AppearanceSettings {
 }
 
 export const DEFAULT_APPEARANCE: AppearanceSettings = {
-  theme: 'system',
   glass: null,
   motion: 'system',
   glow: true,
@@ -81,7 +70,6 @@ export const DEFAULT_APPEARANCE: AppearanceSettings = {
 const GLASS_SETTINGS: readonly GlassSetting[] = ['clear', 'tinted', 'solid'];
 
 interface AppearanceState extends AppearanceSettings {
-  setTheme(theme: ThemeSetting): void;
   setGlass(glass: GlassSetting): void;
   setMotion(motion: MotionSetting): void;
   setGlow(glow: boolean): void;
@@ -103,11 +91,7 @@ export function parseAppearance(value: unknown): AppearanceSettings {
     : record.reduceTransparency === true
       ? 'solid'
       : null;
-  const theme = THEME_SETTINGS.includes(record.theme as ThemeSetting)
-    ? (record.theme as ThemeSetting)
-    : DEFAULT_APPEARANCE.theme;
   return {
-    theme,
     glass,
     motion: record.motion === 'reduced' ? 'reduced' : DEFAULT_APPEARANCE.motion,
     glow: typeof record.glow === 'boolean' ? record.glow : DEFAULT_APPEARANCE.glow,
@@ -133,7 +117,6 @@ export function loadAppearance(): AppearanceSettings {
 
 export const useAppearanceStore = create<AppearanceState>()((set) => ({
   ...loadAppearance(),
-  setTheme: (theme) => set({ theme }),
   setGlass: (glass) => set({ glass }),
   setMotion: (motion) => set({ motion }),
   setGlow: (glow) => set({ glow }),
@@ -142,7 +125,6 @@ export const useAppearanceStore = create<AppearanceState>()((set) => ({
 
 useAppearanceStore.subscribe((state, previous) => {
   if (
-    state.theme === previous.theme &&
     state.glass === previous.glass &&
     state.motion === previous.motion &&
     state.glow === previous.glow &&
@@ -151,7 +133,6 @@ useAppearanceStore.subscribe((state, previous) => {
     return;
   }
   const settings: AppearanceSettings = {
-    theme: state.theme,
     glass: state.glass,
     motion: state.motion,
     glow: state.glow,
@@ -168,15 +149,9 @@ export function effectiveGlass(glass: GlassSetting | null): GlassSetting {
 /** Writes the settings onto `root` as the attributes the style sheets read. */
 export function applyAppearance(
   root: HTMLElement,
-  settings: Pick<AppearanceSettings, 'theme' | 'glass' | 'motion'> &
-    Partial<Pick<AppearanceSettings, 'dimPages'>> & {
-      /** Fener's preset when the flag is on (DSN-88); absent or null: today's colours. */
-      readonly accent?: FenerPreset | null;
-    },
+  settings: Pick<AppearanceSettings, 'glass' | 'motion'> &
+    Partial<Pick<AppearanceSettings, 'dimPages'>>,
 ): void {
-  // Fener first: the theme-color metas take its canvases when the root carries it.
-  applyFener(root, settings.accent ?? null);
-  applyTheme(root, settings.theme);
   root.setAttribute('data-glass', effectiveGlass(settings.glass));
   if (settings.motion === 'reduced') root.setAttribute('data-motion', 'reduced');
   else root.removeAttribute('data-motion');
@@ -184,13 +159,12 @@ export function applyAppearance(
   else root.removeAttribute('data-dim-pages');
 }
 
-/** Removes what `applyAppearance` and the ladder wrote, except the theme (see above). */
+/** Removes what `applyAppearance` and the ladder wrote. */
 function clearAppearance(root: HTMLElement): void {
   root.removeAttribute('data-glass');
   root.removeAttribute('data-motion');
   root.removeAttribute('data-dim-pages');
   root.removeAttribute('data-degrade');
-  applyFener(root, null);
 }
 
 /**
@@ -199,12 +173,9 @@ function clearAppearance(root: HTMLElement): void {
  * frame never flashes. It also runs the ladder's frame monitor for as long.
  */
 export function useAppearanceRoot(): void {
-  const theme = useAppearanceStore((s) => s.theme);
   const glass = useAppearanceStore((s) => s.glass);
   const motion = useAppearanceStore((s) => s.motion);
   const dimPages = useAppearanceStore((s) => s.dimPages);
-  const fener = useFenerStore((s) => s.accent);
-  const accent = fenerEnabled() ? fener : null;
   const degrade = useRenderQualityStore((s) => s.degrade);
   useLayoutEffect(() => {
     ensureDegradeStart();
@@ -228,13 +199,8 @@ export function useAppearanceRoot(): void {
   }, []);
   useLayoutEffect(() => {
     const root = document.documentElement;
-    applyAppearance(root, { theme, glass, motion, dimPages, accent });
+    applyAppearance(root, { glass, motion, dimPages });
     applyDegrade(root, degrade);
     return () => clearAppearance(root);
-  }, [theme, glass, motion, dimPages, accent, degrade]);
-  // System follows the device while the app runs.
-  useLayoutEffect(() => {
-    if (theme !== 'system') return;
-    return subscribeSystemTheme(() => applyTheme(document.documentElement, 'system'));
-  }, [theme]);
+  }, [glass, motion, dimPages, degrade]);
 }

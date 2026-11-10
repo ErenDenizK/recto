@@ -6,9 +6,9 @@
  * code audit 2026-10 §4a; the bundle gate, PRC-11): `CompactSheets` prefetches this module once
  * the browser is idle and fetches it at once when a sheet or a password is asked for.
  *
- * **Settings** (the gear, DSN-53; Labs, DSN-82, shows after the version is tapped five times): Theme (ADR-0022 §2.4, spec D3-7), Reduce motion (language.md
+ * **Settings** (the gear, DSN-53; Labs, DSN-82, shows after the version is tapped five times): Reduce motion (language.md
  * §7.6, A-9) and Dim pages (DESIGN.md §3, MOB-17), the full edition's own rows
- * (`settings/ThemeRow.tsx`, `settings/ReduceMotionRow.tsx`, `settings/DimPagesRow.tsx`, the same
+ * (`settings/ReduceMotionRow.tsx`, `settings/DimPagesRow.tsx`, the same
  * `appearance-store` fields), then Language (DSN-46): English · Türkçe, each name in its own
  * language; last, **About** as a row that opens its page within the sheet (‹ goes back), as
  * iOS Settings does.
@@ -40,12 +40,9 @@ import {
 } from '../../i18n';
 import { RevealTap } from '../../labs/RevealTap';
 import { useLabsVisible } from '../../labs/store';
-import { AccentRow } from '../../settings/AccentRow';
 import { DimPagesRow } from '../../settings/DimPagesRow';
 import { ReduceMotionRow } from '../../settings/ReduceMotionRow';
-import { ThemeRow } from '../../settings/ThemeRow';
 import { NavRow, Row, Section } from '../../settings/rows';
-import { fenerEnabled } from '../../state/fener';
 import { useViewStore } from '../../state/view-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { Icon } from '../../ui/Icon';
@@ -160,8 +157,6 @@ function SettingsSheet({ open }: { readonly open: boolean }) {
       ) : (
         <div className={styles.settings}>
           <Section title={m.appearance_heading()}>
-            <ThemeRow />
-            {fenerEnabled() ? <AccentRow /> : null}
             <ReduceMotionRow />
             <DimPagesRow />
           </Section>

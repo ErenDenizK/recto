@@ -32,24 +32,6 @@
   contain: strict;
 }
 
-:global([data-theme='light']) .aura {
-  --aura-peak-mint: 0.3;
-  --aura-peak-lime: 0.34;
-  --aura-peak-yellow: 0.28;
-  --aura-peak-glint: 0.2;
-  --aura-peak-low: 0.22;
-}
-
-@media (prefers-color-scheme: light) {
-  :global(:root:not([data-theme])) .aura {
-    --aura-peak-mint: 0.3;
-    --aura-peak-lime: 0.34;
-    --aura-peak-yellow: 0.3;
-    --aura-peak-glint: 0.2;
-    --aura-peak-low: 0.22;
-  }
-}
-
 /* Behind the reader (G5): the same light, dimmer and still, so the white page stays the
    brightest thing and nothing competes with what is on it. A document view keeps Q-10's zero
    frames at rest, so the reader's glass never re-blurs a moving backdrop while one works. */
@@ -60,34 +42,6 @@
 .aura[data-tone='reader'] .lobe {
   animation: none;
   will-change: auto;
-}
-
-/* Fener (DSN-88, `styles/fener.css`): the glow is where the gradient lives, the theme colour
-   (--aura-mint, the left and low lobes), then sky (--aura-lime), then green (--aura-yellow), the
-   logo's ramp. Bold on the Library; behind the reader dimmed to 30 % in the light theme and 50 %
-   in the dark, and still. Solid glass keeps its own opacities above. */
-:global(:root[data-fener][data-theme='light']) .aura {
-  --aura-peak-mint: 0.62;
-  --aura-peak-lime: 0.42;
-  --aura-peak-yellow: 0.4;
-  --aura-peak-glint: 0.3;
-  --aura-peak-low: 0.45;
-}
-
-:global(:root[data-fener][data-theme='dark']) .aura {
-  --aura-peak-mint: 0.4;
-  --aura-peak-lime: 0.2;
-  --aura-peak-yellow: 0.14;
-  --aura-peak-glint: 0.12;
-  --aura-peak-low: 0.24;
-}
-
-:global(:root[data-fener][data-theme='light']:not([data-glass='solid'])) .aura[data-tone='reader'] {
-  opacity: 0.3;
-}
-
-:global(:root[data-fener][data-theme='dark']:not([data-glass='solid'])) .aura[data-tone='reader'] {
-  opacity: 0.5;
 }
 
 /* The drift loops (Q-10: a loop is named, never a bare time), one per lobe, each a prime
