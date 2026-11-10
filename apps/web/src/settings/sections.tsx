@@ -232,14 +232,15 @@ export function RecentsRow() {
         label={m.settings_recents()}
         value={count === 0 ? m.settings_recents_none() : m.settings_recents_count({ count })}
       >
-        <Button
-          variant="standard"
-          disabled={count === 0}
-          aria-label={m.recents_clear()}
-          onClick={() => void commandRegistry.execute('file.clearRecents')}
-        >
-          {m.settings_clear()}
-        </Button>
+        {count === 0 ? null : (
+          <Button
+            variant="standard"
+            aria-label={m.recents_clear()}
+            onClick={() => void commandRegistry.execute('file.clearRecents')}
+          >
+            {m.settings_clear()}
+          </Button>
+        )}
       </Line>
     </Row>
   );
@@ -281,17 +282,21 @@ export function ShowTipsRow() {
   const pending = useInputPolicyStore((s) => s.editTextHintShown);
   return (
     <Row id="showTips" bar>
-      <Line label={m.settings_show_tips()} description={m.settings_show_tips_hint()}>
-        <Button
-          variant="standard"
-          disabled={!pending}
-          reason={pending ? undefined : m.settings_show_tips_none()}
-          onClick={() => {
-            if (tipsToShowAgain()) showTipsAgain();
-          }}
-        >
-          {m.settings_show_tips_action()}
-        </Button>
+      <Line
+        label={m.settings_show_tips()}
+        description={m.settings_show_tips_hint()}
+        {...(pending ? {} : { value: m.settings_show_tips_none() })}
+      >
+        {pending ? (
+          <Button
+            variant="standard"
+            onClick={() => {
+              if (tipsToShowAgain()) showTipsAgain();
+            }}
+          >
+            {m.settings_show_tips_action()}
+          </Button>
+        ) : null}
       </Line>
     </Row>
   );

@@ -4316,7 +4316,7 @@
   "save_copy_format_images": "Images",
   "save_copy_format_text": "Text",
   "save_copy_size": "Size",
-  "save_copy_size_same": "Same as original",
+  "save_copy_size_same": "No compression",
   "save_copy_size_smaller": "Smaller",
   "save_copy_size_smallest": "Smallest",
   "save_copy_size_custom": "Custom…",

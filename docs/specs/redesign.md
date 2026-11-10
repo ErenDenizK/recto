@@ -303,7 +303,7 @@ source document, §6.16 lists it; those lines were applied on 2026-10-04.
 | 08.3 | `HistoryEntry.meta` | X10 | A |
 | 08.9 | Update toast copy | Reloading no longer closes documents; the old warning shows only when nothing is kept (private window, storage refused) | A |
 | 06.17 | Migrating `leftPanelOpen: true` | Not migrated from `ui:v2`: the sidebar starts closed for everyone once | A |
-| 07.Q3 | Last Save a copy choice as the next default | No: drafts are per document per session; every new document starts at "Same as original" | A |
+| 07.Q3 | Last Save a copy choice as the next default | No: drafts are per document per session; every new document starts at "No compression" | A |
 
 ### 6.3 Glass, coverage and tokens
 
