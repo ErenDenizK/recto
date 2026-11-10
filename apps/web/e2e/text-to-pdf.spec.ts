@@ -164,9 +164,9 @@ test('a .md with a table opens as a document at the default fit, and the table r
   await page.goto('./?lang=en');
   await expect(page.getByTestId('app-shell')).toBeVisible();
 
-  // From Home: the launcher's Open files… takes the Markdown and lands on the document.
+  // From Home: the panel's Open or drop files takes the Markdown and lands on the document.
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files…' }).click();
+  await page.getByRole('button', { name: 'Open or drop files' }).click();
   await (await chooser).setFiles(fixturePath('table-notes.md'));
   await expect(page.getByRole('tab', { name: 'table-notes' })).toBeVisible({ timeout: 30_000 });
   const first = page.locator('[data-page-index="0"]').first();

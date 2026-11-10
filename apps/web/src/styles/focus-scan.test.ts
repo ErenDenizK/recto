@@ -33,13 +33,9 @@ const SUPPRESSED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   'annotations/AnnotationLayer.module.css': {
     '.freeText:focus-visible': 'in-place editor (language.md §2.10): its frame and the caret',
   },
-  'home/DeskIntents.module.css': {
-    '.tile[data-quiet-focus]:focus-visible':
-      'Continue or Open files focused by the page on arrival (J1, DSN-87); the first key press restores the ring',
-  },
-  'home/Launcher.module.css': {
-    '.welcome [data-quiet-focus]:focus-visible':
-      'Open files… focused by the page on arrival (J1); the first key press restores the ring',
+  'home/Desk.module.css': {
+    '.page [data-quiet-focus]:focus-visible':
+      'Continue or Open or drop files focused by the page on arrival (J1, DSN-93); the first key press restores the ring',
   },
   'forms/FormLayer.module.css': {
     '.editor:focus-visible': 'in-place field editor: its border and the caret',

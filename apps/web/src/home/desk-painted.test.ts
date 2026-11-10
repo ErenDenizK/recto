@@ -1,7 +1,7 @@
 /**
  * The desk's paint mark (`desk-painted.ts`; DSN-87, `masa.md` §4): `desk:painted` is set
  * once, when the desk is on screen with its hero settled and its covers decoded or the waits are
- * over, and only with the desk on.
+ * over.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -44,7 +44,7 @@ describe('the desk paint mark (DSN-87)', () => {
   });
 
   it('marks once the desk has painted with nothing to wait for', async () => {
-    history.replaceState(null, '', `${location.pathname}?desk=1`);
+    history.replaceState(null, '', location.pathname);
     desk('sample');
     watchDeskPainted();
     await expect.poll(() => marks().length, { timeout: 2000 }).toBe(1);
@@ -55,7 +55,7 @@ describe('the desk paint mark (DSN-87)', () => {
   });
 
   it('waits for the hero to leave its holding state, at most HERO_WAIT_MS', async () => {
-    history.replaceState(null, '', `${location.pathname}?desk=1`);
+    history.replaceState(null, '', location.pathname);
     const section = desk('holding');
     watchDeskPainted();
     await frames(5);
@@ -67,19 +67,11 @@ describe('the desk paint mark (DSN-87)', () => {
   });
 
   it('finds a desk that mounts after the watch started', async () => {
-    history.replaceState(null, '', `${location.pathname}?desk=1`);
+    history.replaceState(null, '', location.pathname);
     watchDeskPainted();
     await frames(2);
     expect(marks()).toHaveLength(0);
     desk('none');
     await expect.poll(() => marks().length, { timeout: 2000 }).toBe(1);
-  });
-
-  it('does nothing without the desk flag', async () => {
-    history.replaceState(null, '', `${location.pathname}?desk=0`);
-    desk('sample');
-    watchDeskPainted();
-    await frames(8);
-    expect(marks()).toHaveLength(0);
   });
 });

@@ -114,7 +114,7 @@ test('runs "Number pages" over two files and downloads a ZIP of numbered PDFs', 
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   await expect(
-    page.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+    page.getByRole('heading', { name: 'Read, mark up, sign and arrange.' }),
   ).toBeVisible();
 
   await page.keyboard.press('ControlOrMeta+k');
@@ -170,7 +170,7 @@ test('runs "Number pages" over two files and downloads a ZIP of numbered PDFs', 
   await dialog.getByRole('button', { name: 'Close' }).first().click();
   await expect(dialog).toBeHidden();
   await expect(
-    page.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+    page.getByRole('heading', { name: 'Read, mark up, sign and arrange.' }),
   ).toBeVisible();
 });
 
@@ -181,7 +181,7 @@ test('runs a Markdown recipe over dropped files and downloads the text', async (
   });
   await page.goto('./?lang=en');
   await expect(
-    page.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+    page.getByRole('heading', { name: 'Read, mark up, sign and arrange.' }),
   ).toBeVisible();
 
   await page.keyboard.press('ControlOrMeta+k');
@@ -267,7 +267,7 @@ test('runs a Markdown recipe over dropped files and downloads the text', async (
   await dialog.getByRole('button', { name: 'Close' }).first().click();
   await expect(dialog).toBeHidden();
   await expect(
-    page.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+    page.getByRole('heading', { name: 'Read, mark up, sign and arrange.' }),
   ).toBeVisible();
 });
 
@@ -293,7 +293,7 @@ test('runs "Scan to searchable" over a scan and downloads a searchable PDF', asy
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   await expect(
-    page.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+    page.getByRole('heading', { name: 'Read, mark up, sign and arrange.' }),
   ).toBeVisible();
 
   await page.keyboard.press('ControlOrMeta+k');
@@ -342,6 +342,6 @@ test('runs "Scan to searchable" over a scan and downloads a searchable PDF', asy
   await dialog.getByRole('button', { name: 'Close' }).first().click();
   await expect(dialog).toBeHidden();
   await expect(
-    page.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+    page.getByRole('heading', { name: 'Read, mark up, sign and arrange.' }),
   ).toBeVisible();
 });

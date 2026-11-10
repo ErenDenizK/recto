@@ -1,9 +1,10 @@
 /**
- * The Library on real PDFs (Vitest browser mode, Chromium, PDFium; `02-library` L1–L9, L12):
- * lit cards in tab order, one click opens, Select mode by Shift, Mod, the ○ and right-click, the
- * static selection bar's dimmed reasons, Combine without a dialog in card order, Compare with the
- * older file as A, Pages and Close, the keys (Esc ladder, Alt+arrows, F2), drops and the
- * launcher's lift, Open files… and Combine files…, the empty launcher, and Recents.
+ * The Library on real PDFs (Vitest browser mode, Chromium, PDFium; `02-library` L1–L9, L12;
+ * DSN-93: the desk is the only Home): covers on the Open shelf in tab order, one click opens,
+ * Select mode by Shift, Mod, the ○ and right-click, the static selection bar's dimmed reasons,
+ * Combine without a dialog in cover order, Compare with the older file as A, Pages and Close, the
+ * keys (Esc ladder, Alt+arrows, F2), drops and the panel's lift, Open or drop files and Combine,
+ * the first visit, and the Recent shelf.
  */
 import '../styles/tokens.css';
 import '../styles/reset.css';
@@ -116,45 +117,39 @@ describe('Library', () => {
     resetLibraryStore();
   });
 
-  it('heads the documents with one row of the ways in, ends with the sample, over a drifting aura', async () => {
+  it('heads the covers with the action panel, over the two-lobed aura', async () => {
     await openOnHome('simple-text.pdf');
     const home = screen.getByTestId('home');
-    // Identity (G3, DSN-50): the strip's "◆ Library" piece names the place, so the view draws
-    // no title and no mark of its own. The promise is the empty welcome's alone (DSN-46).
-    expect(within(home).queryByRole('heading', { name: 'Library' })).toBeNull();
-    expect(home.querySelector('header svg[data-tone="auto"]')).toBeNull();
+    // The strip's "Library" piece names the place; the view's own h1 is visually hidden.
+    expect(within(home).getByRole('heading', { level: 1, name: 'Library' })).toHaveClass(
+      'visually-hidden',
+    );
     expect(within(home).queryByText('Nothing leaves this device.')).toBeNull();
-    // Open: the view's one lime, first in the row, and the row says files can be dropped.
-    const launcher = screen.getByTestId('library-launcher');
-    const open = within(launcher).getByRole('button', { name: 'Open files…' });
-    expect(open).toHaveClass('btn-prominent');
-    expect(launcher).toHaveTextContent('or drop files anywhere');
-    // The other ways in: two equal standard buttons, each with its glyph.
-    const group = within(launcher).getByRole('group', { name: 'More ways to start' });
-    const starts = within(group).getAllByRole('button');
-    expect(starts.map((b) => b.textContent)).toEqual(['Combine files…', 'Batch…']);
-    // Try the sample is the last tier (DSN-50): a card after the documents, out of the row.
-    const sample = within(home).getByRole('button', { name: 'Try the sample' });
-    expect(within(launcher).queryByRole('button', { name: 'Try the sample' })).toBeNull();
-    expect(sample).toHaveAccessibleDescription('A small magazine to try every tool on.');
-    expect(grid().compareDocumentPosition(sample) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    for (const button of starts) {
-      expect(button).toHaveClass('btn-standard');
-      expect(button.querySelector('svg[data-icon]')).not.toBeNull();
-    }
-    // One control size for the piece's actions, L (system audit §3.3, §3.9): 40 on a fine
-    // pointer, never the piece height redefined as a control height.
-    const heights = [open, ...starts].map((b) => b.getBoundingClientRect().height);
-    expect(new Set(heights)).toEqual(new Set([40]));
-    // No footer (DSN-46): no "Nothing is uploaded" chip, no language switch on the page.
+    // The panel: Open or drop files first, then Combine, Fill and sign and All commands, each a
+    // 72 px row; the Open glyph is the view's lime, and no filled primary stands but Continue's.
+    const panel = screen.getByTestId('library-launcher');
+    const rows = within(panel).getAllByRole('button');
+    expect(rows.map((b) => b.querySelector('span[id]')?.textContent)).toEqual([
+      'Open or drop files',
+      'Combine files',
+      'Fill and sign',
+      'All commands',
+    ]);
+    for (const row of rows) expect(row.getBoundingClientRect().height).toBe(72);
+    expect(within(panel).queryByRole('button', { name: 'Try the sample' })).toBeNull();
+    // The Open shelf: its label, then the covers.
+    const label = within(home).getByRole('heading', { level: 2, name: 'Open' });
+    expect(label.compareDocumentPosition(grid()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.queryByTestId('library-footer')).toBeNull();
     expect(within(home).queryByRole('radiogroup', { name: 'Language' })).toBeNull();
-    // The aura: decorative, behind the column, slowly alive by transform and opacity alone.
+    // The aura: two lobes (DSN-94), decorative, behind the content, slowly alive by transform and
+    // opacity alone.
     const aura = screen.getByTestId('library-aura');
     expect(aura).toHaveAttribute('aria-hidden', 'true');
     expect(getComputedStyle(aura).pointerEvents).toBe('none');
+    expect(aura.children).toHaveLength(2);
     const drifts = aura.getAnimations({ subtree: true });
-    expect(drifts.length).toBeGreaterThanOrEqual(3);
+    expect(drifts.length).toBeGreaterThanOrEqual(2);
     for (const drift of drifts) {
       const timing = drift.effect?.getComputedTiming();
       expect(Number(timing?.duration)).toBeGreaterThanOrEqual(30_000);
@@ -184,14 +179,15 @@ describe('Library', () => {
     expect(home.contains(aura)).toBe(false);
   });
 
-  it('shows one lit card per open document, in tab order, with pages, size and a thumbnail', async () => {
+  it('shows one cover per open document, in tab order, named with pages and size', async () => {
     await openOnHome('simple-text.pdf', 'rotated-pages.pdf');
     const options = within(grid()).getAllByRole('option');
     expect(options.map((o) => o.getAttribute('aria-label'))).toEqual([
       expect.stringMatching(/^simple-text, 3 pages, \d+(\.\d)? KB$/),
       expect.stringMatching(/^rotated-pages, 4 pages, \d+(\.\d)? KB$/),
     ]);
-    expect(options[0]).toHaveAttribute('data-lit');
+    // Nothing but the cover and the serif title is drawn.
+    expect(options[0]?.textContent).toBe('simple-text');
     // The first page through the shared thumbnail renderer.
     await waitFor(
       () => {
@@ -199,13 +195,16 @@ describe('Library', () => {
       },
       { timeout: 20_000 },
     );
-    expect(screen.getByTestId('library-head')).toHaveTextContent('Open · 2 documents · 7 pages');
-    // The head row is the field's text-safe band (02.2), published for D3-8.
-    expect(screen.getByTestId('library-head')).toHaveAttribute('data-text-safe');
+    // The shelf's header row is the field's text-safe band (02.2), published for D3-8.
+    const head = screen
+      .getByTestId('library-open-shelf')
+      .querySelector<HTMLElement>('[data-text-safe]');
+    expect(head).not.toBeNull();
+    expect(head).toHaveTextContent('OpenSelect');
     const rect = libraryTextSafeRect();
-    const head = screen.getByTestId('library-head').getBoundingClientRect();
-    expect(rect?.top).toBeCloseTo(head.top - 24);
-    expect(rect?.width).toBeCloseTo(head.width + 48);
+    const headBox = head?.getBoundingClientRect() ?? new DOMRect();
+    expect(rect?.top).toBeCloseTo(headBox.top - 24);
+    expect(rect?.width).toBeCloseTo(headBox.width + 48);
 
     // A closed tab leaves the Library.
     const first = ws().documentOrder[0];
@@ -430,18 +429,19 @@ describe('Library', () => {
     expect(card('notes')).toHaveAccessibleName(/, Locked$/);
   });
 
-  it('starts over after the last document closes: the launcher, then the next file in viewing', async () => {
+  it('starts over after the last document closes: no Open shelf, then the next file in viewing', async () => {
     const ids = await openOnHome('simple-text.pdf');
     act(() => {
       for (const id of ids) useWorkspaceStore.getState().closeDocument(id);
     });
-    expect(screen.getByTestId('home')).toHaveAttribute('data-variant', 'empty');
+    // No documents: the Open shelf is gone and the panel is all that starts a session.
+    expect(within(screen.getByTestId('home')).queryByRole('listbox')).toBeNull();
     // The strip's Library button (01-frame F2) is the current place.
     expect(screen.getByTestId('home-button')).toHaveAttribute('aria-current', 'page');
     expect(useUiStore.getState()).toMatchObject({ destination: 'document', docUi: {} });
   });
 
-  it('checks the new cards after two files are dropped, and lifts the launcher while dragging', async () => {
+  it('checks the new cards after two files are dropped, and lifts the panel while dragging', async () => {
     render(<App />);
     const files = await Promise.all([
       fixture(simpleUrl, 'simple-text.pdf'),
@@ -452,10 +452,11 @@ describe('Library', () => {
     const shell = screen.getByTestId('app-shell');
     drag(shell, 'dragenter', data);
     drag(shell, 'dragover', data);
-    // No overlay on the Library: the launcher lifts and says what a release does.
+    // No overlay on the Library: the first visit's heading says what a release does.
     const launcher = screen.getByTestId('library-launcher');
     expect(launcher).toHaveAttribute('data-dragging');
-    expect(within(launcher).getByRole('heading', { level: 1 })).toHaveTextContent(
+    const home = screen.getByTestId('home');
+    expect(within(home).getByRole('heading', { level: 1 })).toHaveTextContent(
       'Drop to open 2 files',
     );
     expect(screen.queryByTestId('drop-overlay')).toBeNull();
@@ -484,7 +485,7 @@ describe('Library', () => {
     );
   }, 45_000);
 
-  it('checks the new cards after two files are picked with Open files…', async () => {
+  it('checks the new cards after two files are picked with Open or drop files', async () => {
     const files = await Promise.all([
       fixture(simpleUrl, 'simple-text.pdf'),
       fixture(rotatedUrl, 'rotated-pages.pdf'),
@@ -498,7 +499,7 @@ describe('Library', () => {
       render(<App />);
       const empty = await screen.findByTestId('home');
       // First focus on a first visit (J1).
-      const open = within(empty).getByRole('button', { name: 'Open files…' });
+      const open = within(empty).getByRole('button', { name: 'Open or drop files' });
       await waitFor(() => {
         expect(open).toHaveFocus();
       });
@@ -516,7 +517,7 @@ describe('Library', () => {
     }
   }, 45_000);
 
-  it('Combine files… makes one document of the picked files, with no other tab', async () => {
+  it('Combine makes one document of the picked files, with no other tab', async () => {
     const files = await Promise.all([
       fixture(simpleUrl, 'simple-text.pdf'),
       fixture(rotatedUrl, 'rotated-pages.pdf'),
@@ -529,7 +530,7 @@ describe('Library', () => {
     try {
       render(<App />);
       const empty = await screen.findByTestId('home');
-      await userEvent.click(within(empty).getByRole('button', { name: 'Combine files…' }));
+      await userEvent.click(within(empty).getByTestId('library-combine-files'));
       await waitFor(
         () => {
           expect(ws().documentOrder).toHaveLength(1);
@@ -583,7 +584,7 @@ describe('Library', () => {
     expect(await screen.findByTestId('library-opened-toast')).toHaveTextContent('Opened 2 files');
   }, 45_000);
 
-  it('is the launcher with no file open: the headline, Open files…, the sample and Combine files…', async () => {
+  it('is the first visit with no file open: the heading, Open or drop files and the sample', async () => {
     render(<App />);
     useUiStore.getState().showHome();
     const home = await screen.findByTestId('home');
@@ -592,28 +593,22 @@ describe('Library', () => {
     expect(
       within(home).getByRole('heading', {
         level: 1,
-        name: 'Read, mark up, sign and arrange PDFs.',
+        name: /^Read, mark up,\s+sign and arrange\.$/,
       }),
     ).toBeVisible();
-    expect(within(home).getByText('Nothing leaves this device.')).toBeVisible();
-    const open = within(home).getByRole('button', { name: 'Open files…' });
+    // The promise left Home (DSN-92): the strip says "On this device".
+    expect(within(home).queryByText('Nothing leaves this device.')).toBeNull();
+    const open = within(home).getByRole('button', { name: 'Open or drop files' });
     expect(open).toHaveClass('btn-prominent');
-    expect(within(home).getByRole('button', { name: 'Combine files…' })).toBeVisible();
-    // The sample's card under the launcher, centred on it, as wide as Recents at most (DSN-50).
+    expect(within(home).getByRole('button', { name: 'Combine' })).toBeVisible();
+    expect(within(home).getByRole('button', { name: 'Sign' })).toBeVisible();
+    // The sample is the cover and a lime link, never a second primary.
     const sample = within(home).getByRole('button', { name: 'Try the sample' });
     expect(sample).toBeVisible();
-    const piece = screen.getByTestId('library-launcher').getBoundingClientRect();
-    const card = sample.getBoundingClientRect();
-    expect(card.top).toBeGreaterThan(open.getBoundingClientRect().bottom);
-    expect(card.width).toBeLessThanOrEqual(560);
-    expect(Math.abs(card.left + card.width / 2 - (piece.left + piece.width / 2))).toBeLessThan(1);
-    // Library ⋯ sits in the top strip (02-library L12, 01-frame F2), not on the launcher.
-    expect(within(home).queryByRole('button', { name: 'More' })).toBeNull();
-    expect(
-      within(screen.getByRole('banner', { name: 'Library bar' })).getByRole('button', {
-        name: 'More',
-      }),
-    ).toBeVisible();
+    expect(sample).not.toHaveClass('btn-prominent');
+    expect(home.querySelectorAll('.btn-prominent')).toHaveLength(1);
+    // Library ⋯ sits in the top strip (02-library L12, 01-frame F2), not on the page.
+    expect(within(home).queryByRole('button', { name: 'More' })).not.toBeNull();
     // Language is Settings' alone and the promise is not repeated in a chip (DSN-46).
     expect(within(home).queryByRole('radiogroup', { name: 'Language' })).toBeNull();
     expect(within(home).queryByText('Nothing is uploaded')).toBeNull();
@@ -721,28 +716,26 @@ describe('Recents on the Library', () => {
     expect(within(home).queryByRole('button', { name: 'Try the sample' })).toBeNull();
   });
 
-  it('lists recents under the drop area with no file open: name, pages, size and time', async () => {
+  it('lists recents as covers with no file open: newest first, named with pages and time', async () => {
     const now = Date.now();
     await recordRecent({ name: 'report.pdf', size: 6246, pages: 6, now: now - 5 * 60_000 });
     await recordRecent({ name: 'invoice.pdf', size: 812, now: now - 86_400_000 - 3_600_000 });
     await recordRecent({ name: 'scan.pdf', size: 2_936_013, pages: 1, now: now - 10_000 });
     render(<App />);
     const home = await screen.findByTestId('home');
-    expect(home).toHaveAttribute('data-variant', 'empty');
     const heading = await within(home).findByRole('heading', { name: 'Recent' });
     // Newest first.
     expect(recentNames()).toEqual(['scan.pdf', 'report.pdf', 'invoice.pdf']);
     expect(row('report.pdf')).toHaveAccessibleName(
-      'report.pdf, 6 pages · 6.1 KB, 5 minutes ago, Open again…',
+      'report.pdf, 6 pages, 5 minutes ago, Open again…',
     );
-    expect(row('invoice.pdf')).toHaveAccessibleName('invoice.pdf, 812 B, yesterday, Open again…');
-    expect(row('scan.pdf')).toHaveTextContent('now');
-    // One column: the launcher card first, the recents under it (L1 §2).
-    const drop = within(home).getByRole('heading', {
-      name: 'Read, mark up, sign and arrange PDFs.',
-    });
-    expect(heading.compareDocumentPosition(drop) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
-    expect(within(home).getByRole('button', { name: 'Clear recents' })).toBeVisible();
+    expect(row('invoice.pdf')).toHaveAccessibleName('invoice.pdf, yesterday, Open again…');
+    // Only the title is drawn; the time is in the name and the tooltip.
+    expect(row('scan.pdf')).toHaveTextContent('scan.pdf');
+    expect(row('scan.pdf')).not.toHaveTextContent('now');
+    // Returning: the panel first, the shelf under it.
+    const panel = within(home).getByTestId('library-launcher');
+    expect(panel.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('records every open, lists it under the cards once closed, in the active language', async () => {
@@ -761,7 +754,7 @@ describe('Recents on the Library', () => {
     await waitFor(() => {
       expect(recentNames()).toEqual(['simple-text.pdf']);
     });
-    expect(row('simple-text.pdf')).toHaveAccessibleName(/^simple-text\.pdf, 3 pages · .+, now/);
+    expect(row('simple-text.pdf')).toHaveAccessibleName(/^simple-text\.pdf, 3 pages, now/);
     // Under the cards.
     expect(
       grid().compareDocumentPosition(recents()) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -775,7 +768,7 @@ describe('Recents on the Library', () => {
     });
     expect(
       within(screen.getByRole('list', { name: 'Son açılan dosyalar' })).getByRole('button', {
-        name: /^simple-text\.pdf, 3 sayfa · .+, şimdi, Yeniden aç…$/,
+        name: /^simple-text\.pdf, 3 sayfa, şimdi, Yeniden aç…$/,
       }),
     ).toBeVisible();
     act(() => {
@@ -783,7 +776,7 @@ describe('Recents on the Library', () => {
     });
   }, 45_000);
 
-  it('moves with the arrows, removes with Delete and reaches the ⋯ menu with Right', async () => {
+  it('moves with the arrows, removes with Delete, and keeps the ⋯ out of the tab order', async () => {
     for (const [i, name] of ['a.pdf', 'b.pdf', 'c.pdf'].entries()) {
       await recordRecent({ name, size: 100 + i, now: Date.now() - (3 - i) * 1000 });
     }
@@ -794,14 +787,14 @@ describe('Recents on the Library', () => {
     expect(row('c.pdf')).toHaveAttribute('tabindex', '0');
     expect(row('b.pdf')).toHaveAttribute('tabindex', '-1');
     row('c.pdf').focus();
-    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{ArrowRight}');
     expect(row('b.pdf')).toHaveFocus();
     expect(row('b.pdf')).toHaveAttribute('tabindex', '0');
     await userEvent.keyboard('{End}');
     expect(row('a.pdf')).toHaveFocus();
     await userEvent.keyboard('{Home}');
     expect(row('c.pdf')).toHaveFocus();
-    await userEvent.keyboard('{ArrowDown}{Delete}');
+    await userEvent.keyboard('{ArrowRight}{Delete}');
     await waitFor(() => {
       expect(recentNames()).toEqual(['c.pdf', 'a.pdf']);
     });
@@ -810,11 +803,11 @@ describe('Recents on the Library', () => {
       expect(row('a.pdf')).toHaveFocus();
     });
 
-    await userEvent.keyboard('{ArrowRight}');
+    // The ⋯ is for the pointer and touch; keys use Shift+F10.
     const more = screen.getByRole('button', { name: 'More actions for a.pdf' });
-    expect(more).toHaveFocus();
+    expect(more).toHaveAttribute('tabindex', '-1');
     await userEvent.keyboard('{ArrowLeft}');
-    expect(row('a.pdf')).toHaveFocus();
+    expect(row('c.pdf')).toHaveFocus();
   });
 
   it('removes an entry from its ⋯ menu', async () => {
@@ -830,12 +823,14 @@ describe('Recents on the Library', () => {
     expect(useRecentsStore.getState().entries.map((e) => e.name)).toEqual(['b.pdf']);
   });
 
-  it('clears every entry with "Clear recents", and the palette has the command', async () => {
+  it('clears every entry with the Clear recents command (Clear on the expanded shelf asks first)', async () => {
     await recordRecent({ name: 'a.pdf', size: 1 });
     await recordRecent({ name: 'b.pdf', size: 2 });
     render(<App />);
     await screen.findByRole('list', { name: 'Recent files' });
-    await userEvent.click(screen.getByRole('button', { name: 'Clear recents' }));
+    await act(async () => {
+      await commandRegistry.execute('file.clearRecents');
+    });
     await waitFor(() => {
       expect(screen.queryByRole('heading', { name: 'Recent' })).toBeNull();
     });
@@ -866,7 +861,9 @@ describe('Recents on the Library', () => {
     await recordRecent({ name: 'a.pdf', size: 1 });
     render(<App />);
     await screen.findByRole('list', { name: 'Recent files' });
-    await userEvent.click(screen.getByRole('button', { name: 'Clear recents' }));
+    await act(async () => {
+      await commandRegistry.execute('file.clearRecents');
+    });
     const message =
       'Recents were cleared from the list, but the copy kept on this device could not be deleted. Try Clear recents again, or clear this site’s data in your browser.';
     const note = await screen.findByTestId('recent-clear-failed');
@@ -876,7 +873,9 @@ describe('Recents on the Library', () => {
     expect(useAnnouncer.getState().alert).toBe(message);
     // Clear again, now that the database lets it: the section goes.
     refuse = false;
-    await userEvent.click(screen.getByRole('button', { name: 'Clear recents' }));
+    await act(async () => {
+      await commandRegistry.execute('file.clearRecents');
+    });
     await waitFor(() => {
       expect(screen.queryByRole('heading', { name: 'Recent' })).toBeNull();
     });
