@@ -98,7 +98,7 @@ describe('export with compression', () => {
     const doc = await PDFDocument.load(result.value.bytes.slice(0), { updateMetadata: false });
     expect(doc.getPageCount()).toBe(3);
 
-    // An explicit `null` turns it off for one export (Save a copy's Same as original).
+    // An explicit `null` turns it off for one export (Save a copy's No compression).
     const off = await prepareExport(documentId, { compression: null }, deps());
     expect(off.ok && off.value.compression).toBe(undefined);
   });

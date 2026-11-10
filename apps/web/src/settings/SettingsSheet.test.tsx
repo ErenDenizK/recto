@@ -4,7 +4,7 @@
  * opener's row is revealed and its control focused; a system override forces Glass to Solid,
  * disabled, with its reason; Theme sets System · Light · Dark and Glass Clear · Tinted · Solid;
  * Background glow is a switch, on by default;
- * Show tips again is dimmed with a reason until a tip is used up; About Recto shows the About dialog's facts in order, for a pre-release and a release, in
+ * Show tips again shows its state until a tip is used up; About Recto shows the About dialog's facts in order, for a pre-release and a release, in
  * the UI language.
  */
 import '../styles/tokens.css';
@@ -259,15 +259,15 @@ describe('the Settings sheet', () => {
     expect(useAppearanceStore.getState().motion).toBe('system');
   });
 
-  it('Show tips again waits, with its reason, until a tip has been used up', async () => {
+  it('Show tips again shows only its state, without a dead button, until a tip has been used up', async () => {
     act(() => openSettings({ row: 'showTips' }));
     render(<SettingsSheet />);
     const dialog = await settled(await screen.findByRole('dialog', { name: 'Settings' }));
     const button = () => within(dialog).getByRole('button', { name: 'Show again' });
-    expect(button()).toHaveAttribute('aria-disabled', 'true');
-    expect(button()).toHaveAccessibleDescription('Every tip shows already');
+    expect(within(dialog).queryByRole('button', { name: 'Show again' })).toBeNull();
+    expect(within(dialog).getByText('Every tip shows already')).toBeVisible();
     act(() => useInputPolicyStore.getState().markEditTextHintShown());
-    expect(button()).not.toHaveAttribute('aria-disabled', 'true');
+    expect(button()).toBeVisible();
     await userEvent.click(button());
     expect(useInputPolicyStore.getState().editTextHintShown).toBe(false);
   });

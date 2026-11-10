@@ -2142,7 +2142,9 @@ export function ParagraphEditor({
               {line}
             </p>
           ))}
-          {overflowLine && !overflowChoice ? (
+          {/* Tightened spacing and ragged lines are not problems: the screen reader hears them
+              (`spoken`), the page shows one plain hint line. */}
+          {overflowLine && !overflowChoice && decision?.kind !== 'tighten' ? (
             <p
               className={styles.overflow}
               data-kind={decision?.kind}
@@ -2151,7 +2153,6 @@ export function ParagraphEditor({
               {overflowLine}
             </p>
           ) : null}
-          {ragged ? <p className={styles.note}>{m.paragraph_ragged()}</p> : null}
           {frameNote ? <p className={styles.note}>{frameNote}</p> : null}
           {movedOver ? (
             <p
