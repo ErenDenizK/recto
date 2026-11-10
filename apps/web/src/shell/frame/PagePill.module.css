@@ -5,6 +5,9 @@
  * coverage registry `page-pill`), with
  * the backdrop lens on Chromium (`styles/material-lens.ts`). It rises 8 px above a bar that
  * would come within 12 px (`data-raised`) and steps away with the dock in Focus.
+ *
+ * Colophon (DSN-89, DSN-91): it is centred on the 56 px capsule's line (--capsule-h), its text 13
+ * at 550 (`--weight-label`), tabular, and it takes the smoke of the chip glass as it is.
  */
 .pill {
   composes: mat mat-chip s7 c8 from global;
@@ -13,15 +16,15 @@
   --pill-pad: var(--space-4);
   position: absolute;
   right: var(--piece-inset);
-  bottom: calc(var(--band-offset, 16px) + (var(--bar-h) - var(--pill-h)) / 2 + var(--rise));
+  bottom: calc(var(--band-offset, 16px) + (var(--capsule-h) - var(--pill-h)) / 2 + var(--rise));
   box-sizing: border-box;
   min-width: var(--pill-min, auto);
   height: var(--pill-h);
   padding: 0 var(--pill-pad);
   border-radius: var(--piece-radius);
   color: var(--text-primary);
-  font-size: var(--piece-label);
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: var(--weight-label);
   line-height: var(--piece-label-lh);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -70,7 +73,7 @@
 
 /* Rises above a bar it would touch (spec 01.6): 8 px above the bar's top. */
 .pill[data-raised] {
-  --rise: calc(var(--dock-h, var(--bar-h)) + 8px - (var(--bar-h) - var(--pill-h)) / 2);
+  --rise: calc(var(--dock-h, var(--capsule-h)) + 8px - (var(--capsule-h) - var(--pill-h)) / 2);
 }
 
 /* The menu (F11 §2; DSN-29): the popover recipe's M4 glass (`mat mat-menu s12`, coverage

@@ -3,14 +3,16 @@
  * each belongs to, the order in which they fold into + (MK-10) as the room shrinks, and the
  * rules that keep the palette in step with the tools.
  *
- * - **Row.** Done · Select · Draw (the pen well, Highlighter, Eraser, Lasso) · Add (Shapes ▾,
- *   Text box, Note, Image, Stamp ▾) · Fill & sign (Sign ▾, saved-signature chips, the field
- *   stepper, Add field ▾, Show field outlines) · Page content (Edit text, Redact) · +.
- * - **Fold** (`palette-fold.ts`): labels drop first (Redact, then Edit text), then items fold
- *   in flows' order (Stamp, Image, Add field, Show outlines, Redact, Edit text); the chips move
- *   to the ink strip's row (03.7); Sign loses its label; then Note, Shapes, the stepper and
- *   Lasso fold, and below that the ladder for narrow windows (03.9): Eraser, then the
- *   Highlighter, then Text box and Sign; Done keeps its check alone last of all.
+ * - **Row** (DSN-91, glyphs only): Select, the pen well, Highlighter, Eraser, Lasso · Text box,
+ *   Note, Shapes ▾, Image, Stamp ▾ · Fill & sign (Sign ▾, saved-signature chips, the field
+ *   stepper, Add field ▾, Show field outlines) · Page content (Edit text, Redact) · + · Done,
+ *   the one visible word, at the trailing end. Select opens the first group: the Draw tools
+ *   are one run with it, so the 14 px of air falls only between the four runs.
+ * - **Fold** (`palette-fold.ts`): there are no labels to drop, so the row only folds items, in
+ *   flows' order (Stamp, Image, Add field, Show outlines, Redact, Edit text); the chips move to
+ *   the ink strip's row (03.7); then Note, Shapes, the stepper and Lasso fold, and below that
+ *   the ladder for narrow windows (03.9): Eraser, then the Highlighter, then Text box and Sign.
+ *   Done never folds.
  * - **Placing tools** (stamp, signature) go back to Select once their object is placed, and
  *   what they placed is not left selected (`03-markup` §3). Installed on import, so the rule
  *   holds for keys and the command palette as well as the palette.
@@ -23,15 +25,14 @@ import type { FoldStep } from './palette-fold';
 
 /** Every item the row can hold, in row order. */
 export const PALETTE_ITEMS = [
-  'done',
   'select',
   'pens',
   'highlighter',
   'eraser',
   'lasso',
-  'shapes',
   'text-box',
   'note',
+  'shapes',
   'image',
   'stamp',
   'sign',
@@ -42,13 +43,15 @@ export const PALETTE_ITEMS = [
   'edit-text',
   'redact',
   'more',
+  'done',
 ] as const;
 export type PaletteItem = (typeof PALETTE_ITEMS)[number];
 
 /** The run each item belongs to: separators fall between runs. */
 export const ITEM_GROUP: Readonly<Record<PaletteItem, PaletteGroup | 'done' | 'more'>> = {
   done: 'done',
-  select: 'select',
+  // Select opens the Draw run: one group of five, as the capsule shows it (DSN-91).
+  select: 'draw',
   pens: 'draw',
   highlighter: 'draw',
   eraser: 'draw',
@@ -70,8 +73,6 @@ export const ITEM_GROUP: Readonly<Record<PaletteItem, PaletteGroup | 'done' | 'm
 
 /** The fold order (module header): first steps are taken first. */
 export const FOLD_STEPS: readonly FoldStep[] = [
-  { kind: 'label', id: 'redact' },
-  { kind: 'label', id: 'edit-text' },
   { kind: 'fold', id: 'stamp' },
   { kind: 'fold', id: 'image' },
   { kind: 'fold', id: 'add-field' },
@@ -79,7 +80,6 @@ export const FOLD_STEPS: readonly FoldStep[] = [
   { kind: 'fold', id: 'redact' },
   { kind: 'fold', id: 'edit-text' },
   { kind: 'fold', id: 'chips' },
-  { kind: 'label', id: 'sign' },
   { kind: 'fold', id: 'note' },
   { kind: 'fold', id: 'shapes' },
   { kind: 'fold', id: 'stepper' },
@@ -89,7 +89,6 @@ export const FOLD_STEPS: readonly FoldStep[] = [
   { kind: 'fold', id: 'highlighter' },
   { kind: 'fold', id: 'text-box' },
   { kind: 'fold', id: 'sign' },
-  { kind: 'label', id: 'done' },
 ];
 
 /** The group names (`role="group"`, the + menu's headings; MK-2 §5). */

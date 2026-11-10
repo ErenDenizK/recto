@@ -112,7 +112,7 @@ export function SignButton({
     <ChoiceTool
       label={tool.title()}
       tooltip={tool.tooltip?.() ?? tool.title()}
-      icon={<Icon name="signature" filled={false} />}
+      icon={<Icon name="signature" />}
       armed={armed}
       command="tool.signature"
       item="sign"
