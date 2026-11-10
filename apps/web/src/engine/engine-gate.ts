@@ -98,6 +98,12 @@ export interface CallGateOptions {
   readonly renderSources?: () => ReadonlySet<string>;
   /** Reads in flight at once while only thumbnails wait. Default 2. */
   readonly readTrickle?: number;
+  /**
+   * Whether a source is one the user works with (a document the service opened): its calls are
+   * never held for want of a render of its own. Only a scratch document's writes (the quirks
+   * probe, a batch's private sources, which the engine opens without the service) are held.
+   */
+  readonly foreground?: (source: string) => boolean;
   /** The longest a call is held. Default 750 ms. */
   readonly maxHoldMs?: number;
   /** Clock for `maxHoldMs` (tests). */
@@ -127,8 +133,10 @@ export class CallGate {
   private held: Held[] = [];
   private readonly visibleSources: () => ReadonlySet<string>;
   private readonly renderSources: () => ReadonlySet<string>;
+  private readonly foreground: (source: string) => boolean;
   private readonly readTrickle: number;
   private readsInFlight = 0;
+  private drainWaiters: (() => void)[] = [];
   private readonly maxHoldMs: number;
   private readonly now: () => number;
   private scheduled = false;
@@ -138,6 +146,7 @@ export class CallGate {
   constructor(options: CallGateOptions) {
     this.visibleSources = options.visibleSources;
     this.renderSources = options.renderSources ?? options.visibleSources;
+    this.foreground = options.foreground ?? (() => false);
     this.readTrickle = options.readTrickle ?? 2;
     this.maxHoldMs = options.maxHoldMs ?? 750;
     this.now = options.now ?? (() => Date.now());
@@ -243,6 +252,17 @@ export class CallGate {
     });
   }
 
+  /**
+   * Resolves once the drain scheduled for the calls made so far has run (at once when none is
+   * scheduled): the calls the gate lets through have been posted, the rest are held.
+   */
+  drained(): Promise<void> {
+    if (!this.scheduled) return Promise.resolve();
+    return new Promise((resolve) => {
+      this.drainWaiters.push(resolve);
+    });
+  }
+
   /** A page render may have ended or been cancelled: post whatever no longer has to wait. */
   poke(): void {
     if (this.held.length > 0) this.drain();
@@ -275,6 +295,9 @@ export class CallGate {
     const run = () => {
       this.scheduled = false;
       this.drain();
+      const waiters = this.drainWaiters;
+      this.drainWaiters = [];
+      for (const resolve of waiters) resolve();
     };
     if (typeof MessageChannel === 'undefined') {
       setTimeout(run, 0);
@@ -299,8 +322,12 @@ export class CallGate {
       let release: boolean;
       if (!busy) release = true;
       else if (entry.kind === 'write') {
-        // A write waits for the renders, unless it is on a source one of them shows.
-        release = expired || (entry.source !== undefined && waiting.has(entry.source));
+        // A scratch document's write waits for the renders. The user's own calls never do:
+        // a source of the service, or one a render shows.
+        release =
+          expired ||
+          (entry.source !== undefined &&
+            (waiting.has(entry.source) || this.foreground(entry.source)));
       } else {
         // Reads wait for a page; while other renders wait they go a few at a time.
         release = (!pageBusy || expired) && this.readsInFlight < this.readTrickle;
@@ -321,15 +348,18 @@ export class CallGate {
       entry.dispatch();
     }
     this.held = keep;
-    if (busy && keep.length > 0) {
-      const oldest = Math.min(...keep.map((entry) => entry.issued));
-      this.expiry = setTimeout(
-        () => {
-          this.expiry = undefined;
-          this.drain();
-        },
-        Math.max(1, oldest + this.maxHoldMs - now),
-      );
+    // Wake for the first call that is yet to expire. One already expired and still kept is a
+    // read at the trickle cap: it goes when a read in flight settles (`poke`), not by polling.
+    let next = Number.POSITIVE_INFINITY;
+    for (const entry of keep) {
+      const left = entry.issued + this.maxHoldMs - now;
+      if (left > 0) next = Math.min(next, left);
+    }
+    if (busy && next < Number.POSITIVE_INFINITY) {
+      this.expiry = setTimeout(() => {
+        this.expiry = undefined;
+        this.drain();
+      }, next);
     }
   }
 }

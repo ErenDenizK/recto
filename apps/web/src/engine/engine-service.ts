@@ -240,6 +240,8 @@ export class EngineService {
   private readonly timings: boolean;
   private readonly queue: RenderQueue;
   private readonly gate: CallGate | undefined;
+  /** Sources the service opened: the user's documents, whose calls the gate never holds. */
+  private readonly userSources = new Set<string>();
   /** Original bytes of every open source (see the module comment). */
   /** @internal engine-parking.ts */
   readonly retained = new Map<SourceId, Blob>();
@@ -310,6 +312,7 @@ export class EngineService {
       ? new CallGate({
           visibleSources: () => this.queue.visibleSources(),
           renderSources: () => this.queue.renderSources(),
+          foreground: (source) => this.userSources.has(source),
         })
       : undefined;
     this.queue = new RenderQueue(
@@ -619,6 +622,8 @@ export class EngineService {
     sourceId?: SourceId,
   ): Promise<EngineResult<OpenedSource>> {
     const id = sourceId ?? this.newSourceId();
+    // The user's document from here on (kept for undo's reopen, so never removed: ids are small).
+    this.userSources.add(id);
     let attempt = password;
     let tries = 0;
     for (;;) {
@@ -1181,6 +1186,11 @@ export class EngineService {
     return this.cache.best(bare ? tileAwarePage(page, 'bare') : page, bucket, true, (key) =>
       this.repainting.has(key),
     );
+  }
+
+  /** Resolves once the call gate has decided the calls made so far (tests). */
+  gateDrained(): Promise<void> {
+    return this.gate?.drained() ?? Promise.resolve();
   }
 
   get cacheStats(): { readonly entries: number; readonly bytes: number; readonly budget: number } {

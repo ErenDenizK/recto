@@ -4,7 +4,7 @@
  * service posts its calls in.
  */
 import { type Rotation, sourceId } from '@pdf-editor/document-model';
-import type { RenderOptions } from '@pdf-editor/engine';
+import type { OpenedDocument, RenderOptions } from '@pdf-editor/engine';
 import { describe, expect, it } from 'vitest';
 
 import { EngineService, type RendererLike, RENDER_PRIORITY } from './engine-service';
@@ -16,7 +16,10 @@ function mock() {
   const posted: string[] = [];
   const renders: { index: number; finish: () => void; options: RenderOptions }[] = [];
   const renderer: RendererLike = {
-    open: () => Promise.reject(new Error('not used')),
+    open: (id) => {
+      posted.push(`open ${id}`);
+      return Promise.resolve({ pageCount: 1, pages: [] } as unknown as OpenedDocument);
+    },
     close: () => Promise.resolve(),
     getPageText: (id, index) => {
       posted.push(`text ${id}:${index}`);
@@ -53,9 +56,6 @@ const request = (index: number, priority: number, signal?: AbortSignal, source =
   ...(signal === undefined ? {} : { signal }),
 });
 
-/** Lets the gate's macrotask and the queue's promise chains settle. */
-const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
-
 describe('EngineService with its calls gated', () => {
   it('posts text reads only after the page render that was queued before them', async () => {
     const { renderer, posted, renders } = mock();
@@ -69,7 +69,7 @@ describe('EngineService with its calls gated', () => {
     const text = engine.getPageText(OTHER, 0);
     const other = engine.getPageText(SRC, 1);
     const render = service.renderPage(request(0, RENDER_PRIORITY.page));
-    await tick();
+    await service.gateDrained();
     expect(posted).toEqual(['render 0']);
     renders[0]?.finish();
     expect((await render).ok).toBe(true);
@@ -87,7 +87,7 @@ describe('EngineService with its calls gated', () => {
     const engine = await service.engine();
     const render = service.renderPage(request(0, RENDER_PRIORITY.visible));
     const text = engine.getPageText(SRC, 2);
-    await tick();
+    await service.gateDrained();
     await text;
     expect(posted).toEqual(['render 0', `text ${SRC}:2`]);
     renders[0]?.finish();
@@ -105,7 +105,7 @@ describe('EngineService with its calls gated', () => {
     const controller = new AbortController();
     const render = service.renderPage(request(0, RENDER_PRIORITY.page, controller.signal));
     const text = engine.getPageText(OTHER, 0);
-    await tick();
+    await service.gateDrained();
     expect(posted).toEqual(['render 0']);
     controller.abort();
     expect((await render).ok).toBe(false);
@@ -120,5 +120,27 @@ describe('EngineService with its calls gated', () => {
     void service.renderPage(request(0, RENDER_PRIORITY.page));
     await engine.getPageText(OTHER, 0);
     expect(posted).toContain(`text ${OTHER}:0`);
+  });
+
+  it("never holds the user's own open of another file behind thumbnails; a scratch open waits", async () => {
+    const { renderer, posted, renders } = mock();
+    const service = new EngineService({
+      createRenderer: () => renderer,
+      gateCalls: true,
+      timings: false,
+    });
+    const engine = await service.engine();
+    const render = service.renderPage(request(0, RENDER_PRIORITY.visible));
+    const scratch = engine.open(sourceId('scratch'), new ArrayBuffer(1), {});
+    const file = new File([new Uint8Array(4)], 'other.pdf', { type: 'application/pdf' });
+    const opened = await service.open(file, undefined, OTHER);
+    await service.gateDrained();
+    expect(opened.ok).toBe(true);
+    // The thumbnail is still rendering: the user's open went through, the scratch one did not.
+    expect(posted).toEqual(['render 0', `open ${OTHER}`]);
+    renders[0]?.finish();
+    await render;
+    await scratch;
+    expect(posted).toEqual(['render 0', `open ${OTHER}`, 'open scratch']);
   });
 });

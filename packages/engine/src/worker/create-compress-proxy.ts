@@ -4,7 +4,7 @@
  * in the caller); pass copies when the caller still needs them. Tile bitmaps are
  * transferred too.
  */
-import { proxy, releaseProxy, transfer, wrap } from 'comlink';
+import { proxy, transfer, wrap } from 'comlink';
 
 import type {
   CompressionAnalysis,
@@ -141,7 +141,7 @@ export function createCompressProxy(worker: Worker, config: CompressWorkerConfig
       void remote.rasterCancel(job);
     },
     dispose() {
-      remote[releaseProxy]();
+      // No Comlink release: it is a request only the worker can answer, and the worker ends here.
       worker.terminate();
     },
   };

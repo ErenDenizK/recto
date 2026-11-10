@@ -256,7 +256,7 @@ async function compressImage(
   // Lossless candidate at full resolution: 8-bit gray, or a palette for ≤ 256 colours.
   if (gray) {
     candidates.push({
-      contents: await encodeGray(decoded.data),
+      contents: encodeGray(decoded.data),
       width: decoded.width,
       height: decoded.height,
       colorSpace: PDFName.of('DeviceGray'),
@@ -264,7 +264,7 @@ async function compressImage(
       encoding: 'flate-gray',
     });
   } else if (colours !== null) {
-    const indexed = await encodeIndexed(decoded.data, colours);
+    const indexed = encodeIndexed(decoded.data, colours);
     candidates.push({
       contents: indexed.data,
       width: decoded.width,

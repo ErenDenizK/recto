@@ -10,7 +10,7 @@
  *   release the job.
  * - `dispose()` terminates the worker; pending calls reject with `EngineError('aborted')`.
  */
-import { releaseProxy, transfer, wrap } from 'comlink';
+import { transfer, wrap } from 'comlink';
 
 import type { AnalysisBackend } from '../analysis/backend';
 import { compareDocuments, type CompareRun, type CompareSource } from '../analysis/pipeline';
@@ -238,7 +238,7 @@ export function createAnalysisProxy(worker: Worker): AnalysisProxy {
       terminated = true;
       for (const kill of [...pending])
         kill(new EngineError('aborted', 'The analysis worker was disposed'));
-      remote[releaseProxy]();
+      // No Comlink release: it is a request only the worker can answer, and the worker ends here.
       worker.terminate();
     },
   };
