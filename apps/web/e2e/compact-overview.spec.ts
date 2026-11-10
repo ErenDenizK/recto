@@ -388,3 +388,52 @@ if (SHOTS) {
     }
   });
 }
+
+test.describe('the overview bar on the narrowest phone (R33)', () => {
+  test.use({ viewport: { width: 360, height: 780 } });
+
+  /** Every control of the bar, in the viewport and 44 px tall; the bar keeps to its margins. */
+  async function expectBarFits(page: Page): Promise<void> {
+    const viewport = page.viewportSize();
+    expect(viewport?.width).toBe(360);
+    const bar = page.getByTestId('compact-overview-bar');
+    const buttons = bar.getByRole('button');
+    const count = await buttons.count();
+    expect(count).toBeGreaterThanOrEqual(4);
+    const barBox = await bar.boundingBox();
+    expect(barBox?.x).toBeGreaterThanOrEqual(0);
+    expect((barBox?.x ?? 0) + (barBox?.width ?? 0)).toBeLessThanOrEqual(360);
+    for (let i = 0; i < count; i += 1) {
+      const box = await buttons.nth(i).boundingBox();
+      const name = await buttons.nth(i).innerText();
+      expect(box?.x, `${name} left`).toBeGreaterThanOrEqual(0);
+      expect((box?.x ?? 0) + (box?.width ?? 0), `${name} right`).toBeLessThanOrEqual(360);
+      // Inside the pill too, not only the screen.
+      expect(box?.x, `${name} in the bar`).toBeGreaterThanOrEqual(barBox?.x ?? 0);
+      expect((box?.x ?? 0) + (box?.width ?? 0), `${name} in the bar`).toBeLessThanOrEqual(
+        (barBox?.x ?? 0) + (barBox?.width ?? 0),
+      );
+      expect(box?.height, `${name} height`).toBeGreaterThanOrEqual(44);
+    }
+  }
+
+  test('Select, Add, Share and Done all sit inside the screen at 360 × 780', async ({ page }) => {
+    await openPdf(page, 'page-labels.pdf');
+    await capsule(page).getByRole('button', { name: 'Pages' }).click();
+    await expectRest(page, 'open');
+    await expect(page.getByTestId('compact-overview-actions')).toBeVisible();
+    await expectBarFits(page);
+    // Done is reachable: the tap closes the overview.
+    await page.getByTestId('compact-overview-bar').getByRole('button', { name: 'Done' }).click();
+    await expectRest(page, 'closed');
+  });
+
+  test('the selecting bar fits as well', async ({ page }) => {
+    await openPdf(page, 'page-labels.pdf');
+    await capsule(page).getByRole('button', { name: 'Pages' }).click();
+    await expectRest(page, 'open');
+    await page.getByTestId('compact-overview-select').click();
+    await expect(page.getByTestId('compact-overview-selection-bar')).toBeVisible();
+    await expectBarFits(page);
+  });
+});

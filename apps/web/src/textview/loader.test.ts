@@ -109,6 +109,25 @@ describe('loading', () => {
     loader.dispose();
   });
 
+  it('a subscriber that asks again for its loading pages joins the chunk and does not recurse', async () => {
+    const { source, calls } = fakeSource(12);
+    const loader = createTextViewLoader(source);
+    // The view's own subscription: on any change, ask again for the pages it still sees loading.
+    const wanted = [0, 1, 5];
+    const stop = loader.subscribe(() => {
+      for (const index of wanted) if (loader.peek(index) === 'loading') void loader.ensure(index);
+    });
+    await expect(loader.ensure(0)).resolves.toBeUndefined();
+    await loader.ensure(5);
+    // One read per chunk, however often the subscriber asked meanwhile.
+    expect(calls.blocks.map((c) => c.pages)).toEqual([
+      [0, 1, 2, 3],
+      [4, 5, 6, 7],
+    ]);
+    stop();
+    loader.dispose();
+  });
+
   it('exposes the page frame and the document language', () => {
     const { source } = fakeSource(2, 'tr-TR');
     const loader = createTextViewLoader(source);

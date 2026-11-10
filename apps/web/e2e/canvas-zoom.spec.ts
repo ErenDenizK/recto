@@ -70,14 +70,50 @@ async function layoutCount(cdp: CDPSession): Promise<number> {
   return metrics.find((metric) => metric.name === 'LayoutCount')?.value ?? Number.NaN;
 }
 
-/** Waits until Chromium has laid nothing out for ten frames in a row. */
+/**
+ * What the column still does on its own: rows mounting, bitmaps landing and the paper ghost
+ * each landing fades out (`data-ghost`, added then removed: a layout each way).
+ */
+const columnActivity = (page: Page) =>
+  page.evaluate(() => {
+    const root = document.querySelector('[data-read-viewport]');
+    const canvases = [...(root?.querySelectorAll('canvas') ?? [])];
+    return {
+      rows: root?.querySelectorAll('[data-row]').length ?? 0,
+      canvases: canvases.length,
+      pending: canvases.filter(
+        (c) => !/^(rendered|error)$/.test(c.getAttribute('data-state') ?? ''),
+      ).length,
+      ghosts: root?.querySelectorAll('[data-ghost]').length ?? 0,
+    };
+  });
+
+/**
+ * Waits for a quiet baseline: Chromium has laid nothing out for ten frames in a row, and over
+ * those frames the column has stopped mounting rows, every bitmap is in and no ghost is left.
+ * The layer's second finger mounts extra rows, whose bitmaps land and whose ghosts fade out some
+ * frames later (the render worker's pace decides how many), so ten still frames alone can fall
+ * between "the bitmap landed" and "its ghost left", a layout a slow runner then counts as the
+ * pinch's own.
+ */
 async function layoutsSettled(page: Page, cdp: CDPSession): Promise<void> {
+  const deadline = Date.now() + 30_000;
   let count = await layoutCount(cdp);
+  let activity = await columnActivity(page);
   for (let still = 0; still < 10; ) {
+    if (Date.now() > deadline) throw new Error('the column never settled');
     await frames(page);
     const now = await layoutCount(cdp);
-    still = now === count ? still + 1 : 0;
+    const next = await columnActivity(page);
+    const quiet =
+      now === count &&
+      next.pending === 0 &&
+      next.ghosts === 0 &&
+      next.rows === activity.rows &&
+      next.canvases === activity.canvases;
+    still = quiet ? still + 1 : 0;
     count = now;
+    activity = next;
   }
 }
 
@@ -167,7 +203,6 @@ test.describe('touch (tablet)', () => {
     await touch(cdp, 'touchStart', pair(centre, 120));
     // The second finger prepared the layer: its one layout, before the pinch's first frame.
     await expect(zoomFrame(page)).toHaveAttribute('data-zooming', '');
-    await bitmapsSettled(page);
     await layoutsSettled(page, cdp);
     const layouts = await layoutCount(cdp);
     await page.evaluate(() => {

@@ -288,6 +288,64 @@ test.describe('the compact edition', () => {
     await expect(page.getByRole('button', { name: 'Open PDF' })).toBeVisible();
   });
 
+  test('a modal sheet covers the Library dock: nothing under it is visible or pressable', async ({
+    page,
+  }) => {
+    // The Library's dock stands fixed above the page (z 1); the scrim sheet was in no layer, so
+    // Open PDF showed over Settings and a press on it closed the sheet and opened the file
+    // dialog. A modal sheet is in the sheet tier (DSN-53, DSN-58; 07-sheets §1.1): the scrim and
+    // the sheet cover every piece under them.
+    await openLibrary(page);
+    const choosers: string[] = [];
+    page.on('filechooser', () => choosers.push('filechooser'));
+    // By the dock, not by role: a modal sheet takes the page under it out of the accessibility
+    // tree, which is the point.
+    const open = page
+      .getByTestId('compact-library-dock')
+      .locator('button', { hasText: 'Open PDF' });
+    await expect(open).toBeVisible();
+    await page.getByRole('button', { name: 'Settings' }).click();
+    const settings = page.getByTestId('compact-settings-sheet');
+    await expect(settings.getByRole('heading', { name: 'Settings' })).toBeVisible();
+    await motionDone(page);
+    // Every sampled point of the screen reaches the sheet or its scrim, never the page's own
+    // pieces (the dock above all).
+    const strays = () =>
+      page.evaluate(() => {
+        const sheet = document.querySelector('[data-testid="compact-settings-sheet"]');
+        const layer = sheet?.closest('body > div:not(#root)');
+        const found = new Set<string>();
+        for (let y = 4; y < window.innerHeight; y += 24) {
+          for (let x = 4; x < window.innerWidth; x += 24) {
+            const hit = document.elementFromPoint(x, y);
+            if (hit && !layer?.contains(hit))
+              found.add(hit.getAttribute('data-testid') ?? hit.tagName);
+          }
+        }
+        return [...found];
+      });
+    expect(await strays()).toEqual([]);
+    // The dock's button is covered where it stands.
+    const box = await open.boundingBox();
+    if (!box) throw new Error('no Open PDF');
+    const reached = await page.evaluate(
+      ([x, y]) => document.elementFromPoint(x ?? 0, y ?? 0)?.closest('button')?.textContent ?? '',
+      [box.x + box.width / 2, box.y + box.height / 2],
+    );
+    expect(reached).not.toContain('Open PDF');
+    // Focus stays in the sheet through a full lap of Tab (Base UI's focus guards aside).
+    for (let i = 0; i < 12; i++) {
+      await page.keyboard.press('Tab');
+      await expect(open).not.toBeFocused();
+    }
+    // A press where Open PDF stands lands on the sheet or its scrim: it opens no file dialog.
+    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+    await page.keyboard.press('Escape');
+    await expect(settings).toHaveCount(0);
+    expect(choosers).toEqual([]);
+    await expect(open).toBeVisible();
+  });
+
   test('Recents show as a card list; on its side the column splits so several rows show', async ({
     page,
   }) => {
@@ -1008,4 +1066,68 @@ test.describe('the compact edition in the light theme (spec D3-7)', () => {
     await theme.getByRole('radio', { name: 'System' }).click();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   });
+});
+
+test.describe('the compact edition’s touch targets and Labs names (R33)', () => {
+  /** Opens Settings from the reader with a Labs flag on by the address, so Labs shows. */
+  async function openSettings(page: Page, lang: string): Promise<Locator> {
+    await useFileInputPicker(page);
+    await page.goto(`./?lang=${lang}&textview=1`);
+    await expect(page.getByTestId('compact-library')).toBeVisible();
+    await openPdf(page, 'outline-named-dests.pdf');
+    await page.getByTestId('compact-title-menu-trigger').click();
+    await page
+      .getByTestId('compact-file-menu')
+      .getByRole('menuitem', { name: /^(Settings|Ayarlar)$/ })
+      .click();
+    const settings = page.getByTestId('compact-settings-sheet');
+    await expect(settings).toBeVisible();
+    await motionDone(page);
+    return settings;
+  }
+
+  /** Names of the elements whose text an ellipsis cuts (a name, a hint, a row label). */
+  const truncated = (sheet: Locator) =>
+    sheet.evaluate((root) =>
+      [...root.querySelectorAll<HTMLElement>('*')]
+        .filter((el) => getComputedStyle(el).textOverflow === 'ellipsis')
+        .filter((el) => el.scrollWidth > el.clientWidth)
+        .map((el) => el.textContent?.trim() ?? ''),
+    );
+
+  test('every segment of Settings is a 44 px target, and so is the About credit', async ({
+    page,
+  }) => {
+    const settings = await openSettings(page, 'en');
+    const radios = settings.getByRole('radio');
+    const count = await radios.count();
+    // Theme, Reduce motion, Language and the Labs choices.
+    expect(count).toBeGreaterThanOrEqual(7);
+    for (let i = 0; i < count; i += 1) {
+      const radio = radios.nth(i);
+      await radio.scrollIntoViewIfNeeded();
+      const box = await radio.boundingBox();
+      expect(box?.height, `segment ${i}`).toBeGreaterThanOrEqual(44);
+    }
+    const aboutRow = settings.getByRole('button', { name: /^About Recto/ });
+    await aboutRow.scrollIntoViewIfNeeded();
+    await aboutRow.click();
+    const credit = settings.getByTestId('about-maker');
+    await credit.scrollIntoViewIfNeeded();
+    const box = await credit.boundingBox();
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+    expect(box?.width).toBeGreaterThanOrEqual(44);
+  });
+
+  for (const lang of ['en', 'tr']) {
+    test(`no name in the Labs list is cut off (${lang})`, async ({ page }) => {
+      const settings = await openSettings(page, lang);
+      const row = settings.getByRole('radiogroup', {
+        name: lang === 'en' ? 'Tool drawer' : 'Araç çekmecesi',
+      });
+      await row.scrollIntoViewIfNeeded();
+      await expect(row).toBeVisible();
+      expect(await truncated(settings)).toEqual([]);
+    });
+  }
 });

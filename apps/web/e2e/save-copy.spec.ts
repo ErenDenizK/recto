@@ -117,7 +117,7 @@ test.describe('the download path', () => {
     });
     await expect(sheet.getByRole('radio', { name: /^Smallest, about / })).toBeVisible();
     await expect(
-      sheet.getByRole('radio', { name: /^Same as original, [\d.]+ (KB|MB)$/ }),
+      sheet.getByRole('radio', { name: /^No compression, [\d.]+ (KB|MB)$/ }),
     ).toBeVisible();
     await expect(sheet.getByRole('textbox', { name: 'Name' })).toHaveValue('images-small.pdf');
 
@@ -433,14 +433,14 @@ test.describe('the form in English and Turkish (A-21, 07 §4.5, Q-7)', () => {
     en: {
       menu: /^Save a copy/,
       formats: ['PDF', 'Images', 'Text'],
-      same: /^Same as original, \d+\.\d KB$/,
+      same: /^No compression, \d+\.\d KB$/,
       size: '· \\d+\\.\\d KB$',
       estimating: 'Estimating…',
     },
     tr: {
       menu: /^Kopyasını kaydet/,
       formats: ['PDF', 'Görüntüler', 'Metin'],
-      same: /^Özgün boyut, \d+,\d KB$/,
+      same: /^Sıkıştırmasız, \d+,\d KB$/,
       size: '· \\d+,\\d KB$',
       estimating: 'Hesaplanıyor…',
     },
@@ -530,8 +530,8 @@ test.describe('the save receipt (DSN-67)', () => {
     });
   });
 
-  const anySize = /^Same as original, (about )?[\d.,]+ (KB|MB|B)/;
-  const exactSize = /^Same as original, [\d.,]+ (KB|MB|B)$/;
+  const anySize = /^No compression, (about )?[\d.,]+ (KB|MB|B)/;
+  const exactSize = /^No compression, [\d.,]+ (KB|MB|B)$/;
 
   /** Presses Download copy once the primary is not busy; resolves to the toast that follows. */
   async function saveCopy(page: Page, sheet: Locator) {

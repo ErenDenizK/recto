@@ -44,7 +44,10 @@ export interface IntentPreview {
   /** The option's accessible name: the whole reading in run order, "…, then …". */
   readonly sentence: string;
   readonly steps: readonly PreviewStep[];
-  /** 'one' = one undo step; 'separate' = a handoff commits its own; 'none' = output/navigate only. */
+  /**
+   * 'one' = a chain of two or more document steps is one undo step; 'separate' = a chain ends in
+   * a handoff that commits its own; 'none' = a single step, output or navigate.
+   */
   readonly undo: 'one' | 'separate' | 'none';
   readonly runnable: boolean;
   /**
@@ -398,11 +401,13 @@ export function historyLabel(reading: Reading, ctx: IntentContext): string {
 
 function undoOf(reading: Reading): IntentPreview['undo'] {
   const finishing = finishingStepOf(reading);
-  const documents = documentStepsOf(reading).length > 0;
-  if (finishing !== undefined && FAMILY[finishing.action] === 'handoff') return 'separate';
-  if (finishing?.action === 'split') return 'separate';
-  if (documents) return 'one';
-  return 'none';
+  const documents = documentStepsOf(reading).length;
+  const handoff =
+    finishing !== undefined &&
+    (FAMILY[finishing.action] === 'handoff' || finishing.action === 'split');
+  // An undo line is a story about several steps: a lone step, or a lone handoff, has none (§2.1).
+  if (documents + (handoff ? 1 : 0) < 2) return 'none';
+  return handoff ? 'separate' : 'one';
 }
 
 /**

@@ -100,13 +100,22 @@ describe('the key', () => {
     expect(preview.runnable).toBe(true);
   });
 
-  it('puts an output after the document steps and keeps the undo for them', () => {
+  it('tells no undo story for a lone step, a handoff or a single delete', () => {
+    setLocale('en');
+    for (const text of ['delete 8', 'extract 2-3']) {
+      const read = parseIntent(text, ctx);
+      if (read.kind !== 'readings') throw new Error(`no reading for ${text}`);
+      expect(previewOf(read.readings[0], ctx, 1, text).undo, text).toBe('none');
+    }
+  });
+
+  it('puts an output after the document steps; one step has no undo story', () => {
     setLocale('en');
     const chain = parseIntent('compress under 2 MB and rotate 3', ctx);
     if (chain.kind !== 'readings') throw new Error('no chain');
     const preview = previewOf(chain.readings[0], ctx, 1, 'chain');
     expect(preview.steps.map((s) => s.family)).toEqual(['document', 'output']);
-    expect(preview.undo).toBe('one');
+    expect(preview.undo).toBe('none');
   });
 
   it('offers the nearest command under an honest no', () => {

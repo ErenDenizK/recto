@@ -201,16 +201,33 @@ describe('the editor between engine checks', () => {
     const { source, target } = await open();
     const run = await lineOn(source, 650);
     const counts = countCalls(await getEngineService().textEditor());
-    const { input, unmount } = renderEditor(target, run, { start: 16, end: 16 }); // before "fox"
+    // "f" of "fox" selected, so one keystroke replaces it: a single render, a single timer.
+    const { input, unmount } = renderEditor(target, run, { start: 16, end: 17 });
     const badge = screen.getByTestId('text-edit-badge');
     await waitFor(() => expect(badge).toHaveTextContent('Same font'));
+    await waitFor(() => expect(input).toHaveFocus());
+    // What the panel shows, and how many dry runs had started, in the very task that commits
+    // the substitute badge. A loaded runner can stretch the wait between the keystroke and the
+    // test's next look past the 300 ms pause, so a look after the fact cannot tell "before any
+    // engine check" from "after one". A mutation observer's callback runs right after that
+    // commit, and the editor's timer starts only in the effect that follows it.
+    let atCommit: { checks: number; busy: string | null; fellBack: string | null } | undefined;
+    const watcher = new MutationObserver(() => {
+      if (atCommit || !badge.textContent?.includes('Font substituted: Inter')) return;
+      atCommit = {
+        checks: counts.checkEditability ?? 0,
+        busy: badge.getAttribute('aria-busy'),
+        fellBack: screen.queryByTestId('text-edit-fell-back')?.textContent ?? null,
+      };
+    });
+    watcher.observe(document.body, { subtree: true, childList: true, characterData: true });
     // "F" is not in the subset: the substitute, at once, before any engine check.
-    await userEvent.keyboard('{Delete}F');
+    await userEvent.keyboard('F');
     expect(input).toHaveValue(FOX.replace('fox', 'Fox'));
-    await waitFor(() => expect(badge).toHaveTextContent('Font substituted: Inter'));
-    expect(counts.checkEditability).toBe(0);
-    expect(badge).toHaveAttribute('aria-busy', 'true');
-    expect(screen.getByTestId('text-edit-fell-back')).toHaveTextContent('It has no glyph for “F”');
+    await waitFor(() => expect(atCommit).toBeDefined());
+    watcher.disconnect();
+    expect(atCommit).toMatchObject({ checks: 0, busy: 'true' });
+    expect(atCommit?.fellBack).toContain('It has no glyph for “F”');
     // The dry run after the pause agrees.
     await waitFor(() => expect(badge).not.toHaveAttribute('aria-busy'));
     expect(counts.checkEditability).toBe(1);

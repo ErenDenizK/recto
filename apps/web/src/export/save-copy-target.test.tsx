@@ -89,7 +89,7 @@ function line(size: SaveCopyDraft['size'], target: number): string {
 
 describe('the target line', () => {
   it('says the target is missed for any Size whose estimate is above it', () => {
-    expect(line('same', 2 * MB)).toMatch(/Same.*above the target/);
+    expect(line('same', 2 * MB)).toMatch(/No compression.*above the target/);
     expect(line('smaller', 2 * MB)).toMatch(/Smaller.*above the target/);
     expect(line('smallest', 2 * MB)).toMatch(/target can’t be reached/);
   });
@@ -114,13 +114,13 @@ describe('a size picked before the estimates arrive', () => {
     // One byte is out of reach, so the target would pick Smallest once the estimates arrive.
     openSaveCopy(id, { kind: 'size', targetBytes: 1 });
     const sheet = await screen.findByTestId('save-copy-sheet', {}, { timeout: 15_000 });
-    await userEvent.click(within(sheet).getByRole('radio', { name: /^Same/ }));
+    await userEvent.click(within(sheet).getByRole('radio', { name: /^No compression/ }));
     expect(within(sheet).queryByTestId('save-copy-target')).toBeNull();
     gate.release();
     await waitFor(() => expect(within(sheet).getByTestId('save-copy-target')).toBeVisible(), {
       timeout: 20_000,
     });
-    expect(within(sheet).getByRole('radio', { name: /^Same/ })).toHaveAttribute(
+    expect(within(sheet).getByRole('radio', { name: /^No compression/ })).toHaveAttribute(
       'aria-checked',
       'true',
     );

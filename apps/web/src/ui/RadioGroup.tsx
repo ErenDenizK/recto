@@ -1,6 +1,6 @@
 /**
  * Radio group (components/09-primitives.md §9): one of a few options that need a description
- * or an estimate (Save a copy's Size: Same as original · Smaller, about 1.1 MB; Batch outputs;
+ * or an estimate (Save a copy's Size: No compression · Smaller, about 1.1 MB; Batch outputs;
  * Crop scope). Two to four short options without descriptions use `ui/Segmented` instead.
  *
  * - One row of `--control-h` per option: a 16 px circle (20 px coarse), the label, an optional

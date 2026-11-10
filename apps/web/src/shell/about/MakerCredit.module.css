@@ -17,6 +17,17 @@
   white-space: nowrap;
 }
 
+/*
+ * A fingertip (Q-9): the link is one line of footnote height, so its box (and with it the hit
+ * area) grows to --hit-min (44 px on a coarse pointer, 24 px otherwise) by vertical padding,
+ * and the equal negative margin hands the room back: the line looks and sits as before.
+ */
+.link {
+  display: inline-block;
+  margin-block: calc((var(--type-footnote-lh) - var(--hit-min)) / 2);
+  padding-block: calc((var(--hit-min) - var(--type-footnote-lh)) / 2);
+}
+
 .link:hover .mark {
   text-decoration: underline;
   text-underline-offset: 0.2em;

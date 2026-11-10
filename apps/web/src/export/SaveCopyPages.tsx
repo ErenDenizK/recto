@@ -46,7 +46,7 @@ export function WhatGetsSmaller({
   readonly analysis: CompressionAnalysis | null;
   /** The assembled bytes the analysis read. */
   readonly source: ArrayBuffer | null;
-  /** The chosen size's compression (Smaller when the choice is Same as original). */
+  /** The chosen size's compression (Smaller when the choice is No compression). */
   readonly settings: CompressionSettings;
   /** The chosen size's name ("Smaller"). */
   readonly sizeLabel: string;

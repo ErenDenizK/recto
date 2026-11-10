@@ -101,7 +101,7 @@ chain, and what undo means.
 |---|---|---|---|
 | **navigate** (go to page, heading, recent file, find) | Yes | No (alone only; see §2.8 ellipsis) | Nothing to undo |
 | **document** (a model operation) | Yes, committed | Yes, any number, in typed order | All document steps of one sentence are **one** history entry |
-| **handoff** (opens a tool, sheet or panel prefilled) | Opens it; the person finishes there | At most one, always last | Whatever the tool commits is its own entry |
+| **handoff** (opens a tool, sheet or panel prefilled) | Opens it; the person finishes there | At most one, always last | Whatever the tool commits is its own entry; the footnote shows only for a chain of two or more steps, never for a lone handoff |
 | **output** (opens Save a copy or Print preset) | Opens the sheet preset; never writes a file by itself (PRD-40) | At most one, always last; cannot follow a handoff | Nothing to undo; the copy is a new file |
 | **unavailable** (a capability Recto does not have) | No; shows the nearest command row | No | — |
 

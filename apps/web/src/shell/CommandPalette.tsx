@@ -270,6 +270,14 @@ const FOOTER_KEYS = {
 export function CommandPalette() {
   const open = useUiStore((s) => s.paletteOpen);
   const setOpen = useUiStore((s) => s.setPaletteOpen);
+  // Reopening while the exit still plays cancels the exit, so the popup is never unmounted and
+  // would keep its query. Each open begins a new session, which is the popup's key: fresh state.
+  const [session, setSession] = useState(0);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setSession((n) => n + 1);
+  }
   return (
     <Dialog.Root open={open} onOpenChange={(next) => setOpen(next)}>
       <Dialog.Portal>
@@ -277,6 +285,7 @@ export function CommandPalette() {
         {/* Always rendered: the Portal unmounts it after the exit transition, so every
             open starts with fresh state. Unmounting it early would strand the backdrop. */}
         <PalettePopup
+          key={session}
           onClose={() => {
             setOpen(false);
           }}

@@ -54,6 +54,20 @@ afterEach(() => {
 });
 
 describe('the intent bar in the palette', () => {
+  it('starts empty when reopened while it is still closing', async () => {
+    await userEvent.keyboard('abc');
+    expect(combobox()).toHaveValue('abc');
+    act(() => {
+      useUiStore.setState({ paletteOpen: false });
+    });
+    act(() => {
+      useUiStore.setState({ paletteOpen: true });
+    });
+    await waitFor(() => expect(combobox()).toHaveValue(''));
+    await userEvent.keyboard('x');
+    await waitFor(() => expect(combobox()).toHaveValue('x'));
+  });
+
   it('names a reading by its sentence and hides the thumbnails from assistive tech', async () => {
     await userEvent.keyboard('rotate 2-3 right');
     const option = await screen.findByRole('option', { name: 'Rotate pages 2–3 right' });

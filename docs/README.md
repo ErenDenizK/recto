@@ -1,36 +1,42 @@
 # Documentation
 
-Start here. `docs/process/decisions.md` wins over every older document: when two documents
-disagree, the decisions index is right and the other one is stale.
+This folder has two parts: the product and engineering documents, which describe what Recto is
+and how it is built, and a section on how the project is run, which is optional reading.
 
-## Read these first
+## The product and how it is built
 
 | Document | What it gives you |
 |---|---|
 | [`README.md`](../README.md) | What Recto is, what it does not do, how to check its privacy claims |
-| [`CLAUDE.md`](../CLAUDE.md) | The map of the code and the working rules |
+| [`VISION.md`](VISION.md) | Thesis, principles, non-goals |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Layering, the document model, the export pipeline, the editions, the workers |
+| [`adr/README.md`](adr/README.md) | The architecture decision records |
+| [`specs/`](specs/redesign.md) | What each feature does and how it is built; `redesign.md` is the plan of the current interface |
+| [`design/redesign-2026-10/`](design/redesign-2026-10/language.md) | `language.md` is the design language (glass, light, motion, type); `quality-bar.md` is the bar every surface meets |
+| [`brand/`](brand/) | Name, mark and voice |
+| [`qa/`](qa/) | Manual checklists |
+| [`research/`](research/) | Dated research snapshots; they describe what was known on their date, not how Recto works now |
 | [`CONTRIBUTING.md`](../CONTRIBUTING.md) | Language, setup, commits, pull requests, code standards |
-| [`docs/process/decisions.md`](process/decisions.md) | Every owner and lead decision with its source (the index; full rows in `process/decisions/`) |
-| [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) | Layering, the document model, the export pipeline, the editions, the workers |
-| [`docs/VISION.md`](VISION.md) | Thesis, principles, non-goals |
-| [`docs/specs/redesign.md`](specs/redesign.md) | The build plan of the current interface |
-| [`docs/design/redesign-2026-10/`](design/redesign-2026-10/language.md) | `language.md` is the design language (glass, light, motion, type); `quality-bar.md` is the bar Q-1 to Q-14 every surface meets |
-| [`docs/company/roadmap.md`](company/roadmap.md) | The live plan |
-| [`docs/adr/README.md`](adr/README.md) | The architecture decision records |
 
-## The folders
+## How we work
 
-- `adr/`: architecture decisions. `specs/`: what each feature does and how it is built.
-- `design/`: the redesign, component specs and the sample document. `brand/`: name, mark and voice.
-- `company/`: charter, roadmap and epics. `process/`: workflow, model routing, metrics, decisions.
-- `qa/`: manual checklists. `research/`: dated research snapshots; they describe what was known
-  on their date, not how Recto works now. `family/`: the owner's other products.
-- `plan/v1/` and `ROADMAP.md`: earlier plans, kept in place because the decisions index cites them.
-  Each opens with a "Superseded by" line.
+Recto is directed by one maintainer who sets the product and the large technical decisions.
+A layered team of AI agents builds it, in the open on GitHub. These documents show how that works.
+You do not need them to use or contribute to Recto.
 
-## The archive
+| Document | What it gives you |
+|---|---|
+| [`process/decisions.md`](process/decisions.md) | Every product and technical decision with its source (the index; full rows in `process/decisions/`). When it disagrees with an older document, the decision wins. |
+| [`process/`](process/) | The workflow, how agents are briefed and routed, lessons learned and metrics |
+| [`company/`](company/charter.md) | The charter, the roadmap and the epics: who decides what, and what comes next |
+| [`../CLAUDE.md`](../CLAUDE.md) | The working rules the agents read first |
 
-`archive/` holds finished and superseded documents under the same paths they had before. Nothing
-there describes how Recto works today, and nothing new is written there. To retire a document, move it
-with `git mv` so history follows it, fix the links to it, and add a line to
-[`archive/README.md`](archive/README.md).
+## Other folders
+
+- `plan/v1/` and `ROADMAP.md`: earlier plans, kept in place because the decisions index cites
+  them. Each opens with a "Superseded by" line.
+- `family/`: notes on the maintainer's other products.
+- `archive/`: finished and superseded documents under the paths they had before. Nothing there
+  describes how Recto works today, and nothing new is written there. To retire a document, move
+  it with `git mv` so history follows it, fix the links to it, and add a line to
+  [`archive/README.md`](archive/README.md).
