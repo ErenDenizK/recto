@@ -22,8 +22,8 @@ you. Credit is given in the advisory unless you prefer otherwise.
 
 ## Supported versions
 
-Only the latest deployment of `main` is supported. The project is pre-1.0; fixes are not
-backported.
+Only the latest deployment is supported. The live site is built from the `develop` branch,
+and `main` holds the releases cut from it. The project is pre-1.0; fixes are not backported.
 
 ## Scope
 

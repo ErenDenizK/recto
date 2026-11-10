@@ -1,8 +1,8 @@
 # Contributing
 
-Thank you for considering a contribution. This project is run with the discipline of a
-professional engineering team; the rules below exist so that quality stays high as the
-contributor base grows.
+Thank you for considering a contribution. Recto is a browser-only PDF editor. The project is
+directed by one maintainer and built with a team of AI agents, in the open; people are just as
+welcome to contribute. The rules below keep quality high whoever writes the change.
 
 ## Language
 
@@ -11,8 +11,10 @@ in **English**. User-facing strings live in locale files and are translated sepa
 
 ## Before you start
 
-1. Read `CLAUDE.md` (the short map of the code and rules), `docs/process/decisions.md`, then
-   `docs/VISION.md`, `docs/ARCHITECTURE.md` and the ADRs in `docs/adr/` as background.
+1. Read `docs/VISION.md`, `docs/ARCHITECTURE.md` and the architecture decision records
+   (ADRs) in `docs/adr/` as background. `CLAUDE.md` is a short map of the code and its rules,
+   and `docs/process/decisions.md` lists the product decisions already made; check it before
+   you change behaviour. The full way of working is in [`docs/process/`](docs/process/).
 2. Open an issue (or pick one) before starting anything larger than a small fix. Design
    discussions happen in the issue; architectural changes need an ADR in the PR.
 3. Set up the workspace. You need Node.js 22 (see `.nvmrc`) and pnpm, which Corepack
@@ -46,9 +48,9 @@ in **English**. User-facing strings live in locale files and are translated sepa
 
 ## Branches and commits
 
-> All work lands on `develop` (the dev branch, which deploys) through pull requests: one branch and
-> one pull request per lane, merged with a merge commit, never squashed (`docs/process/decisions.md`
-> PRC-17). `main` takes only manual releases (PRC-5).
+> All work lands on `develop`, the development branch that the live site is deployed from, through
+> pull requests. Each pull request is merged with a merge commit, never squashed. `main` only
+> receives releases that the maintainer asks for.
 
 - Branch from `develop`: `feat/<topic>`, `fix/<topic>`, `docs/<topic>`, `chore/<topic>`.
 - Use [Conventional Commits](https://www.conventionalcommits.org/):
@@ -60,12 +62,12 @@ in **English**. User-facing strings live in locale files and are translated sepa
 
 ## Pull requests
 
-- Small and reviewable. One concern per PR, and one PR per lane (PRC-18).
-- Fill in the PR template: what, why, how tested, screenshots for UI changes, ADR link for
-  architecture changes.
+- Small and reviewable: one concern per PR, one branch per PR.
+- Fill in the PR template: what, why, how tested, screenshots for UI changes, and an ADR link
+  for architecture changes. Use a plain title that says what changed, without internal ticket codes.
 - Add a Changeset (`pnpm changeset`) for any user-visible change (see
   [`.changeset/README.md`](.changeset/README.md)).
-- Merge into `develop` with a merge commit once the checks pass (PRC-17); never squash, so every
+- Merge into `develop` with a merge commit once the checks pass; never squash, so every
   commit stays in history. Only release pull requests go from `develop` to `main`
   (see [Releases](#releases)).
 
@@ -93,7 +95,7 @@ with a `patch` changeset. Features wait for 1.1 on a branch that is not merged u
 ends. What counts as breaking, and the commands for each step, are in
 [`.changeset/README.md`](.changeset/README.md).
 
-**Cutting a release** (the owner, or a maintainer the owner names):
+**Cutting a release** (the maintainer, or someone the maintainer names):
 
 1. On a branch from `develop`, enter pre mode once (`pnpm changeset pre enter beta`, with
    `.changeset/public-beta.md` at `major` for the first beta), then run
@@ -104,7 +106,7 @@ ends. What counts as breaking, and the commands for each step, are in
    limitations (from the ROADMAP's known behaviours) are written by hand. The release
    workflow refuses a template written for another version.
 3. Merge that into `develop`, then open the release pull request from `develop` to `main`.
-   CI must be green; the owner merges it with linear history (ADR-0006).
+   CI must be green; the maintainer merges it with linear history (ADR-0006).
 4. Nobody tags by hand. On the merge, `release.yml` reads the version, builds the dist zip
    (for the root of a static host) and the media zip, creates the tag `v<version>` on the
    merged commit, writes `SHA256SUMS` and the notes (Added, Changed and Fixed from the

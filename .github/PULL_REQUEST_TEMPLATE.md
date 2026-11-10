@@ -1,6 +1,6 @@
 <!--
 Title: a Conventional Commit, e.g. `feat(light-table): move pages across documents`.
-Target branch: `develop` (milestone merges into `main` are done by maintainers).
+Target branch: `develop`. Releases into `main` are done by the maintainer.
 -->
 
 ## What
@@ -9,7 +9,7 @@ Target branch: `develop` (milestone merges into `main` are done by maintainers).
 
 ## Why
 
-<!-- The problem this solves: the owner brief item and the decision ids (docs/process/decisions.md). -->
+<!-- The problem this solves, and any earlier decision it follows (docs/process/decisions.md). -->
 
 ## How tested
 
@@ -24,15 +24,12 @@ browsers used. -->
 
 <!-- Link the ADR for any architectural change (docs/adr/), or write "None". -->
 
-## Decisions
-
-<!-- Rows added or superseded in docs/process/decisions/<area>.md (with their index line in decisions.md), or "None". -->
-
 ## Checklist
 
-<!-- Delete the rows that do not apply (PRC-18). -->
+<!-- Delete the rows that do not apply. -->
 
 - [ ] A Changeset is included (`pnpm changeset`), or this change is not user-visible.
 - [ ] Format, lint, typecheck and the covering tests pass locally; CI runs the full matrix.
 - [ ] Tests cover the changed behavior.
 - [ ] Keyboard path, focus management and ARIA are handled for new controls.
+- [ ] If this records a new product decision, the row is added under `docs/process/decisions/`.
