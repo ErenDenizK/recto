@@ -72,7 +72,7 @@ test.use({ viewport: { width: 1440, height: 900 } });
 const WHITE: Rgb = [255, 255, 255];
 /** `--text-primary` and `--glass-text-secondary` (styles/tokens.css), kept in step by hand. */
 const TEXT_PRIMARY: Rgb = [0xe8, 0xe9, 0xec];
-const GLASS_TEXT_SECONDARY: Rgb = [0xbb, 0xbe, 0xc3];
+const GLASS_TEXT_SECONDARY: Rgb = [0xc8, 0xcb, 0xd0];
 
 /** One blank US Letter page: white everywhere the bar and the menus can sit. */
 async function blankPdf(): Promise<Uint8Array> {

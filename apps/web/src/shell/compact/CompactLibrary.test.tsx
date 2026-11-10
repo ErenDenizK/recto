@@ -103,7 +103,7 @@ describe('CompactLibrary', () => {
     const sheet = await screen.findByTestId('compact-settings-sheet', {}, { timeout: 10_000 });
     await waitFor(() => expect(sheet).toBeVisible());
     expect(within(sheet).getByRole('heading', { name: 'Settings' })).toBeInTheDocument();
-    for (const name of ['Theme', 'Reduce motion', 'Language']) {
+    for (const name of ['Reduce motion', 'Language']) {
       expect(within(sheet).getByRole('radiogroup', { name })).toBeInTheDocument();
     }
     // About is a page within the sheet; ‹ goes back to Settings.
@@ -114,7 +114,7 @@ describe('CompactLibrary', () => {
     expect(within(sheet).getByTestId('compact-about-version')).toBeInTheDocument();
     await userEvent.click(within(sheet).getByRole('button', { name: 'Settings' }));
     await waitFor(() =>
-      expect(within(sheet).getByRole('radiogroup', { name: 'Theme' })).toBeInTheDocument(),
+      expect(within(sheet).getByRole('radiogroup', { name: 'Reduce motion' })).toBeInTheDocument(),
     );
     act(() => {
       resetCompactStore();

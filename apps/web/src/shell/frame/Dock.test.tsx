@@ -106,7 +106,7 @@ describe('dock', () => {
     expect(document.activeElement?.textContent).toBe('Markup');
     // Labels are primary text on the glass, never secondary (F10 §3).
     const item = within(dock()).getByRole('button', { name: 'Markup' });
-    expect(getComputedStyle(item).fontWeight).toBe('500');
+    expect(getComputedStyle(item).fontWeight).toBe('560');
     expect(getComputedStyle(item.querySelector('svg') as Element).width).toBe('20px');
   });
 

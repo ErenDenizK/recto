@@ -11,7 +11,7 @@ import { Keycaps } from './Keycaps';
 import { ResizeHandle } from './ResizeHandle';
 
 describe('Keycaps (09-primitives §15)', () => {
-  it('draws 18 px caps with radius 4, decorative', () => {
+  it('draws 18 px caps with radius 5, decorative (DSN-89)', () => {
     const { container } = render(
       <Keycaps shortcut={parseShortcut('Mod+Shift+S')} platform="other" />,
     );
@@ -19,7 +19,7 @@ describe('Keycaps (09-primitives §15)', () => {
     expect(caps).toHaveAttribute('aria-hidden', 'true');
     const cap = caps.querySelector('kbd') as HTMLElement;
     expect(cap.getBoundingClientRect().height).toBe(18);
-    expect(getComputedStyle(cap).borderTopLeftRadius).toBe('4px');
+    expect(getComputedStyle(cap).borderTopLeftRadius).toBe('5px');
     expect([...caps.querySelectorAll('kbd')].map((k) => k.textContent)).toEqual([
       'Ctrl',
       'Shift',
