@@ -195,6 +195,7 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-93](decisions/design.md) | Colophon Home replaces the Library on every edition; the desk is the default; Labs flags of DSN-64, 66, 87 retire | In force | 2026-11-10 |
 | [DSN-94](decisions/design.md) | Home's light is a static CSS beam of three layers; degrades at 3 and 4 and under Solid; Aura becomes two lobes | In force | 2026-11-10 |
 | [DSN-95](decisions/design.md) | Phosphor sizes: 16 carets, 20 strip, 22 desktop capsule, 24 Home actions and phone bars; amends I-3 | In force | 2026-11-10 |
+| [DSN-93a](decisions/design.md) | Colophon Home build details: Continue text placement, one-row shelves with Show all, cover-and-title tiles, no blur on the panel or lobes | In force | 2026-11-10 |
 
 ## Motion
 
