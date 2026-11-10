@@ -226,11 +226,8 @@ describe('the editor between engine checks', () => {
     expect(input).toHaveValue(FOX.replace('fox', 'Fox'));
     await waitFor(() => expect(atCommit).toBeDefined());
     watcher.disconnect();
-    expect(atCommit).toEqual({
-      checks: 0,
-      busy: 'true',
-      fellBack: expect.stringContaining('It has no glyph for “F”'),
-    });
+    expect(atCommit).toMatchObject({ checks: 0, busy: 'true' });
+    expect(atCommit?.fellBack).toContain('It has no glyph for “F”');
     // The dry run after the pause agrees.
     await waitFor(() => expect(badge).not.toHaveAttribute('aria-busy'));
     expect(counts.checkEditability).toBe(1);
