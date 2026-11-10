@@ -150,6 +150,22 @@
   margin-inline-end: var(--space-1);
 }
 
+/*
+ * The smallest phones (360 px): the four words of the at-rest row (Select, Add, Share, Done)
+ * need 376 px with 16 px of padding on each button, so the buttons and the bar's ends take
+ * less, to fit between the viewport's 12 px margins. Every control stays 44 px tall.
+ */
+@media (max-width: 380px) {
+  .bar {
+    padding: 0 4px 0 10px;
+  }
+
+  /* The button sets its own padding at a coarse pointer (16 px), so it is set on the button. */
+  .barRow > :global(.btn) {
+    --btn-pad: var(--space-3);
+  }
+}
+
 /* Rotate, Delete, ⋯: icon-only, 44 px circles (Q-9). */
 .iconAction {
   width: 44px;

@@ -199,6 +199,11 @@ test.describe('Text view', () => {
     await page.getByRole('button', { name: /^(Open PDF|PDF aç)$/ }).click();
     await (await chooser).setFiles(fixturePath('markdown-source.pdf'));
     await expect(page.getByTestId('compact-reader')).toBeVisible();
+    // The reader at rest before the menu: a tap on the title while it still enters can miss.
+    await expect(page.locator('[data-page-index="0"] canvas').first()).toHaveAttribute(
+      'data-state',
+      'rendered',
+    );
     await enterTextView(page);
     await page.getByTestId('text-view-options').click();
     await expect(page.getByTestId('text-view-size')).toHaveText('20');
@@ -241,6 +246,28 @@ test.describe('Text view', () => {
     await expect(view(page)).toHaveCount(0);
     await expect(page.getByTestId('compact-pages')).toBeFocused();
   });
+
+  // The loader notified its subscribers before it had recorded the chunk as in flight, so the
+  // view's own "ask again for what is loading" re-entered it until the stack ran out and the
+  // pages stayed skeletons. The sample (more pages than the fixtures) showed it at 390 × 844.
+  for (const scheme of ['light', 'dark'] as const) {
+    test(`the sample opens as text without an error (${scheme})`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      const errors: string[] = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      await page.goto('./?lang=en&textview=1');
+      await expect(page.getByTestId('compact-library')).toBeVisible();
+      await page.getByRole('button', { name: 'Try the sample' }).click();
+      await expect(page.getByTestId('compact-reader')).toBeVisible();
+      await expect(page.locator('[data-page-index="0"] canvas').first()).toHaveAttribute(
+        'data-state',
+        'rendered',
+        { timeout: 30_000 },
+      );
+      await enterTextView(page);
+      expect(errors).toEqual([]);
+    });
+  }
 
   test('works on its side', async ({ page }) => {
     await openPdf(page, 'markdown-source.pdf', '&textview=1');

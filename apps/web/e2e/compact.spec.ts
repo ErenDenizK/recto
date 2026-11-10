@@ -1009,3 +1009,67 @@ test.describe('the compact edition in the light theme (spec D3-7)', () => {
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   });
 });
+
+test.describe('the compact edition’s touch targets and Labs names (R33)', () => {
+  /** Opens Settings from the reader with a Labs flag on by the address, so Labs shows. */
+  async function openSettings(page: Page, lang: string): Promise<Locator> {
+    await useFileInputPicker(page);
+    await page.goto(`./?lang=${lang}&textview=1`);
+    await expect(page.getByTestId('compact-library')).toBeVisible();
+    await openPdf(page, 'outline-named-dests.pdf');
+    await page.getByTestId('compact-title-menu-trigger').click();
+    await page
+      .getByTestId('compact-file-menu')
+      .getByRole('menuitem', { name: /^(Settings|Ayarlar)$/ })
+      .click();
+    const settings = page.getByTestId('compact-settings-sheet');
+    await expect(settings).toBeVisible();
+    await motionDone(page);
+    return settings;
+  }
+
+  /** Names of the elements whose text an ellipsis cuts (a name, a hint, a row label). */
+  const truncated = (sheet: Locator) =>
+    sheet.evaluate((root) =>
+      [...root.querySelectorAll<HTMLElement>('*')]
+        .filter((el) => getComputedStyle(el).textOverflow === 'ellipsis')
+        .filter((el) => el.scrollWidth > el.clientWidth)
+        .map((el) => el.textContent?.trim() ?? ''),
+    );
+
+  test('every segment of Settings is a 44 px target, and so is the About credit', async ({
+    page,
+  }) => {
+    const settings = await openSettings(page, 'en');
+    const radios = settings.getByRole('radio');
+    const count = await radios.count();
+    // Theme, Reduce motion, Language and the Labs choices.
+    expect(count).toBeGreaterThanOrEqual(7);
+    for (let i = 0; i < count; i += 1) {
+      const radio = radios.nth(i);
+      await radio.scrollIntoViewIfNeeded();
+      const box = await radio.boundingBox();
+      expect(box?.height, `segment ${i}`).toBeGreaterThanOrEqual(44);
+    }
+    const aboutRow = settings.getByRole('button', { name: /^About Recto/ });
+    await aboutRow.scrollIntoViewIfNeeded();
+    await aboutRow.click();
+    const credit = settings.getByTestId('about-maker');
+    await credit.scrollIntoViewIfNeeded();
+    const box = await credit.boundingBox();
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+    expect(box?.width).toBeGreaterThanOrEqual(44);
+  });
+
+  for (const lang of ['en', 'tr']) {
+    test(`no name in the Labs list is cut off (${lang})`, async ({ page }) => {
+      const settings = await openSettings(page, lang);
+      const row = settings.getByRole('radiogroup', {
+        name: lang === 'en' ? 'Tool drawer' : 'Araç çekmecesi',
+      });
+      await row.scrollIntoViewIfNeeded();
+      await expect(row).toBeVisible();
+      expect(await truncated(settings)).toEqual([]);
+    });
+  }
+});
