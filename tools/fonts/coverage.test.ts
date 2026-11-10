@@ -19,7 +19,16 @@ const ROOT = join(import.meta.dirname, '..', '..');
 const FONTS = join(ROOT, 'apps/web/public/fonts');
 const LATIN = 'inter-recto-latin.woff2';
 const LATIN_EXT = 'inter-recto-latin-ext.woff2';
-const FILES = [LATIN, LATIN_EXT, 'recto-signature-latin.woff2', 'recto-signature-latin-ext.woff2'];
+const SERIF = 'noto-serif-recto-latin.woff2';
+const SERIF_EXT = 'noto-serif-recto-latin-ext.woff2';
+const FILES = [
+  LATIN,
+  LATIN_EXT,
+  'recto-signature-latin.woff2',
+  'recto-signature-latin-ext.woff2',
+  SERIF,
+  SERIF_EXT,
+];
 
 /** WOFF2's known-table index (WOFF2 §5.1), as far as the tables read here. */
 const KNOWN_TAGS: Record<number, string> = { 0: 'cmap', 10: 'glyf', 11: 'loca', 47: 'fvar' };
@@ -213,6 +222,13 @@ describe("'Inter Recto' coverage", () => {
     expect(font('recto-signature-latin.woff2').axes).toEqual([]);
   });
 
+  it('cuts the document-title serif with the Turkish letters and a document title\'s punctuation (DSN-89)', () => {
+    const points = new Set([...font(SERIF).points, ...font(SERIF_EXT).points]);
+    expect(missing('İıŞşĞğÇçÖöÜüÂâÎîÛû₺', points)).toEqual([]);
+    expect(missing('Margin, No. 07 · Page 2 of 4 – “quoted” ‘single’ …', points)).toEqual([]);
+    expect(font(SERIF).axes).toEqual([]);
+  });
+
   it('stays within the budget of ADR-0027 (98 KB for the pair)', () => {
     const total = font(LATIN).bytes.length + font(LATIN_EXT).bytes.length;
     expect(total).toBeLessThanOrEqual(98 * 1024);
@@ -243,6 +259,8 @@ describe("'Inter Recto' coverage", () => {
         /<script\s+src="%BASE_URL%preload-face\.js"\s+data-href="%BASE_URL%fonts\/inter-recto-latin\.woff2"\s*><\/script>/,
       );
       expect(html, page).not.toContain('inter-recto-latin-ext.woff2');
+      // The serif is not preloaded: titles are single-line boxes, so its swap moves nothing (Q-8).
+      expect(html, page).not.toContain('noto-serif-recto');
       expect(html, page).not.toMatch(/rel="preload"[^>]*as="font"/);
     }
   });

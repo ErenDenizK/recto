@@ -11,14 +11,18 @@ Sources, all read from this repository's install (nothing is fetched):
   which are the variable font's own instances (Regular equals its default outline point for
   point, Bold its wght 700 instance within a unit), with their wght deltas rebuilt so they
   follow the weight like every other glyph.
+- Noto Serif Regular 2.015, the static the engine bundles (`NotoSerif-Regular.ttf`, OFL), is
+  cut as the document-title face 'Noto Serif Recto' (DSN-89): Latin and Latin Extended at weight
+  400, no variable axes, the kerning and mark features only.
 - ⌃ is in neither; it is cut from the variable font's own ↑ (its head without the shaft, with
   every variation), so it matches the arrows at every weight and optical size.
 
 Outputs, committed (ADR-0027 §3): `apps/web/public/fonts/inter-recto-latin.woff2` and
 `inter-recto-latin-ext.woff2` ('Inter Recto', both axes, the features of §2.1),
 `recto-signature-latin.woff2` and `recto-signature-latin-ext.woff2` (Inter's italic at 300, a
-static cut for the typed signature, MK-13 §6), and the generated block of
-`apps/web/src/styles/fonts.css`: the four @font-face rules with `unicode-range` read from each
+static cut for the typed signature, MK-13 §6), `noto-serif-recto-latin.woff2` and
+`noto-serif-recto-latin-ext.woff2` (the document-title serif), and the generated block of
+`apps/web/src/styles/fonts.css`: the six @font-face rules with `unicode-range` read from each
 file's cmap, and the metric-matched fallback faces (`size-adjust` and the ascent, descent and
 line-gap overrides; quality-bar Q-8) measured against Arial's metrics.
 
@@ -61,12 +65,15 @@ ARIAL_METRICS = {
 
 FAMILY = 'Inter Recto'
 SIGNATURE_FAMILY = 'Recto Signature'
+SERIF_FAMILY = 'Noto Serif Recto'
+SERIF_WEIGHT = 400
 SIGNATURE_WEIGHT = 300  # annotations/stamps.ts TYPED_SIGNATURE_WEIGHT
 
 # ADR-0027 §2.1: the OpenType features Recto uses; the rest are dropped.
 FEATURES = ['kern', 'mark', 'mkmk', 'ccmp', 'locl', 'calt', 'case', 'tnum', 'pnum', 'frac',
             'cv05', 'cv08', 'ss03', 'zero']
 SIGNATURE_FEATURES = ['kern', 'mark', 'mkmk', 'ccmp', 'locl', 'calt']
+SERIF_FEATURES = ['kern', 'mark', 'mkmk', 'ccmp', 'locl']
 
 
 def span(first: int, last: int) -> list[int]:
@@ -277,6 +284,15 @@ def signature_face(source: str, codepoints: list[int], out: Path) -> TTFont:
     return load(out)
 
 
+def serif_face(codepoints: list[int], out: Path) -> TTFont:
+    """The document-title serif: the engine's static Noto Serif Regular under a private name,
+    cut to the same Latin and Latin Extended ranges as the UI face (DSN-89)."""
+    font = load(ENGINE_FONTS / 'NotoSerif-Regular.ttf')
+    rename(font, SERIF_FAMILY, 'Regular', 'NotoSerifRecto-Regular')
+    subset_to(font, codepoints, SERIF_FEATURES, out)
+    return load(out)
+
+
 def unicode_range(font: TTFont) -> str:
     """The file's cmap as a `unicode-range`, so the browser asks this file only for what it has."""
     points = sorted(font.getBestCmap())
@@ -364,6 +380,8 @@ def css_block(faces: dict[str, TTFont], fallbacks: list[dict]) -> str:
         'inter-recto-latin.woff2': (FAMILY, 'normal', '100 900'),
         'recto-signature-latin-ext.woff2': (SIGNATURE_FAMILY, 'italic', str(SIGNATURE_WEIGHT)),
         'recto-signature-latin.woff2': (SIGNATURE_FAMILY, 'italic', str(SIGNATURE_WEIGHT)),
+        'noto-serif-recto-latin-ext.woff2': (SERIF_FAMILY, 'normal', str(SERIF_WEIGHT)),
+        'noto-serif-recto-latin.woff2': (SERIF_FAMILY, 'normal', str(SERIF_WEIGHT)),
     }.items():
         lines += [
             '@font-face {',
@@ -432,6 +450,9 @@ def main() -> None:
         'recto-signature-latin-ext.woff2': signature_face(
             'inter-latin-ext-wght-italic.woff2', LATIN_EXT,
             args.out / 'recto-signature-latin-ext.woff2'),
+        'noto-serif-recto-latin.woff2': serif_face(LATIN, args.out / 'noto-serif-recto-latin.woff2'),
+        'noto-serif-recto-latin-ext.woff2': serif_face(
+            LATIN_EXT, args.out / 'noto-serif-recto-latin-ext.woff2'),
     }
     print('grafted from the statics:', ' '.join(grafted), file=sys.stderr)
     for file in faces:

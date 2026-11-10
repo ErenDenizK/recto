@@ -1,7 +1,8 @@
 #!/bin/sh
-# Cuts Recto's faces (ADR-0027 §2.1, language.md §4.1, 09-primitives §29): the two 'Inter Recto'
-# files and the typed signature's two files into apps/web/public/fonts/, the generated block of
-# apps/web/src/styles/fonts.css, and SHA256SUMS. Everything it reads is already in the repository
+# Cuts Recto's faces (ADR-0027 §2.1, language.md §4.1, 09-primitives §29; DSN-89): the two
+# 'Inter Recto' files, the typed signature's two files and the document-title serif's two
+# ('Noto Serif Recto', from the engine's Noto Serif Regular) into apps/web/public/fonts/, the
+# generated block of apps/web/src/styles/fonts.css, and SHA256SUMS. Everything it reads is already in the repository
 # or its install (build.py names the sources); nothing is fetched, and the build and the tests
 # never run it: they use the committed outputs.
 #
@@ -19,7 +20,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../.." && pwd)
 python=${PYTHON:-python3}
 fonts="$root/apps/web/public/fonts"
-files="inter-recto-latin.woff2 inter-recto-latin-ext.woff2 recto-signature-latin.woff2 recto-signature-latin-ext.woff2"
+files="inter-recto-latin.woff2 inter-recto-latin-ext.woff2 recto-signature-latin.woff2 recto-signature-latin-ext.woff2 noto-serif-recto-latin.woff2 noto-serif-recto-latin-ext.woff2"
 
 "$python" - "$here/requirements.txt" <<'EOF'
 import sys
