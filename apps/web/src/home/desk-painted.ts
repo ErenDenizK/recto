@@ -4,12 +4,11 @@
  * `HERO_WAIT_MS`, `desk-model.ts`) and its visible covers decoded, or `COVER_WAIT_MS` after
  * that, whichever is first (a slow decode never holds the mark hostage; the cover then fades in).
  * The perf baseline reads it as "Desk painted" (`tools/perf/baseline.ts`) and `e2e/masa.spec.ts`
- * asserts it. Only with the desk on, and only the first time: a desk revisited later is not a
+ * asserts it. Only the first time: a desk revisited later is not a
  * paint. It watches the DOM rather than the component, so it adds nothing to the desk's render
  * path, and stops watching after `WATCH_MS` when the app starts in a document.
  */
 import { prefetchCovers } from './covers';
-import { deskEnabled } from './desk-flag';
 import { LOADING_FALLBACK_MS } from './desk-model';
 
 export const DESK_PAINTED_MARK = 'desk:painted';
@@ -62,7 +61,7 @@ async function coversDecoded(desk: Element, ms: number): Promise<void> {
 
 /** Starts watching for the desk's first paint (the module does it once on load). */
 export function watchDeskPainted(): void {
-  if (typeof document === 'undefined' || !deskEnabled()) return;
+  if (typeof document === 'undefined') return;
   if (performance.getEntriesByName(DESK_PAINTED_MARK).length > 0) return;
   const found = (): boolean => {
     const desk = document.querySelector(DESK);

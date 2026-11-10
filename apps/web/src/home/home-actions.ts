@@ -51,7 +51,6 @@ import { toast } from '../ui/Toast/toast';
 import { combinedTitle, combineOrder, compareOrder, liveSelection, movedOrder } from './home-model';
 import { HOME_CONTINUE_FLAG, homeFlagEnabled, OPEN_PAGE_FLAG } from './home-flags';
 import { coverKey, prefetchCovers } from './covers';
-import { deskEnabled } from './desk-flag';
 import './desk-painted';
 import { backToLibraryMorph, openFromDesk } from './library-morph';
 import type { OpenSeed } from './library-transition';
@@ -187,10 +186,9 @@ export function openInRead(id: DocumentId): void {
 /**
  * After a desk open succeeded, focus goes to the page view as after Open files… and the sample
  * (`focus-opened-page.ts`, 01-frame F3 §6): the pressed tile left with the desk, so the focus
- * would fall to `<body>`. Only with the desk on; elsewhere the focus is as it was (DSN-87).
+ * would fall to `<body>`.
  */
 function focusPageAfter(before: Element | null): void {
-  if (!deskEnabled()) return;
   const active = model().workspace.activeDocument;
   if (active === undefined || stageView(ui(), active) !== 'page') return;
   focusOpenedPage(active, before);
@@ -526,7 +524,6 @@ async function resumeAtPlace(
   const point = pointOfPlace(entry);
   if (only === undefined || ids.length !== 1 || point === undefined) return;
   // A plain reopen landing on its place is the desk's (DSN-87); elsewhere it opens at page 1.
-  if (!deskEnabled()) return;
   if (file.name !== entry.name || file.size !== entry.size) return;
   setResume(only, point, { quiet: true });
   await resumeDocument(only, point);
@@ -597,7 +594,7 @@ async function reopen(entry: RecentEntry): Promise<void> {
         const total = kept.record.pages;
         const point = { ...place.resume, page: place.page, total, at: Date.now() };
         // The desk's own resume after this open (`openEntryAtPlace`) finds the page reached.
-        if (deskEnabled()) setResume(kept.documentId, point, { quiet: true });
+        setResume(kept.documentId, point, { quiet: true });
         await resumeDocument(kept.documentId, point);
       } else openInRead(kept.documentId);
       announce(m.announce_opened({ name: kept.record.title }));
