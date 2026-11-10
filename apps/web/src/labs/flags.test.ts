@@ -82,16 +82,6 @@ describe('resolveFlag', () => {
     expect(resolveFlag(view, '?textview=0', { 'text-view': '1' }, null).value).toBe('0');
   });
 
-  it('resolves Fener: the address, then Labs, off by default (DSN-88)', () => {
-    const fener = flag('fener');
-    expect(fener.edition).toBe('all');
-    expect(resolveFlag(fener, '', {}, null)).toEqual({ value: '0', source: 'default' });
-    expect(resolveFlag(fener, '?fener=1', {}, null)).toEqual({ value: '1', source: 'url' });
-    expect(resolveFlag(fener, '', { fener: '1' }, null).source).toBe('labs');
-    expect(resolveFlag(fener, '?fener=0', { fener: '1' }, null).value).toBe('0');
-    expect(anyFlagOnByAddress('?fener=1')).toBe(true);
-  });
-
   it('lists every parameter once per key', () => {
     expect(new Set(LABS_FLAGS.map((f) => f.key)).size).toBe(LABS_FLAGS.length);
   });

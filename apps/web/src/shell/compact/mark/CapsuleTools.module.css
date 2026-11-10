@@ -42,21 +42,6 @@ button.undo[aria-disabled='true'] {
   color: var(--text-primary);
 }
 
-/* Fener (DSN-88): the spark marks "on", an 8 px green dot ringed in ink on the armed tool's glyph. */
-:global(:root[data-fener]) .group .tool[data-size][aria-pressed='true']::before {
-  content: '';
-  position: absolute;
-  top: 9px;
-  right: 9px;
-  width: 8px;
-  height: 8px;
-  box-sizing: border-box;
-  border-radius: 50%;
-  background: var(--tool-active-fill);
-  box-shadow: 0 0 0 1px var(--tool-active-ink);
-  pointer-events: none;
-}
-
 /* The wash: one circle under the pressed tool. Its place is a rule of the group's index, so
    nothing is inline at rest (Q-2); it slides on the transform alone (MOT-14). */
 .wash {

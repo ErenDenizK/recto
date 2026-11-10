@@ -108,8 +108,6 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:edit-policy:v1',
       // The session's ?edition override (sessionStorage, shell/frame/edition.ts).
       'pdf-editor:edition:v1',
-      // Fener's theme colour, {"accent": "indigo" | "violet" | "blue"} (state/fener.ts, DSN-88).
-      'pdf-editor:fener:v1',
       // Not stored: the window event an applied undo or redo fires (history/history-applied.ts).
       'pdf-editor:history-applied',
       // The Library's Continue flag, ?home=continue|0 (home/home-flags.ts, DSN-66).
