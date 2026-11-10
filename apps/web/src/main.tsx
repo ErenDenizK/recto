@@ -10,7 +10,6 @@ import './styles/global.css';
 import { lazy, StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import { scheduleEnginePrewarm } from './engine/engine-prewarm';
 import { getLocale } from './i18n/locale';
 import { loadOrReload } from './pwa/boot-reload';
 import { armServiceWorkerRegistration, startServiceWorker } from './pwa/register';
@@ -44,12 +43,8 @@ if (getLocale() === 'tr')
  * the page reloads once, then a static screen offers Reload (`pwa/boot-reload.ts`, PRD-26):
  * never a blank page.
  */
-const edition = launchEdition();
-// The full edition starts its engine when the first screen is idle (PF-24); the phone's waits.
-if (edition === 'full') scheduleEnginePrewarm();
-
 const Edition =
-  edition === 'compact'
+  launchEdition() === 'compact'
     ? lazy(() =>
         loadOrReload(() => import('./shell/compact/CompactApp'), 'compact', 'CompactApp')
           .then((module) => ({ default: module.CompactApp }))

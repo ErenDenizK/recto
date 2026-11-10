@@ -1,8 +1,8 @@
 /**
  * Starts the engine in an idle moment of the first screen (PF-24, perf audit R33 item 1), so
  * the first open finds its worker running: the wasm fetched and compiled and the worker
- * instantiated were 340 ms of the sample's first page, paid after the open began. Kept tiny:
- * it is in the first-paint closure; the service loads when the idle callback fires.
+ * instantiated were 340 ms of the sample's first page, paid after the open began. `app.tsx`
+ * (the full edition's chunk) calls it, so it is outside the first paint's closure (V1-P1).
  *
  * Only where it is cheap, and never ahead of the first paint. Not on the phone's compact
  * edition (its caller decides), not with `deviceMemory` under 4 GB (a worker with its wasm
@@ -11,6 +11,7 @@
  */
 
 import { deskEnabled } from '../home/desk-flag';
+import { getEngineService } from './engine-service';
 
 interface NetworkInformation {
   readonly saveData?: boolean;
@@ -80,10 +81,7 @@ export function scheduleEnginePrewarm(): void {
   if (!prewarmAllowed()) return;
   const run = () => {
     if (document.visibilityState === 'hidden') return;
-    void import('./engine-service').then(
-      ({ getEngineService }) => getEngineService().prewarm(),
-      () => undefined,
-    );
+    getEngineService().prewarm();
   };
   const idle = () => {
     if (typeof requestIdleCallback === 'function') requestIdleCallback(run, { timeout: 1_500 });
