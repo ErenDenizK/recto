@@ -99,6 +99,17 @@
     scale var(--spring-press) var(--ease-spring);
 }
 
+/*
+ * A fingertip (Q-9): the track is --control-h (44 px) tall, but its inset left each segment
+ * 4 px short of it. The segment takes the inset back (a negative block margin grows the
+ * stretched cell), so its box and its hit area are the full 44 px; the thumb keeps its inset.
+ */
+@media (pointer: coarse), (any-pointer: coarse) {
+  .root > .segment {
+    margin-block: calc(-1 * var(--seg-inset));
+  }
+}
+
 /* The press (styles/controls.css, platform.md §2): the segment's label presses in and springs
    back; its tint is the hover colour (the thumb is the checked one's fill). */
 .segment:active:not([data-disabled]) {

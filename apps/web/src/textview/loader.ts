@@ -114,7 +114,6 @@ export function createTextViewLoader(
   function start(chunk: readonly number[]): Chunk {
     const gen = generation;
     for (const index of chunk) failed.delete(index);
-    notify();
     const record: Chunk = { pages: chunk, stale: false, done: Promise.resolve() };
     record.done = (async () => {
       try {
@@ -130,6 +129,10 @@ export function createTextViewLoader(
       }
     })();
     for (const index of chunk) inflight.set(index, record);
+    // Last, with the chunk already in flight: a subscriber that asks for a page it sees as
+    // loading (the view's own) then joins this chunk instead of starting it again, which
+    // recursed until the stack ran out.
+    notify();
     return record;
   }
 
