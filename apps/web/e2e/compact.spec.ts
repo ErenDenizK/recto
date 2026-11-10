@@ -288,6 +288,64 @@ test.describe('the compact edition', () => {
     await expect(page.getByRole('button', { name: 'Open PDF' })).toBeVisible();
   });
 
+  test('a modal sheet covers the Library dock: nothing under it is visible or pressable', async ({
+    page,
+  }) => {
+    // The Library's dock stands fixed above the page (z 1); the scrim sheet was in no layer, so
+    // Open PDF showed over Settings and a press on it closed the sheet and opened the file
+    // dialog. A modal sheet is in the sheet tier (DSN-53, DSN-58; 07-sheets §1.1): the scrim and
+    // the sheet cover every piece under them.
+    await openLibrary(page);
+    const choosers: string[] = [];
+    page.on('filechooser', () => choosers.push('filechooser'));
+    // By the dock, not by role: a modal sheet takes the page under it out of the accessibility
+    // tree, which is the point.
+    const open = page
+      .getByTestId('compact-library-dock')
+      .locator('button', { hasText: 'Open PDF' });
+    await expect(open).toBeVisible();
+    await page.getByRole('button', { name: 'Settings' }).click();
+    const settings = page.getByTestId('compact-settings-sheet');
+    await expect(settings.getByRole('heading', { name: 'Settings' })).toBeVisible();
+    await motionDone(page);
+    // Every sampled point of the screen reaches the sheet or its scrim, never the page's own
+    // pieces (the dock above all).
+    const strays = () =>
+      page.evaluate(() => {
+        const sheet = document.querySelector('[data-testid="compact-settings-sheet"]');
+        const layer = sheet?.closest('body > div:not(#root)');
+        const found = new Set<string>();
+        for (let y = 4; y < window.innerHeight; y += 24) {
+          for (let x = 4; x < window.innerWidth; x += 24) {
+            const hit = document.elementFromPoint(x, y);
+            if (hit && !layer?.contains(hit))
+              found.add(hit.getAttribute('data-testid') ?? hit.tagName);
+          }
+        }
+        return [...found];
+      });
+    expect(await strays()).toEqual([]);
+    // The dock's button is covered where it stands.
+    const box = await open.boundingBox();
+    if (!box) throw new Error('no Open PDF');
+    const reached = await page.evaluate(
+      ([x, y]) => document.elementFromPoint(x ?? 0, y ?? 0)?.closest('button')?.textContent ?? '',
+      [box.x + box.width / 2, box.y + box.height / 2],
+    );
+    expect(reached).not.toContain('Open PDF');
+    // Focus stays in the sheet through a full lap of Tab (Base UI's focus guards aside).
+    for (let i = 0; i < 12; i++) {
+      await page.keyboard.press('Tab');
+      await expect(open).not.toBeFocused();
+    }
+    // A press where Open PDF stands lands on the sheet or its scrim: it opens no file dialog.
+    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+    await page.keyboard.press('Escape');
+    await expect(settings).toHaveCount(0);
+    expect(choosers).toEqual([]);
+    await expect(open).toBeVisible();
+  });
+
   test('Recents show as a card list; on its side the column splits so several rows show', async ({
     page,
   }) => {

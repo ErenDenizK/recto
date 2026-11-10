@@ -2,6 +2,11 @@
  * The phone sheet's scrim form (DSN-53): the shared shape (`sheet-shape.module.css`) in the
  * sheet tier, M5 at σ 20 (coverage registry `compact-sheet`), over a scrim that fades.
  *
+ * Layers. The scrim and the sheet stand in the sheet tier (40 and 41, as `ui/sheet`'s), above
+ * every fixed piece of the page under them: the Library's dock (z 1) and the reader's bars. A
+ * sheet in no tier lost to the dock, which stayed visible and pressable over Settings (the
+ * dock's Open PDF opened the file dialog and closed the sheet).
+ *
  * Geometry. Its foot rests where the island rests (12 px above the screen's edge, or on the
  * safe area), its top never above the status bar's band less 8 px (large); Base UI's detents
  * hold it at medium by translating it down (`--drawer-snap-point-offset`), never by its height,
@@ -17,6 +22,7 @@
 .backdrop {
   position: fixed;
   inset: 0;
+  z-index: 40;
   min-height: 100dvh;
   background: var(--scrim);
   opacity: calc(1 - var(--drawer-swipe-progress, 0));
@@ -41,6 +47,7 @@
 .viewport {
   position: fixed;
   inset: 0;
+  z-index: 41;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
