@@ -126,14 +126,15 @@
   --fill-ghost: rgb(var(--white-rgb) / 0.06);
 
   /* Layer 2: text (language.md §1.7; DSN-89). Primary 14.48:1 on the frame (APCA Lc 92);
-     secondary #aeb2b8, 9.35:1 on n1 and 7.49:1 on n4; tertiary #858990, 5.67:1 on n1 and
-     4.54:1 on n4, so never on n5 or n6 (a surface that needs text there uses secondary); disabled
+     secondary #b5b9bf, 10.10:1 on n1 and 8.10:1 on n4, Lc 60.6 on n5 (DSN-79's floor holds);
+     tertiary #8d9198, 6.29:1 on n1, 5.04:1 on n4, 4.54:1 on n5 and on a pressed frame row, so
+     never on n6 or a current row (a surface that needs text there uses secondary); disabled
      is exempt (WCAG 1.4.3) and stays visible. On glass, secondary and tertiary step up to n11
      and danger to its glass variant (global.css): every text colour stays AA over a white
      page. */
   --text-primary: var(--n12);
-  --text-secondary: #aeb2b8;
-  --text-tertiary: #858990;
+  --text-secondary: #b5b9bf;
+  --text-tertiary: #8d9198;
   --text-disabled: var(--n8);
   --glass-text-secondary: var(--n11);
   --glass-text-disabled: #7d8086; /* 2.42:1 worst over white, 4.65:1 over the canvas */

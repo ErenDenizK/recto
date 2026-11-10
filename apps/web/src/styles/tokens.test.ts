@@ -428,7 +428,7 @@ describe('tokens.css', () => {
       }
     });
 
-    it('maps the roles: canvas n1, wells n2, frame n3, raised n4, on n5; text n12 · #aeb2b8 · #858990 · n8', () => {
+    it('maps the roles: canvas n1, wells n2, frame n3, raised n4, on n5; text n12 · #b5b9bf · #8d9198 · n8', () => {
       const roles: Readonly<Record<string, string>> = {
         '--canvas': '--n1',
         '--surface-sunken': '--n2',
@@ -444,8 +444,8 @@ describe('tokens.css', () => {
         expect(resolve(role), role).toBe(resolve(step));
       }
       // The Colophon text roles (DSN-89) are their own greys, between the ramp's steps.
-      expect(resolve('--text-secondary')).toBe('#aeb2b8');
-      expect(resolve('--text-tertiary')).toBe('#858990');
+      expect(resolve('--text-secondary')).toBe('#b5b9bf');
+      expect(resolve('--text-tertiary')).toBe('#8d9198');
     });
 
     it('keeps the page the brightest thing (white page vs canvas ≥ 19.8:1)', () => {
@@ -481,10 +481,10 @@ describe('tokens.css', () => {
         ['--n8', '--n5', 2.02, 0],
         // Colophon (DSN-89): secondary and tertiary text, quoted on the canvas and the raised
         // surface (n1, n4).
-        ['--text-secondary', '--n1', 9.35, 0],
-        ['--text-secondary', '--n4', 7.49, 0],
-        ['--text-tertiary', '--n1', 5.67, 0],
-        ['--text-tertiary', '--n4', 4.54, 0],
+        ['--text-secondary', '--n1', 10.1, 0],
+        ['--text-secondary', '--n4', 8.1, 0],
+        ['--text-tertiary', '--n1', 6.29, 0],
+        ['--text-tertiary', '--n4', 5.04, 0],
       ];
       for (const [text, surface, ratio, apca] of pairs) {
         const t = colour(text);
@@ -494,23 +494,22 @@ describe('tokens.css', () => {
       }
     });
 
-    it('keeps primary and secondary AA on every surface, tertiary off n5 and n6 (DSN-89)', () => {
+    it('keeps primary and secondary AA on every surface, tertiary on n1 to n5 and off n6 (DSN-89)', () => {
       for (const text of ['--text-primary', '--text-secondary']) {
         for (const surface of [...SURFACES, '--n6']) {
           atLeast(contrast(colour(text), colour(surface)), AA_TEXT, `${text} on ${surface}`);
         }
       }
-      // Tertiary is AA on the canvas, the wells, the frame and the raised surface only. The rule
-      // is "never on n5 or n6": a surface that needs quieter text there uses secondary, and the
-      // token is never lightened to reach it (4.09:1 on n5, 3.61 on n6).
-      for (const surface of ['--n1', '--n2', '--n3', '--n4']) {
+      // Tertiary is AA on the canvas, the wells, the frame, the raised surface and n5. The rule is
+      // "never on n6": a surface that needs quieter text there uses secondary, and the token is
+      // never lightened to reach it (4.00:1 on n6).
+      for (const surface of [...SURFACES, '--surface-sunken']) {
         atLeast(
           contrast(colour('--text-tertiary'), colour(surface)),
           AA_TEXT,
           `tertiary on ${surface}`,
         );
       }
-      expect(contrast(colour('--text-tertiary'), colour('--n5'))).toBeLessThan(AA_TEXT);
       expect(contrast(colour('--text-tertiary'), colour('--n6'))).toBeLessThan(AA_TEXT);
       expect(resolve('--badge-fill')).toBe(resolve('--n6'));
     });
@@ -521,17 +520,14 @@ describe('tokens.css', () => {
       }
     });
 
-    it('keeps secondary AA on hovered and pressed rows of the frame, tertiary within 0.1 of it', () => {
+    it('keeps secondary and tertiary text AA on hovered and pressed rows of the frame', () => {
       const frame = colour('--surface-frame');
       for (const state of ['--surface-hover', '--surface-active']) {
         const row = on(state, frame);
-        atLeast(contrast(colour('--text-secondary'), row), AA_TEXT, `secondary on ${state}`);
-        // #858990 is 5.01:1 on the frame at rest and 4.47:1 under the hover wash (4.1:1 pressed):
-        // the quieter text of a row dips a hair under AA for the length of a hover, as the
-        // lead's values have it (DSN-89); the floor here is 4.0 so a lighter wash is noticed.
-        atLeast(contrast(colour('--text-tertiary'), row), 4.0, `tertiary on ${state}`);
+        for (const text of ['--text-secondary', '--text-tertiary']) {
+          atLeast(contrast(colour(text), row), AA_TEXT, `${text} on ${state}`);
+        }
       }
-      atLeast(contrast(colour('--text-tertiary'), on('--surface-hover', frame)), 4.4, 'hover');
     });
   });
 
@@ -602,7 +598,7 @@ describe('tokens.css', () => {
       const row = on('--accent-muted', colour('--surface-frame'));
       atLeast(contrast(colour('--text-primary'), row), 10.67, 'primary');
       atLeast(contrast(colour('--text-secondary'), row), 5.23, 'secondary');
-      // Tertiary is off current rows (DSN-89: #858990 is 3.69:1 on one); a row with quieter text
+      // Tertiary is off current rows (DSN-89: #8d9198 is 4.09:1 on one); a row with quieter text
       // sets it in secondary.
     });
 
@@ -907,10 +903,9 @@ describe('tokens.css', () => {
       expect(resolve('--scroll-thumb-edge')).toMatch(/^inset 0 0 0 0\.5px rgb\(0 0 0 \/ 0\.\d+\)$/);
     });
 
-    it('holds the secondary APCA floor: Lc 56 on every surface, 60 on glass over its worst (A-4)', () => {
-      // Colour audit 25 Oct 2026 lifted the ladder to Lc 60. DSN-89's #aeb2b8 is Lc 60.3 on n1,
-      // 59.2 on n3, 58.0 on n4 and 56.6 on n5, so the floor on a solid surface is 56; glass
-      // text (n11) keeps 60.
+    it('holds the secondary APCA floor: Lc 60 on every surface and glass tier over its worst (A-4)', () => {
+      // Colour audit 25 Oct 2026: the ladder is lifted so nothing is listed; DSN-89's #b5b9bf
+      // keeps it (Lc 60.6 on n5).
       const under: [string, string, Rgb][] = [
         ...SURFACES.map((surface): [string, string, Rgb] => [
           surface,
@@ -924,8 +919,7 @@ describe('tokens.css', () => {
         ]),
       ];
       for (const [label, text, backdrop] of under) {
-        const floor = text === '--text-secondary' ? 56 : 60;
-        expect(lc(colour(text), backdrop), `${label}: ${text}`).toBeGreaterThanOrEqual(floor);
+        expect(lc(colour(text), backdrop), `${label}: ${text}`).toBeGreaterThanOrEqual(60);
         expect(lc(colour('--text-primary'), backdrop), `${label}: primary`).toBeGreaterThanOrEqual(
           75,
         );
