@@ -78,7 +78,7 @@ test('the Language command switches at runtime and persists', async ({ page }) =
     page.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
   ).toBeVisible();
   // The command field left the strip (01-frame §0); ⌘K stays a key.
-  await page.getByTestId('home-button').waitFor();
+  await page.getByTestId('home-search').waitFor();
   await page.keyboard.press('ControlOrMeta+k');
   await page.getByRole('combobox', { name: 'Search commands' }).fill('language');
   await page.getByRole('option', { name: 'Türkçe' }).click();

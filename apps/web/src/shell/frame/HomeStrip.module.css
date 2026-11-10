@@ -1,0 +1,134 @@
+/*
+ * The Home strip's parts (Colophon plan L2; dirA/home-recents.html): the brand, the centred
+ * search, "On this device" and the gear. No glass pieces on the strip itself; the search is the
+ * one smoked chip. Values from the mockup: wordmark 19 / 620 (opsz 22), search 36 high, radius
+ * 10, padding 0 8 0 12, gap 10, 13 px tertiary; right side gap 14.
+ */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  pointer-events: auto;
+  color: var(--text-primary);
+}
+
+.wordmark {
+  font-size: var(--type-brand);
+  font-weight: var(--weight-brand);
+  letter-spacing: var(--track-brand);
+  font-variation-settings: 'opsz' 22;
+  line-height: 1;
+}
+
+.search {
+  composes: mat mat-chip focus-gap from global;
+  position: absolute;
+  top: calc((var(--strip-h) - var(--strip-control)) / 2);
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 420px;
+  height: var(--strip-control);
+  padding: 0 8px 0 12px;
+  border-radius: var(--radius-control);
+  color: var(--text-tertiary);
+  font-size: 13px;
+  text-align: left;
+  pointer-events: auto;
+  transform: translateX(-50%);
+}
+
+.search > svg {
+  flex: none;
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+.searchText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .search:hover {
+    color: var(--text-secondary);
+  }
+}
+
+@media (max-width: 1279.98px) {
+  .search {
+    width: 360px;
+  }
+}
+
+/* Under 900 px the field is a 36 px magnifier button. */
+@media (max-width: 899.98px) {
+  .search {
+    width: var(--strip-control);
+    padding: 0;
+    justify-content: center;
+  }
+
+  .searchText,
+  .search kbd,
+  .search > span[aria-hidden] {
+    display: none;
+  }
+}
+
+.trail {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  pointer-events: auto;
+}
+
+.gear {
+  composes: focus-gap from global;
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--strip-control);
+  height: var(--strip-control);
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.gear > svg {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+@media (hover: hover) {
+  .gear:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+}
+
+.gear:active {
+  background: var(--surface-active);
+}
+
+/* Coarse pointers: the 36 px controls keep their look and get a 44 px hit area. */
+@media (pointer: coarse), (any-pointer: coarse) {
+  .gear::after,
+  .search::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+}

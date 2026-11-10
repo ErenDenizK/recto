@@ -54,6 +54,14 @@
   }
 }
 
+/* Home: 64 high, padding 0 24, no pieces (Colophon L2, DSN-93). The strip's children are the
+   brand, the absolutely centred search and the trailing status and gear (HomeStrip). */
+.strip[data-destination='library'] {
+  align-items: center;
+  height: var(--strip-h);
+  padding: 0 24px;
+}
+
 /* The leading side hugs its tabs up to --lead-max and gives way to the trailing one. */
 .side[data-top-side='lead'] {
   flex: 0 1 auto;
@@ -137,7 +145,7 @@
   color: var(--text-primary);
 }
 
-/* ◆ Library: the glyph in a bar-button circle; on the Library a capsule with its label. */
+/* ◆: the brand mark alone in a bar-button circle (Colophon L2). */
 .library {
   display: inline-flex;
   align-items: center;
@@ -172,18 +180,6 @@
   transition:
     background-color var(--duration-instant) var(--ease-out),
     scale var(--duration-instant) var(--ease-out);
-}
-
-.library[aria-current='page'] {
-  padding: 0 var(--space-3) 0 var(--space-1h);
-  background: var(--surface-on);
-  color: var(--text-primary);
-}
-
-.libraryLabel {
-  font-size: var(--control-text);
-  font-weight: 600;
-  line-height: var(--control-lh);
 }
 
 /*
@@ -442,6 +438,18 @@
   height: 8px;
   border-radius: var(--radius-capsule);
   background: var(--tag-color, var(--text-tertiary));
+}
+
+/* Document titles are set in the serif at 16/20 (Colophon L2, DSN-89's `doc` step); the tab's
+   box is one line, so the face's late swap moves nothing (Q-8). */
+.name,
+.nameSplit,
+.nameTail {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: -0.005em;
 }
 
 .name {

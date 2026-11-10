@@ -2,9 +2,9 @@
  * The top strip (`components/01-frame.md` F2; flows.md §2.3, §6.1): the slim frame on medium
  * and up, 44 px on a fine pointer and 56 px on a coarse one (quality-bar Q-9's bars; XD-3).
  *
- *   document:  (◆) (▤) (tabs: active ▾ ● ⓘ "N more ▾" +)      (⌕ Find) (↶ ↷) (Save) (◎)
- *   Library:   (◆ Library) (tabs +)                                                (⋯)
- *              ((◎) (⋯) once the monitor counts an external request, DSN-46)
+ *   document:  (◆) (▤) (tabs: active ▾ ● ⓘ "N more ▾" +)      (⌕ Find) (↶ ↷) (Save) (lock)
+ *   Home:      ◆ recto            [ search files and commands  ⌘K ]      lock On this device  gear
+ *              (Colophon, DSN-92/93: 64 high, no glass pieces; `HomeStrip`; Tab: search, status, gear)
  *
  * - No ⋯ in a document: view options live in the page pill, app items in the dock's More. The
  *   mode switch, layout switch, Document and Export buttons and the command search field are
@@ -37,16 +37,15 @@
 
 import { type ReactNode, useLayoutEffect, useRef } from 'react';
 
-import { LibraryMenu } from '../../home/LibraryMenu';
 import { m } from '../../i18n';
 import { springWidth } from '../../motion/resize';
-import { useExternalRequests } from '../../privacy/external-requests';
 import { PrivacyShield } from '../../privacy/PrivacyShield';
 import { useStageView, useUiStore } from '../../state/ui-store';
 import { useActiveDocument, useHasDocuments, useWorkspaceStore } from '../../state/workspace-store';
 import { GridSources } from '../../stage/grid/GridPieces';
 import { DocumentTabs } from './DocumentTabs';
 import { FindEntry } from './FindEntry';
+import { HomeStrip } from './HomeStrip';
 import { tabDomId } from './ids';
 import { LibraryButton } from './LibraryButton';
 import { OriginalPill } from './OriginalPill';
@@ -92,8 +91,6 @@ export function TopStrip() {
   const onLibrary = useUiStore((s) => s.destination === 'home') || !hasDocuments;
   const grid = useStageView() === 'grid' && !onLibrary;
   const pageCount = useActiveDocument()?.pages.length ?? 0;
-  // On the Library ◎ is a warning only: the promise itself is not repeated there (DSN-46).
-  const warned = useExternalRequests().count > 0;
   const stripRef = useRef<HTMLElement>(null);
 
   // Each piece follows its content's width on a spring (G6; motion/resize.ts): Save, Find and
@@ -111,7 +108,7 @@ export function TopStrip() {
     return () => {
       for (const stop of stops) stop();
     };
-  }, [onLibrary, warned]);
+  }, [onLibrary]);
 
   return (
     <header
@@ -122,44 +119,30 @@ export function TopStrip() {
       data-frame-layer="top"
       data-destination={onLibrary ? 'library' : 'document'}
     >
-      <div className={styles.side} data-top-side="lead" data-bar="title">
-        {/* ◆ is a circle in a document, the "◆ Library" capsule on the Library. */}
-        <Piece name="home" round={!onLibrary}>
-          <LibraryButton current={onLibrary} />
-        </Piece>
-        {onLibrary ? null : (
-          <Piece name="sidebar" round>
-            <SidebarToggle />
-          </Piece>
-        )}
-        {/* With no document open the piece holds + alone: a circle. */}
-        <Piece name="tabs" round={!hasDocuments}>
-          <DocumentTabs
-            onLibrary={onLibrary}
-            pageCount={grid ? pageCount : undefined}
-            after={grid ? <GridSources /> : null}
-          />
-        </Piece>
-      </div>
-      <div
-        className={`${styles.side} ${styles.trail}`}
-        data-top-side="trail"
-        data-bar="title-trail"
-      >
-        {/* The Library's trailing side is one control, ⋯ (R11, the owner's "maybe too big"). */}
-        {onLibrary ? (
-          <>
-            {warned ? (
-              <Piece name="privacy" round>
-                <PrivacyShield />
-              </Piece>
-            ) : null}
-            <Piece name="more" round>
-              <LibraryMenu />
+      {onLibrary ? (
+        <HomeStrip />
+      ) : (
+        <>
+          <div className={styles.side} data-top-side="lead" data-bar="title">
+            <Piece name="home" round>
+              <LibraryButton />
             </Piece>
-          </>
-        ) : (
-          <>
+            <Piece name="sidebar" round>
+              <SidebarToggle />
+            </Piece>
+            <Piece name="tabs">
+              <DocumentTabs
+                onLibrary={false}
+                pageCount={grid ? pageCount : undefined}
+                after={grid ? <GridSources /> : null}
+              />
+            </Piece>
+          </div>
+          <div
+            className={`${styles.side} ${styles.trail}`}
+            data-top-side="trail"
+            data-bar="title-trail"
+          >
             {/* ⌕ is a circle; Find's field (from 1280 px, or opened) grows it into a capsule. */}
             <Piece name="find" round>
               <FindEntry />
@@ -173,10 +156,10 @@ export function TopStrip() {
             <Piece name="privacy" round>
               <PrivacyShield />
             </Piece>
-          </>
-        )}
-      </div>
-      {onLibrary ? null : <TitleMenu anchor={activeTabElement} />}
+          </div>
+          <TitleMenu anchor={activeTabElement} />
+        </>
+      )}
       <OriginalPill onLibrary={onLibrary} />
     </header>
   );

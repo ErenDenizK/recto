@@ -217,7 +217,7 @@ test.describe('keyboard', () => {
     await page.keyboard.press('Escape');
 
     // F6 from the strip: the Library has no sidebar, so the stage, which lands on the grid's stop.
-    await page.getByTestId('home-button').focus();
+    await page.getByTestId('home-search').focus();
     await page.keyboard.press('F6');
     await expect(card('mixed-sizes')).toBeFocused();
     await page.keyboard.press('Enter');
@@ -1165,7 +1165,7 @@ test.describe('craft spec §9', () => {
     }
     await expect(recents).toBeVisible();
     await axe(page, 'Home with Recents');
-    await page.getByTestId('home-button').focus();
+    await page.getByTestId('home-search').focus();
     await tabWalk(page, 12);
   });
 

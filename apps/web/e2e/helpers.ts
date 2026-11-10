@@ -46,13 +46,22 @@ export async function useFileInputPicker(page: Page): Promise<void> {
 /** Opens corpus files through the Open button and waits for their tabs. */
 export async function openFixtures(page: Page, names: readonly string[]): Promise<void> {
   const chooser = page.waitForEvent('filechooser');
+  // The tab strip's + in a document; on Home (no tabs there, DSN-93) the action panel's Open.
   await page
     .getByRole('button', { name: /^(Open files|Dosya aç)$/ })
+    .or(page.getByTestId('library-open'))
     .first()
     .click();
   await (await chooser).setFiles(names.map(fixturePath));
   for (const name of names) {
-    await expect(page.getByRole('tab', { name: name.replace(/\.pdf$/, '') })).toBeVisible();
+    const title = name.replace(/\.pdf$/, '');
+    // A tab in a document; on Home, which has no tabs (DSN-93), the file's card.
+    await expect(
+      page
+        .getByRole('tab', { name: title })
+        .or(page.getByRole('option', { name: new RegExp(`^${title}`) }))
+        .first(),
+    ).toBeVisible();
   }
 }
 

@@ -179,11 +179,15 @@ test('"How Recto works" in Settings › About opens the page in a new tab', asyn
   page,
   context,
 }) => {
-  // The Document menu no longer ends in the app items (DSN-47): About Recto, from the Library's
-  // ⋯, links the page.
+  // The Document menu no longer ends in the app items (DSN-47): About Recto, from the Home
+  // strip's search (⌘K), links the page.
   await page.goto('./');
-  await page.getByTestId('library-menu').click();
-  await page.getByTestId('library-menu-about').click();
+  await page.getByTestId('home-search').click();
+  await page.getByRole('combobox', { name: 'Search commands' }).fill('About Recto');
+  await page
+    .getByRole('option', { name: /About Recto/ })
+    .first()
+    .click();
   const item = page.getByRole('link', { name: /How Recto works/ });
   await expect(item).toBeVisible();
   const opened = context.waitForEvent('page');

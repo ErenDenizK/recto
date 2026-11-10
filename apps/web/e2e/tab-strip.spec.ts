@@ -162,24 +162,27 @@ for (const lang of ['en', 'tr'] as const) {
 
 test('✕ sits the same distance after every tab’s name, a short one too', async ({ page }) => {
   // 01-frame F4 §2: a tab shorter than its minimum width ("forms-a") floated its ✕ to the far
-  // end while the others hugged their names. On the Library every tab shows (none active);
-  // ✕ always shows on a coarse pointer and keeps its place while hidden on a fine one.
+  // end while the others hugged their names. Judged on the two inactive tabs (Home shows no
+  // tabs, DSN-93); ✕ always shows on a coarse pointer and keeps its place while hidden on a fine one.
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
-  await openFixtures(page, ['simple-text.pdf', 'forms-a.pdf', 'rotated-pages.pdf']);
-  await page.keyboard.press('0');
-  await expect(page.getByTestId('home')).toBeVisible();
+  // One at a time: a single file opens its document, and + adds the next as a tab.
+  for (const name of ['simple-text.pdf', 'forms-a.pdf', 'rotated-pages.pdf']) {
+    await openFixtures(page, [name]);
+  }
   const gaps = await page.evaluate(() =>
-    [...document.querySelectorAll<HTMLElement>('[data-bar="title"] [role="tab"]')].map((tab) => {
-      const name = [...tab.querySelectorAll('span')].find(
-        (span) => span.getAttribute('aria-hidden') !== 'true' && span.textContent,
-      );
-      const close = tab.querySelector('[title^="Close"]');
-      if (!name || !close) return Number.NaN;
-      return close.getBoundingClientRect().left - name.getBoundingClientRect().right;
-    }),
+    [...document.querySelectorAll<HTMLElement>('[data-bar="title"] [role="tab"]')]
+      .filter((tab) => tab.getAttribute('aria-selected') !== 'true')
+      .map((tab) => {
+        const name = [...tab.querySelectorAll('span')].find(
+          (span) => span.getAttribute('aria-hidden') !== 'true' && span.textContent,
+        );
+        const close = tab.querySelector('[title^="Close"]');
+        if (!name || !close) return Number.NaN;
+        return close.getBoundingClientRect().left - name.getBoundingClientRect().right;
+      }),
   );
-  expect(gaps).toHaveLength(3);
+  expect(gaps).toHaveLength(2);
   for (const gap of gaps) {
     expect(Math.abs(gap - (gaps[0] ?? 0)), JSON.stringify(gaps)).toBeLessThan(1);
   }
@@ -190,7 +193,10 @@ test('the active tab’s fill sits 4 px inside the piece on every side', async (
   // outer edge top and bottom, and the same from its tab's box at both ends, fine and coarse.
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
-  await openFixtures(page, ['simple-text.pdf', 'forms-a.pdf', 'rotated-pages.pdf']);
+  // One at a time: a single file opens its document, and + adds the next as a tab.
+  for (const name of ['simple-text.pdf', 'forms-a.pdf', 'rotated-pages.pdf']) {
+    await openFixtures(page, [name]);
+  }
   await page.getByRole('tab', { name: /^forms-a/ }).click();
   await expect(page.getByRole('tab', { name: /^forms-a/ })).toHaveAttribute('tabindex', '0');
   await atRest(page.locator('[data-bar="title"]'));
