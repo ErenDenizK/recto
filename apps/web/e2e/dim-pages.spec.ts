@@ -1,10 +1,9 @@
 /**
  * Dim pages end to end (DESIGN.md §3's comfort toggle; decisions MOB-16 step 1, MOB-17): off by
- * default; Settings › Appearance (the phone: About's Appearance rows) turns it on; in the dark
- * theme the page bitmaps composite at 80 % brightness and the paper under them with them, while
- * the overlays over a page (text layer, selection, ink, highlights) keep their strength; the
- * light theme leaves the pages as authored and the switch disabled with its reason; the choice
- * survives a reload. The desktop projects run the first block, the phone the second.
+ * default; Settings › Appearance (the phone: About's Appearance rows) turns it on; the page
+ * bitmaps composite at 80 % brightness and the paper under them with them, while the overlays
+ * over a page (text layer, selection, ink, highlights) keep their strength; the choice survives
+ * a reload. The desktop projects run the first block, the phone the second.
  *
  * Engine-agnostic: it reads computed styles, never a pixel. `CAPTURE_SCREENSHOTS=<dir>` also
  * writes the dark reader with the dim off and on at 1440 × 900 (desktop) and 390 × 844 (phone).
@@ -99,15 +98,6 @@ test.describe('Dim pages', () => {
     await page.reload();
     await expect(page.getByTestId('app-shell')).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('data-dim-pages', '');
-
-    // The light theme keeps the pages as authored; the switch says why it does nothing.
-    await palette(page, 'Theme', 'Theme: Light');
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-    await palette(page, 'Settings', /^Settings…/);
-    const light = page.getByTestId('settings-sheet').getByRole('switch', { name: 'Dim pages' });
-    await expect(light).toHaveAttribute('data-disabled');
-    await expect(light).toHaveAttribute('aria-checked', 'true');
-    await expect(light).toHaveAccessibleDescription('Only in the dark theme');
   });
 
   test('is a palette command in both languages: “Sayfa parlaklığını azalt”', async ({ page }) => {

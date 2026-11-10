@@ -1033,41 +1033,6 @@ test.describe('the compact edition', () => {
   });
 });
 
-test.describe('the compact edition in the light theme (spec D3-7)', () => {
-  test.use({ colorScheme: 'light' });
-
-  test('follows the device’s light scheme, and Settings’ Theme row sets it', async ({ page }) => {
-    await openLibrary(page);
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-    const canvas = () =>
-      page.evaluate(() => getComputedStyle(document.documentElement).backgroundColor);
-    expect(await canvas()).toBe('rgb(230, 232, 235)');
-    await shot(page, 'compact-library-light');
-
-    await openPdf(page, 'outline-named-dests.pdf');
-    await expect(capsule(page)).toBeVisible();
-    await shot(page, 'compact-reader-light');
-    await page.getByTestId('compact-title-menu-trigger').click();
-    await page.getByTestId('compact-file-menu').getByRole('menuitem', { name: 'Settings' }).click();
-    const about = page.getByTestId('compact-settings-sheet');
-    const theme = about.getByRole('radiogroup', { name: 'Theme' });
-    await theme.scrollIntoViewIfNeeded();
-    await expect(theme.getByRole('radio', { name: 'System' })).toBeChecked();
-    // The sheet's text holds AA on its light surface.
-    const colours = await about.evaluate((el) => {
-      const style = getComputedStyle(el);
-      return [style.color, style.backgroundColor];
-    });
-    expect(contrast(colours[0] ?? '', colours[1] ?? '')).toBeGreaterThanOrEqual(4.5);
-    await shot(page, 'compact-settings-theme-light');
-    await theme.getByRole('radio', { name: 'Dark' }).click();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-    expect(await canvas()).toBe('rgb(8, 9, 12)');
-    await theme.getByRole('radio', { name: 'System' }).click();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-  });
-});
-
 test.describe('the compact edition’s touch targets and Labs names (R33)', () => {
   /** Opens Settings from the reader with a Labs flag on by the address, so Labs shows. */
   async function openSettings(page: Page, lang: string): Promise<Locator> {

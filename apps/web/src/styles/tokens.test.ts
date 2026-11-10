@@ -209,13 +209,6 @@ function contrast(a: Rgb, b: Rgb): number {
 /** |APCA Lc| of `text` on `background`. */
 const lc = (text: Rgb, background: Rgb) => Math.abs(apcaContrast(text, background));
 
-/** `#rrggbb` of an 8-bit colour. */
-const hexOf = (c: Rgb): string => `#${c.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
-
-/** The largest per-channel difference of two 8-bit colours. */
-const channelGap = (a: Rgb, b: Rgb): number =>
-  Math.max(...a.map((v, i) => Math.abs(v - (b[i as 0 | 1 | 2] ?? 0))));
-
 /** CIE L* (D65), which shows dark steps better than the WCAG ratio. */
 function lightness(c: Rgb): number {
   const y = relativeLuminance(c);

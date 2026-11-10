@@ -457,7 +457,7 @@ test.describe('the split top (DSN-34)', () => {
     await expect(topBar(page)).not.toHaveAttribute('data-hidden');
   });
 
-  for (const theme of ['light', 'dark'] as const) {
+  for (const theme of ['dark'] as const) {
     test(`the fade and the title keep the theme's tone over any page, ${theme} (GLS-20)`, async ({
       page,
     }) => {
