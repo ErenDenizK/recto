@@ -307,7 +307,10 @@ export class EngineService {
     this.createRenderer = options.createRenderer;
     this.cache = new BitmapCache(options.cacheBudgetBytes);
     this.gate = options.gateCalls
-      ? new CallGate({ visibleSources: () => this.queue.visibleSources() })
+      ? new CallGate({
+          visibleSources: () => this.queue.visibleSources(),
+          renderSources: () => this.queue.renderSources(),
+        })
       : undefined;
     this.queue = new RenderQueue(
       Math.max(1, options.concurrency ?? 2),

@@ -1,7 +1,8 @@
 /**
- * The call gate (PF-24, perf audit R33 item 1): while a Read-mode page render waits for the
- * PDFium worker, the app's other calls to it wait too, so the first page is not queued behind
- * text reads, annotation lists, a scratch document's open/create/close or a save.
+ * The call gate (PF-24, perf audit R33 item 1): while renders wait for the PDFium worker, the
+ * app's other calls to it wait too, so a page is not queued behind text reads, annotation
+ * lists, a scratch document's open/create/close or a save, and the thumbnails are not queued
+ * behind a flood of reads.
  *
  * The worker serves its calls in the order they arrive (one wasm thread, a lock per source),
  * and the render queue (`render-queue.ts`) only orders renders, so before this a page render
@@ -14,14 +15,18 @@
  * - Renders (`renderPage`) are never held. Calls on the same source keep the order they were
  *   made in: before a render of a source is posted, every held call on it up to its last held
  *   write is posted first, and any call that is posted at once (a write on a source that has a
- *   page render waiting, an interactive call) is preceded by the calls held on its source. So a
+ *   render waiting, an interactive call) is preceded by the calls held on its source. So a
  *   mutation and whatever depends on it never swap places; only reads, and writes on sources
- *   no waiting page shows (a scratch document), are postponed.
+ *   no waiting render shows (a scratch document), are postponed.
  * - Calls on different sources, and calls on bytes alone (`verify`), are independent.
  * - A call is held for at most `maxHoldMs`, so a stream of renders (a zoom, a scroll) cannot
  *   starve a read: an expired call is posted, in order, with the calls held before it on its
  *   source.
  * - A held call whose `AbortSignal` fires is posted at once; the proxy rejects it as aborted.
+ * - Reads wait while a page's render does. While only other renders (thumbnails, tiles) wait they
+ *   are not held but trickled: at most `readTrickle` of them are in flight at once, so a flood (300
+ *   `listAnnotations` for a 300-page document's page facts) cannot stand between the
+ *   thumbnails and the worker, and still makes progress.
  * - A call is held only a macrotask when no page render waits: the gate decides after the tick
  *   in which a page's reads and its render are all issued, in whatever order.
  *
@@ -35,7 +40,7 @@ type CallKind = 'read' | 'write' | 'now';
 /**
  * The proxy's calls by kind. `read`: answers from the document as it is, may wait. `write`: changes
  * a document (or hands out its bytes, which a pending edit must precede): waits only on a source
- * no waiting page shows. `now`: an interactive call the user is watching, posted at once. The
+ * no waiting render shows. `now`: an interactive call the user is watching, posted at once. The
  * pixel path of the page itself, `renderPage`, is handled apart.
  */
 const KINDS: Readonly<Record<string, CallKind>> = {
@@ -89,6 +94,10 @@ interface Held {
 export interface CallGateOptions {
   /** Sources that have a Read-mode page render queued or running right now. */
   readonly visibleSources: () => ReadonlySet<string>;
+  /** Sources any render (a thumbnail's, a tile's, a page's) is queued or running for. */
+  readonly renderSources?: () => ReadonlySet<string>;
+  /** Reads in flight at once while only thumbnails wait. Default 2. */
+  readonly readTrickle?: number;
   /** The longest a call is held. Default 750 ms. */
   readonly maxHoldMs?: number;
   /** Clock for `maxHoldMs` (tests). */
@@ -117,6 +126,9 @@ function signalOf(args: readonly unknown[]): AbortSignal | undefined {
 export class CallGate {
   private held: Held[] = [];
   private readonly visibleSources: () => ReadonlySet<string>;
+  private readonly renderSources: () => ReadonlySet<string>;
+  private readonly readTrickle: number;
+  private readsInFlight = 0;
   private readonly maxHoldMs: number;
   private readonly now: () => number;
   private scheduled = false;
@@ -125,6 +137,8 @@ export class CallGate {
 
   constructor(options: CallGateOptions) {
     this.visibleSources = options.visibleSources;
+    this.renderSources = options.renderSources ?? options.visibleSources;
+    this.readTrickle = options.readTrickle ?? 2;
     this.maxHoldMs = options.maxHoldMs ?? 750;
     this.now = options.now ?? (() => Date.now());
   }
@@ -192,9 +206,18 @@ export class CallGate {
         issued: this.now(),
         dispatch: () => {
           entry.forget();
+          if (kind === 'read') this.readsInFlight += 1;
+          const done = () => {
+            if (kind !== 'read') return;
+            this.readsInFlight -= 1;
+            this.poke();
+          };
           try {
-            Promise.resolve(call(...args)).then(resolve, reject);
+            const result = Promise.resolve(call(...args));
+            result.then(done, done);
+            result.then(resolve, reject);
           } catch (error) {
+            done();
             reject(error instanceof Error ? error : new Error(String(error)));
           }
         },
@@ -262,14 +285,22 @@ export class CallGate {
     if (this.expiry !== undefined) clearTimeout(this.expiry);
     this.expiry = undefined;
     if (this.held.length === 0) return;
-    const waiting = this.visibleSources();
+    const pageBusy = this.visibleSources().size > 0;
+    const waiting = this.renderSources();
+    const busy = pageBusy || waiting.size > 0;
     const now = this.now();
     const keep: Held[] = [];
     for (const entry of this.held) {
-      const release =
-        waiting.size === 0 ||
-        now - entry.issued >= this.maxHoldMs ||
-        (entry.kind === 'write' && entry.source !== undefined && waiting.has(entry.source));
+      const expired = now - entry.issued >= this.maxHoldMs;
+      let release: boolean;
+      if (!busy) release = true;
+      else if (entry.kind === 'write') {
+        // A write waits for the renders, unless it is on a source one of them shows.
+        release = expired || (entry.source !== undefined && waiting.has(entry.source));
+      } else {
+        // Reads wait for a page; while other renders wait they go a few at a time.
+        release = (!pageBusy || expired) && this.readsInFlight < this.readTrickle;
+      }
       if (!release) {
         keep.push(entry);
         continue;
@@ -286,7 +317,7 @@ export class CallGate {
       entry.dispatch();
     }
     this.held = keep;
-    if (keep.length > 0) {
+    if (busy && keep.length > 0) {
       const oldest = Math.min(...keep.map((entry) => entry.issued));
       this.expiry = setTimeout(
         () => {

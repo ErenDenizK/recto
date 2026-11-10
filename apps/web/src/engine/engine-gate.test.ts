@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { CallGate, sourceOf } from './engine-gate';
 
@@ -184,5 +184,52 @@ describe('CallGate', () => {
     expect(sourceOf([{ run: { source: 's3' }, replacement: 'x' }])).toBe('s3');
     expect(sourceOf([new Uint8Array(2)])).toBeUndefined();
     expect(sourceOf([])).toBeUndefined();
+  });
+
+  it('trickles reads while only thumbnails wait: a few in flight, the rest as they finish', async () => {
+    let thumbnails = true;
+    const gate = new CallGate({
+      visibleSources: () => new Set(),
+      renderSources: () => (thumbnails ? new Set(['a']) : new Set()),
+      readTrickle: 2,
+    });
+    const started: number[] = [];
+    const finish: (() => void)[] = [];
+    const renderer = {
+      listAnnotations: (_id: string, index: number) =>
+        new Promise<number>((resolve) => {
+          started.push(index);
+          finish.push(() => resolve(index));
+        }),
+    };
+    const gated = gate.wrap(renderer);
+    const calls = [0, 1, 2, 3, 4].map((index) => gated.listAnnotations('a', index));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(started).toEqual([0, 1]);
+    finish[0]?.();
+    await vi.waitFor(() => expect(started).toEqual([0, 1, 2]));
+    // The thumbnails are done: everything left goes at once.
+    thumbnails = false;
+    finish[1]?.();
+    await vi.waitFor(() => expect(started).toEqual([0, 1, 2, 3, 4]));
+    for (const done of finish) done();
+    expect(await Promise.all(calls)).toEqual([0, 1, 2, 3, 4]);
+  });
+
+  it("holds a scratch document's writes while thumbnails render, but not those on the rendered source", async () => {
+    const shown = new Set(['a']);
+    const gate = new CallGate({ visibleSources: () => new Set(), renderSources: () => shown });
+    const { renderer, posted } = recorder();
+    const gated = gate.wrap(renderer);
+    const scratch = gated.open('scratch');
+    const edit = gated.createAnnotation('a');
+    await edit;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(posted).toEqual(['create a']);
+    expect(gate.heldCount).toBe(1);
+    shown.clear();
+    gate.poke();
+    await scratch;
+    expect(posted).toEqual(['create a', 'open scratch']);
   });
 });

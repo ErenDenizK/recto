@@ -89,6 +89,13 @@ export class RenderQueue {
     private readonly onSettle?: () => void,
   ) {}
 
+  /** The sources any render (a thumbnail's, a tile's, a page's) is queued or running for. */
+  renderSources(): ReadonlySet<string> {
+    const sources = new Set<string>();
+    for (const job of this.jobs.values()) sources.add(job.request.sourceId);
+    return sources;
+  }
+
   /**
    * The sources a Read-mode page render (`RENDER_PRIORITY.page`) is queued or running for: the
    * renders the call gate lets nothing overtake (engine-gate.ts).
