@@ -222,7 +222,7 @@ describe("'Inter Recto' coverage", () => {
     expect(font('recto-signature-latin.woff2').axes).toEqual([]);
   });
 
-  it('cuts the document-title serif with the Turkish letters and a document title\'s punctuation (DSN-89)', () => {
+  it("cuts the document-title serif with the Turkish letters and a document title's punctuation (DSN-89)", () => {
     const points = new Set([...font(SERIF).points, ...font(SERIF_EXT).points]);
     expect(missing('İıŞşĞğÇçÖöÜüÂâÎîÛû₺', points)).toEqual([]);
     expect(missing('Margin, No. 07 · Page 2 of 4 – “quoted” ‘single’ …', points)).toEqual([]);
