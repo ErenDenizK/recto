@@ -4,7 +4,7 @@
  * (8-bit /Indexed + Flate) for images with at most 256 colours, where JPEG would smear
  * sharp edges (charts, screenshots, line art).
  */
-import { zlibSync } from 'fflate';
+import { deflateZlib } from './deflate';
 
 export interface ImageEncoder {
   jpeg(
@@ -58,7 +58,10 @@ export interface IndexedImage {
   readonly hival: number;
 }
 
-export function encodeIndexed(data: Uint8ClampedArray, colours: readonly number[]): IndexedImage {
+export async function encodeIndexed(
+  data: Uint8ClampedArray,
+  colours: readonly number[],
+): Promise<IndexedImage> {
   const index = new Map(colours.map((rgb, i) => [rgb, i]));
   const pixels = new Uint8Array(data.length / 4);
   for (let i = 0, p = 0; i < data.length; i += 4, p++) {
@@ -72,7 +75,7 @@ export function encodeIndexed(data: Uint8ClampedArray, colours: readonly number[
     lookup[i * 3 + 1] = (rgb >> 8) & 0xff;
     lookup[i * 3 + 2] = rgb & 0xff;
   });
-  return { data: zlibSync(pixels, { level: 9 }), lookup, hival: colours.length - 1 };
+  return { data: await deflateZlib(pixels), lookup, hival: colours.length - 1 };
 }
 
 /** Images with at most this many colours (or grey levels) are line art: lossless only. */
@@ -101,8 +104,8 @@ export function grayLevels(data: Uint8ClampedArray, limit: number): number {
 }
 
 /** Flate (zlib) compressed 8-bit DeviceGray samples of a grey RGBA image. */
-export function encodeGray(data: Uint8ClampedArray): Uint8Array {
+export async function encodeGray(data: Uint8ClampedArray): Promise<Uint8Array> {
   const samples = new Uint8Array(data.length / 4);
   for (let i = 0, p = 0; i < data.length; i += 4, p++) samples[p] = data[i] as number;
-  return zlibSync(samples, { level: 9 });
+  return deflateZlib(samples);
 }
