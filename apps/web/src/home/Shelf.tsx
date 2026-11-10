@@ -89,6 +89,23 @@ function estimatedRowWidth(): number {
 }
 
 /**
+ * How many tiles of `widths`, `gap` apart, sit on the first line of a row `rowWidth` wide: at
+ * least one, and with a pixel of slack, since a tile that fits only by rounding would wrap and a
+ * wrapped tile in a collapsed row is a second row.
+ */
+export function firstRowFit(widths: readonly number[], gap: number, rowWidth: number): number {
+  let used = 0;
+  let fit = 0;
+  for (const width of widths) {
+    const next = used + (fit > 0 ? gap : 0) + width;
+    if (fit > 0 && next > rowWidth - 1) break;
+    used = next;
+    fit += 1;
+  }
+  return fit;
+}
+
+/**
  * One row of covers until "Show all". The tiles' widths are known (a cover is as wide as its
  * height and aspect make it), so how many sit on the first line is arithmetic over the row's
  * width, with no measuring of the tiles: the rest are hidden (`hidden`: out of the layout, the
@@ -120,15 +137,7 @@ export function useFirstRow(
     return () => observer.disconnect();
   }, [listRef]);
 
-  let used = 0;
-  let fit = 0;
-  for (const width of widths) {
-    const next = used + (fit > 0 ? gap : 0) + width;
-    // A pixel of slack: a tile that just fits by rounding would wrap, and a wrapped tile is a row.
-    if (fit > 0 && next > rowWidth - 1) break;
-    used = next;
-    fit += 1;
-  }
+  const fit = firstRowFit(widths, gap, rowWidth);
   const overflow = fit < widths.length;
   return {
     expanded,
