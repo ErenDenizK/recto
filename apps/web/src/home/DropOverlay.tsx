@@ -2,8 +2,9 @@
  * The drop overlay over a document (`02-library` L9; replaces the stage's dashed overlay, 3.12,
  * and the drag states of 14.8): files dragged from the desktop dim the page under a scrim and a
  * lit card says what a release does, "Drop to open 2 files" when the drag tells its count, with
- * the privacy line under it. On the Library there is no overlay: the launcher lifts and its
- * headline changes instead (`Launcher`). The Pages grid and Compare draw their own targets.
+ * the privacy line under it. On the Library there is no overlay: the action panel takes a ring
+ * and Open's label changes, or the first visit's heading does (`DeskPanel`, `FirstVisit`). The
+ * Pages grid and Compare draw their own targets.
  *
  * The field behind the scrim (L9 §3: the only time the light enters a document view) is D3-8's;
  * until it lands the scrim and the card are the static form. Pointer-only, so `aria-hidden`; the

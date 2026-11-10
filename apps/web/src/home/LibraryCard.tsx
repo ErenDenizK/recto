@@ -1,22 +1,18 @@
 /**
- * A Library card (`02-library` L5): one open document, lit glass around an opaque first page.
- * The grid (`LibraryGrid`) owns what a press, a key or a drag does; the card draws its states:
+ * An open document on the Open shelf (`02-library` L5, DSN-93): the first page as a cover on the
+ * shelf line and its serif title under it, nothing else visible. The grid (`LibraryGrid`) owns
+ * what a press, a key or a drag does; the card draws its states:
  *
- * - **Rest** (fine pointer, not selecting): the ○ hidden; hover lifts the card 2 px with the e3
- *   shadow (no wash on lit glass) and shows the ○. **Pressed**: the large-surface press scale
- *   (02.5). **Focus**: the outset two-band ring, which follows the radius.
+ * - **Rest** (fine pointer, not selecting): the ○ hidden; hover lifts the cover 2 px and shows
+ *   the ○. **Pressed**: the large-surface press scale (02.5). **Focus**: the outset ring.
  * - **Select mode**: the ○ always shown; **selected**: the ○ filled and a 2 px ring 2 px out
  *   around the first page, as a Pages grid cell draws it (`ui/CheckBadge`, 06-navigation §2.2;
- *   owner feedback F4): the badge sits inside the page's top-trailing corner, so it never covers
- *   the card's text or hangs over the page's edge, and takes the page's selection blue, which
- *   leaves the selection bar's Combine the view's one lime; `aria-selected` carries it (the ○ is
- *   `aria-hidden`).
- * - **Edited** ● after the name and "Edited" in line 3; **locked**: line 3 leads with the lock
- *   glyph and "Locked", "Signed · locked" or "Restricted by the file" (no tint, A-19).
+ *   owner feedback F4): the badge sits inside the page's top-trailing corner, and takes the
+ *   page's selection blue; `aria-selected` carries it (the ○ is `aria-hidden`).
+ * - **Edited**: the 6 px lime dot before the title. Pages, size, lock state and the page reached
+ *   are not drawn; the accessible name says all of them ("report, 12 pages, 2.4 MB, edited,
+ *   locked, page 3 of 12").
  * - **Dragging** (reorder): the source at 40 % opacity; the grid draws the insertion caret.
- *
- * Line 2 is "12 pages · 2.4 MB" (`formatFileSize`, locale decimals, tabular numerals). The
- * accessible name says all three lines ("report, 12 pages, 2.4 MB, edited, locked").
  */
 import type { Workspace } from '@pdf-editor/document-model';
 import type { CSSProperties, MouseEvent, PointerEvent, Ref } from 'react';
@@ -26,17 +22,14 @@ import { InlineTitleEditor } from '../stage/InlineTitleEditor';
 import type { LockReason } from '../state/lock-store';
 import { pagesPhrase } from '../state/workspace-store';
 import { CheckBadge } from '../ui/CheckBadge';
-import { Icon, type IconName } from '../ui/Icon';
+import { type IconName } from '../ui/Icon';
 import type { HomeCardData } from './home-cards';
 import { formatFileSize } from './home-model';
 import styles from './LibraryCard.module.css';
-import lit from './lit.module.css';
 import { PageThumb } from './PageThumb';
-import { ProgressBar } from './ProgressBar';
 
-/** The thumbnail box (L5 §2): 160 × 200 fine, 176 × 220 coarse. */
-export const THUMB_FINE = { width: 160, height: 200 } as const;
-export const THUMB_COARSE = { width: 176, height: 220 } as const;
+/** The widest a cover may stand (a landscape page at the shelf's height, never a banner). */
+const COVER_MAX_W = 360;
 
 /** The check badges come in 12 ms apart for at most ten steps (MP rule: ≤ 10 × 12 ms). */
 const CHECK_STAGGER_STEPS = 10;
@@ -68,7 +61,8 @@ export interface LibraryCardProps {
   readonly lock: LockReason | undefined;
   readonly dragging: boolean;
   readonly renaming: boolean;
-  readonly coarse: boolean;
+  /** The cover's height, from the window (`cover-size.ts`). */
+  readonly coverHeight: number;
   readonly cardRef?: Ref<HTMLDivElement>;
   readonly onClick: (event: MouseEvent) => void;
   readonly onCheck: (event: MouseEvent) => void;
@@ -89,7 +83,7 @@ export function LibraryCard({
   lock,
   dragging,
   renaming,
-  coarse,
+  coverHeight,
   cardRef,
   onClick,
   onCheck,
@@ -100,9 +94,7 @@ export function LibraryCard({
 }: LibraryCardProps) {
   const locale = useLocale();
   const size = card.size === undefined ? undefined : formatFileSize(card.size, locale);
-  const details = [pagesPhrase(card.pageCount), size].filter(Boolean).join(' · ');
   const locked = lockState(lock);
-  const state = [edited ? m.library_card_edited() : undefined, locked?.text].filter(Boolean);
   const label = [
     card.title,
     pagesPhrase(card.pageCount),
@@ -115,7 +107,7 @@ export function LibraryCard({
   ]
     .filter(Boolean)
     .join(', ');
-  const thumb = coarse ? THUMB_COARSE : THUMB_FINE;
+  const thumb = { width: COVER_MAX_W, height: coverHeight };
   // Behind `?home=continue` (DSN-66): the page the reader left, once past the first.
   const thumbPage = card.leftPage ?? card.firstPage;
   return (
@@ -131,8 +123,7 @@ export function LibraryCard({
       data-selected={selected || undefined}
       data-selecting={selecting || undefined}
       data-dragging={dragging || undefined}
-      data-lit=""
-      className={`${lit.lit} ${styles.card}`}
+      className={styles.card}
       style={
         {
           '--check-delay': `${Math.min(index, CHECK_STAGGER_STEPS - 1) * CHECK_STAGGER_MS}ms`,
@@ -145,7 +136,7 @@ export function LibraryCard({
     >
       {/* The ○: the check badge in the page's corner, an S control whose hit area (32, 44 coarse)
           reaches the corner; the option carries the state, and Space is its key (the grid's). */}
-      <div className={styles.thumbBox} style={{ height: thumb.height }}>
+      <div className={styles.stage} style={{ height: coverHeight }}>
         {thumbPage ? (
           <PageThumb workspace={workspace} page={thumbPage} box={thumb} className={styles.sheet}>
             <CardCheck selected={selected} onCheck={onCheck} />
@@ -164,22 +155,9 @@ export function LibraryCard({
           />
         ) : (
           <span className={styles.name} aria-hidden="true">
-            <span className={styles.tag} data-tag={card.colorIndex} />
+            {edited ? <span className={styles.edited} data-testid="library-card-edited" /> : null}
             {/* One end ellipsis, by CSS: a middle cut as well read "Combined – sim…t …". */}
             <span className={styles.nameText}>{card.title}</span>
-            {edited ? <span className={styles.edited} data-testid="library-card-edited" /> : null}
-          </span>
-        )}
-        <span className={styles.details} aria-hidden="true">
-          {details}
-        </span>
-        {card.progress === undefined ? null : (
-          <ProgressBar value={card.progress} className={styles.progress} />
-        )}
-        {state.length === 0 ? null : (
-          <span className={styles.state} aria-hidden="true">
-            {locked ? <Icon name={locked.icon} className={styles.stateIcon} /> : null}
-            <span className={styles.stateText}>{state.join(' · ')}</span>
           </span>
         )}
       </div>

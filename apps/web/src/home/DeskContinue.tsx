@@ -17,10 +17,13 @@ import { useOpenSource } from './ContinueCard';
 import type { ContinueSource } from './ContinueView';
 import type { Cover } from './covers';
 import { continueEntry, pickCover } from './desk-model';
+import { useCoverSizes } from './cover-size';
 import { DeskCover } from './DeskCover';
+import cover from './DeskCover.module.css';
 import { openRecent, resumeDocument } from './home-actions';
+import { PageThumb } from './PageThumb';
 import { relativeTime } from './home-model';
-import { useNow } from './RecentList';
+import { useNow } from './recent-support';
 
 /** The open document's waiting signature fields and comments, from the review list. */
 function withReview(source: ContinueSource, items: readonly ReviewItem[]): ContinueSource {
@@ -70,7 +73,26 @@ export async function openEntryAtPlace(entry: RecentEntry): Promise<void> {
 }
 
 export function useDeskContinue(covers: ReadonlyMap<string, Cover>): ContinueSource | undefined {
-  const base = useOpenSource('masa', (id, point) => void resumeDocument(id, point));
+  const workspace = useWorkspaceStore((s) => s.workspace);
+  const hero = useCoverSizes().hero;
+  const picked = useOpenSource('masa', (id, point) => void resumeDocument(id, point));
+  // The open document's page, at the cover's own width (`useOpenSource` draws it for the old box).
+  const doc = picked?.id === undefined ? undefined : workspace.documents[picked.id];
+  const page = doc?.pages[Math.min(picked?.point.page ?? 0, (doc?.pages.length ?? 1) - 1)];
+  const base =
+    picked === undefined
+      ? undefined
+      : {
+          ...picked,
+          thumb: page ? (
+            <PageThumb
+              workspace={workspace}
+              page={page}
+              box={{ width: hero, height: Math.round(hero * 1.6) }}
+              className={cover.page}
+            />
+          ) : null,
+        };
   const review = useReviewData();
   const entries = useRecentsStore((s) => s.entries);
   const locale = useLocale();

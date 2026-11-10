@@ -1,0 +1,142 @@
+/*
+ * A shelf of covers (Shelf.tsx; DSN-93, home-recents.html): a section label on the left and a
+ * quiet text control on the right, then the covers 52 px below the header's top, standing on one
+ * baseline at the same height (224, 196 under 1280 px), true aspect, with their serif titles
+ * under them and a 1 px line at the covers' foot. The line runs 24 px past the content box on
+ * both sides; with Show all the covers wrap and each row has its own line, because every tile is
+ * the same height and the line is a mask that repeats at the row pitch.
+ */
+.shelf {
+  --tile-h: calc(var(--cover-h) + var(--title-gap) + var(--type-doc-lh));
+  --row-pitch: calc(var(--tile-h) + var(--shelf-row-gap));
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: var(--type-body-lh);
+}
+
+.label {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-body);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-body-lh);
+  letter-spacing: var(--track-section);
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+/* A quiet text control: 13 px, tertiary, with a hit area that reaches 44 px on touch. */
+.text {
+  composes: focus-inset from global;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-tertiary);
+  font: inherit;
+  font-size: var(--type-body);
+  line-height: var(--type-body-lh);
+  letter-spacing: var(--track-section);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.text::after {
+  content: '';
+  position: absolute;
+  inset: -13px -10px;
+}
+
+@media (hover: hover) {
+  .text:hover {
+    color: var(--text-primary);
+  }
+}
+
+.text svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.text[aria-expanded='true'] svg {
+  transform: rotate(90deg);
+}
+
+:root[dir='rtl'] .text svg {
+  scale: -1 1;
+}
+
+.stage {
+  position: relative;
+  margin-top: calc(var(--shelf-top) - var(--type-body-lh));
+}
+
+/* The covers: wrapping rows of equal-height tiles, standing on the shelf line. */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--shelf-row-gap) var(--cover-gap);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Collapsed: one row; the tiles that wrapped are hidden by the shelf (they are not in the tab
+   order or the arrow keys either). */
+.row > [hidden] {
+  display: none;
+}
+
+.line {
+  position: absolute;
+  inset: 0 calc(-1 * var(--shelf-bleed));
+  pointer-events: none;
+  background: var(--shelf-line);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent var(--cover-h),
+    #000 var(--cover-h),
+    #000 calc(var(--cover-h) + 1px),
+    transparent calc(var(--cover-h) + 1px)
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent var(--cover-h),
+    #000 var(--cover-h),
+    #000 calc(var(--cover-h) + 1px),
+    transparent calc(var(--cover-h) + 1px)
+  );
+  -webkit-mask-size: 100% var(--row-pitch);
+  mask-size: 100% var(--row-pitch);
+  -webkit-mask-repeat: repeat-y;
+  mask-repeat: repeat-y;
+}
+
+.shelf[data-lit] .line {
+  background: var(--shelf-line-lit);
+}
+
+@media (forced-colors: active) {
+  .line {
+    background: CanvasText;
+    opacity: 0.4;
+  }
+}
