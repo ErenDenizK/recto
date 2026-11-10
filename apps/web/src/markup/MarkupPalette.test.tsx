@@ -166,7 +166,8 @@ describe('Markup palette', () => {
     const groups = within(palette())
       .getAllByRole('group')
       .map((g) => g.getAttribute('aria-label'));
-    expect(groups).toEqual(['Select', 'Draw', 'Add', 'Fill and sign', 'Page content']);
+    // Select opens the Draw run (DSN-91): four runs, 14 px of air between them.
+    expect(groups).toEqual(['Draw', 'Add', 'Fill and sign', 'Page content']);
     expect(tool('Select')).toHaveAttribute('aria-pressed', 'true');
     // Opened from the dock: focus follows the capsule to the palette's Tab stop, the armed tool.
     await waitFor(() => expect(tool('Select')).toHaveFocus());
@@ -175,8 +176,9 @@ describe('Markup palette', () => {
         .getAllByRole('button')
         .filter((b) => b.tabIndex === 0),
     ).toHaveLength(1);
-    // One piece of 40 px (G1), its controls 32 px on one centre line (Q-9).
-    expect(palette().getBoundingClientRect().height).toBeCloseTo(38, 0);
+    // The capsule is 56 px (its row 54 inside the rim), its slots 44 on one centre line (DSN-91).
+    expect(palette().getBoundingClientRect().height).toBeCloseTo(54, 0);
+    expect(tool('Select').getBoundingClientRect().width).toBeCloseTo(44, 0);
     const centres = new Set(
       within(palette())
         .getAllByRole('button')
@@ -273,12 +275,13 @@ describe('Markup palette', () => {
     expect(piece).not.toBeNull();
     const box = piece.getBoundingClientRect();
     const capsule = surface.getBoundingClientRect();
-    expect(box.bottom).toBeLessThanOrEqual(capsule.top - 4);
+    // --options-gap above the capsule (10).
+    expect(Math.round(capsule.top - box.bottom)).toBe(10);
     expect(Math.abs(box.left - capsule.left)).toBeLessThan(1);
     expect(box.width).toBeLessThan(capsule.width);
-    // One family (G8): the strip is as tall as the palette, one piece (--piece-h, G1).
-    expect(capsule.height).toBe(40);
-    expect(box.height).toBe(capsule.height);
+    // The capsule is 56 high and the options strip 44 (DSN-91).
+    expect(capsule.height).toBe(56);
+    expect(box.height).toBe(44);
     // One layout for every tool (§3.7): the well stays at the leading edge and the width slot
     // keeps its width; only the colour slot changes with the tool's colours.
     const slots = (el: Element) => {

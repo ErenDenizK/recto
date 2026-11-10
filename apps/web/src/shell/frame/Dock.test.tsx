@@ -1,6 +1,6 @@
 /**
  * The dock at rest and its states in the capsule (`01-frame.md` F10 §4–§8; spec X1, D2-2;
- * Vitest browser mode, PDFium): the four labelled items in one roving toolbar; Markup and Fill
+ * Vitest browser mode, PDFium): the five glyph-only items in one roving toolbar; Markup and Fill
  * & sign open the palette in the same glass node, with the focus moving in and back to the door;
  * Locked replaces Markup and Fill & sign (and a lock engaging in Markup morphs the palette into
  * it and closes Markup); More lists its doors; and Pages opens the grid.
@@ -48,7 +48,7 @@ const dock = () => screen.getByRole('toolbar', { name: 'Document tools' });
 const names = () =>
   within(dock())
     .getAllByRole('button')
-    .map((b) => b.textContent);
+    .map((b) => b.getAttribute('aria-label'));
 const markupOpen = () =>
   isMarkupOpen(useUiStore.getState(), useWorkspaceStore.getState().workspace.activeDocument);
 const settle = async () => {
@@ -90,24 +90,37 @@ describe('dock', () => {
     resetLockStore();
   });
 
-  it('rests as Pages · Markup · Fill & sign · Tools · More in one toolbar, labels beside, 40 px', async () => {
+  it('rests as Pages · Markup · Fill & sign · Tools · More in one toolbar, glyphs only, 56 px', async () => {
     await mount();
     expect(names()).toEqual(['Pages', 'Markup', 'Fill & sign', 'Tools', 'More']);
-    expect(dock()).toHaveAttribute('data-labels', 'beside');
-    // One piece high (--piece-h, G1).
-    expect(capsule().getBoundingClientRect().height).toBeCloseTo(40, 0);
+    // No visible word (DSN-91): every item is a glyph named by its aria-label.
+    for (const button of within(dock()).getAllByRole('button')) {
+      expect(button.textContent).toBe('');
+    }
+    // 56 high: --capsule-h (DSN-91).
+    expect(capsule().getBoundingClientRect().height).toBeCloseTo(56, 0);
     // One Tab stop (roving), Pages first; arrows move.
     const stops = within(dock())
       .getAllByRole('button')
       .filter((b) => b.tabIndex === 0);
-    expect(stops.map((b) => b.textContent)).toEqual(['Pages']);
+    expect(stops.map((b) => b.getAttribute('aria-label'))).toEqual(['Pages']);
     (stops[0] as HTMLElement).focus();
     await userEvent.keyboard('{ArrowRight}');
-    expect(document.activeElement?.textContent).toBe('Markup');
-    // Labels are primary text on the glass, never secondary (F10 §3).
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Markup');
+    // 44 circles with a 22 px glyph in the glass glyph colour; keys stay in aria-keyshortcuts.
     const item = within(dock()).getByRole('button', { name: 'Markup' });
-    expect(getComputedStyle(item).fontWeight).toBe('560');
-    expect(getComputedStyle(item.querySelector('svg') as Element).width).toBe('20px');
+    const box = item.getBoundingClientRect();
+    expect([box.width, box.height]).toEqual([44, 44]);
+    expect(getComputedStyle(item.querySelector('svg') as Element).width).toBe('22px');
+    expect(getComputedStyle(item).color).toBe('rgb(213, 216, 220)');
+    expect(item).toHaveAttribute('aria-keyshortcuts', expect.stringContaining('M'));
+  });
+
+  it('names an item in its tooltip with its key', async () => {
+    await mount();
+    await userEvent.hover(within(dock()).getByRole('button', { name: 'Markup' }));
+    const tip = await screen.findByRole('tooltip');
+    expect(tip).toHaveTextContent('Markup');
   });
 
   it('Markup opens the palette in the same node, focus inside; Done by `1` gives it back to Markup', async () => {
@@ -145,7 +158,7 @@ describe('dock', () => {
     await waitFor(() => expect(node.dataset.capsule).toBe('locked'));
     await settle();
     expect(capsule()).toBe(node);
-    expect(names()).toEqual(['Pages', 'Locked', 'More']);
+    expect(names()).toEqual(['Pages', expect.stringMatching(/^Locked: /), 'More']);
     const locked = within(dock()).getByRole('button', { name: /^Locked: .+\. Unlock…$/ });
     expect(locked).toHaveAttribute('aria-haspopup', 'dialog');
     expect(within(dock()).queryByRole('button', { name: 'Markup' })).toBeNull();

@@ -3,6 +3,8 @@
  * redesign D0-3): in every bar, menu and popover a page shows, the controls share one height
  * (32 px on a fine pointer, 44 px on a coarse one), one centre line per row (within 0.5 px),
  * a radius from the set (the pill, or --radius-control's 10 px) and icon boxes of 16 or 20 px.
+ * The capsule's own bars (DSN-91, DSN-95) are the one exception: its slots are 44 px at every
+ * density with 22 px glyphs, and Done, its one word, is a 36 px pill (`data-markup-done`).
  *
  * Containers are `role="toolbar"`, `[data-bar]` (the title bar and dialog footers carry it),
  * `role="menu"` and the non-modal dialogs Base UI renders for popovers. A control is a button,
@@ -184,10 +186,19 @@ export async function auditBars(
           return `${el.tagName.toLowerCase()}${label ? ` "${label}"` : ''}`;
         };
 
+        // The capsule's bars (the dock, the palette, the Fill & sign bar; DSN-91) hold 44 px slots
+        // and 22 px glyphs on every density, and Done's 36 px pill.
+        const capsule = container.closest('[data-capsule]') !== null;
+        const expected = capsule ? 44 : height;
+
         // 1. One height per container, the density's.
         for (const c of controls) {
           if (c.part) continue;
           const h = round(c.box.height);
+          if (capsule && c.el.hasAttribute('data-markup-done')) {
+            if (h !== 36) push(c, `${describe(c)} is ${h} px high, not 36`);
+            continue;
+          }
           // A menu row whose reason does not fit beside its label drops it to a second line, so
           // the row is taller by design (Menu.module.css `.item:has(> .hint)`, owner brief B-16;
           // DSN-52). It may not be shorter than the density's height.
@@ -195,7 +206,8 @@ export async function auditBars(
             (c.el as HTMLElement).querySelector(':scope > [class*="hint"]') !== null &&
             h > height + 0.5;
           if (wrapsHint) continue;
-          if (Math.abs(h - height) > 0.5) push(c, `${describe(c)} is ${h} px high, not ${height}`);
+          if (Math.abs(h - expected) > 0.5)
+            push(c, `${describe(c)} is ${h} px high, not ${expected}`);
         }
 
         // 2. One centre line per row of controls.
@@ -254,7 +266,7 @@ export async function auditBars(
             const box = svg.getBoundingClientRect();
             const w = round(box.width);
             const h = round(box.height);
-            if (w !== h || (w !== 16 && w !== 20)) {
+            if (w !== h || (w !== 16 && w !== 20 && !(capsule && w === 22))) {
               push(c, `${describe(c)} has a ${w} × ${h} icon`);
             }
           }
