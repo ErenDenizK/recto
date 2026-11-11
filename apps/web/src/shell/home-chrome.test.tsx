@@ -102,7 +102,7 @@ describe('Home chrome', () => {
     expect(long.label.scrollWidth).toBeGreaterThan(long.label.clientWidth);
   });
 
-  it('shows Recents in one lit panel under the launcher, a plain recent with the page glyph', async () => {
+  it('shows Recents on the shelf, a plain recent with the page glyph', async () => {
     await recordRecent({ name: 'report.pdf', size: 6246, pages: 6 });
     render(<App />);
     const list = await screen.findByRole('list', { name: 'Recent files' });
@@ -110,13 +110,10 @@ describe('Home chrome', () => {
     // No kept snapshot: the glyph, never a thumbnail (02.Q1).
     expect(row.querySelector('svg')).not.toBeNull();
     expect(list.querySelector('canvas, img')).toBeNull();
-    const panel = row.closest('section') as HTMLElement;
-    expect(panel).toHaveAttribute('data-lit');
-    // The lit tint over the canvas, no blur of its own until the field lands (D3-8).
-    expect(getComputedStyle(panel).backgroundColor).toBe('rgba(48, 51, 58, 0.58)');
-    expect(getComputedStyle(panel).backdropFilter).toBe('none');
-    // One column, under the launcher card.
-    const launcher = screen.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' });
-    expect(launcher.getBoundingClientRect().bottom).toBeLessThan(panel.getBoundingClientRect().top);
+    // Colophon Home (DSN-93): the shelf stands on the desk itself, not in a lit panel.
+    expect(row.closest('[data-lit]')).toBeNull();
+    // One launcher above it, in the same Home.
+    const home = screen.getByTestId('home');
+    expect(within(home).getByTestId('library-open')).toBeVisible();
   });
 });

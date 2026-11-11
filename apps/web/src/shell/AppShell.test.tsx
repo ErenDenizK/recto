@@ -30,19 +30,19 @@ describe('AppShell', () => {
     resetWorkspace();
   });
 
-  it('renders the shell with the empty state and no privacy control while nothing left', () => {
+  it('renders the shell with the empty state and no privacy control while nothing left', async () => {
     render(<App />);
     expect(screen.getByTestId('app-shell')).toBeInTheDocument();
+    // Home is its own chunk: the first visit arrives after the shell.
     expect(
-      screen.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+      await screen.findByRole('heading', { name: /^Read, mark up,\s+sign and arrange\.$/ }),
     ).toBeVisible();
-    // On the Library the strip's trailing piece holds only ⋯ (01-frame R11) and the footer's
-    // "Nothing is uploaded" chip left (DSN-46): ◎ shows there only as a warning, and returns
-    // with a document.
+    // Colophon Home (DSN-93): the strip's trailing status reads "On this device" and, while
+    // nothing has left, keeps the clean privacy name; the old "Nothing is uploaded" chip is gone.
     expect(screen.queryByRole('button', { name: 'Nothing is uploaded' })).toBeNull();
     expect(
-      screen.queryByRole('button', { name: 'Privacy: nothing has left this device' }),
-    ).toBeNull();
+      screen.getByRole('button', { name: 'Privacy: nothing has left this device' }),
+    ).toHaveAttribute('data-state', 'clean');
     // No dock on the Library with no file open: the launcher holds the actions.
     expect(document.querySelector('[data-region="toolbar"]')).toBeNull();
   });
@@ -82,7 +82,7 @@ describe('AppShell', () => {
       expect(screen.queryByRole('combobox', { name: 'Search commands' })).toBeNull();
     });
     expect(
-      screen.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+      await screen.findByRole('heading', { name: /^Read, mark up,\s+sign and arrange\.$/ }),
     ).toBeVisible();
   });
 

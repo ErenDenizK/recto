@@ -88,7 +88,7 @@ describe('Language command', () => {
     resetWorkspace();
     render(<App />);
     expect(
-      screen.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+      screen.getByRole('heading', { name: /^Read, mark up,\s+sign and arrange\.$/ }),
     ).toBeVisible();
     await userEvent.keyboard(`{${MOD}>}k{/${MOD}}`);
     const input = await screen.findByRole('combobox', { name: 'Search commands' });
@@ -99,10 +99,10 @@ describe('Language command', () => {
     await userEvent.keyboard('{Enter}');
     expect(
       await screen.findByRole('heading', {
-        name: 'PDF’leri okuyun, işaretleyin, imzalayın ve sayfalarını düzenleyin.',
+        name: /^Okuyun, işaretleyin,\s+imzalayın, düzenleyin\.$/,
       }),
     ).toBeVisible();
-    expect(screen.getByText('Hiçbir şey bu cihazdan çıkmaz.')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Dosya açın veya bırakın' })).toBeVisible();
     expect(document.documentElement.lang).toBe('tr');
 
     // Command titles follow the language too.
