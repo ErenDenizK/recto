@@ -55,6 +55,9 @@ async function seed(entries: readonly Seed[], withCovers: boolean): Promise<void
   );
   const covers = memoryCoversBackend();
   if (withCovers) {
+    // One encode, copied per cover: twelve recents own 24 covers, and encoding each on a loaded
+    // CI runner outlasted the test's timeout before the app rendered.
+    const encoded = await jpeg(66, 88);
     for (const e of entries) {
       for (const kind of ['first', 'left'] as const) {
         await covers.put({
@@ -64,7 +67,7 @@ async function seed(entries: readonly Seed[], withCovers: boolean): Promise<void
           width: 66,
           height: 88,
           type: 'image/jpeg',
-          bytes: await jpeg(66, 88),
+          bytes: encoded.slice(0),
           at: now,
         });
       }
