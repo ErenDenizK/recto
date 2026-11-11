@@ -1,10 +1,9 @@
 /*
- * The about page (presentation spec §3), set in the Colophon look (DSN-89): dark only, the
- * lime accent, smoked glass for the one bar, and 'Noto Serif Recto' for headings and running
- * text, so the page reads like a well-set book: a title page, contents, numbered chapters,
- * plates with captions and a colophon. Colours, radii and spacing steps come from tokens.css;
- * only the reading sizes and measures are the page's own, because the app's UI scale
- * (11–15 px) is too small for prose. Inter Recto sets labels, captions and sources.
+ * The about page (presentation spec §3, DSN-96): one screen in the Colophon look (DSN-89):
+ * dark only, the lime accent, smoked glass for the one bar, 'Noto Serif Recto' for the
+ * headline. The pitch, one clip, three facts and two buttons; the README on GitHub carries
+ * the rest. Colours, radii and spacing steps come from tokens.css; only the display sizes are
+ * the page's own, because the app's UI scale (11–15 px) is too small for a headline.
  */
 @import '../src/styles/tokens.css';
 /* The app's faces (ADR-0027, DSN-89): the same files, from this origin (CSP `font-src
@@ -14,16 +13,8 @@
 :root {
   --gutter: var(--space-4);
   --page: 1240px;
-  --measure: 40rem;
-  --prose: #dcdee3; /* --reader-dark-text: running text, a step under the headings' white */
-  --prose-size: 18px;
-  --prose-leading: 1.68;
   --mono: ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Menlo, Consolas, monospace;
-  --h1: clamp(36px, 3.4vw + 18px, 66px);
-  --h2: clamp(30px, 1.6vw + 20px, 44px);
-  --h3: clamp(22px, 0.5vw + 18px, 26px);
-  --chapter-gap: clamp(64px, 6vw + 24px, 112px);
-  --plate-radius: var(--radius-lg);
+  --h1: clamp(32px, 2.2vw + 18px, 52px);
   --plate-shadow: 0 1px 0 rgb(var(--white-rgb) / 0.04) inset, 0 24px 64px rgb(0 0 0 / 0.55);
   --bar-height: 56px;
 }
@@ -281,40 +272,29 @@ a:hover {
   font-size: 15px;
 }
 
-/* Title page -------------------------------------------------------------------------- */
+/* The screen: text and clip side by side from 1000 px, the facts in a row below ---------- */
 
-.title-page {
-  position: relative;
+.hero {
+  display: grid;
+  gap: var(--space-10) var(--space-12);
+  align-items: center;
   max-width: calc(var(--page) + 2 * var(--gutter));
   margin-inline: auto;
-  padding: clamp(40px, 5vw, 84px) var(--gutter) 0;
+  padding: clamp(32px, 5vh, 72px) var(--gutter) var(--space-10);
 }
 
-/* The beam of the brand, very low, behind the hero plate (the Home's lobes, held still). */
-.title-page::before {
-  content: '';
-  position: absolute;
-  inset: 34% 0 auto;
-  height: 70%;
-  z-index: -1;
-  background:
-    radial-gradient(48% 42% at 30% 50%, rgb(31 153 150 / 0.16), transparent 70%),
-    radial-gradient(40% 36% at 72% 46%, rgb(187 237 38 / 0.09), transparent 70%);
-  filter: blur(24px);
-  pointer-events: none;
+@media (min-width: 1000px) {
+  .hero {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  }
+
+  .facts {
+    grid-column: 1 / -1;
+  }
 }
 
-.title-text {
-  max-width: 54rem;
-}
-
-.kicker,
-.chapter-num,
-.contents-title,
-.colophon-title,
-.step,
-.fig {
-  font-family: var(--font-ui);
+.kicker {
+  color: var(--text-tertiary);
   font-size: 12px;
   font-weight: var(--weight-medium);
   letter-spacing: 0.09em;
@@ -322,23 +302,18 @@ a:hover {
   text-transform: uppercase;
 }
 
-.kicker {
-  color: var(--text-tertiary);
-}
-
 h1 {
-  margin-top: var(--space-5);
-  max-width: 21ch;
+  margin-top: var(--space-4);
   font-size: var(--h1);
-  line-height: 1.06;
+  line-height: 1.08;
   letter-spacing: -0.018em;
 }
 
 .lede {
-  margin-top: var(--space-6);
-  max-width: 36rem;
+  margin-top: var(--space-5);
+  max-width: 34rem;
   color: var(--text-secondary);
-  font-size: clamp(17px, 0.4vw + 15px, 20px);
+  font-size: clamp(16px, 0.3vw + 15px, 19px);
   line-height: 1.55;
 }
 
@@ -349,39 +324,29 @@ h1 {
   margin-top: var(--space-8);
 }
 
-.meta {
-  margin-top: var(--space-5);
-  color: var(--text-tertiary);
-  font-size: 13px;
+/* The clip, framed like the media's stills (presentation spec §2.1); the box holds its size
+   while the poster loads. */
+.plate {
+  position: relative;
 }
 
-/* Plates: the clips, framed like the media's stills (presentation spec §2.1) ------------- */
-
-.plate figcaption {
-  margin-top: var(--space-3);
-  max-width: 44rem;
-  color: var(--text-tertiary);
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.fig {
-  margin-right: 0.5em;
-  color: var(--accent-text);
-  font-size: 11px;
-}
-
-.fig-title {
-  color: var(--text-primary);
-  font-weight: var(--weight-medium);
+.plate::before {
+  content: '';
+  position: absolute;
+  inset: -12% 0;
+  z-index: -1;
+  background:
+    radial-gradient(48% 44% at 30% 55%, rgb(31 153 150 / 0.16), transparent 70%),
+    radial-gradient(40% 36% at 75% 40%, rgb(187 237 38 / 0.08), transparent 70%);
+  filter: blur(24px);
+  pointer-events: none;
 }
 
 .screen {
-  position: relative;
   overflow: hidden;
   aspect-ratio: 1440 / 900;
   border: 1px solid var(--border-hairline);
-  border-radius: var(--plate-radius);
+  border-radius: var(--radius-xl);
   background:
     linear-gradient(180deg, rgb(var(--white-rgb) / 0.03), transparent 40%), var(--surface-sunken);
   box-shadow: var(--plate-shadow);
@@ -391,702 +356,51 @@ h1 {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  background: transparent;
 }
-
-.play {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  width: 100%;
-  padding: 0;
-  border: 0;
-  background: linear-gradient(180deg, transparent 55%, rgb(0 0 0 / 0.28));
-  color: var(--text-primary);
-  cursor: pointer;
-}
-
-.play-disc {
-  display: grid;
-  place-items: center;
-  width: 60px;
-  height: 60px;
-  border: 1px solid rgb(var(--white-rgb) / 0.22);
-  border-radius: 50%;
-  background: rgb(16 18 21 / 0.72);
-  box-shadow: 0 8px 28px rgb(0 0 0 / 0.45);
-  transition:
-    scale 160ms cubic-bezier(0.2, 0, 0, 1),
-    background-color 160ms;
-}
-
-@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
-  .play-disc {
-    background: rgb(16 18 21 / 0.5);
-    -webkit-backdrop-filter: blur(14px) saturate(1.4) brightness(0.8);
-    backdrop-filter: blur(14px) saturate(1.4) brightness(0.8);
-  }
-}
-
-.play-disc svg {
-  width: 20px;
-  height: 20px;
-  margin-left: 3px;
-  fill: var(--accent);
-}
-
-.play:hover .play-disc {
-  background: rgb(16 18 21 / 0.82);
-  scale: 1.06;
-}
-
-.play:focus-visible {
-  outline-offset: -4px;
-  border-radius: var(--plate-radius);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .play-disc {
-    transition: none;
-  }
-}
-
-.plate-hero {
-  margin-top: clamp(48px, 5vw, 80px);
-}
-
-.plate-hero .screen {
-  border-radius: var(--radius-xl);
-}
-
-.plate-phone .screen {
-  aspect-ratio: 390 / 844;
-  border-radius: 28px;
-}
-
-/* The book: contents in the margin, chapters in the text block ------------------------- */
-
-.book {
-  max-width: calc(var(--page) + 2 * var(--gutter));
-  margin-inline: auto;
-  padding: var(--chapter-gap) var(--gutter) 0;
-}
-
-.contents {
-  padding-bottom: var(--space-6);
-  border-bottom: 1px solid var(--border-quiet);
-}
-
-.contents-title {
-  color: var(--text-tertiary);
-}
-
-.contents ol {
-  list-style: none;
-  margin-top: var(--space-3);
-  columns: 2;
-  column-gap: var(--space-6);
-}
-
-.contents li {
-  break-inside: avoid;
-}
-
-.contents a {
-  display: flex;
-  gap: var(--space-3);
-  padding: 6px 0;
-  color: var(--text-secondary);
-  font-size: 14px;
-  text-decoration: none;
-}
-
-.contents a:hover {
-  color: var(--text-primary);
-}
-
-.contents .num {
-  min-width: 1.2em;
-  color: var(--text-tertiary);
-  font-variant-numeric: tabular-nums;
-}
-
-@media (min-width: 1100px) {
-  .book {
-    display: grid;
-    grid-template-columns: 184px minmax(0, 1fr);
-    gap: var(--space-16);
-    align-items: start;
-  }
-
-  .contents {
-    position: sticky;
-    top: calc(var(--bar-height) + var(--space-10));
-    padding-bottom: 0;
-    border-bottom: 0;
-  }
-
-  .contents ol {
-    columns: 1;
-  }
-}
-
-.chapter {
-  padding-top: var(--chapter-gap);
-}
-
-.chapter + .chapter {
-  margin-top: var(--chapter-gap);
-  border-top: 1px solid var(--border-quiet);
-}
-
-.chapters > .chapter:first-child {
-  padding-top: var(--space-8);
-}
-
-@media (min-width: 1100px) {
-  .chapters > .chapter:first-child {
-    padding-top: 0;
-  }
-}
-
-.chapter-num {
-  color: var(--text-tertiary);
-}
-
-h2 {
-  margin-top: var(--space-3);
-  max-width: 22ch;
-  font-size: var(--h2);
-  line-height: 1.12;
-  letter-spacing: -0.012em;
-}
-
-.prose {
-  margin-top: var(--space-8);
-  max-width: var(--measure);
-}
-
-.prose p,
-.feature-text p:not(.limit),
-.mechanism p:not(.source),
-.org p:not(.org-role),
-.timeline p:not(.step),
-.checks p:not(.source),
-.limits li {
-  color: var(--prose);
-  font-family: var(--font-serif);
-  font-size: var(--prose-size);
-  line-height: var(--prose-leading);
-}
-
-.prose p + p {
-  margin-top: 1em;
-}
-
-.subhead {
-  margin-top: var(--space-16);
-  font-size: var(--h3);
-  line-height: 1.2;
-}
-
-h3 {
-  font-size: var(--h3);
-  line-height: 1.2;
-}
-
-h4 {
-  font-family: var(--font-ui);
-  font-size: 15px;
-  font-weight: var(--weight-semibold);
-  line-height: 1.4;
-}
-
-.source,
-.figures-source,
-.prose-note {
-  color: var(--text-tertiary);
-  font-size: 13px;
-  line-height: 1.55;
-}
-
-.source {
-  margin-top: var(--space-3);
-}
-
-.source a,
-.figures-source a,
-.prose-note a,
-.limit a {
-  color: var(--text-secondary);
-}
-
-.source a:hover,
-.figures-source a:hover,
-.prose-note a:hover,
-.limit a:hover {
-  color: var(--accent-text);
-}
-
-/* Chapter 1: three facts --------------------------------------------------------------- */
 
 .facts {
   display: grid;
-  gap: var(--space-4);
-  margin-top: var(--space-10);
+  gap: var(--space-4) var(--space-8);
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--border-quiet);
   list-style: none;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.55;
 }
 
-@media (min-width: 900px) {
+@media (min-width: 720px) {
   .facts {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-.facts li {
-  padding: var(--space-5);
-  border: 1px solid var(--border-quiet);
-  border-radius: var(--radius-md);
-  background: var(--surface-sunken);
-}
-
-.facts p {
-  color: var(--text-secondary);
-  font-size: 14px;
-  line-height: 1.55;
-}
-
-.facts .fact-title {
-  margin-bottom: var(--space-2);
+.facts strong {
+  display: block;
+  margin-bottom: var(--space-1);
   color: var(--text-primary);
-  font-size: 15px;
-  font-weight: var(--weight-semibold);
-}
-
-/* Chapter 2: plates beside their text -------------------------------------------------- */
-
-.feature {
-  display: grid;
-  gap: var(--space-6);
-  margin-top: var(--space-16);
-}
-
-@media (min-width: 960px) {
-  .feature {
-    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
-    gap: var(--space-10);
-    align-items: start;
-  }
-
-  .feature-phone {
-    grid-template-columns: 280px minmax(0, 1fr);
-    gap: var(--space-12);
-  }
-}
-
-.plate-phone {
-  max-width: 280px;
-}
-
-@media (max-width: 959px) {
-  .plate-phone {
-    margin-inline: auto;
-  }
-
-  .plate-phone figcaption {
-    text-align: center;
-  }
-}
-
-.feature-text h3 + p {
-  margin-top: var(--space-4);
-}
-
-.feature-text p:not(.limit) {
-  font-size: 17px;
-}
-
-.feature-text p + p {
-  margin-top: var(--space-4);
-}
-
-.limit {
-  padding-left: var(--space-4);
-  border-left: 1px solid var(--border-strong);
-  color: var(--text-secondary);
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-.gallery {
-  display: grid;
-  gap: var(--space-10) var(--space-8);
-  margin-top: var(--space-6);
-}
-
-@media (min-width: 720px) {
-  .gallery {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-/* Chapter 3: the diagram and four mechanisms ------------------------------------------- */
-
-.diagram-plate {
-  margin-top: var(--space-10);
-  padding: var(--space-6);
-  border: 1px solid var(--border-quiet);
-  border-radius: var(--plate-radius);
-  background: var(--surface-sunken);
-}
-
-/* Below 720 px the diagram keeps a readable size and scrolls inside its plate. */
-.diagram-scroll {
-  overflow-x: auto;
-}
-
-.diagram {
-  width: 100%;
-  min-width: 680px;
-  height: auto;
-}
-
-.diagram .box {
-  fill: var(--surface-raised);
-  stroke: var(--border-strong);
-  stroke-width: 1;
-}
-
-.diagram .box-worker {
-  fill: var(--surface-frame);
-}
-
-.diagram .box-accent {
-  fill: rgb(var(--lime-rgb) / 0.07);
-  stroke: var(--accent-line);
-}
-
-.diagram .frame {
-  fill: none;
-  stroke: var(--border-hairline);
-  stroke-dasharray: 4 4;
-}
-
-.diagram .zone {
-  fill: var(--text-tertiary);
-  font-family: var(--font-ui);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.09em;
-}
-
-.diagram .label {
-  fill: var(--text-primary);
   font-family: var(--font-serif);
-  font-size: 17px;
+  font-size: 18px;
+  font-weight: 400;
 }
 
-.diagram .label-small {
-  fill: var(--text-primary);
-  font-family: var(--font-ui);
-  font-size: 14px;
-  font-weight: 600;
-}
+/* Footer: version, commit and the maker's line ------------------------------------------ */
 
-.diagram .note {
-  fill: var(--text-secondary);
-  font-family: var(--font-ui);
-  font-size: 12.5px;
-}
-
-.diagram .edge {
-  fill: none;
-  stroke: var(--text-tertiary);
-  stroke-width: 1.25;
-}
-
-.diagram .arrowhead {
-  fill: var(--text-tertiary);
-}
-
-.mechanisms {
-  display: grid;
-  gap: var(--space-12) var(--space-12);
-  margin-top: var(--space-12);
-}
-
-@media (min-width: 900px) {
-  .mechanisms {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-.mechanism h3 {
-  font-size: 23px;
-}
-
-.mechanism h3 + p {
-  margin-top: var(--space-4);
-}
-
-.mechanism p:not(.source) {
-  font-size: 17px;
-}
-
-.mechanism p + p:not(.source) {
-  margin-top: var(--space-3);
-}
-
-/* Chapter 4: numbered checks ----------------------------------------------------------- */
-
-.checks {
-  max-width: 46rem;
-  margin-top: var(--space-10);
-  list-style: none;
-  counter-reset: check;
-}
-
-.checks li {
-  position: relative;
-  padding: var(--space-5) 0 var(--space-5) 3.25rem;
-  border-top: 1px solid var(--border-quiet);
-  counter-increment: check;
-}
-
-.checks li::before {
-  content: counter(check);
-  position: absolute;
-  left: 0;
-  top: var(--space-5);
-  color: var(--accent-text);
-  font-family: var(--font-serif);
-  font-size: 26px;
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
-}
-
-.checks p:not(.source) {
-  font-size: 17px;
-}
-
-/* Chapter 5: figures, the organisation, the rules, one lane ---------------------------- */
-
-.figures {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-8) var(--space-6);
-  margin-top: var(--space-12);
-}
-
-@media (min-width: 760px) {
-  .figures {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-.figure {
+.footer {
   display: flex;
-  flex-direction: column;
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--border-strong);
-}
-
-.figure dt {
-  order: 2;
-  margin-top: var(--space-2);
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: var(--weight-medium);
-  line-height: 1.35;
-}
-
-.figure dd:not(.figure-note) {
-  order: 1;
-  font-family: var(--font-serif);
-  font-size: clamp(38px, 2.2vw + 24px, 56px);
-  line-height: 1;
-  letter-spacing: -0.015em;
-  font-variant-numeric: lining-nums tabular-nums;
-}
-
-.figure .figure-note {
-  order: 3;
-  margin-top: 2px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-6);
+  max-width: calc(var(--page) + 2 * var(--gutter));
+  margin-inline: auto;
+  padding: var(--space-6) var(--gutter) var(--space-8);
   color: var(--text-tertiary);
   font-size: 13px;
-  line-height: 1.4;
 }
 
-.figures-source {
-  max-width: 46rem;
-  margin-top: var(--space-6);
-}
-
-.org {
-  max-width: 46rem;
-  margin-top: var(--space-6);
-  list-style: none;
-}
-
-.org li {
-  position: relative;
-  padding: 0 0 var(--space-8) var(--space-8);
-  border-left: 1px solid var(--border-strong);
-}
-
-.org li:last-child {
-  padding-bottom: 0;
-  border-left-color: transparent;
-}
-
-.org li::before {
-  content: '';
-  position: absolute;
-  left: -5px;
-  top: 6px;
-  width: 9px;
-  height: 9px;
-  border: 1px solid var(--accent);
-  border-radius: 50%;
-  background: var(--canvas);
-}
-
-.org li:first-child::before {
-  background: var(--accent);
-}
-
-.org-role {
-  margin-bottom: var(--space-2);
-  color: var(--text-primary);
-  font-family: var(--font-serif);
-  font-size: 21px;
-  line-height: 1.3;
-}
-
-.org p:not(.org-role) {
-  font-size: 17px;
-}
-
-.prose-note {
-  max-width: 46rem;
-  margin-top: var(--space-8);
-  font-size: 14px;
-}
-
-.rules {
-  display: grid;
-  gap: var(--space-8) var(--space-8);
-  margin-top: var(--space-6);
-}
-
-@media (min-width: 640px) {
-  .rules {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1180px) {
-  .rules {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-.rule {
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--border-quiet);
-}
-
-.rule h4 + p {
-  margin-top: var(--space-2);
-}
-
-.rule p:not(.source) {
+.footer a {
   color: var(--text-secondary);
-  font-size: 15px;
-  line-height: 1.6;
-}
-
-.timeline {
-  max-width: 46rem;
-  margin-top: var(--space-6);
-  list-style: none;
-}
-
-.timeline li {
-  display: grid;
-  grid-template-columns: 5.5rem minmax(0, 1fr);
-  gap: var(--space-4);
-  padding: var(--space-4) 0;
-  border-top: 1px solid var(--border-quiet);
-}
-
-.timeline li:last-child {
-  border-bottom: 1px solid var(--border-quiet);
-}
-
-.step {
-  padding-top: 0.3em;
-  color: var(--accent-text);
-}
-
-.timeline p:not(.step) {
-  font-size: 17px;
-}
-
-/* Chapter 6: limits -------------------------------------------------------------------- */
-
-.limits {
-  max-width: 46rem;
-  margin-top: var(--space-8);
-  list-style: none;
-}
-
-.limits li {
-  position: relative;
-  padding: var(--space-3) 0 var(--space-3) var(--space-6);
-  border-top: 1px solid var(--border-quiet);
-  font-size: 17px;
-}
-
-.limits li::before {
-  content: '–';
-  position: absolute;
-  left: 0;
-  color: var(--text-tertiary);
-}
-
-/* The colophon ------------------------------------------------------------------------- */
-
-.colophon {
-  margin-top: var(--chapter-gap);
-  padding: var(--chapter-gap) var(--gutter) var(--space-16);
-  border-top: 1px solid var(--border-quiet);
-  background: linear-gradient(180deg, var(--surface-sunken), var(--canvas));
-}
-
-.colophon-inner {
-  max-width: 34rem;
-  margin-inline: auto;
-  text-align: center;
-}
-
-.colophon-title {
-  max-width: none;
-  margin-top: 0;
-  color: var(--text-tertiary);
-}
-
-.colophon-inner > p:not(.maker) {
-  margin-top: var(--space-4);
-  color: var(--text-secondary);
-  font-family: var(--font-serif);
-  font-size: 15.5px;
-  line-height: 1.7;
-}
-
-.colophon-title + p {
-  margin-top: var(--space-5);
 }
 
 .version,
@@ -1105,25 +419,11 @@ h4 {
   white-space: nowrap;
 }
 
-.colophon-links {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--space-2) var(--space-5);
-  margin-top: var(--space-8);
-  list-style: none;
-  font-size: 13px;
-}
-
-.colophon-links a {
-  color: var(--text-secondary);
-}
-
 /* The maker's credits line (family README §4 move 3; kit mark/README.md, option A): the app's
    footnote size, secondary ink, the letters in primary ink, the dot a circle in the accent.
    The dot touches nothing else. */
 .maker {
-  margin-top: var(--space-10);
+  margin: 0;
   color: var(--text-secondary);
   font-size: var(--type-footnote);
   letter-spacing: var(--track-footnote);
@@ -1155,29 +455,16 @@ h4 {
 }
 
 @media (forced-colors: active) {
-  .maker-dot,
-  .org li::before {
+  .maker-dot {
     forced-color-adjust: none;
     background: LinkText;
   }
 }
 
-/* Phones: the 16 px gutter, one column, a smaller title -------------------------------- */
+/* Phones: the 16 px gutter, the buttons full width ------------------------------------- */
 
 @media (max-width: 480px) {
-  .topbar-link {
-    display: none;
-  }
-
   .actions .button {
     flex: 1 1 auto;
-  }
-
-  .contents ol {
-    columns: 1;
-  }
-
-  .diagram-plate {
-    padding: var(--space-4);
   }
 }

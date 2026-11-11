@@ -1,15 +1,14 @@
 /**
- * The about page (presentation spec §3, acceptance §8) from the preview build: `about/`
- * transfers at most 300 KB without its videos, asks no other origin for anything, loads no
- * script of the app's bundle, carries the app's Content Security Policy word for word, and
- * under reduced motion leaves the hero clip on its poster. Posters below the title page load as
- * their plates near the screen (`data-poster`, about.js). The layout has no horizontal
- * scroll at phone width or at 1440 px, and the app's Document menu opens the page in a new
- * tab.
+ * The about page (presentation spec §3, acceptance §8; DSN-96: one screen) from the preview
+ * build: `about/` transfers at most 300 KB without its video, asks no other origin for
+ * anything, loads no script of the app's bundle, carries the app's Content Security Policy
+ * word for word, and under reduced motion leaves its one clip on its poster. It has the pitch,
+ * three facts and two buttons, no horizontal scroll at phone width or at 1440 px, and About
+ * Recto in the app opens it in a new tab.
  *
- * The clips, posters and request log under `media/` are produced by the deploy job's media
- * run, not by `vite build`, so here those requests answer 404; the page must stand without
- * them (each clip keeps its placeholder box) and the test tolerates exactly those.
+ * The clip, its poster and the request log under `media/` are produced by the deploy job's
+ * media run, not by `vite build`, so here those requests answer 404; the page must stand
+ * without them (the clip keeps its placeholder box) and the test tolerates exactly those.
  */
 import { expect, type Page, test } from '@playwright/test';
 
@@ -114,21 +113,30 @@ test('the about page stays within its budget and asks only its own origin', asyn
     .getAttribute('content');
   expect(csp).toBe(app.csp);
 
-  // The clips wait for a click: only the hero may start on its own.
+  // One screen (DSN-96): one clip, the pitch, three facts and the two ways on.
   const clips = await page.locator('video').evaluateAll((videos) =>
-    videos.map((node) => {
-      const video = node as HTMLVideoElement;
-      // A plate below the title page names its poster in data-poster; about.js sets the
-      // attribute as the plate nears the screen.
-      const poster = video.getAttribute('poster') ?? video.dataset.poster ?? '';
-      return { id: video.id, preload: video.getAttribute('preload'), poster };
-    }),
+    videos.map((node) => ({
+      id: node.id,
+      preload: node.getAttribute('preload'),
+      poster: node.getAttribute('poster') ?? '',
+    })),
   );
-  expect(clips.length).toBeGreaterThanOrEqual(8);
-  for (const clip of clips) {
-    expect(clip.preload, clip.id).toBe('none');
-    expect(clip.poster, clip.id).toMatch(/\/?media\/[\w-]+\.poster\.webp$/);
-  }
+  expect(clips).toEqual([
+    {
+      id: 'hero-clip',
+      preload: 'none',
+      poster: expect.stringMatching(/media\/09-markup\.poster\.webp$/),
+    },
+  ]);
+  await expect(page.getByRole('list', { name: 'Three facts' }).getByRole('listitem')).toHaveCount(
+    3,
+  );
+  const main = page.getByRole('main');
+  await expect(main.getByRole('link', { name: 'Open the app' })).toBeVisible();
+  await expect(main.getByRole('link', { name: 'GitHub' })).toHaveAttribute(
+    'href',
+    'https://github.com/ErenDenizK/recto',
+  );
 });
 
 test('the hero clip plays muted in a loop when motion is welcome', async ({ page }) => {
@@ -161,7 +169,7 @@ test('under reduced motion the hero clip stays on its poster', async ({ page }) 
       }),
     )
     .toEqual({ autoplay: false, paused: true, preload: 'none', playing: false });
-  expect(await hero.getAttribute('poster')).toMatch(/01-open-many\.poster\.webp$/);
+  expect(await hero.getAttribute('poster')).toMatch(/09-markup\.poster\.webp$/);
 });
 
 for (const width of [360, 1440]) {
@@ -173,7 +181,7 @@ for (const width of [360, 1440]) {
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
     expect(overflow).toBeLessThanOrEqual(0);
-    // Each clip keeps its box while its poster is missing.
+    // The clip keeps its box while its poster is missing.
     const box = await page.locator('#hero-clip').boundingBox();
     expect(box?.height ?? 0).toBeGreaterThan(100);
   });
