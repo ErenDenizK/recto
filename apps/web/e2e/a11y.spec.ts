@@ -1031,6 +1031,12 @@ test.describe('craft spec §9', () => {
     await select.focus();
     await tabWalk(page, 4, true);
     await page.locator('body').press('p');
+    // The pen's ink strip fades in: walk it once its entrance has ended, not mid-fade (L16).
+    const strip = page.getByTestId('ink-strip');
+    await expect(strip).toBeVisible();
+    await strip.evaluate((el) =>
+      Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished)),
+    );
     await bar(page).locator('button[tabindex="0"]').focus();
     await tabWalk(page, 4);
   });

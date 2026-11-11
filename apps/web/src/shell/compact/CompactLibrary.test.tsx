@@ -9,7 +9,7 @@ import '../../styles/tokens.css';
 import '../../styles/reset.css';
 import '../../styles/global.css';
 
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
@@ -169,10 +169,14 @@ describe('CompactLibrary', () => {
     useRecentsStore.setState({ loaded: true, entries: [entry('r1', 'report.pdf')] });
     render(<CompactLibrary />);
     const tile = await screen.findByRole('button', { name: /^report\.pdf, / });
-    await userEvent.click(tile, { button: 'right' });
-    const remove = await screen.findByRole('menuitem', { name: 'Remove from recents' });
-    await settled(remove);
-    expect(remove).toBeVisible();
+    // The context press alone: a real right click's mouseup can land on the menu that just
+    // opened under the pointer and pick its item, closing it (a burn-in flake).
+    fireEvent.contextMenu(tile);
+    // The menu's first render can be replaced as it positions: assert on the item that stays.
+    await waitFor(() =>
+      expect(screen.getByRole('menuitem', { name: 'Remove from recents' })).toBeVisible(),
+    );
+    await settled(screen.getByRole('menuitem', { name: 'Remove from recents' }));
   });
 
   it('shows Continue for the open document, with the one lime and a ghost Open', async () => {
