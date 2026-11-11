@@ -23,8 +23,11 @@ async function hasCamera(): Promise<boolean> {
   }
 }
 
-/** The Library dock's Scan button; nothing without the flag or a camera. */
-export function ScanButton() {
+/**
+ * The Library dock's Scan button, a glyph slot of the capsule named "Scan" (DSN-91: the dock
+ * shows glyphs, the word lives in the name); nothing without the flag or a camera.
+ */
+export function ScanButton({ className }: { readonly className?: string | undefined }) {
   const [camera, setCamera] = useState(false);
   useEffect(() => {
     if (!scanEnabled()) return undefined;
@@ -38,16 +41,16 @@ export function ScanButton() {
   }, []);
   if (!camera) return null;
   return (
-    // The dock's own control, beside Open PDF (`CompactLibrary`); `ui/Button` stays out of the first load.
+    // The dock's own control, beside Open (`CompactLibrary`); `ui/Button` stays out of the first load.
     <button
       type="button"
       // eslint-disable-next-line recto/q9-controls
-      className={controls.text}
+      className={className ?? controls.icon}
+      aria-label={m.scan_button()}
       data-testid="compact-scan"
       onClick={() => void openPhoneScan()}
     >
-      <Icon name="scan" />
-      {m.scan_button()}
+      <Icon name="scan" size={24} />
     </button>
   );
 }

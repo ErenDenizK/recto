@@ -1,434 +1,444 @@
 /*
- * The compact Library (ADR-0033 §2.3; composition DSN-31; CompactLibrary.tsx): one column inside
- * the safe area over the aura (DSN-24), and one floating dock. The column scrolls the document
- * itself (DSN-33, CompactApp.module.css): it is at least the window's height, so the auto
- * margins below can centre a short Library, and grows with Recents; its bottom padding lets the
- * last row clear the dock and the home indicator.
+ * The compact Home (ADR-0033 §2.3; EDN-29, DSN-93, DSN-94; CompactLibrary.tsx; values from the
+ * Colophon mockup `phone-home.html` at 390 x 844): one column inside the safe area over the aura
+ * and the beam (`CompactBeam`), and one floating dock. The column scrolls the document itself
+ * (DSN-33, CompactApp.module.css): it is at least the window's height and grows with the shelf;
+ * its bottom padding lets the last line clear the dock and the home indicator.
  *
- * - Identity in the upper third: the mark at 64 px, the wordmark in title1, the promise in
- *   callout (the type steps of tokens.css; a coarse pointer moves each one size up).
- * - Glass as the full Library has it (02-library §2.3; design language §3.1): the sample card
- *   and the Recents card are lit glass (`mat mat-lit`, no blur: nothing
- *   passes under them, as the full Library's launcher and cards); the dock is M2 bar glass with
- *   the reader capsule's σ and size (56 px, `mat mat-bar s10`), because Recents scroll under
- *   it. Fills inside glass, never glass on glass (Q-4).
- * - The vertical air is a share of the small viewport height (`svh`) within fixed bounds, so a
- *   tall phone spreads the groups out and a short one closes them up, never an empty band; the
- *   small height holds still while the browser bars fold during a scroll.
- * - On its side (visual audit 2026-10 item 6): the mark folds into the header row and the body
- *   becomes two columns, the promise, tools and sample beside Recents, with the dock under the
- *   first column, so four Recent rows show in 390 px.
+ * - Header 52 high, padding 0 8 0 18: the mark at 22, the wordmark at 18 / 620, the gear a 44 px
+ *   target with a 24 px glyph.
+ * - Continue: the cover 132 wide at left 18, 24 under the header; the text block 20 right of it
+ *   and centred on it: the serif title 24 / 28, "Page 2 of 4" 13 in the tertiary ink 8 under it, a
+ *   2 px progress line 12 under that and the 44 px Continue 20 under the line.
+ * - Recent: its label 72 under the cover, then the shelf: covers 200 high on one baseline, 20
+ *   apart, inset 16, snapping to their start, the shelf line across the bottom of the covers and
+ *   the serif title 10 below each.
+ * - The dock: left and right 16, 60 high, padding 6, smoked glass (`mat mat-bar`), the Open pill
+ *   48 high; while Continue shows it is a ghost pill (one lime per view).
+ * Type sizes are this sheet's own tokens (the phone's steps, DSN-89); the serif is the title face.
  */
 
-/* The dock's height and its gap above the home indicator, which the column clears. */
 .library {
-  --dock-h: 56px;
-  --dock-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
+  /* The dock stands max(home indicator, 30) from the bottom, 60 high (the compact root's
+     --capsule-h), and the column clears it. */
+  --dock-bottom: max(env(safe-area-inset-bottom, 0px), 30px);
+  --dock-h: var(--capsule-h);
+  --title-size: 24px;
+  --title-lh: 28px;
+  --meta-size: 13px;
+  --name-size: 14px;
+  --name-lh: 18px;
   /* Positioned, so it paints over the aura (DSN-24), which the root lays first. */
   position: relative;
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
   overflow-x: clip;
-  padding: env(safe-area-inset-top, 0px) max(env(safe-area-inset-right, 0px), 16px)
-    calc(var(--dock-bottom) + var(--dock-h) + var(--space-6))
-    max(env(safe-area-inset-left, 0px), 16px);
+  padding: max(env(safe-area-inset-top, 0px), 12px) 0
+    calc(var(--dock-bottom) + var(--dock-h) + var(--space-6));
 }
 
 .header,
 .body {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 560px;
   margin-inline: auto;
 }
 
-/* The brand, clear of the status bar. With room to spare, the header and the body share it as
-   auto margins above and below them, so the groups sit together as one block between the top
-   and the dock; the margins fall to 0 once Recents fill the column. The language switch that
-   stood above it is Settings' (DSN-46), in About's settings rows on a phone. */
 .header {
   display: flex;
   flex: none;
-  justify-content: center;
-  margin-top: auto;
-  padding-top: var(--space-12);
+  align-items: center;
+  justify-content: space-between;
+  height: 52px;
+  padding: 0 8px 0 18px;
 }
 
 .brand {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   min-width: 0;
   color: var(--text-primary);
-  font-size: var(--type-title1);
-  font-weight: var(--weight-semibold);
-  line-height: var(--type-title1-lh);
-  letter-spacing: var(--track-title1);
 }
 
 .mark {
-  width: 64px;
-  height: 64px;
+  width: 22px;
+  height: 22px;
 }
 
 .wordmark {
   min-width: 0;
+  font-size: 18px;
+  font-variation-settings: 'opsz' 22;
+  font-weight: var(--weight-brand);
+  letter-spacing: 0.005em;
+  line-height: 24px;
+  text-transform: lowercase;
 }
 
-/*
- * The body in the Library's order (DSN-50): what the phone does, then Recents, then the sample,
- * the way back to a file before the way to try one. Before the first file (`data-first-run`)
- * the sample comes first and the "No files yet" card after it. The intro's parts join the
- * body's column (`display: contents`) so the order is CSS alone, one rhythm for every gap; a
- * phone on its side keeps the intro as its first column (below).
- */
-.body {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: clamp(16px, 3svh, 28px);
-  margin-bottom: auto;
-  padding-top: clamp(8px, 2svh, 20px);
-  text-align: center;
-}
-
-.intro {
-  display: contents;
-}
-
-.library:not([data-first-run]) :is(.sample, .error) {
-  order: 1;
-}
-
-.promise {
-  max-width: 30ch;
-  color: var(--text-secondary);
-  font-size: var(--type-callout);
-  line-height: var(--type-callout-lh);
-  letter-spacing: var(--track-callout);
-  text-wrap: balance;
-}
-
-/* The settings gear (DSN-51, amended): a 44 px lit glass circle at the reader's ⋯ place, 2 px
-   into its 48 px row under the status bar (CompactTopSplit.module.css), so both screens keep the door in one spot. Lit,
-   no blur, as the sample card: it scrolls with the column and nothing passes under it. The
-   press is the lens's (GLS-25): its darker inner glow over the lit rim and --press-scale, 1
-   under reduced motion (styles/motion.css). */
-.more {
-  composes: mat mat-lit from global;
-  position: absolute;
-  top: calc(max(env(safe-area-inset-top, 0px), 12px) + 2px);
-  right: max(env(safe-area-inset-right, 0px), 12px);
+.gear {
   display: grid;
+  flex: none;
   place-items: center;
   width: 44px;
   height: 44px;
   padding: 0;
-  border-radius: var(--radius-capsule);
-  color: var(--text-primary);
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
   touch-action: manipulation;
   transition:
-    scale var(--spring-press) var(--ease-spring),
-    box-shadow var(--duration-fast) var(--ease-out);
+    background-color var(--duration-fast) var(--ease-out),
+    transform var(--spring-press) var(--ease-spring);
 }
 
-.more svg {
-  width: 20px;
-  height: 20px;
+.gear svg {
+  width: var(--icon-action);
+  height: var(--icon-action);
 }
 
-.more:active {
-  --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--lens-rim-pressed);
-  scale: var(--press-scale);
+.gear:active {
+  background: var(--fill-ghost);
+  transform: scale(var(--press-scale));
   transition-duration: var(--duration-instant);
 }
 
-/* The phone's tools: quiet fills on the canvas, no glass and no accent (one lime per view). */
-.tools {
+.body {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--space-1) var(--space-2);
-}
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1h);
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  font-weight: var(--weight-medium);
-  line-height: var(--type-footnote-lh);
-  white-space: nowrap;
-}
-
-/* A plain list of names, not controls: no pill, border or fill (presentability #18), a dot
-   between the names so the row still reads as four. */
-.chip + .chip::before {
-  content: '·';
-  margin-inline-end: var(--space-1);
-  color: var(--text-tertiary);
-}
-
-.chip svg {
-  flex: none;
-  width: 16px;
-  height: 16px;
-  color: var(--text-secondary);
-}
-
-.moreTools {
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  line-height: var(--type-footnote-lh);
-  text-wrap: balance;
-}
-
-/* Try the sample: a lit card that lifts nothing and scales on a press, as a Library card does
-   (02-library L5 §7); the scale is 1 under reduced motion (styles/motion.css). */
-.sample {
-  composes: mat mat-lit from global;
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  width: 100%;
-  min-height: 92px;
-  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-3);
-  border-radius: var(--radius-lg);
-  color: var(--text-primary);
-  text-align: start;
-  touch-action: manipulation;
-  transition: transform var(--spring-press) var(--ease-spring);
-}
-
-.sample:active:not(:disabled) {
-  transform: scale(var(--press-scale-large));
-  transition-duration: var(--duration-instant);
-}
-
-.sample:disabled {
-  color: var(--text-disabled);
-}
-
-/* The page is content: white with its hairline in both themes. */
-.samplePage {
-  flex: none;
-  width: 52px;
-  height: 74px;
-  box-shadow: var(--page-shadow);
-}
-
-.sampleText {
-  display: grid;
   flex: 1;
-  gap: var(--space-half);
+  flex-direction: column;
+}
+
+/* Continue and the first visit share one slot: the cover, then the text block centred on it. */
+.hero {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+  padding: 0 16px 0 18px;
+}
+
+/* Recents are being read: the slot keeps its size so nothing below moves. */
+.holder {
+  flex: none;
+  height: 187px;
+  margin-top: var(--space-6);
+  visibility: hidden;
+}
+
+.cover {
+  display: flex;
+  flex: none;
+  width: 132px;
+}
+
+/* A page left, as the renderer draws it: its own proportions, the page's own colours and the
+   cover's shadow. Content, so it keeps its colours (ADR-0023 §2.1). */
+.sheet {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: var(--radius-page);
+  background: var(--page-background);
+  box-shadow: var(--cover-shadow);
+  filter: var(--page-filter);
+}
+
+/* The sample's cover is a drawing: an svg in its own proportions. */
+.sheetSvg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-page);
+  box-shadow: var(--cover-shadow);
+}
+
+.sheet[data-empty] {
+  background: var(--page-paper);
+}
+
+.cover > .sheet[data-empty] {
+  width: 132px;
+  height: 187px;
+}
+
+.heroText {
+  flex: 1;
   min-width: 0;
 }
 
-.sampleTitle {
-  font-size: var(--type-body);
-  font-weight: var(--weight-semibold);
-  line-height: var(--type-body-lh);
+.title {
+  margin: 0;
+  color: var(--text-primary);
+  font-family: var(--font-serif);
+  font-size: var(--title-size);
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  line-height: var(--title-lh);
+  overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 
-.sampleLine {
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  line-height: var(--type-footnote-lh);
-  text-wrap: pretty;
+.page {
+  margin: var(--space-2) 0 0;
+  color: var(--text-tertiary);
+  font-size: var(--meta-size);
+  font-variant-numeric: tabular-nums;
+  line-height: 18px;
 }
 
-.sampleCaret {
-  flex: none;
-  width: var(--icon-sm);
-  height: var(--icon-sm);
-  color: var(--text-secondary);
+.progress {
+  height: 2px;
+  margin-top: var(--space-3);
+  background: var(--reading-track);
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  background: var(--reading-progress);
+}
+
+/* Continue: the view's one lime, 44 high (the owner's one-primary rule). */
+.go {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  margin-top: var(--space-5);
+  padding: 0 var(--space-5);
+  border-radius: var(--button-radius);
+  background: var(--primary-fill);
+  color: var(--primary-ink);
+  font-size: var(--type-button);
+  font-weight: var(--weight-button);
+  letter-spacing: var(--track-button);
+  line-height: var(--type-button-lh);
+  touch-action: manipulation;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    transform var(--spring-press) var(--ease-spring);
+}
+
+.go:active {
+  background: var(--accent-pressed);
+  transform: scale(var(--press-scale));
+  transition-duration: var(--duration-instant);
+}
+
+/* "Try the sample" on the first visit: a lime link with a 44 px tall hit area. */
+.sampleLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: var(--space-1);
+  padding: 0;
+  color: var(--accent-text);
+  font-size: var(--type-action);
+  font-weight: var(--weight-button);
+  line-height: var(--type-action-lh);
+  touch-action: manipulation;
+}
+
+.sampleLink:active:not(:disabled) {
+  color: var(--accent-hover);
+}
+
+.sampleLink:disabled {
+  color: var(--text-disabled);
 }
 
 .error {
   max-width: 40ch;
+  margin: var(--space-4) 18px 0;
   color: var(--danger);
-  font-size: var(--type-footnote);
+  font-size: var(--meta-size);
   line-height: 1.25rem;
   overflow-wrap: anywhere;
   text-wrap: pretty;
 }
 
-.recents {
-  width: 100%;
-  text-align: start;
+/* Recent: the label 72 under the cover (its 44 px row stands 14 above that), Clear at the right. */
+.recent {
+  margin-top: 58px;
 }
 
-/* The section title and Clear share one size, footnote 600 (visual audit 2026-10 item 6), and
-   sit on the rows' leading glyph edge; Clear keeps its 44 px target. */
-.recentsHeader {
+.library:not([data-continued], [data-first-run]) .recent {
+  margin-top: var(--space-2);
+}
+
+.recentHead {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
   min-height: 44px;
-  padding-inline-start: var(--space-4);
+  padding: 0 8px 0 18px;
 }
 
-.recentsTitle {
+.recentTitle {
+  margin: 0;
   color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  font-weight: var(--weight-semibold);
-  line-height: var(--type-footnote-lh);
+  font-size: var(--meta-size);
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  line-height: 18px;
 }
 
 .clear {
-  padding: 0 var(--space-4);
-  font-size: var(--type-footnote);
-  font-weight: var(--weight-semibold);
+  display: inline-flex;
+  align-items: center;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  font-size: var(--meta-size);
+  font-weight: 600;
+  touch-action: manipulation;
 }
 
-/* The Recents card: lit glass, rows inset concentric with it (16 − 4 = 12), a hairline between
-   rows from the text edge. */
-.recentList {
-  composes: mat mat-lit from global;
-  display: grid;
-  padding: var(--space-1);
-  border-radius: var(--radius-lg);
+.clear:active {
+  background: var(--fill-ghost);
 }
 
-.recentList > li + li {
+/* The shelf: covers on one baseline, the line under them across the whole width (it does not
+   scroll with them), the serif titles below. */
+.shelf {
   position: relative;
+  margin-top: var(--space-4);
 }
 
-.recentList > li + li::before {
+.shelf::after {
   content: '';
   position: absolute;
-  top: 0;
-  right: var(--space-3);
-  left: calc(var(--space-3) + 36px + var(--space-3));
+  top: 200px;
+  right: 0;
+  left: 0;
   height: 1px;
-  background: var(--border-hairline);
+  background: var(--shelf-line);
   pointer-events: none;
 }
 
-.recentRow {
+.list {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  width: 100%;
-  min-height: 64px;
-  padding: 10px var(--space-3);
-  border-radius: var(--radius-md);
+  align-items: flex-start;
+  gap: var(--space-5);
+  padding: 0 16px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: 16px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.list::-webkit-scrollbar {
+  display: none;
+}
+
+.item {
+  flex: none;
+  scroll-snap-align: start;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: min(calc(200px * var(--cover-ratio)), calc(100vw - 32px));
+  padding: 0;
   color: var(--text-primary);
   text-align: start;
   touch-action: manipulation;
-  transition: background-color var(--duration-fast) var(--ease-out);
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform var(--spring-press) var(--ease-spring);
 }
 
-.recentRow:active {
-  background: var(--surface-active);
+.tile:active:not(:disabled) {
+  transform: scale(var(--press-scale-large));
+  transition-duration: var(--duration-instant);
 }
 
-.recentGlyph {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-capsule);
-  background: var(--surface-hover);
-  color: var(--text-secondary);
+.tile:disabled {
+  color: var(--text-disabled);
 }
 
-.recentGlyph svg {
-  width: 16px;
-  height: 16px;
+.tile .sheet {
+  width: 100%;
+  height: 200px;
 }
 
-.recentRow[data-reading] .recentGlyph {
-  background: var(--accent-muted);
-  color: var(--text-primary);
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* Every cover stands on one baseline (DSN-87). */
+  object-position: center bottom;
 }
 
-.recentText {
-  display: grid;
-  flex: 1;
-  gap: var(--space-half);
+.glyph {
+  color: rgb(0 0 0 / 0.35);
+}
+
+.name {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1h);
+  width: 100%;
   min-width: 0;
+  margin-top: 10px;
+  font-family: var(--font-serif);
+  font-size: var(--name-size);
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  line-height: var(--name-lh);
 }
 
-.recentName {
+.nameText {
+  min-width: 0;
   overflow: hidden;
-  font-size: var(--type-body);
-  font-weight: var(--weight-medium);
-  line-height: var(--type-body-lh);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.recentMeta,
-.recentStatus {
-  overflow: hidden;
+/* Changes kept on this device: the edited dot, one of lime's places (DSN-89). */
+.dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  transform: translateY(-2px);
+}
+
+.tile[data-reading] .nameText {
   color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  line-height: var(--type-footnote-lh);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.recentMeta {
-  font-variant-numeric: tabular-nums;
-}
-
-.recentStatus[data-reading] {
-  color: var(--text-primary);
 }
 
 .note {
-  margin-top: var(--space-3);
-  padding-inline: var(--space-4);
+  margin: var(--space-3) 18px 0;
   color: var(--text-secondary);
-  font-size: var(--type-footnote);
+  font-size: var(--meta-size);
   line-height: 1.25rem;
   text-wrap: pretty;
 }
 
-/* Recents before the first file: the card itself is one row of the list's shape, not
-   pressable, with a row's padding and its 4 px inset in one (10 + 4, 12 + 4). */
-.emptyRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: 72px;
-  padding: 14px var(--space-4);
-}
-
-.emptyTitle {
-  color: var(--text-secondary);
-  font-size: var(--type-body);
-  font-weight: var(--weight-medium);
-  line-height: var(--type-body-lh);
-}
-
-.emptyLine {
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  line-height: var(--type-footnote-lh);
-  text-wrap: pretty;
-}
-
-/* The dock: a row fixed above the home indicator that takes no presses itself; its piece is
-   the reader capsule's size and glass, so Open PDF stands where the capsule will (Q-3). */
+/* The dock: a row fixed above the home indicator that takes no presses itself; its piece is the
+   capsule's size and smoked glass, so Open stands where the reader's capsule will (Q-3). */
 .dock {
   position: fixed;
   right: 0;
   bottom: var(--dock-bottom);
   left: 0;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   justify-content: center;
   padding-inline: max(env(safe-area-inset-left, 0px), 16px)
@@ -440,20 +450,89 @@
   composes: mat mat-bar s10 from global;
   display: flex;
   align-items: center;
-  width: min(100%, 400px);
+  gap: var(--space-1);
+  width: 100%;
+  max-width: 560px;
   height: var(--dock-h);
-  padding: 0 var(--space-1h);
+  padding: var(--capsule-pad);
   border-radius: var(--radius-capsule);
   pointer-events: auto;
 }
 
+/* Open: the lime primary, an Open glyph at 24 and its word at 15 / 560. */
 .open {
+  display: inline-flex;
   flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
   min-width: 0;
+  height: var(--capsule-slot);
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-capsule);
+  background: var(--primary-fill);
+  color: var(--primary-ink);
+  font-size: var(--type-action);
+  font-weight: var(--weight-button);
+  line-height: var(--type-action-lh);
+  touch-action: manipulation;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    transform var(--spring-press) var(--ease-spring);
 }
 
-/* A phone on its side: the brand joins the header row, the body is two columns and the dock
-   sits under the first, so the second shows Recents down to the bottom edge. */
+.open svg {
+  flex: none;
+  width: var(--icon-action);
+  height: var(--icon-action);
+}
+
+.open:active:not(:disabled) {
+  background: var(--accent-pressed);
+  transform: scale(var(--press-scale));
+  transition-duration: var(--duration-instant);
+}
+
+/* While Continue shows it holds the one lime and Open is a ghost glass pill (owner). */
+.open[data-ghost] {
+  background: var(--fill-ghost);
+  box-shadow: inset 0 0 0 1px var(--border-quiet);
+  color: var(--text-primary);
+}
+
+.open[data-ghost]:active:not(:disabled) {
+  background: var(--control-fill);
+}
+
+.open:disabled {
+  background: var(--control-disabled-fill);
+  color: var(--text-secondary);
+}
+
+/* A glyph slot of the capsule (Scan): 48, the glyph at 24 in the glass ink. */
+.slot {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--capsule-slot);
+  height: var(--capsule-slot);
+  padding: 0;
+  border-radius: 50%;
+  color: var(--glyph-on-glass);
+  touch-action: manipulation;
+}
+
+.slot svg {
+  width: var(--icon-action);
+  height: var(--icon-action);
+}
+
+.slot:active {
+  background: var(--fill-ghost);
+}
+
+/* A phone on its side: the column is wide and short, so the shelf's baseline and the dock keep
+   their sizes and the page scrolls; the dock stays one capsule, left aligned. */
 @media (orientation: landscape) and (max-height: 500px) {
   .library {
     padding-bottom: calc(var(--dock-bottom) + var(--dock-h) + var(--space-4));
@@ -464,55 +543,9 @@
     max-width: none;
   }
 
-  .header {
-    justify-content: flex-start;
-    align-items: center;
-    min-height: 64px;
-    margin-top: 0;
-    padding-top: 0;
-  }
-
-  .brand {
-    flex-direction: row;
-    gap: var(--space-2);
-    padding-top: 0;
-    font-size: var(--type-title3);
-    line-height: var(--type-title3-lh);
-  }
-
-  .mark {
-    width: 28px;
-    height: 28px;
-  }
-
-  .body {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: start;
-    gap: 0 var(--space-6);
-    padding-top: 0;
-  }
-
-  .intro {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--space-3);
-    padding-top: var(--space-3);
-    text-align: start;
-  }
-
-  .promise {
-    max-width: none;
-    text-wrap: pretty;
-  }
-
-  .tools {
-    align-items: flex-start;
-  }
-
-  .chips {
-    justify-content: flex-start;
+  .hero,
+  .holder {
+    margin-top: var(--space-3);
   }
 
   .dock {
@@ -520,6 +553,6 @@
   }
 
   .dockPiece {
-    width: calc((100% - var(--space-6)) / 2);
+    width: min(100%, 360px);
   }
 }
