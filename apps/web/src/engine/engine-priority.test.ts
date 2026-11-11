@@ -57,7 +57,7 @@ const request = (index: number, priority: number, signal?: AbortSignal, source =
 });
 
 describe('EngineService with its calls gated', () => {
-  it('posts text reads only after the page render that was queued before them', async () => {
+  it('posts the page render ahead of the reads made before it in the same tick', async () => {
     const { renderer, posted, renders } = mock();
     const service = new EngineService({
       createRenderer: () => renderer,
@@ -69,12 +69,10 @@ describe('EngineService with its calls gated', () => {
     const text = engine.getPageText(OTHER, 0);
     const other = engine.getPageText(SRC, 1);
     const render = service.renderPage(request(0, RENDER_PRIORITY.page));
-    await service.gateDrained();
-    expect(posted).toEqual(['render 0']);
-    renders[0]?.finish();
-    expect((await render).ok).toBe(true);
     await Promise.all([text, other]);
     expect(posted).toEqual(['render 0', `text ${OTHER}:0`, `text ${SRC}:1`]);
+    renders[0]?.finish();
+    expect((await render).ok).toBe(true);
   });
 
   it('does not hold reads for thumbnails', async () => {
@@ -94,7 +92,9 @@ describe('EngineService with its calls gated', () => {
     await render;
   });
 
-  it('lets a read go when the page render is cancelled', async () => {
+  it('answers the text of the page now shown while page renders are still queued (a scroll)', async () => {
+    // The compact reader's scroll: pages keep rendering, and each text layer asks for its text.
+    // Reads used to be held for as long as a page render waited, so the visible text never came.
     const { renderer, posted } = mock();
     const service = new EngineService({
       createRenderer: () => renderer,
@@ -102,15 +102,14 @@ describe('EngineService with its calls gated', () => {
       timings: false,
     });
     const engine = await service.engine();
-    const controller = new AbortController();
-    const render = service.renderPage(request(0, RENDER_PRIORITY.page, controller.signal));
-    const text = engine.getPageText(OTHER, 0);
-    await service.gateDrained();
-    expect(posted).toEqual(['render 0']);
-    controller.abort();
-    expect((await render).ok).toBe(false);
-    await text;
-    expect(posted).toEqual(['render 0', `text ${OTHER}:0`]);
+    for (let page = 0; page < 6; page++) {
+      void service.renderPage(request(page, RENDER_PRIORITY.page));
+    }
+    const texts = Array.from({ length: 12 }, (_, page) => engine.getPageText(SRC, page));
+    // Every text is answered with the renders still pending.
+    await Promise.all(texts);
+    expect(posted.filter((line) => line.startsWith('text'))).toHaveLength(12);
+    expect(service.pendingJobs).toBeGreaterThan(0);
   });
 
   it('posts calls at once when gating is off, as before', async () => {

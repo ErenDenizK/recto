@@ -19,16 +19,22 @@
  *   mutation and whatever depends on it never swap places; only reads, and writes on sources
  *   no waiting render shows (a scratch document), are postponed.
  * - Calls on different sources, and calls on bytes alone (`verify`), are independent.
- * - A call is held for at most `maxHoldMs`, so a stream of renders (a zoom, a scroll) cannot
- *   starve a read: an expired call is posted, in order, with the calls held before it on its
- *   source.
+ * - While a page's render waits, reads are posted right behind it, not held and not capped. A
+ *   first version held them (and a second capped them) for as long as a page render waited; in
+ *   the phone's reader, whose scroll keeps page renders queued and asks for the text of every
+ *   page it passes, the text of the page it stopped on never came (compact-capsule and
+ *   compact-edit-text, phone and phone-land).
+ * - While only other renders (thumbnails, tiles) wait, reads are trickled: at most `readTrickle`
+ *   of them are in flight at once, newest first, so a flood (300 `listAnnotations` for a
+ *   300-page document's page facts) cannot stand between the thumbnails and the worker, and
+ *   still makes progress.
+ * - A scratch document's write is held while any render waits, at most `maxHoldMs`, so a stream
+ *   of renders cannot starve it: an expired one is posted, in order, with the calls held before
+ *   it on its source.
  * - A held call whose `AbortSignal` fires is posted at once; the proxy rejects it as aborted.
- * - Reads wait while a page's render does. While only other renders (thumbnails, tiles) wait they
- *   are not held but trickled: at most `readTrickle` of them are in flight at once, so a flood (300
- *   `listAnnotations` for a 300-page document's page facts) cannot stand between the
- *   thumbnails and the worker, and still makes progress.
- * - A call is held only a macrotask when no page render waits: the gate decides after the tick
- *   in which a page's reads and its render are all issued, in whatever order.
+ * - A call is held only a macrotask when nothing waits: the gate decides after the tick in
+ *   which a page's reads and its render are all issued, in whatever order, so the render is
+ *   posted first.
  *
  * An unlisted method is not gated, and an unlisted one on the renderer is never wrapped, so a
  * test double without a method still reads as having none.
@@ -316,42 +322,64 @@ export class CallGate {
     const waiting = this.renderSources();
     const busy = pageBusy || waiting.size > 0;
     const now = this.now();
-    const keep: Held[] = [];
-    for (const entry of this.held) {
-      const expired = now - entry.issued >= this.maxHoldMs;
-      let release: boolean;
-      if (!busy) release = true;
-      else if (entry.kind === 'write') {
+    // Which calls go now.
+    const go = new Set<Held>();
+    // The cap is for floods behind thumbnails and tiles. While a page renders, reads are posted
+    // right behind its render and not capped: a scroll asks for the text of every page it passes,
+    // and capping those (newest first or oldest first) starves the page the reader stops on.
+    let slots =
+      busy && !pageBusy ? this.readTrickle - this.readsInFlight : Number.POSITIVE_INFINITY;
+    // Reads newest first: behind thumbnails, the ones asked last are the ones on screen, and the
+    // flood of older ones (page facts of the whole document) can wait.
+    for (let at = this.held.length - 1; at >= 0; at--) {
+      const entry = this.held[at] as Held;
+      if (entry.kind === 'read') {
+        if (slots > 0) {
+          go.add(entry);
+          slots -= 1;
+        }
+      } else if (
+        !busy ||
+        now - entry.issued >= this.maxHoldMs ||
         // A scratch document's write waits for the renders. The user's own calls never do:
         // a source of the service, or one a render shows.
-        release =
-          expired ||
-          (entry.source !== undefined &&
-            (waiting.has(entry.source) || this.foreground(entry.source)));
-      } else {
-        // Reads wait for a page; while other renders wait they go a few at a time.
-        release = (!pageBusy || expired) && this.readsInFlight < this.readTrickle;
+        (entry.source !== undefined && (waiting.has(entry.source) || this.foreground(entry.source)))
+      ) {
+        go.add(entry);
       }
-      if (!release) {
+    }
+    // Post them in the order they were made, each after the calls held on its source that must
+    // precede it: for a write all the earlier ones, for a read those up to the last write.
+    const keep: Held[] = [];
+    for (const entry of this.held) {
+      if (!go.has(entry)) {
         keep.push(entry);
         continue;
       }
-      // Calls kept before it on the same source go first, in the order they were made.
       if (entry.source !== undefined) {
-        for (let at = 0; at < keep.length; at++) {
+        let last = keep.length - 1;
+        if (entry.kind === 'read') {
+          last = -1;
+          keep.forEach((earlier, at) => {
+            if (earlier.kind === 'write' && earlier.source === entry.source) last = at;
+          });
+        }
+        for (let at = 0; at <= last; at++) {
           const earlier = keep[at] as Held;
           if (earlier.source !== entry.source) continue;
           keep.splice(at--, 1);
+          last -= 1;
           earlier.dispatch();
         }
       }
       entry.dispatch();
     }
     this.held = keep;
-    // Wake for the first call that is yet to expire. One already expired and still kept is a
-    // read at the trickle cap: it goes when a read in flight settles (`poke`), not by polling.
+    // Wake for the first held write that is yet to expire. Reads wait for a slot instead: they
+    // go when a read in flight settles (`poke`), not by polling.
     let next = Number.POSITIVE_INFINITY;
     for (const entry of keep) {
+      if (entry.kind !== 'write') continue;
       const left = entry.issued + this.maxHoldMs - now;
       if (left > 0) next = Math.min(next, left);
     }

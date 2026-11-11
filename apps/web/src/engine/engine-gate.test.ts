@@ -2,18 +2,23 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { CallGate, type CallGateOptions, sourceOf } from './engine-gate';
 
-/** A renderer double that records the order its calls are posted in. */
+/**
+ * A renderer double that records the order its calls are posted in. Reads stay in flight until
+ * the test settles them (`finish`), writes and the rest answer at once.
+ */
 function recorder() {
   const posted: string[] = [];
+  const finish = new Map<string, () => void>();
+  const read = (label: string) =>
+    new Promise<string>((resolve) => {
+      posted.push(label);
+      finish.set(label, () => resolve(label));
+    });
   const renderer = {
-    getPageText: (id: string, index: number) => {
-      posted.push(`text ${id}:${index}`);
-      return Promise.resolve(`text ${id}:${index}`);
-    },
+    getPageText: (id: string, index: number) => read(`text ${id}:${index}`),
     listAnnotations: (id: string, index: number, options?: { signal?: AbortSignal }) => {
-      posted.push(`annots ${id}:${index}`);
       if (options?.signal?.aborted) return Promise.reject(new Error('aborted'));
-      return Promise.resolve([]);
+      return read(`annots ${id}:${index}`);
     },
     createAnnotation: (id: string) => {
       posted.push(`create ${id}`);
@@ -31,10 +36,7 @@ function recorder() {
       posted.push(`render ${id}:${index}`);
       return Promise.resolve('bitmap');
     },
-    verify: (bytes: Uint8Array) => {
-      posted.push(`verify ${bytes.length}`);
-      return Promise.resolve('verified');
-    },
+    verify: (bytes: Uint8Array) => read(`verify ${bytes.length}`),
     destroy: () => {
       posted.push('destroy');
       return Promise.resolve();
@@ -44,201 +46,213 @@ function recorder() {
       return Promise.resolve('module');
     },
   };
-  return { renderer, posted };
+  return { renderer, posted, finish };
 }
 
-/** A gate whose waiting set the test controls. */
+/** A gate with thumbnails (or tiles) rendering for the sources in `waiting`, no page. */
 function gateWith(waiting: Set<string>, extra: Partial<CallGateOptions> = {}) {
-  return new CallGate({ visibleSources: () => waiting, ...extra });
+  return new CallGate({
+    visibleSources: () => new Set(),
+    renderSources: () => waiting,
+    ...extra,
+  });
 }
 
-/** A gate with nothing waiting: every call is posted at the next drain. */
-const gate0 = () => gateWith(new Set());
+/** A gate with a Read-mode page render queued or running for the sources in `waiting`. */
+function pageGateWith(waiting: Set<string>, extra: Partial<CallGateOptions> = {}) {
+  return new CallGate({ visibleSources: () => waiting, renderSources: () => waiting, ...extra });
+}
 
-describe('CallGate', () => {
-  it('posts calls in the order they were made once no page render waits', async () => {
-    const { renderer, posted } = recorder();
-    const gated = gateWith(new Set()).wrap(renderer);
+describe('CallGate: order and the render queue', () => {
+  it('posts calls in the order they were made once no render waits', async () => {
+    const { renderer, posted, finish } = recorder();
+    const gate = gateWith(new Set());
+    const gated = gate.wrap(renderer);
     const calls = [gated.open('a'), gated.getPageText('a', 0), gated.createAnnotation('a')];
     expect(posted).toEqual([]);
+    await gate.drained();
+    finish.get('text a:0')?.();
     await Promise.all(calls);
     expect(posted).toEqual(['open a', 'text a:0', 'create a']);
   });
 
-  it('holds reads and writes on other sources while a page render waits, and posts them in order when it ends', async () => {
-    const waiting = new Set(['a']);
-    const gate = gateWith(waiting);
+  it('posts a render ahead of the reads made before it in the same tick', async () => {
     const { renderer, posted } = recorder();
+    const waiting = new Set(['a']);
+    const gate = pageGateWith(waiting);
     const gated = gate.wrap(renderer);
-    const held = [
-      gated.getPageText('a', 0),
-      gated.open('scratch'),
-      gated.listAnnotations('a', 0),
-      gated.createAnnotation('scratch'),
-    ];
-    // The page's render is posted ahead of all of them.
+    void gated.getPageText('a', 0);
+    void gated.listAnnotations('a', 0);
     await gated.renderPage('a', 0);
-    // The gate decides (one macrotask) with the render still waiting.
     await gate.drained();
-    expect(posted).toEqual(['render a:0']);
-    expect(gate.heldCount).toBe(4);
-    waiting.clear();
-    gate.poke();
-    await Promise.all(held);
-    expect(posted).toEqual([
-      'render a:0',
-      'text a:0',
-      'open scratch',
-      'annots a:0',
-      'create scratch',
-    ]);
-    expect(gate.heldCount).toBe(0);
+    expect(posted).toEqual(['render a:0', 'text a:0', 'annots a:0']);
   });
 
-  it('does not hold a write on a source whose page waits, and posts the reads held before it first', async () => {
-    const waiting = new Set(['a']);
-    const gate = gateWith(waiting);
-    const { renderer, posted } = recorder();
+  it('posts the held writes of a source, and the reads before them, ahead of its render', async () => {
+    const waiting = new Set(['b']);
+    const gate = gateWith(waiting, { readTrickle: 1 });
+    const { renderer, posted, finish } = recorder();
     const gated = gate.wrap(renderer);
-    const read = gated.getPageText('a', 3);
-    const other = gated.getPageText('b', 1);
-    const write = gated.createAnnotation('a');
-    await Promise.all([read, write]);
-    expect(posted).toEqual(['text a:3', 'create a']);
-    // The read on the other source is still held.
-    expect(gate.heldCount).toBe(1);
-    waiting.clear();
-    gate.poke();
-    await other;
-    expect(posted).toEqual(['text a:3', 'create a', 'text b:1']);
-  });
-
-  it('posts the held writes of a source, and the reads before them, ahead of its render; later reads stay held', async () => {
-    const waiting = new Set<string>(['b']);
-    const gate = gateWith(waiting);
-    const { renderer, posted } = recorder();
-    const gated = gate.wrap(renderer);
-    const first = gated.getPageText('a', 0);
-    const write = gated.createAnnotation('a');
-    const later = gated.getPageText('a', 1);
-    // A page of `a` is asked for after all three: the write must be posted before it.
+    // `b`'s read is the newest and takes the one slot, so the rest stay held behind it.
+    void gated.getPageText('a', 0);
+    void gated.createAnnotation('a');
+    void gated.getPageText('a', 1);
+    void gated.getPageText('b', 9);
+    await gate.drained();
+    expect(posted).toEqual(['text b:9']);
     waiting.add('a');
     await gated.renderPage('a', 0);
-    await Promise.all([first, write]);
-    expect(posted).toEqual(['text a:0', 'create a', 'render a:0']);
-    expect(gate.heldCount).toBe(1);
-    waiting.clear();
-    gate.poke();
-    await later;
-    expect(posted.at(-1)).toBe('text a:1');
+    expect(posted).toEqual(['text b:9', 'text a:0', 'create a', 'render a:0']);
+    // The read made after the write is still held, and goes when a slot frees.
+    finish.get('text b:9')?.();
+    finish.get('text a:0')?.();
+    await vi.waitFor(() => expect(posted.at(-1)).toBe('text a:1'));
   });
 
   it('posts an interactive call at once, after the calls held on its source', async () => {
     const waiting = new Set(['a']);
-    const gate = gateWith(waiting);
+    const gate = gateWith(waiting, { readTrickle: 1 });
     const { renderer, posted } = recorder();
     const gated = gate.wrap(renderer);
-    const read = gated.getPageText('a', 0);
-    const elsewhere = gated.getPageText('b', 0);
+    void gated.getPageText('a', 0);
+    void gated.getPageText('b', 0);
+    await gate.drained();
+    expect(posted).toEqual(['text b:0']);
     await gated.renderParagraphPreview('a');
-    await read;
-    expect(posted).toEqual(['text a:0', 'preview a']);
-    expect(gate.heldCount).toBe(1);
-    waiting.clear();
-    gate.poke();
-    await elsewhere;
+    expect(posted).toEqual(['text b:0', 'text a:0', 'preview a']);
   });
 
-  it('releases a call held longer than maxHoldMs without a render ending', async () => {
+  it('destroy posts every held call first, whatever its source', async () => {
     const waiting = new Set(['a']);
-    let clock = 0;
-    const gate = gateWith(waiting, { maxHoldMs: 750, now: () => clock });
-    const { renderer, posted } = recorder();
-    const call = gate.wrap(renderer).getPageText('b', 0);
-    await gate.drained();
-    expect(posted).toEqual([]);
-    clock = 749;
-    gate.poke();
-    expect(posted).toEqual([]);
-    clock = 750;
-    gate.poke();
-    expect(await call).toBe('text b:0');
-    // Still waiting: the call went out because it had been held long enough.
-    expect(waiting.size).toBe(1);
-  });
-
-  it('posts a held call at once when its signal aborts, so the proxy can reject it', async () => {
-    const waiting = new Set(['a']);
-    const gate = gateWith(waiting);
+    const gate = gateWith(waiting, { readTrickle: 1 });
     const { renderer, posted } = recorder();
     const gated = gate.wrap(renderer);
-    const controller = new AbortController();
-    const call = gated.listAnnotations('b', 0, { signal: controller.signal });
+    void gated.getPageText('b', 0);
+    void gated.open('scratch');
+    void gated.listAnnotations('c', 1);
     await gate.drained();
-    expect(posted).toEqual([]);
-    controller.abort();
-    await expect(call).rejects.toThrow('aborted');
-    expect(posted).toEqual(['annots b:0']);
+    expect(posted).toEqual(['annots c:1']);
+    await gated.destroy();
+    expect(posted).toEqual(['annots c:1', 'text b:0', 'open scratch', 'destroy']);
     expect(gate.heldCount).toBe(0);
   });
 
-  it('leaves methods it does not list alone, and invents none', async () => {
+  it('holds and releases a call that names no source, with no order to keep', async () => {
     const waiting = new Set(['a']);
-    const gate = gateWith(waiting);
-    const { renderer, posted } = recorder();
+    const gate = gateWith(waiting, { readTrickle: 1 });
+    const { renderer, posted, finish } = recorder();
     const gated = gate.wrap(renderer);
-    expect(await gated.compiledWasm()).toBe('module');
-    expect(posted).toEqual(['wasm']);
-    expect('save' in gated).toBe(false);
-    expect((gated as { save?: unknown }).save).toBeUndefined();
+    void gated.getPageText('b', 0);
+    const checked = gated.verify(new Uint8Array(3));
+    await gate.drained();
+    // The newest read took the slot, the other waits for it.
+    expect(posted).toEqual(['verify 3']);
+    finish.get('verify 3')?.();
+    await checked;
+    await vi.waitFor(() => expect(posted).toEqual(['verify 3', 'text b:0']));
+  });
+});
+
+describe('CallGate: reads while renders wait', () => {
+  it('posts every read right behind a page render, uncapped: a scroll does not starve the page it stops on', async () => {
+    const waiting = new Set(['a']);
+    const gate = pageGateWith(waiting, { readTrickle: 2 });
+    const { renderer, posted, finish } = recorder();
+    const gated = gate.wrap(renderer);
+    // A scroll: the text layers of pages 0..11 ask while page renders stay queued.
+    const calls = Array.from({ length: 12 }, (_, page) => gated.getPageText('a', page));
+    await gate.drained();
+    // All posted at once, none held for the render, none waiting for another to settle: the
+    // reads used to be held (then capped) for as long as a page render waited, and the text of
+    // the page the reader stopped on never came.
+    expect(posted.length).toBe(12);
+    expect(gate.heldCount).toBe(0);
+    for (const done of finish.values()) done();
+    await Promise.all(calls);
   });
 
-  it('reads the source off an id, a ref or a run', () => {
-    expect(sourceOf(['s1', 2])).toBe('s1');
-    expect(sourceOf([{ source: 's2', pageIndex: 0 }])).toBe('s2');
-    expect(sourceOf([{ run: { source: 's3' }, replacement: 'x' }])).toBe('s3');
-    expect(sourceOf([new Uint8Array(2)])).toBeUndefined();
-    expect(sourceOf([])).toBeUndefined();
-  });
-
-  it('trickles reads while only thumbnails wait: a few in flight, the rest as they finish', async () => {
+  it('goes a few at a time while only thumbnails render, newest first, and the rest at once when they end', async () => {
     let thumbnails = true;
     const gate = new CallGate({
       visibleSources: () => new Set(),
       renderSources: () => (thumbnails ? new Set(['a']) : new Set()),
       readTrickle: 2,
     });
-    const started: number[] = [];
-    const finish: (() => void)[] = [];
-    const renderer = {
-      listAnnotations: (_id: string, index: number) =>
-        new Promise<number>((resolve) => {
-          started.push(index);
-          finish.push(() => resolve(index));
-        }),
-    };
+    const { renderer, posted, finish } = recorder();
     const gated = gate.wrap(renderer);
-    const calls = [0, 1, 2, 3, 4].map((index) => gated.listAnnotations('a', index));
+    const calls = [0, 1, 2, 3, 4].map((page) => gated.listAnnotations('a', page));
     await gate.drained();
-    expect(started).toEqual([0, 1]);
-    finish[0]?.();
-    await vi.waitFor(() => expect(started).toEqual([0, 1, 2]));
-    // The thumbnails are done: everything left goes at once.
+    expect(posted).toEqual(['annots a:3', 'annots a:4']);
+    finish.get('annots a:4')?.();
+    await vi.waitFor(() => expect(posted.at(-1)).toBe('annots a:2'));
     thumbnails = false;
-    finish[1]?.();
-    await vi.waitFor(() => expect(started).toEqual([0, 1, 2, 3, 4]));
-    for (const done of finish) done();
-    expect(await Promise.all(calls)).toEqual([0, 1, 2, 3, 4]);
+    finish.get('annots a:3')?.();
+    await vi.waitFor(() => expect(posted.length).toBe(5));
+    for (const done of finish.values()) done();
+    await Promise.all(calls);
   });
 
-  it("holds a scratch document's writes while thumbnails render, but not those on the rendered source", async () => {
+  it('a read at the cap goes when one settles, without a timer to poll', async () => {
+    const waiting = new Set(['a']);
+    let clock = 0;
+    const gate = gateWith(waiting, { maxHoldMs: 750, now: () => clock, readTrickle: 1 });
+    const { renderer, posted, finish } = recorder();
+    const gated = gate.wrap(renderer);
+    const calls = [0, 1, 2].map((page) => gated.listAnnotations('b', page));
+    await gate.drained();
+    expect(posted).toEqual(['annots b:2']);
+    clock = 5_000;
+    const timers = vi.spyOn(globalThis, 'setTimeout');
+    gate.poke();
+    expect(posted).toEqual(['annots b:2']);
+    expect(timers).not.toHaveBeenCalled();
+    finish.get('annots b:2')?.();
+    await vi.waitFor(() => expect(posted).toEqual(['annots b:2', 'annots b:1']));
+    finish.get('annots b:1')?.();
+    await vi.waitFor(() => expect(posted.length).toBe(3));
+    expect(timers).not.toHaveBeenCalled();
+    timers.mockRestore();
+    for (const done of finish.values()) done();
+    await Promise.all(calls);
+  });
+
+  it('a read released at the cap takes the held writes of its source before it', async () => {
+    const gate = new CallGate({
+      visibleSources: () => new Set(),
+      renderSources: () => new Set(['shown']),
+    });
+    const { renderer, posted, finish } = recorder();
+    const gated = gate.wrap(renderer);
+    void gated.createAnnotation('scratch');
+    void gated.getPageText('scratch', 0);
+    await gate.drained();
+    finish.get('text scratch:0')?.();
+    expect(posted).toEqual(['create scratch', 'text scratch:0']);
+  });
+
+  it('posts a held call at once when its signal aborts, so the proxy can reject it', async () => {
+    const gate = gateWith(new Set(['a']), { readTrickle: 1 });
+    const { renderer, posted } = recorder();
+    const gated = gate.wrap(renderer);
+    const controller = new AbortController();
+    const call = gated.listAnnotations('b', 1, { signal: controller.signal });
+    void gated.getPageText('b', 0);
+    await gate.drained();
+    expect(posted).toEqual(['text b:0']);
+    controller.abort();
+    await expect(call).rejects.toThrow('aborted');
+    expect(gate.heldCount).toBe(0);
+  });
+});
+
+describe('CallGate: writes while renders wait', () => {
+  it("holds a scratch document's writes, not those on a rendered source, and posts them when the renders end", async () => {
     const shown = new Set(['a']);
     const gate = new CallGate({ visibleSources: () => new Set(), renderSources: () => shown });
     const { renderer, posted } = recorder();
     const gated = gate.wrap(renderer);
     const scratch = gated.open('scratch');
-    const edit = gated.createAnnotation('a');
-    await edit;
+    await gated.createAnnotation('a');
     await gate.drained();
     expect(posted).toEqual(['create a']);
     expect(gate.heldCount).toBe(1);
@@ -248,92 +262,21 @@ describe('CallGate', () => {
     expect(posted).toEqual(['create a', 'open scratch']);
   });
 
-  it('gates a method replaced after its first use (a spy), not the one it replaced', async () => {
-    const { renderer, posted } = recorder();
-    const gated = gate0().wrap(renderer);
-    await gated.getPageText('a', 0);
-    const original = renderer.getPageText;
-    renderer.getPageText = (id: string, index: number) => {
-      posted.push(`spy ${id}:${index}`);
-      return original(id, index);
-    };
-    await gated.getPageText('a', 1);
-    expect(posted).toEqual(['text a:0', 'spy a:1', 'text a:1']);
-  });
-
-  it('with the trickle cap full, expired reads go as reads settle, without polling', async () => {
+  it('releases a held write after maxHoldMs, by the injected clock', async () => {
     const waiting = new Set(['a']);
     let clock = 0;
-    const gate = gateWith(waiting, { maxHoldMs: 750, now: () => clock, readTrickle: 1 });
-    const started: number[] = [];
-    const finish: (() => void)[] = [];
-    const gated = gate.wrap({
-      listAnnotations: (_id: string, index: number) =>
-        new Promise<number>((resolve) => {
-          started.push(index);
-          finish.push(() => resolve(index));
-        }),
-    });
-    const calls = [0, 1, 2].map((index) => gated.listAnnotations('b', index));
+    const gate = gateWith(waiting, { maxHoldMs: 750, now: () => clock });
+    const { renderer, posted } = recorder();
+    const write = gate.wrap(renderer).open('scratch');
     await gate.drained();
-    expect(started).toEqual([]);
+    expect(posted).toEqual([]);
+    clock = 749;
+    gate.poke();
+    expect(posted).toEqual([]);
     clock = 750;
-    const timers = vi.spyOn(globalThis, 'setTimeout');
     gate.poke();
-    // One read at the cap; the others are expired, and no timer is armed to retry them.
-    expect(started).toEqual([0]);
-    expect(timers).not.toHaveBeenCalled();
-    finish[0]?.();
-    await vi.waitFor(() => expect(started).toEqual([0, 1]));
-    finish[1]?.();
-    await vi.waitFor(() => expect(started).toEqual([0, 1, 2]));
-    expect(timers).not.toHaveBeenCalled();
-    timers.mockRestore();
-    finish[2]?.();
-    expect(await Promise.all(calls)).toEqual([0, 1, 2]);
-  });
-
-  it("a read released under the trickle cap takes its source's held writes with it, first", async () => {
-    const gate = new CallGate({
-      visibleSources: () => new Set(),
-      renderSources: () => new Set(['shown']),
-    });
-    const { renderer, posted } = recorder();
-    const gated = gate.wrap(renderer);
-    const write = gated.createAnnotation('scratch');
-    const read = gated.getPageText('scratch', 0);
-    await read;
-    await write;
-    expect(posted).toEqual(['create scratch', 'text scratch:0']);
-  });
-
-  it('destroy posts every held call first, whatever its source', async () => {
-    const waiting = new Set(['a']);
-    const gate = gateWith(waiting);
-    const { renderer, posted } = recorder();
-    const gated = gate.wrap(renderer);
-    const held = [gated.getPageText('b', 0), gated.open('scratch'), gated.listAnnotations('c', 1)];
-    await gate.drained();
-    expect(posted).toEqual([]);
-    await gated.destroy();
-    expect(posted).toEqual(['text b:0', 'open scratch', 'annots c:1', 'destroy']);
-    await Promise.all(held);
-    expect(gate.heldCount).toBe(0);
-  });
-
-  it('holds and releases a call that names no source, with no order to keep', async () => {
-    const waiting = new Set(['a']);
-    const gate = gateWith(waiting);
-    const { renderer, posted } = recorder();
-    const gated = gate.wrap(renderer);
-    const checked = gated.verify(new Uint8Array(3));
-    const read = gated.getPageText('b', 0);
-    await gate.drained();
-    expect(posted).toEqual([]);
-    waiting.clear();
-    gate.poke();
-    await Promise.all([checked, read]);
-    expect(posted).toEqual(['verify 3', 'text b:0']);
+    expect(await write).toBe('opened');
+    expect(waiting.size).toBe(1);
   });
 
   it("never holds the user's own writes: a foreground source goes at once, a scratch one waits", async () => {
@@ -346,13 +289,72 @@ describe('CallGate', () => {
     const { renderer, posted } = recorder();
     const gated = gate.wrap(renderer);
     const scratch = gated.open('scratch');
-    const mine = gated.open('opened-by-user');
-    await mine;
+    await gated.open('opened-by-user');
     await gate.drained();
     expect(posted).toEqual(['open opened-by-user']);
     shown.clear();
     gate.poke();
     await scratch;
     expect(posted).toEqual(['open opened-by-user', 'open scratch']);
+  });
+
+  it('keeps a source in order: a released write takes the reads held before it first', async () => {
+    const shown = new Set(['x']);
+    let clock = 0;
+    const gate = new CallGate({
+      visibleSources: () => new Set(),
+      renderSources: () => shown,
+      readTrickle: 1,
+      now: () => clock,
+    });
+    const { renderer, posted } = recorder();
+    const gated = gate.wrap(renderer);
+    void gated.getPageText('y', 1);
+    void gated.getPageText('s', 0);
+    void gated.createAnnotation('s');
+    await gate.drained();
+    // `s`'s read is not at the front of the cap and its write is a scratch one: both held.
+    expect(posted).toEqual(['text s:0']);
+    clock = 750;
+    gate.poke();
+    expect(posted).toEqual(['text s:0', 'create s']);
+  });
+});
+
+describe('CallGate: the wrapper', () => {
+  it('leaves methods it does not list alone, and invents none', async () => {
+    const gate = gateWith(new Set(['a']));
+    const { renderer, posted } = recorder();
+    const gated = gate.wrap(renderer);
+    expect(await gated.compiledWasm()).toBe('module');
+    expect(posted).toEqual(['wasm']);
+    expect('save' in gated).toBe(false);
+    expect((gated as { save?: unknown }).save).toBeUndefined();
+  });
+
+  it('gates a method replaced after its first use (a spy), not the one it replaced', async () => {
+    const { renderer, posted, finish } = recorder();
+    const gate = gateWith(new Set());
+    const gated = gate.wrap(renderer);
+    const first = gated.getPageText('a', 0);
+    await gate.drained();
+    finish.get('text a:0')?.();
+    await first;
+    const original = renderer.getPageText;
+    renderer.getPageText = (id: string, index: number) => {
+      posted.push(`spy ${id}:${index}`);
+      return original(id, index);
+    };
+    void gated.getPageText('a', 1);
+    await gate.drained();
+    expect(posted).toEqual(['text a:0', 'spy a:1', 'text a:1']);
+  });
+
+  it('reads the source off an id, a ref or a run', () => {
+    expect(sourceOf(['s1', 2])).toBe('s1');
+    expect(sourceOf([{ source: 's2', pageIndex: 0 }])).toBe('s2');
+    expect(sourceOf([{ run: { source: 's3' }, replacement: 'x' }])).toBe('s3');
+    expect(sourceOf([new Uint8Array(2)])).toBeUndefined();
+    expect(sourceOf([])).toBeUndefined();
   });
 });
