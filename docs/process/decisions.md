@@ -427,6 +427,7 @@ Full rows: [`decisions/process.md`](decisions/process.md).
 | [PRC-33](decisions/process.md) | Deep cycles research big companies' moves; the console keeps two ranked lists (improvements, big moves); briefs carry visuals and live in an expandable HQ | In force | 2026-10-25 |
 | [PRC-34](decisions/process.md) | Workflow skills from our own lessons: repo-gates, decision-rows, merge-queue, hq-report; no external skill adopted | In force | 2026-10-26 |
 | [PRC-35](decisions/process.md) | Every lane measured, every failure a lesson row; no model below the builder tier; effort chosen per task | In force | 2026-10-31 |
+| [PRC-36](decisions/process.md) | CI runs once per pull request: pushes run it only on develop and main | In force | 2026-11-11 |
 
 ## Foundations (ADR titles)
 
