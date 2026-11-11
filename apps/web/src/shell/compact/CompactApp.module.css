@@ -25,6 +25,11 @@
 }
 
 .root {
+  /* The compact edition's capsule: 60 high with 48 slots and 12 between the options and it
+     (DSN-91, EDN-29), over the tokens' 56 / 44 / 10. */
+  --capsule-h: 60px;
+  --capsule-slot: 48px;
+  --options-gap: 12px;
   position: fixed;
   inset: 0;
   height: 100dvh;
@@ -46,4 +51,14 @@
   height: auto;
   min-height: 100dvh;
   overflow: clip visible;
+}
+
+/*
+ * The toast stack stands above the capsule (Toast.module.css reads 56 px and 12 px, the shipped
+ * capsule's): the Home's dock and the single capsule are 60 px high and stand max(safe area, 30
+ * px) from the bottom (EDN-29), so the stack's band follows them, 8 px above (--space-2).
+ */
+:global(:root[data-compact-place='library']) :global([data-edition='compact'][data-band='shown']),
+:global(:root[data-phone-capsule]) :global([data-edition='compact'][data-band='shown']) {
+  --toast-band: calc(max(env(safe-area-inset-bottom, 0px), 30px) + 60px + var(--space-2));
 }

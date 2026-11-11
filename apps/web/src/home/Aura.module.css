@@ -32,24 +32,6 @@
   contain: strict;
 }
 
-:global([data-theme='light']) .aura {
-  --aura-peak-mint: 0.3;
-  --aura-peak-lime: 0.34;
-  --aura-peak-yellow: 0.28;
-  --aura-peak-glint: 0.2;
-  --aura-peak-low: 0.22;
-}
-
-@media (prefers-color-scheme: light) {
-  :global(:root:not([data-theme])) .aura {
-    --aura-peak-mint: 0.3;
-    --aura-peak-lime: 0.34;
-    --aura-peak-yellow: 0.3;
-    --aura-peak-glint: 0.2;
-    --aura-peak-low: 0.22;
-  }
-}
-
 /* Behind the reader (G5): the same light, dimmer and still, so the white page stays the
    brightest thing and nothing competes with what is on it. A document view keeps Q-10's zero
    frames at rest, so the reader's glass never re-blurs a moving backdrop while one works. */
@@ -60,34 +42,6 @@
 .aura[data-tone='reader'] .lobe {
   animation: none;
   will-change: auto;
-}
-
-/* Fener (DSN-88, `styles/fener.css`): the glow is where the gradient lives, the theme colour
-   (--aura-mint, the left and low lobes), then sky (--aura-lime), then green (--aura-yellow), the
-   logo's ramp. Bold on the Library; behind the reader dimmed to 30 % in the light theme and 50 %
-   in the dark, and still. Solid glass keeps its own opacities above. */
-:global(:root[data-fener][data-theme='light']) .aura {
-  --aura-peak-mint: 0.62;
-  --aura-peak-lime: 0.42;
-  --aura-peak-yellow: 0.4;
-  --aura-peak-glint: 0.3;
-  --aura-peak-low: 0.45;
-}
-
-:global(:root[data-fener][data-theme='dark']) .aura {
-  --aura-peak-mint: 0.4;
-  --aura-peak-lime: 0.2;
-  --aura-peak-yellow: 0.14;
-  --aura-peak-glint: 0.12;
-  --aura-peak-low: 0.24;
-}
-
-:global(:root[data-fener][data-theme='light']:not([data-glass='solid'])) .aura[data-tone='reader'] {
-  opacity: 0.3;
-}
-
-:global(:root[data-fener][data-theme='dark']:not([data-glass='solid'])) .aura[data-tone='reader'] {
-  opacity: 0.5;
 }
 
 /* The drift loops (Q-10: a loop is named, never a bare time), one per lobe, each a prime
@@ -172,6 +126,39 @@
   animation-name: aura-drift-c;
   animation-duration: var(--loop-low);
   animation-direction: alternate-reverse;
+}
+
+/* Home's two lobes (DSN-94; home-recents.html): one radial gradient each, 840 and 760 across, the
+   colour's own alpha at its centre and the tone's opacity over it. The mockup blurs each 20 px;
+   the gradient already falls off to nothing at 70 %, so the blur changes no pixel by a visible
+   amount, and a filter on a layer whose transform and opacity move would be re-run every frame
+   (A-23: nothing paints while it drifts). They drift on the same loops, by transform and opacity
+   alone. */
+.lobe[data-lobe='teal'],
+.lobe[data-lobe='home-mint'] {
+  border-radius: 50%;
+}
+
+.lobe[data-lobe='teal'] {
+  top: calc(10% - 420px);
+  left: calc(85% - 420px);
+  width: 840px;
+  height: 840px;
+  background: radial-gradient(circle, var(--home-lobe-teal) 0, transparent 70%);
+  opacity: 0.35;
+  animation-name: aura-drift-b;
+  animation-duration: var(--loop-lime);
+}
+
+.lobe[data-lobe='home-mint'] {
+  top: calc(100% - 380px);
+  left: calc(10% - 380px);
+  width: 760px;
+  height: 760px;
+  background: radial-gradient(circle, var(--home-lobe-mint) 0, transparent 70%);
+  opacity: 0.4;
+  animation-name: aura-drift-c;
+  animation-duration: var(--loop-low);
 }
 
 @keyframes aura-drift-a {

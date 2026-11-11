@@ -1,16 +1,29 @@
 /*
- * The Redo chip (RedoChip.tsx; EDN-24): an M1 glass circle of 44 px (Q-9) above Undo. It enters
- * from the capsule's Undo, scale .6 to 1 with a fade, on --spring-quick; it leaves on
- * --duration-fast. Transform and opacity only; at rest nothing animates. Reduced motion: a fade.
+ * The Undo and Redo chips (RedoChip.tsx; EDN-24, EDN-29): smoked glass circles of 44 px (Q-9),
+ * their glyphs 24 (DSN-95), in the gutters either side of the tray. Redo enters from Undo, scale
+ * .6 to 1 with a fade, on --spring-quick; it leaves on --duration-fast. Transform and opacity
+ * only; at rest nothing animates. Reduced motion: a fade.
  */
 .chip {
   composes: mat mat-chip s7 c8 from global;
-  color: var(--text-primary);
-  transform-origin: 50% 100%;
+  color: var(--glyph-on-glass);
+}
+
+.chip svg {
+  width: var(--icon-action);
+  height: var(--icon-action);
+}
+
+.chip[aria-disabled='true'] {
+  color: var(--text-disabled);
+}
+
+.redo {
+  transform-origin: 0% 50%;
   animation: chip-in var(--spring-quick) var(--ease-spring) both;
 }
 
-.chip[data-leaving] {
+.redo[data-leaving] {
   pointer-events: none;
   animation: chip-out var(--duration-fast) var(--ease-out) both;
 }
@@ -49,19 +62,19 @@ button.chip {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .chip {
+  .redo {
     animation: chip-fade-in var(--duration-fast) var(--ease-out) both;
   }
 
-  .chip[data-leaving] {
+  .redo[data-leaving] {
     animation: chip-fade-out var(--duration-fast) var(--ease-out) both;
   }
 }
 
-:global(:root[data-motion='reduced']) .chip {
+:global(:root[data-motion='reduced']) .redo {
   animation: chip-fade-in var(--duration-fast) var(--ease-out) both;
 }
 
-:global(:root[data-motion='reduced']) .chip[data-leaving] {
+:global(:root[data-motion='reduced']) .redo[data-leaving] {
   animation: chip-fade-out var(--duration-fast) var(--ease-out) both;
 }

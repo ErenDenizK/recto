@@ -35,7 +35,6 @@ import { registerFurnitureCommands } from '../furniture';
 import { registerFormCommands } from '../forms';
 import { redoStep, undoStep } from '../history/actions';
 import { openHistoryScrubber } from '../history/scrubber-store';
-import { deskEnabled } from '../home/desk-flag';
 import { openInRead, showHome, showOpened, watchDestination } from '../home/home-actions';
 import { closeMarkupDoor, openMarkupDoor } from '../markup/doors';
 import { isLocked } from '../state/lock-store';
@@ -474,33 +473,29 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
           }),
         ]
       : []),
-    // The desk's three file commands (DSN-87, PRC-25: behind the desk flag). They work with
-    // nothing open and carry the conversion names people search for in ⌘K.
-    ...(deskEnabled()
-      ? [
-          registry.register({
-            id: 'file.signPdf',
-            title: m.desk_sign(),
-            group: m.group_file(),
-            act: null,
-            run: signPdfFromPicker,
-          }),
-          registry.register({
-            id: 'file.imagesToPdf',
-            title: m.cmd_images_to_pdf(),
-            group: m.group_file(),
-            act: null,
-            run: imagesToPdfFromPicker,
-          }),
-          registry.register({
-            id: 'file.pdfToImages',
-            title: m.cmd_pdf_to_images(),
-            group: m.group_file(),
-            act: null,
-            run: pdfToImagesFromPicker,
-          }),
-        ]
-      : []),
+    // The desk's three file commands (DSN-87, PRC-25). They work with nothing open and carry the
+    // conversion names people search for in ⌘K.
+    registry.register({
+      id: 'file.signPdf',
+      title: m.desk_sign(),
+      group: m.group_file(),
+      act: null,
+      run: signPdfFromPicker,
+    }),
+    registry.register({
+      id: 'file.imagesToPdf',
+      title: m.cmd_images_to_pdf(),
+      group: m.group_file(),
+      act: null,
+      run: imagesToPdfFromPicker,
+    }),
+    registry.register({
+      id: 'file.pdfToImages',
+      title: m.cmd_pdf_to_images(),
+      group: m.group_file(),
+      act: null,
+      run: pdfToImagesFromPicker,
+    }),
     registry.register({
       id: 'file.textToPdf',
       title: m.cmd_text_to_pdf(),

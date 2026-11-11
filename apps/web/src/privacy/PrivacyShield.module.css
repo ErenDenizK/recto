@@ -184,3 +184,51 @@
     color: var(--text-primary);
   }
 }
+
+/* Home's "On this device" (DSN-92): lock 16 and 12 px tertiary text, no circle. */
+.status {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  height: var(--strip-control);
+  padding: 0 6px;
+  border-radius: var(--radius-control);
+  color: var(--text-tertiary);
+  font-size: var(--type-footnote);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.status > svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+@media (hover: hover) {
+  .status:hover {
+    color: var(--text-secondary);
+  }
+}
+
+.status[data-popup-open] {
+  color: var(--text-primary);
+}
+
+.status[data-state='external'] {
+  color: var(--warning);
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .status::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 44px;
+    transform: translateY(-50%);
+  }
+}

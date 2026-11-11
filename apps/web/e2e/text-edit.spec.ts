@@ -25,13 +25,14 @@ import { fileURLToPath } from 'node:url';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
 import {
+  historyStep,
+  inHistory,
+  openButton,
+  openFindPanel,
   openFixtures,
   openSaveCopy,
-  inHistory,
-  historyStep,
-  useFileInputPicker,
-  openFindPanel,
   stageAsBesideInspector,
+  useFileInputPicker,
 } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
@@ -177,7 +178,7 @@ test('replace a word in the Helvetica line, export, re-open: the edited line rea
 
   // Re-open the export and search it.
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await chooser).setFiles({
     name: 'edited.pdf',
     mimeType: 'application/pdf',

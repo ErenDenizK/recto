@@ -346,9 +346,8 @@ test('Clear in the privacy popover deletes every snapshot, for good', async ({
   await expect(page.getByRole('tab', { name: 'simple-text' })).toHaveCount(0);
   const recents = page.getByRole('list', { name: 'Recent files' });
   await expect(recents.getByRole('button', { name: /changes kept/ })).toHaveCount(0);
-  // Settings says so (the Library's privacy chip left, DSN-46).
-  await page.getByTestId('library-menu').click();
-  await page.getByTestId('library-menu-settings').click();
+  // Settings says so (Home's gear opens it).
+  await page.getByTestId('home-settings').click();
   await expect(page.getByText('Nothing kept yet')).toBeVisible();
 });
 

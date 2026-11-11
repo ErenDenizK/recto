@@ -13,13 +13,14 @@ import { createRequire } from 'node:module';
 import { expect, type Page, test } from '@playwright/test';
 
 import {
-  fixturePath,
-  openSaveCopy,
-  inHistory,
-  historyStep,
-  useFileInputPicker,
-  openFindPanel,
   EDIT_TEXT_ARMED,
+  fixturePath,
+  historyStep,
+  inHistory,
+  openButton,
+  openFindPanel,
+  openSaveCopy,
+  useFileInputPicker,
 } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
@@ -81,7 +82,7 @@ test('type a word into a paragraph, preview, Esc commits once; the export reads 
   page,
 }) => {
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await chooser).setFiles(fixturePath('text-edit-corpus/word-tagged.pdf'));
   await expect(page.getByRole('tab', { name: 'word-tagged' })).toBeVisible();
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
@@ -139,7 +140,7 @@ test('type a word into a paragraph, preview, Esc commits once; the export reads 
 
   // Re-open the export and search it.
   const reopen = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await reopen).setFiles({ name: 'edited.pdf', mimeType: 'application/pdf', buffer: bytes });
   await expect(page.getByRole('tab', { name: 'edited', exact: true })).toBeVisible();
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
@@ -161,7 +162,7 @@ test('typing ‘ğ’ into a Helvetica paragraph names Noto Sans; the export rea
 }) => {
   const FOX = 'The quick brown fox jumps over the lazy dog';
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await chooser).setFiles(fixturePath('text-edit-fonts.pdf'));
   await expect(page.getByRole('tab', { name: 'text-edit-fonts' })).toBeVisible();
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
@@ -217,7 +218,7 @@ test('typing ‘ğ’ into a Helvetica paragraph names Noto Sans; the export rea
   await page.keyboard.press('Escape');
 
   const reopen = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await reopen).setFiles({
     name: 'turkish.pdf',
     mimeType: 'application/pdf',
@@ -240,7 +241,7 @@ test('typing ‘ğ’ into a Helvetica paragraph names Noto Sans; the export rea
 test('select all, delete, retype: the new text is laid out and commits', async ({ page }) => {
   const NEW = 'Hello world';
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await chooser).setFiles(fixturePath('text-edit-corpus/word-tagged.pdf'));
   await expect(page.getByRole('tab', { name: 'word-tagged' })).toBeVisible();
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({

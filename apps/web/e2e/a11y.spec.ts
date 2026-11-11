@@ -30,10 +30,11 @@ import {
   atRest,
   enterEdit,
   fixturePath,
+  openButton,
   openFixtures,
-  useFileInputPicker,
   openSaveCopyFromMenu,
   showSidebar,
+  useFileInputPicker,
 } from './helpers';
 import { settleAnimations } from './support/glass-walker';
 import { auditTargets } from './support/targets';
@@ -163,7 +164,7 @@ test.describe('keyboard', () => {
     await expect(navigator.locator('[aria-current="page"]')).toBeFocused();
   });
 
-  test('Library: the launcher, Select, then the cards; arrows, Space, the Esc ladder, Enter; F6 lands on a card', async ({
+  test('Library: Continue, the panel, Select, then the covers; arrows, Space, the Esc ladder, Enter; F6 lands on a cover', async ({
     page,
   }) => {
     await page.goto('./?lang=en');
@@ -183,18 +184,18 @@ test.describe('keyboard', () => {
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('library-select')).toHaveText('Select');
 
-    // The launcher's actions first, then Select, then one Tab stop in the grid (L1 §6).
-    const launcher = page.getByTestId('library-launcher').getByRole('button');
-    const actions = await launcher.count();
-    // Open files…, Combine files…, Batch…; Library ⋯ is in the top strip (L12) and Try the
-    // sample is the card after the documents (DSN-50).
-    expect(actions).toBe(3);
-    await launcher.first().focus();
-    await expect(launcher.first()).toHaveAccessibleName('Open files…');
-    for (let i = 1; i < actions; i++) {
-      await page.keyboard.press('Tab');
-      await expect(launcher.nth(i)).toBeFocused();
-    }
+    // Continue first, then the action panel (one Tab stop: its rows move with the arrows), then
+    // Select, then one Tab stop in the covers (L1 §6, DSN-93). Library ⋯ is in the top strip
+    // (L12).
+    const panel = page.getByTestId('library-launcher');
+    await expect(panel.getByRole('button')).toHaveCount(4);
+    await expect(panel.locator('[data-intent][tabindex="0"]')).toHaveCount(1);
+    await page.getByTestId('continue-resume').focus();
+    await page.keyboard.press('Tab');
+    await expect(panel.getByTestId('library-open')).toBeFocused();
+    await expect(panel.getByTestId('library-open')).toHaveAccessibleName('Open or drop files');
+    await page.keyboard.press('ArrowDown');
+    await expect(panel.getByTestId('library-combine-files')).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(page.getByTestId('library-select')).toBeFocused();
     await page.keyboard.press('Tab');
@@ -217,7 +218,7 @@ test.describe('keyboard', () => {
     await page.keyboard.press('Escape');
 
     // F6 from the strip: the Library has no sidebar, so the stage, which lands on the grid's stop.
-    await page.getByTestId('home-button').focus();
+    await page.getByTestId('home-search').focus();
     await page.keyboard.press('F6');
     await expect(card('mixed-sizes')).toBeFocused();
     await page.keyboard.press('Enter');
@@ -302,12 +303,15 @@ test.describe('keyboard', () => {
     await expect(bar(page).locator('button[tabindex="0"]')).toHaveCount(1);
     await bar(page).locator('button[tabindex="0"]').focus();
     await page.keyboard.press('Home');
-    // Done leads the palette; Select, armed on opening, follows (03-markup MK-2, MK-3).
-    await expect(bar(page).getByRole('button', { name: 'Done', exact: true })).toBeFocused();
-    await page.keyboard.press('ArrowRight');
+    // Select, armed on opening, leads the palette and Done trails it (03-markup MK-2, MK-3;
+    // DSN-91 moves Done to the trailing end).
     const select = bar(page).getByRole('button', { name: 'Select', exact: true });
     await expect(select).toBeFocused();
     await expect(select).toHaveAttribute('aria-pressed', 'true');
+    await page.keyboard.press('End');
+    await expect(bar(page).getByRole('button', { name: 'Done', exact: true })).toBeFocused();
+    await page.keyboard.press('Home');
+    await expect(select).toBeFocused();
 
     // Arrows reach Note; Enter arms it (aria-pressed), its ink strip follows arming.
     const note = bar(page).getByRole('button', { name: 'Note', exact: true });
@@ -575,7 +579,7 @@ test.describe('axe', () => {
   test('Home, empty and with files', async ({ page }) => {
     await page.goto('./?lang=en');
     await expect(
-      page.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+      page.getByRole('heading', { name: 'Read, mark up, sign and arrange.' }),
     ).toBeVisible();
     await axe(page, 'empty Home');
     await openFixtures(page, ['simple-text.pdf', 'rotated-pages.pdf']);
@@ -584,10 +588,10 @@ test.describe('axe', () => {
     await axe(page, 'Home with files');
   });
 
-  test('the desk (DSN-87): first visit, with open documents, returning with covers', async ({
+  test('the desk (DSN-87, DSN-93): first visit, with open documents, returning with covers', async ({
     page,
   }) => {
-    await page.goto('./?lang=en&desk=1');
+    await page.goto('./?lang=en');
     await expect(page.getByTestId('desk-sample')).toBeVisible();
     await axe(page, 'desk, first visit');
     await openFixtures(page, ['simple-text.pdf', 'rotated-pages.pdf']);
@@ -790,8 +794,8 @@ test.describe('reduced motion', () => {
 
 test('the focus ring tokens apply to the new controls', async ({ page }) => {
   await page.goto('./?lang=en');
-  await openFixtures(page, ['simple-text.pdf', 'annotations.pdf']);
-  await page.getByRole('tab', { name: 'annotations' }).click();
+  // One file opens straight into its document; two would stay on Home as cards.
+  await openFixtures(page, ['annotations.pdf']);
   await enterEdit(page);
   const expectRing = async (name: string, target: Locator) => {
     // After a key press, so :focus-visible applies to a scripted focus.
@@ -868,10 +872,7 @@ test('the focus ring tokens apply to the new controls', async ({ page }) => {
 async function openWordTagged(page: Page, lang = 'en'): Promise<void> {
   await page.goto(`./?lang=${lang}`);
   const chooser = page.waitForEvent('filechooser');
-  await page
-    .getByRole('button', { name: /^(Open files|Dosya aç)$/ })
-    .first()
-    .click();
+  await openButton(page).click();
   await (await chooser).setFiles(fixturePath('text-edit-corpus/word-tagged.pdf'));
   await expect(page.getByRole('tab', { name: 'word-tagged' })).toBeVisible();
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
@@ -1030,6 +1031,12 @@ test.describe('craft spec §9', () => {
     await select.focus();
     await tabWalk(page, 4, true);
     await page.locator('body').press('p');
+    // The pen's ink strip fades in: walk it once its entrance has ended, not mid-fade (L16).
+    const strip = page.getByTestId('ink-strip');
+    await expect(strip).toBeVisible();
+    await strip.evaluate((el) =>
+      Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished)),
+    );
     await bar(page).locator('button[tabindex="0"]').focus();
     await tabWalk(page, 4);
   });
@@ -1150,12 +1157,11 @@ test.describe('craft spec §9', () => {
 
   test('Home: Recents, when the build has them', async ({ page }) => {
     await page.goto('./?lang=en');
-    await openFixtures(page, ['simple-text.pdf', 'rotated-pages.pdf']);
-    // Recents lists files opened lately that are not open now: close one (its tab's ✕).
-    await page.getByRole('tab', { name: 'simple-text' }).click();
+    await openFixtures(page, ['rotated-pages.pdf']);
+    // Recents lists files opened lately that are not open now: close it (its tab's ✕), which
+    // returns to Home.
     await page.getByTitle('Close rotated-pages').click();
     await expect(page.getByRole('tab', { name: 'rotated-pages' })).toHaveCount(0);
-    await page.keyboard.press('0');
     await expect(page.getByTestId('home')).toBeVisible();
     const recents = page.getByRole('list', { name: 'Recent files' });
     await recents.waitFor({ timeout: 3000 }).catch(() => undefined);
@@ -1165,7 +1171,7 @@ test.describe('craft spec §9', () => {
     }
     await expect(recents).toBeVisible();
     await axe(page, 'Home with Recents');
-    await page.getByTestId('home-button').focus();
+    await page.getByTestId('home-search').focus();
     await tabWalk(page, 12);
   });
 
@@ -1472,7 +1478,7 @@ test.describe('D0 sheets and toasts', () => {
     const one = { polite: 1, assertive: 1, toastRegionLive: false, sheetLive: false };
 
     await page.goto('./?lang=en');
-    await expect(page.getByRole('button', { name: /^Open files/ }).first()).toBeVisible();
+    await expect(openButton(page)).toBeVisible();
     expect(await regions(), 'Home').toEqual(one);
     await openFixtures(page, ['simple-text.pdf']);
     await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
@@ -1562,10 +1568,7 @@ test.describe('D0 sheets and toasts', () => {
     // The toast stack: "Deleted page 2 · Undo" over a failure, the Undo toast hovered (✕).
     const toast = await deleteSecondPage(page);
     const chooser = page.waitForEvent('filechooser');
-    await page
-      .getByRole('button', { name: /^Open files/ })
-      .first()
-      .click();
+    await openButton(page).click();
     await (await chooser).setFiles({
       name: 'scan.pdf',
       mimeType: 'application/pdf',

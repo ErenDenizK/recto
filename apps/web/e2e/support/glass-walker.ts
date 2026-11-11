@@ -18,7 +18,7 @@
  *   palette's floating ink strip (`data-strip-piece`, owner feedback F3) counts with the
  *   capsule as Q-11's "dock".
  * - **Q-8, text set once and sharp.** Every visible piece of text on a glass surface (an element
- *   with a text node of its own, or a text field) is at least 11 px, weighs 400, 500 or 600,
+ *   with a text node of its own, or a text field) is at least 11 px, weighs 400, 450, 500, 550, 560, 600 or 620 (DSN-89),
  *   and at rest sits under no scale between it and the glass (the glass and what is above it
  *   are Q-2's). Visually hidden text (a 1 px box) and SVG drawings are not text on glass.
  * - **A-2, coverage.** The surface's own σ (the `blur()` of its filter) meets
@@ -37,9 +37,12 @@ export const MIN_GLASS_SIDE = 32;
 /** Q-11: visible backdrop-filter surfaces at rest, and during a transition. */
 export const MAX_AT_REST = 4;
 export const MAX_IN_TRANSITION = 6;
-/** Q-8: the smallest text on glass, CSS px, and the weights of the type scale. */
+/**
+ * Q-8: the smallest text on glass, CSS px, and the weights of the type scale: 400, 500 and 600,
+ * and DSN-89's 450, 550, 560 and 620.
+ */
 export const MIN_TEXT_ON_GLASS = 11;
-export const TEXT_WEIGHTS: readonly number[] = [400, 500, 600];
+export const TEXT_WEIGHTS: readonly number[] = [400, 450, 500, 550, 560, 600, 620];
 
 export type GlassRule = 'Q-2' | 'Q-3' | 'Q-4' | 'Q-5' | 'Q-8' | 'Q-11' | 'A-2';
 

@@ -3,11 +3,10 @@
  * components/09-primitives.md §2.2, §25). The app and `tokens.test.ts` import this one file;
  * `token-registry.ts` names every token it defines, by block and layer.
  *
- * Seven blocks, in this order:
+ * Six blocks, in this order (the light theme is gone, PRD-42; the numbers keep their old names so
+ * the references in the docs still land):
  *
- *   §1  `:root, [data-theme='dark']`   every colour and material token, dark values
- *   §2  `[data-theme='light']` and `@media (prefers-color-scheme: light)`: the same names with
- *       light values (D3-7; the test keeps both selectors and §1 to one name set)
+ *   §1  `:root, [data-theme='dark']`   every colour and material token, the one theme
  *   §3  `:root`                        theme-free: type, shape, space, density, metrics
  *   §4  `@media (pointer: coarse), (any-pointer: coarse)`   coarse density
  *   §5  Settings: Glass Tinted and Solid (Solid identical to reduced transparency), more
@@ -44,7 +43,7 @@
  */
 @import './motion.css';
 
-/* ── §1 Dark theme ─────────────────────────────────────────────────────────────────────── */
+/* ── §1 The theme ──────────────────────────────────────────────────────────────────────── */
 :root,
 [data-theme='dark'] {
   color-scheme: dark;
@@ -88,6 +87,10 @@
   --aurora-mint: #58da98;
   --aurora-lime: #bbed26;
   --aurora-lemon: #faee40;
+  /* Layer 1: the mark's mint and teal (DSN-90), atmosphere only: Home's beam and lobes and the
+     hero cover's glow. Never a control, a line of text or a state. */
+  --mint: #6eedbb;
+  --teal: #2fb3a8;
 
   /* Layer 2: surfaces. Docked surfaces are flat: a tonal step plus a hairline. The canvas sits
      darkest, so the white page and the floating chrome stand out of a near-black field and the
@@ -116,14 +119,22 @@
   --border-glass: rgb(var(--white-rgb) / 0.1);
   --border-swatch: rgb(var(--white-rgb) / 0.28);
   --border-opaque: var(--n7);
+  /* Colophon (DSN-89): the quiet hairline between Home's rows and under a shelf's cover, the key
+     outline of a keycap, and the ghost fill of a standard button on Home. */
+  --border-quiet: rgb(var(--white-rgb) / 0.08);
+  --border-key: rgb(var(--white-rgb) / 0.14);
+  --fill-ghost: rgb(var(--white-rgb) / 0.06);
 
-  /* Layer 2: text (language.md §1.7). Primary 14.48:1 on the frame (APCA Lc 92); secondary
-     7.11:1 (Lc 52, a warning: under 60); tertiary 5.78:1, never on n6; disabled is exempt
-     (WCAG 1.4.3) and stays visible. On glass, secondary and tertiary step up to n11 and danger
-     to its glass variant (global.css): every text colour stays AA over a white page. */
+  /* Layer 2: text (language.md §1.7; DSN-89). Primary 14.48:1 on the frame (APCA Lc 92);
+     secondary #b5b9bf, 10.10:1 on n1 and 8.10:1 on n4, Lc 60.6 on n5 (DSN-79's floor holds);
+     tertiary #8d9198, 6.29:1 on n1, 5.04:1 on n4, 4.54:1 on n5 and on a pressed frame row, so
+     never on n6 or a current row (a surface that needs text there uses secondary); disabled
+     is exempt (WCAG 1.4.3) and stays visible. On glass, secondary and tertiary step up to n11
+     and danger to its glass variant (global.css): every text colour stays AA over a white
+     page. */
   --text-primary: var(--n12);
-  --text-secondary: var(--n10);
-  --text-tertiary: var(--n9);
+  --text-secondary: #b5b9bf;
+  --text-tertiary: #8d9198;
   --text-disabled: var(--n8);
   --glass-text-secondary: var(--n11);
   --glass-text-disabled: #7d8086; /* 2.42:1 worst over white, 4.65:1 over the canvas */
@@ -232,42 +243,78 @@
      §2.5); the light itself is ADR-0025's (D3-8). */
   --light-cap-under-glass: 0.6;
 
+  /* Layer 2: Colophon (DSN-89, DSN-94). The glyph on glass, the solid tooltip, the object
+     shadows of a cover, the shelf lines, Home's reading progress and the beam's ramps. Beam and
+     lobe stops are the mark's teal, mint and lime in rgb() so their alphas stay literal (the
+     test reads them). Lime is the accent in the reading progress and the lit shelf line only
+     (DSN-89's list); `--progress-fill` stays neutral for jobs. */
+  --glyph-on-glass: #d5d8dc;
+  --tooltip-fill: rgb(30 32 37 / 0.94);
+  --tooltip-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.07),
+    0 18px 48px rgb(0 0 0 / 0.45);
+  --reading-progress: var(--accent);
+  --reading-track: rgb(var(--white-rgb) / 0.14);
+  --cover-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.07), 0 2px 4px rgb(0 0 0 / 0.4), 0 18px 40px -8px rgb(0 0 0 / 0.7);
+  --cover-shadow-hero:
+    0 0 0 1px rgb(255 255 255 / 0.09), 0 30px 80px -10px rgb(0 0 0 / 0.8),
+    0 0 120px -20px rgb(110 237 187 / 0.25);
+  --shelf-line: linear-gradient(
+    90deg,
+    rgb(255 255 255 / 0.06),
+    rgb(255 255 255 / 0.12) 40%,
+    rgb(200 251 61 / 0.45) 70%,
+    rgb(255 255 255 / 0.08)
+  );
+  --shelf-line-lit: linear-gradient(
+    90deg,
+    rgb(110 237 187 / 0.18),
+    rgb(200 251 61 / 0.35) 55%,
+    rgb(255 255 255 / 0.14)
+  );
+  --beam-ramp:
+    rgb(31 153 150 / 0) 0%, rgb(47 179 168 / 0.35) 30%, rgb(88 218 152 / 0.7) 62%,
+    rgb(200 251 61 / 0.95) 88%, rgb(250 255 220 / 1) 100%;
+  --beam-core-ramp:
+    rgb(47 179 168 / 0) 0%, rgb(110 237 187 / 0.35) 45%, rgb(200 251 61 / 0.9) 85%, #fbffe8 100%;
+  --home-lobe-teal: rgb(31 153 150 / 0.35);
+  --home-lobe-mint: rgb(88 218 152 / 0.22);
+
   /* Layer 2: materials (language.md §2.2–§2.4, ADR-0024), one per tier: a neutral tint whose
      alpha is its own token (Tinted overrides it, D3-3), the filter after the blur (σ comes per
      surface from the coverage registry), the solid it falls back to, and its shadow. Panel
      and sheet hold body text on their denser recipe: over a white page #34363a, #34363b,
-     L ≤ 0.062, so primary text keeps ≥ 9.96:1 and glass-secondary ≥ 6.49:1. Menus and popovers
-     wear the chips' and bars' CSS+ recipe (GLS-23, one glass for every floating piece) at a
-     0.64 tint: #424347 over white, primary 8.13:1, glass-secondary 5.30:1, Lc 83.
-     Over the canvas the panel equals the frame (n3) exactly, so a docked panel at rest looks
-     solid. Chip and bar are CSS+ (GLS-7, GLS-8) on a lighter filter than the page tiers. Their
-     tone is the theme's over any page (GLS-20), so their worst backdrop is white, as the page
-     tiers' is: a 0.60 tint keeps them dark there (#434447, Y ≤ 0.062, G-4) with primary text at
-     7.89:1 or more (glass-secondary 5.14:1, Lc 82), and the page shows through at about 0.19
-     of its contrast. Their chain names
-     contrast(1) so it matches the light chain function for function. Lit glass is for surfaces
-     no page passes under (Library cards, About), worst over the field's brightest allowed
-     pixel. */
+     L ≤ 0.062, so primary text keeps ≥ 9.96:1 and glass-secondary ≥ 6.49:1. Chips, bars and
+     menus wear one smoked recipe (DSN-89; GLS-23, one glass for every floating piece):
+     rgb(18 20 24) at 0.60 under saturate(1.6) brightness(0.42), a 1 px black edge at 0.55, a
+     top light of 0.07 and one deep shadow, σ unchanged (Q-11's GPU budget). Over white that is
+     #363739 (Y 0.038, G-4), primary text at 9.8:1 and glass-secondary at 7.3:1. Over the canvas
+     the panel equals the frame (n3) exactly, so a docked panel at rest looks solid. Their tone
+     is the theme's over any page (GLS-20), so their worst backdrop is white, as the page
+     tiers' is. Their chain names contrast(1) so every tier's chain reads alike. Lit glass is
+     for surfaces no page passes under (Library cards, About), worst over the field's brightest
+     allowed pixel. */
   --glass-chip-alpha: 0.6;
-  --glass-chip-tint: rgb(30 32 37 / var(--glass-chip-alpha));
-  --glass-chip-filter: saturate(2.2) contrast(1) brightness(0.48);
+  --glass-chip-tint: rgb(18 20 24 / var(--glass-chip-alpha));
+  --glass-chip-filter: saturate(1.6) contrast(1) brightness(0.42);
   --glass-chip-solid: var(--n4);
-  --glass-chip-shadow: var(--e2);
+  --glass-chip-shadow: 0 18px 48px rgb(0 0 0 / 0.45);
   --glass-bar-alpha: 0.6;
-  --glass-bar-tint: rgb(32 34 39 / var(--glass-bar-alpha));
-  --glass-bar-filter: saturate(2.2) contrast(1) brightness(0.48);
+  --glass-bar-tint: rgb(18 20 24 / var(--glass-bar-alpha));
+  --glass-bar-filter: saturate(1.6) contrast(1) brightness(0.42);
   --glass-bar-solid: var(--n4);
-  --glass-bar-shadow: var(--e3);
+  --glass-bar-shadow: 0 18px 48px rgb(0 0 0 / 0.45);
   --glass-panel-alpha: 0.74;
   --glass-panel-tint: rgb(30 32 38 / var(--glass-panel-alpha));
   --glass-panel-filter: saturate(1.5) brightness(0.45);
   --glass-panel-solid: var(--n3);
   --glass-panel-shadow: var(--e4);
-  --glass-menu-alpha: 0.64;
-  --glass-menu-tint: rgb(34 36 42 / var(--glass-menu-alpha));
-  --glass-menu-filter: saturate(2.2) contrast(1) brightness(0.48);
+  --glass-menu-alpha: 0.6;
+  --glass-menu-tint: rgb(18 20 24 / var(--glass-menu-alpha));
+  --glass-menu-filter: saturate(1.6) contrast(1) brightness(0.42);
   --glass-menu-solid: var(--n4);
-  --glass-menu-shadow: var(--e4);
+  --glass-menu-shadow: 0 18px 48px rgb(0 0 0 / 0.45);
   --glass-sheet-alpha: 0.86;
   --glass-sheet-tint: rgb(40 42 48 / var(--glass-sheet-alpha));
   --glass-sheet-filter: saturate(1.4) brightness(0.5);
@@ -278,16 +325,14 @@
   --glass-lit-filter: saturate(1.8) brightness(0.55);
   --glass-lit-solid: var(--n4);
   --glass-lit-shadow: var(--e3);
-  /* Rims (language.md §2.4; GLS-8, softened by GLS-22): light from the top left, as research
-     23 §5.2's two lobes, and nothing drawn as a line. A soft dark edge (2 px of blur, no
-     spread) holds the shape over a white page; the rim light is two soft inset lobes in the rim
-     colours (top 0.42 with the leading side, bottom 0.16; `RIM_LIGHT` in materials.css),
-     brightest at the edge and gone within 3 px; the inner light a soft top light (0.10 fading
-     within 12 px). All blurred shadows: no backdrop pass, no line, no band edge. */
-  --rim-edge: 0 0 2px rgb(0 0 0 / 0.35);
-  --rim-top: rgb(var(--white-rgb) / 0.42);
-  --rim-bottom: rgb(var(--white-rgb) / 0.16);
-  --rim-inner: inset 0 12px 12px -12px rgb(var(--white-rgb) / 0.1);
+  /* Rims (language.md §2.4; GLS-8, softened by GLS-22, set smoked by DSN-89): a 1 px black edge
+     at 0.55 holds the shape over a white page; the rim light is two soft inset lobes in the rim
+     colours (top 0.10 with the leading side, bottom 0.04; `RIM_LIGHT` in materials.css), gone
+     within 3 px; the inner light is a 1 px top light of 0.07. No backdrop pass, no band edge. */
+  --rim-edge: 0 0 0 1px rgb(0 0 0 / 0.55);
+  --rim-top: rgb(var(--white-rgb) / 0.1);
+  --rim-bottom: rgb(var(--white-rgb) / 0.04);
+  --rim-inner: inset 0 1px 0 rgb(var(--white-rgb) / 0.07);
   /* The denser tiers' rims (§2.4): sheets a firmer edge, unblurred (half a pixel at 0.50: a
      large surface that slides repaints no new blur, GLS-22), and with the floating panel a
      0.24 / 0.08 rim and a fainter top light; docked M3 only a soft inner light of 0.06 under
@@ -421,635 +466,6 @@
   --track-body: 0.005em;
 }
 
-/* ── §2 Light theme ────────────────────────────────────────────────────────────────────────
- * ADR-0022 §2.4 (spec D3-7): Theme System · Light · Dark, default System, equal to dark. Every
- * name of §1 again with its light value (language.md §1.3–§1.6, §2.2's light table, §2.4, §6.3;
- * 09-primitives §2.2), twice: `[data-theme='light']`, which `state/theme.ts` and the boot script
- * (`public/theme.js`, before the first paint) set whenever light is in force, Light chosen or
- * System on a light device; and the same block under `prefers-color-scheme: light` for a root
- * without the attribute (a page that has not run the script). `tokens.test.ts` keeps both to §1's
- * names and to each other. The page is never themed: white, its inks and `--select` hold.
- */
-[data-theme='light'] {
-  color-scheme: light;
-
-  /* Layer 1: the same graphite, hue 265, read the other way up (language.md §1.3): n1 is the
-     lightest, n12 the ink. */
-  --n1: #fdfdff; /* 0.995 0.002 */
-  --n2: #f6f7f9; /* 0.975 0.003 */
-  --n3: #eff0f3; /* 0.955 0.004 */
-  --n4: #e6e8eb; /* 0.930 0.005 */
-  --n5: #dee0e4; /* 0.905 0.006 */
-  --n6: #d5d7dc; /* 0.880 0.007 */
-  --n7: #c5c7cd; /* 0.830 0.008 */
-  --n8: #a8abb1; /* 0.740 0.010 */
-  --n9: #5d6067; /* 0.490 0.012 */
-  --n10: #4a4d54; /* 0.420 0.013 */
-  --n11: #3f424a; /* 0.380 0.013 */
-  --n12: #15171c; /* 0.205 0.010 */
-
-  /* Layer 1: one lime in both themes (ADR-0023 §2.2); the ramp does not turn over. */
-  --lime-50: #effed0;
-  --lime-100: #e1fea1;
-  --lime-200: #d2fe59;
-  --lime-300: #c8fb3d;
-  --lime-400: #bbef39;
-  --lime-500: #a5dd34;
-  --lime-600: #80b128;
-  --lime-700: #5f8a1b;
-  --lime-800: #446713;
-  --lime-900: #2f490a;
-  --lime-950: #1a2d04;
-  --lime-rgb: 200 251 61;
-  --white-rgb: 255 255 255;
-  --ink-rgb: 21 23 28;
-
-  /* Layer 1: the aurora as pigment on a light ground (ADR-0022 §2.4, AU-21; language.md §1.6):
-     lime, mint and teal, applied by the field (D3-8) as bg · (1 − k(1 − stop)) in linear light,
-     k ≤ 0.45. Lemon, the hottest light, has no pigment of its own and keeps its value. */
-  --aurora-teal: #41b2b2;
-  --aurora-mint: #61d19a;
-  --aurora-lime: #a0da3e;
-  --aurora-lemon: #faee40;
-
-  /* Layer 2: surfaces (language.md §1.3, light roles). The canvas is n4, a quiet grey under a
-     white page, so the page stays the brightest thing; the frame is n2 and raised surfaces,
-     cards and inputs n1, paper over the canvas. Washes are ink: hover 0.04, pressed 0.07. */
-  --canvas: var(--n4);
-  --surface-sunken: var(--n3);
-  --surface-frame: var(--n2);
-  --surface-raised: var(--n1);
-  --surface-on: var(--n5);
-  --surface-hover: rgb(var(--ink-rgb) / 0.04);
-  --surface-active: rgb(var(--ink-rgb) / 0.07);
-  /* Dim only, never a blur (G-31). */
-  --scrim: rgb(var(--ink-rgb) / 0.28);
-  --camera-stage: #000; /* the camera stage keeps its colours in the light theme */
-  --camera-ink: #fff;
-  --camera-wash: rgb(0 0 0 / 0.6);
-
-  /* Layer 2: borders, in ink. The glass border is the hairline too: light glass draws its shape
-     with a dark edge outside and a white rim inside (language.md §2.4). */
-  --border-hairline: rgb(var(--ink-rgb) / 0.1);
-  --border-strong: rgb(var(--ink-rgb) / 0.18);
-  --border-glass: rgb(var(--ink-rgb) / 0.1);
-  --border-swatch: rgb(var(--ink-rgb) / 0.28);
-  --border-opaque: var(--n7);
-
-  /* Layer 2: text (language.md §1.7, light columns). Primary 16.73:1 on the frame (Lc 100),
-     secondary 7.21 (Lc 82), tertiary 5.88 (Lc 77), never on n6 (4.37). */
-  --text-primary: var(--n12);
-  --text-secondary: var(--n10);
-  --text-tertiary: var(--n9);
-  --text-disabled: var(--n8);
-  --glass-text-secondary: var(--n11);
-  --glass-text-disabled: #7f838a; /* 2.45:1 worst over black, 3.68:1 typical */
-
-  /* Layer 2: interaction. Lime is a fill with ink on it and a lime-800 edge (DSN-83, amends
-     ADR-0023 §2.3): ink on lime 16.42:1 (hover 17.73, pressed 13.86); the edge is 5.42:1 on the
-     fill and 6.47 on n1; accent text is lime-900 (10.10:1 on white, Lc 75 or more on n1 to n5).
-     Lime is never type on a light surface; its 1 px lines are lime-800 (6.57 on white, 5.35 on
-     the canvas), current rows ink 0.07. */
-  --accent: var(--lime-300);
-  --accent-hover: #ddff82;
-  --accent-pressed: #b2e93c;
-  --accent-ink: #08090c;
-  --accent-subtle: rgb(var(--ink-rgb) / 0.04);
-  --accent-muted: rgb(var(--ink-rgb) / 0.07);
-  --accent-line: var(--lime-800);
-  --accent-fill: var(--lime-300);
-  --accent-on-fill: #08090c;
-  --accent-edge: var(--lime-800);
-  --accent-text: var(--lime-900);
-  --primary-fill: var(--accent-fill);
-  --primary-fill-hover: var(--accent-hover);
-  --primary-fill-pressed: var(--accent-pressed);
-  --primary-ink: var(--accent-on-fill);
-  --tool-active-fill: var(--accent-fill);
-  --tool-active-fill-hover: var(--accent-hover);
-  --tool-active-fill-pressed: var(--accent-pressed);
-  --tool-active-ink: var(--accent-on-fill);
-  --accent-ring: var(--lime-800);
-
-  /* Layer 2: content (language.md §1.5): never themed. The page keeps a hairline, ink 0.14,
-     and no shadow. */
-  --page-background: #ffffff;
-  --page-paper: color-mix(in srgb, var(--page-background) 88%, #7a6a4a);
-  --page-filter: none;
-  --page-shadow: 0 0 0 1px rgb(var(--ink-rgb) / 0.14);
-  --page-under: #e9eaee;
-  --plate-edge: rgb(0 0 0 / 0.08);
-  --plate-ring: rgb(0 0 0 / 0.18);
-  --select: #4e61ed;
-  --select-rgb: 78 97 237;
-  --select-ink: #ffffff;
-  --select-subtle: rgb(var(--select-rgb) / 0.08);
-  --select-muted: rgb(var(--select-rgb) / 0.16);
-  --select-wash: rgb(var(--select-rgb) / 0.25);
-  --select-wash-strong: rgb(var(--select-rgb) / 0.45);
-  --find-hit-multiply: rgb(116 156 12);
-  --find-hit-screen: rgb(80 110 8);
-  --find-current-multiply: rgb(85 125 0);
-  --find-current-screen: rgb(92 122 10);
-  --find-current-ring: #243600;
-  --find-current-halo: #c8fb3d;
-  --redact-page: #c21725;
-  --crop-dim: rgb(var(--ink-rgb) / 0.45);
-
-  /* Layer 2: status, dark enough for a light ground (language.md §1.6): danger 6.10 on white
-     and 4.97 on the canvas, warning 4.67, success 4.60; each steps down once more on glass.
-     Warning and danger are one colour to a deuteranope here (ΔE 1.3): the triangle, the cross
-     and the words carry them. */
-  --danger: #c21725;
-  --warning: #985600;
-  --success: #007654;
-  --glass-danger: #a20519;
-  --glass-warning: #754100;
-  --glass-success: #005c41;
-  --warning-line: rgb(152 86 0 / 0.35);
-
-  /* Layer 2: tags, deepened for light (ADR-0023 §2.8), all ≥ 4.43:1 on the frame. */
-  --tag-0: #327f6e;
-  --tag-1: #966b21;
-  --tag-2: #945067;
-  --tag-3: #5d728e;
-  --tag-4: #7c68a1;
-  --tag-5: #965c39;
-
-  --light-cap-under-glass: 0.6;
-
-  /* Layer 2: materials, light (language.md §2.2, ADR-0022 §2.4, G-25). Light glass is floored,
-     not inverted: `contrast(0.45) brightness(1.4)` after the saturate lifts black under it to
-     0.385 before the tint, so black is its worst backdrop as white is dark glass's. Over black:
-     panel #d4d5d6, menu #d9d9da, sheet #e8e8ea, where primary text keeps ≥ 11.06:1 and
-     glass-secondary ≥ 6.20:1; over white they stay paper (#fafafc–#fcfcfd), and the panel over
-     the canvas lands within a level of the frame (n2). Lit glass is dark only: in light its
-     surfaces keep the floored recipe (alpha 0.69, #cbcbcc over black, APCA Lc 75), floored
-     over any pigment. Chip, bar and menu are CSS+ (GLS-7, GLS-8, GLS-23) on contrast(0.75),
-     lighter than the page tiers' floor. Their tone is the theme's over any page (GLS-20), so their worst
-     backdrop is black: a 0.80 tint floors them there at #d0d0d2 (primary 11.6:1, Lc 77, the
-     light look's old floor at its switch grey), and over white the page shows through at
-     about 0.20 of its contrast. */
-  --glass-chip-alpha: 0.8;
-  --glass-chip-tint: rgb(250 250 252 / var(--glass-chip-alpha));
-  --glass-chip-filter: saturate(1.6) contrast(0.75) brightness(1.33);
-  --glass-chip-solid: var(--n1);
-  --glass-chip-shadow: var(--e2);
-  --glass-bar-alpha: 0.8;
-  --glass-bar-tint: rgb(250 250 252 / var(--glass-bar-alpha));
-  --glass-bar-filter: saturate(1.6) contrast(0.75) brightness(1.33);
-  --glass-bar-solid: var(--n1);
-  --glass-bar-shadow: var(--e3);
-  --glass-panel-alpha: 0.76;
-  --glass-panel-tint: rgb(248 249 251 / var(--glass-panel-alpha));
-  --glass-panel-filter: saturate(1.4) contrast(0.45) brightness(1.4);
-  --glass-panel-solid: var(--n2);
-  --glass-panel-shadow: var(--e4);
-  --glass-menu-alpha: 0.8;
-  --glass-menu-tint: rgb(250 250 252 / var(--glass-menu-alpha));
-  --glass-menu-filter: saturate(1.6) contrast(0.75) brightness(1.33);
-  --glass-menu-solid: var(--n1);
-  --glass-menu-shadow: var(--e4);
-  --glass-sheet-alpha: 0.88;
-  --glass-sheet-tint: rgb(250 250 252 / var(--glass-sheet-alpha));
-  --glass-sheet-filter: saturate(1.3) contrast(0.45) brightness(1.4);
-  --glass-sheet-solid: var(--n1);
-  --glass-sheet-shadow: var(--e5);
-  --glass-lit-alpha: 0.69;
-  --glass-lit-tint: rgb(250 250 252 / var(--glass-lit-alpha));
-  --glass-lit-filter: saturate(1.5) contrast(0.45) brightness(1.4);
-  --glass-lit-solid: var(--n1);
-  --glass-lit-shadow: var(--e3);
-  /* Rims (language.md §2.4, light; GLS-8, softened by GLS-22): a soft ink edge outside holds the
-     shape over a white page, a white rim light from the top left (0.90 at the top, 0.50 at
-     the bottom) and a soft white top light (0.50) hold it over the canvas, all blurred, none
-     a line. Menus and sheets take a firmer edge, as in dark. */
-  --rim-edge: 0 0 2px rgb(15 17 22 / 0.24);
-  --rim-top: rgb(var(--white-rgb) / 0.9);
-  --rim-bottom: rgb(var(--white-rgb) / 0.5);
-  --rim-inner: inset 0 12px 12px -12px rgb(var(--white-rgb) / 0.5);
-  --rim-edge-strong: 0 0 0 0.5px rgb(15 17 22 / 0.14);
-  --rim-top-sheet: rgb(var(--white-rgb) / 0.85);
-  --rim-bottom-sheet: rgb(var(--white-rgb) / 0.4);
-  --rim-inner-sheet: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.6);
-  --rim-inner-docked: inset 0 1px 2px -1px rgb(var(--white-rgb) / 0.6);
-  /* Elevation (language.md §6.3): the dark geometry in ink at 40 % of each alpha. */
-  --e0: none;
-  --e1: 0 1px 2px rgb(var(--ink-rgb) / 0.12);
-  --e2: 0 4px 12px -4px rgb(var(--ink-rgb) / 0.2);
-  --e3: 0 10px 28px -10px rgb(var(--ink-rgb) / 0.24), 0 2px 6px -2px rgb(var(--ink-rgb) / 0.14);
-  --e4: 0 16px 40px -12px rgb(var(--ink-rgb) / 0.25);
-  --e5: 0 30px 80px -20px rgb(var(--ink-rgb) / 0.28);
-
-  /* Layer 3: the control block, light (09-primitives §2.2): ink washes one step apart, the
-     control edge ink 0.55 (≥ 3.61:1 against the worst light glass), on-states n12 with an n1
-     glyph, thumbs and knobs paper (n1) lifted by e1 and ringed by the control edge. */
-  --control-fill: rgb(var(--ink-rgb) / 0.06);
-  --control-fill-hover: rgb(var(--ink-rgb) / 0.09);
-  --control-fill-pressed: rgb(var(--ink-rgb) / 0.12);
-  --control-border: rgb(var(--ink-rgb) / 0.55);
-  --control-border-hover: rgb(var(--ink-rgb) / 0.7);
-  --control-on: var(--n12);
-  --control-on-ink: var(--n1);
-  --control-thumb-off: var(--n9);
-  --control-thumb: var(--n1);
-  --control-knob: var(--n1);
-  --control-track: rgb(var(--ink-rgb) / 0.28);
-  --control-range: var(--n12);
-  --control-disabled-fill: var(--n5);
-  /* The slider knob's glass lens (10-ink §3.2): tints, edge light, rim and drop shadows. */
-  --control-knob-tint: rgb(var(--white-rgb) / 0.6);
-  --control-knob-tint-held: rgb(var(--white-rgb) / 0.18);
-  --control-knob-gloss: rgb(var(--white-rgb) / 0.95);
-  --control-knob-edge: rgb(var(--white-rgb) / 0.8);
-  --control-knob-rim:
-    inset 0 0 0 1px rgb(var(--ink-rgb) / 0.26), inset 0 1.5px 1px rgb(var(--white-rgb) / 1),
-    inset 0 -2px 3px rgb(var(--ink-rgb) / 0.12);
-  --control-knob-drop:
-    0 1px 2px rgb(var(--ink-rgb) / 0.26), 0 3px 9px -1px rgb(var(--ink-rgb) / 0.28);
-  --control-knob-drop-raised:
-    0 1px 2px rgb(var(--ink-rgb) / 0.22), 0 7px 16px -2px rgb(var(--ink-rgb) / 0.32);
-  --control-knob-ring: inset 0 0 0 0.5px rgb(0 0 0 / 0.16);
-  --control-knob-dot-drop: 0 0.5px 1.5px rgb(0 0 0 / 0.25);
-  /* The check badge (ui/CheckBadge): it sits on the page, never themed, so one value. Empty, a
-     1.5 px white ring between two dark hairlines over a faint scrim: an outlined circle on a
-     white page and a white ring on a dark scan, clearly a control and clearly empty, never the
-     grey disc a heavier scrim makes on white (system-audit-2026-10 §3.8, I-32). */
-  --check-badge-rim: #ffffff;
-  --check-badge-scrim: rgb(0 0 0 / 0.1);
-  --check-badge-scrim-hover: rgb(0 0 0 / 0.22);
-  --check-badge-shadow:
-    inset 0 0 0 0.5px rgb(0 0 0 / 0.3), 0 0 0 0.5px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.2);
-  /* Checked, and the ring round a selected thumbnail or card (owner feedback 2026-10-09, G7):
-     the app's lime, never the page's blue. The badge's lime takes an ink tick (16.42:1) and an
-     ink rim, so it holds on the white page in both themes; the ring sits off the page, on the
-     chrome, as --accent-ring (lime on dark, lime-800 on light). The focus ring tells itself
-     apart by form: two bands with an ink gap round the whole cell, never one band on the sheet. */
-  --check-badge-fill: var(--accent);
-  --check-badge-ink: var(--accent-ink);
-  --select-ring: var(--accent-ring);
-  /* The Library aura's three lights (home/LibraryView): the mark's mint, lime and yellow.
-     On the dark canvas a faint pure lime reads as olive, so dark takes the lime a third of
-     the way to the mint. */
-  --aura-mint: rgb(105 234 163);
-  --aura-lime: rgb(203 255 95);
-  --aura-yellow: rgb(237 250 109);
-  --progress-fill: var(--n12);
-  --field-well: var(--n1);
-  --field-placeholder: var(--n10);
-  --scroll-thumb: rgb(var(--ink-rgb) / 0.5);
-  --scroll-thumb-hover: rgb(var(--ink-rgb) / 0.65);
-  --scroll-thumb-drag: rgb(var(--ink-rgb) / 0.75);
-  --scroll-thumb-edge: inset 0 0 0 0.5px rgb(var(--white-rgb) / 0.45);
-  --scroll-thumb-rim: inset 0 0 0 1.5px rgb(var(--white-rgb) / 0.14);
-  --scroll-groove: rgb(var(--ink-rgb) / 0.05);
-  --scroll-groove-rim: inset 0 0 0 0.5px rgb(var(--ink-rgb) / 0.07);
-  /* The button lens (GLS-25): a soft ink wash on hover under the bright lobes (GLS-27: the
-     white lens read faint on light glass), a deeper one under the ink press glow. */
-  --lens-hover: rgb(var(--ink-rgb) / 0.06);
-  --lens-pressed: rgb(var(--ink-rgb) / 0.07);
-  --lens-selected: rgb(var(--white-rgb) / 0.92);
-  --lens-selected-lift: var(--e1);
-  --lens-rim:
-    inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.85),
-    inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.4),
-    inset 0 0 0 0.5px rgb(var(--ink-rgb) / 0.06);
-  --lens-rim-flat:
-    inset 0 1px 0 rgb(var(--white-rgb) / 0.85), inset 0 -1px 0 rgb(var(--white-rgb) / 0.4),
-    inset 0 0 0 0.5px rgb(var(--ink-rgb) / 0.06);
-  --lens-rim-hover:
-    inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 1),
-    inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.6),
-    inset 0 0 0 0.5px rgb(var(--ink-rgb) / 0.08), 0 1px 3px -1px rgb(var(--ink-rgb) / 0.22);
-  --lens-rim-pressed:
-    inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.5),
-    inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.2),
-    inset 0 1px 5px rgb(var(--ink-rgb) / 0.12);
-  --badge-fill: var(--n4);
-  --swatch-contrast: rgb(var(--ink-rgb) / 0.55);
-  --swatch-edge: rgb(var(--ink-rgb) / 0.35);
-  /* The focus bands serve both themes unchanged (language.md §9.2): lime and #08090c. Fields
-     and segments take the outset field form in light (styles/focus.css, option A). */
-  --focus-light: var(--lime-300);
-  --focus-dark: #08090c;
-
-  /* Tracking (language.md §4.2): dark text on light needs less. */
-  --track-caption: 0.01em;
-  --track-footnote: 0.005em;
-  --track-body: 0em;
-}
-
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme]) {
-    color-scheme: light;
-
-    /* Layer 1: the same graphite, hue 265, read the other way up (language.md §1.3): n1 is the
-       lightest, n12 the ink. */
-    --n1: #fdfdff; /* 0.995 0.002 */
-    --n2: #f6f7f9; /* 0.975 0.003 */
-    --n3: #eff0f3; /* 0.955 0.004 */
-    --n4: #e6e8eb; /* 0.930 0.005 */
-    --n5: #dee0e4; /* 0.905 0.006 */
-    --n6: #d5d7dc; /* 0.880 0.007 */
-    --n7: #c5c7cd; /* 0.830 0.008 */
-    --n8: #a8abb1; /* 0.740 0.010 */
-    --n9: #5d6067; /* 0.490 0.012 */
-    --n10: #4a4d54; /* 0.420 0.013 */
-    --n11: #3f424a; /* 0.380 0.013 */
-    --n12: #15171c; /* 0.205 0.010 */
-
-    /* Layer 1: one lime in both themes (ADR-0023 §2.2); the ramp does not turn over. */
-    --lime-50: #effed0;
-    --lime-100: #e1fea1;
-    --lime-200: #d2fe59;
-    --lime-300: #c8fb3d;
-    --lime-400: #bbef39;
-    --lime-500: #a5dd34;
-    --lime-600: #80b128;
-    --lime-700: #5f8a1b;
-    --lime-800: #446713;
-    --lime-900: #2f490a;
-    --lime-950: #1a2d04;
-    --lime-rgb: 200 251 61;
-    --white-rgb: 255 255 255;
-    --ink-rgb: 21 23 28;
-
-    /* Layer 1: the aurora as pigment on a light ground (ADR-0022 §2.4, AU-21; language.md §1.6):
-       lime, mint and teal, applied by the field (D3-8) as bg · (1 − k(1 − stop)) in linear light,
-       k ≤ 0.45. Lemon, the hottest light, has no pigment of its own and keeps its value. */
-    --aurora-teal: #41b2b2;
-    --aurora-mint: #61d19a;
-    --aurora-lime: #a0da3e;
-    --aurora-lemon: #faee40;
-
-    /* Layer 2: surfaces (language.md §1.3, light roles). The canvas is n4, a quiet grey under a
-       white page, so the page stays the brightest thing; the frame is n2 and raised surfaces,
-       cards and inputs n1, paper over the canvas. Washes are ink: hover 0.04, pressed 0.07. */
-    --canvas: var(--n4);
-    --surface-sunken: var(--n3);
-    --surface-frame: var(--n2);
-    --surface-raised: var(--n1);
-    --surface-on: var(--n5);
-    --surface-hover: rgb(var(--ink-rgb) / 0.04);
-    --surface-active: rgb(var(--ink-rgb) / 0.07);
-    /* Dim only, never a blur (G-31). */
-    --scrim: rgb(var(--ink-rgb) / 0.28);
-    --camera-stage: #000; /* the camera stage keeps its colours in the light theme */
-    --camera-ink: #fff;
-    --camera-wash: rgb(0 0 0 / 0.6);
-
-    /* Layer 2: borders, in ink. The glass border is the hairline too: light glass draws its shape
-       with a dark edge outside and a white rim inside (language.md §2.4). */
-    --border-hairline: rgb(var(--ink-rgb) / 0.1);
-    --border-strong: rgb(var(--ink-rgb) / 0.18);
-    --border-glass: rgb(var(--ink-rgb) / 0.1);
-    --border-swatch: rgb(var(--ink-rgb) / 0.28);
-    --border-opaque: var(--n7);
-
-    /* Layer 2: text (language.md §1.7, light columns). Primary 16.73:1 on the frame (Lc 100),
-       secondary 7.21 (Lc 82), tertiary 5.88 (Lc 77), never on n6 (4.37). */
-    --text-primary: var(--n12);
-    --text-secondary: var(--n10);
-    --text-tertiary: var(--n9);
-    --text-disabled: var(--n8);
-    --glass-text-secondary: var(--n11);
-    --glass-text-disabled: #7f838a; /* 2.45:1 worst over black, 3.68:1 typical */
-
-    /* Layer 2: interaction. Lime is a fill with ink on it and a lime-800 edge (DSN-83, amends
-       ADR-0023 §2.3): ink on lime 16.42:1 (hover 17.73, pressed 13.86); the edge is 5.42:1 on the
-       fill and 6.47 on n1; accent text is lime-900 (10.10:1 on white, Lc 75 or more on n1 to n5).
-       Lime is never type on a light surface; its 1 px lines are lime-800 (6.57 on white, 5.35 on
-       the canvas), current rows ink 0.07. */
-    --accent: var(--lime-300);
-    --accent-hover: #ddff82;
-    --accent-pressed: #b2e93c;
-    --accent-ink: #08090c;
-    --accent-subtle: rgb(var(--ink-rgb) / 0.04);
-    --accent-muted: rgb(var(--ink-rgb) / 0.07);
-    --accent-line: var(--lime-800);
-    --accent-fill: var(--lime-300);
-    --accent-on-fill: #08090c;
-    --accent-edge: var(--lime-800);
-    --accent-text: var(--lime-900);
-    --primary-fill: var(--accent-fill);
-    --primary-fill-hover: var(--accent-hover);
-    --primary-fill-pressed: var(--accent-pressed);
-    --primary-ink: var(--accent-on-fill);
-    --tool-active-fill: var(--accent-fill);
-    --tool-active-fill-hover: var(--accent-hover);
-    --tool-active-fill-pressed: var(--accent-pressed);
-    --tool-active-ink: var(--accent-on-fill);
-    --accent-ring: var(--lime-800);
-
-    /* Layer 2: content (language.md §1.5): never themed. The page keeps a hairline, ink 0.14,
-       and no shadow. */
-    --page-background: #ffffff;
-    --page-paper: color-mix(in srgb, var(--page-background) 88%, #7a6a4a);
-    --page-filter: none;
-    --page-shadow: 0 0 0 1px rgb(var(--ink-rgb) / 0.14);
-    --page-under: #e9eaee;
-    --plate-edge: rgb(0 0 0 / 0.08);
-    --plate-ring: rgb(0 0 0 / 0.18);
-    --select: #4e61ed;
-    --select-rgb: 78 97 237;
-    --select-ink: #ffffff;
-    --select-subtle: rgb(var(--select-rgb) / 0.08);
-    --select-muted: rgb(var(--select-rgb) / 0.16);
-    --select-wash: rgb(var(--select-rgb) / 0.25);
-    --select-wash-strong: rgb(var(--select-rgb) / 0.45);
-    --find-hit-multiply: rgb(116 156 12);
-    --find-hit-screen: rgb(80 110 8);
-    --find-current-multiply: rgb(85 125 0);
-    --find-current-screen: rgb(92 122 10);
-    --find-current-ring: #243600;
-    --find-current-halo: #c8fb3d;
-    --redact-page: #c21725;
-    --crop-dim: rgb(var(--ink-rgb) / 0.45);
-
-    /* Layer 2: status, dark enough for a light ground (language.md §1.6): danger 6.10 on white
-       and 4.97 on the canvas, warning 4.67, success 4.60; each steps down once more on glass.
-       Warning and danger are one colour to a deuteranope here (ΔE 1.3): the triangle, the cross
-       and the words carry them. */
-    --danger: #c21725;
-    --warning: #985600;
-    --success: #007654;
-    --glass-danger: #a20519;
-    --glass-warning: #754100;
-    --glass-success: #005c41;
-    --warning-line: rgb(152 86 0 / 0.35);
-
-    /* Layer 2: tags, deepened for light (ADR-0023 §2.8), all ≥ 4.43:1 on the frame. */
-    --tag-0: #327f6e;
-    --tag-1: #966b21;
-    --tag-2: #945067;
-    --tag-3: #5d728e;
-    --tag-4: #7c68a1;
-    --tag-5: #965c39;
-
-    --light-cap-under-glass: 0.6;
-
-    /* Layer 2: materials, light (language.md §2.2, ADR-0022 §2.4, G-25). Light glass is floored,
-       not inverted: `contrast(0.45) brightness(1.4)` after the saturate lifts black under it to
-       0.385 before the tint, so black is its worst backdrop as white is dark glass's. Over black:
-       panel #d4d5d6, menu #d9d9da, sheet #e8e8ea, where primary text keeps ≥ 11.06:1 and
-       glass-secondary ≥ 6.20:1; over white they stay paper (#fafafc–#fcfcfd), and the panel over
-       the canvas lands within a level of the frame (n2). Lit glass is dark only: in light its
-       surfaces keep the floored recipe (alpha 0.69, #cbcbcc over black, APCA Lc 75), floored
-       over any pigment. Chip, bar and menu are CSS+ (GLS-7, GLS-8, GLS-23) on contrast(0.75),
-       lighter than the page tiers' floor. Their tone is the theme's over any page (GLS-20), so their worst
-       backdrop is black: a 0.80 tint floors them there at #d0d0d2 (primary 11.6:1, Lc 77, the
-       light look's old floor at its switch grey), and over white the page shows through at
-       about 0.20 of its contrast. */
-    --glass-chip-alpha: 0.8;
-    --glass-chip-tint: rgb(250 250 252 / var(--glass-chip-alpha));
-    --glass-chip-filter: saturate(1.6) contrast(0.75) brightness(1.33);
-    --glass-chip-solid: var(--n1);
-    --glass-chip-shadow: var(--e2);
-    --glass-bar-alpha: 0.8;
-    --glass-bar-tint: rgb(250 250 252 / var(--glass-bar-alpha));
-    --glass-bar-filter: saturate(1.6) contrast(0.75) brightness(1.33);
-    --glass-bar-solid: var(--n1);
-    --glass-bar-shadow: var(--e3);
-    --glass-panel-alpha: 0.76;
-    --glass-panel-tint: rgb(248 249 251 / var(--glass-panel-alpha));
-    --glass-panel-filter: saturate(1.4) contrast(0.45) brightness(1.4);
-    --glass-panel-solid: var(--n2);
-    --glass-panel-shadow: var(--e4);
-    --glass-menu-alpha: 0.8;
-    --glass-menu-tint: rgb(250 250 252 / var(--glass-menu-alpha));
-    --glass-menu-filter: saturate(1.6) contrast(0.75) brightness(1.33);
-    --glass-menu-solid: var(--n1);
-    --glass-menu-shadow: var(--e4);
-    --glass-sheet-alpha: 0.88;
-    --glass-sheet-tint: rgb(250 250 252 / var(--glass-sheet-alpha));
-    --glass-sheet-filter: saturate(1.3) contrast(0.45) brightness(1.4);
-    --glass-sheet-solid: var(--n1);
-    --glass-sheet-shadow: var(--e5);
-    --glass-lit-alpha: 0.69;
-    --glass-lit-tint: rgb(250 250 252 / var(--glass-lit-alpha));
-    --glass-lit-filter: saturate(1.5) contrast(0.45) brightness(1.4);
-    --glass-lit-solid: var(--n1);
-    --glass-lit-shadow: var(--e3);
-    /* Rims (language.md §2.4, light; GLS-8, softened by GLS-22): a soft ink edge outside holds the
-       shape over a white page, a white rim light from the top left (0.90 at the top, 0.50 at
-       the bottom) and a soft white top light (0.50) hold it over the canvas, all blurred, none
-       a line. Menus and sheets take a firmer edge, as in dark. */
-    --rim-edge: 0 0 2px rgb(15 17 22 / 0.24);
-    --rim-top: rgb(var(--white-rgb) / 0.9);
-    --rim-bottom: rgb(var(--white-rgb) / 0.5);
-    --rim-inner: inset 0 12px 12px -12px rgb(var(--white-rgb) / 0.5);
-    --rim-edge-strong: 0 0 0 0.5px rgb(15 17 22 / 0.14);
-    --rim-top-sheet: rgb(var(--white-rgb) / 0.85);
-    --rim-bottom-sheet: rgb(var(--white-rgb) / 0.4);
-    --rim-inner-sheet: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.6);
-    --rim-inner-docked: inset 0 1px 2px -1px rgb(var(--white-rgb) / 0.6);
-    /* Elevation (language.md §6.3): the dark geometry in ink at 40 % of each alpha. */
-    --e0: none;
-    --e1: 0 1px 2px rgb(var(--ink-rgb) / 0.12);
-    --e2: 0 4px 12px -4px rgb(var(--ink-rgb) / 0.2);
-    --e3: 0 10px 28px -10px rgb(var(--ink-rgb) / 0.24), 0 2px 6px -2px rgb(var(--ink-rgb) / 0.14);
-    --e4: 0 16px 40px -12px rgb(var(--ink-rgb) / 0.25);
-    --e5: 0 30px 80px -20px rgb(var(--ink-rgb) / 0.28);
-
-    /* Layer 3: the control block, light (09-primitives §2.2): ink washes one step apart, the
-       control edge ink 0.55 (≥ 3.61:1 against the worst light glass), on-states n12 with an n1
-       glyph, thumbs and knobs paper (n1) lifted by e1 and ringed by the control edge. */
-    --control-fill: rgb(var(--ink-rgb) / 0.06);
-    --control-fill-hover: rgb(var(--ink-rgb) / 0.09);
-    --control-fill-pressed: rgb(var(--ink-rgb) / 0.12);
-    --control-border: rgb(var(--ink-rgb) / 0.55);
-    --control-border-hover: rgb(var(--ink-rgb) / 0.7);
-    --control-on: var(--n12);
-    --control-on-ink: var(--n1);
-    --control-thumb-off: var(--n9);
-    --control-thumb: var(--n1);
-    --control-knob: var(--n1);
-    --control-track: rgb(var(--ink-rgb) / 0.28);
-    --control-range: var(--n12);
-    --control-disabled-fill: var(--n5);
-    /* The slider knob's glass lens (10-ink §3.2): tints, edge light, rim and drop shadows. */
-    --control-knob-tint: rgb(var(--white-rgb) / 0.6);
-    --control-knob-tint-held: rgb(var(--white-rgb) / 0.18);
-    --control-knob-gloss: rgb(var(--white-rgb) / 0.95);
-    --control-knob-edge: rgb(var(--white-rgb) / 0.8);
-    --control-knob-rim:
-      inset 0 0 0 1px rgb(var(--ink-rgb) / 0.26), inset 0 1.5px 1px rgb(var(--white-rgb) / 1),
-      inset 0 -2px 3px rgb(var(--ink-rgb) / 0.12);
-    --control-knob-drop:
-      0 1px 2px rgb(var(--ink-rgb) / 0.26), 0 3px 9px -1px rgb(var(--ink-rgb) / 0.28);
-    --control-knob-drop-raised:
-      0 1px 2px rgb(var(--ink-rgb) / 0.22), 0 7px 16px -2px rgb(var(--ink-rgb) / 0.32);
-    --control-knob-ring: inset 0 0 0 0.5px rgb(0 0 0 / 0.16);
-    --control-knob-dot-drop: 0 0.5px 1.5px rgb(0 0 0 / 0.25);
-    /* The check badge (ui/CheckBadge): it sits on the page, never themed, so one value. Empty, a
-     1.5 px white ring between two dark hairlines over a faint scrim: an outlined circle on a
-     white page and a white ring on a dark scan, clearly a control and clearly empty, never the
-     grey disc a heavier scrim makes on white (system-audit-2026-10 §3.8, I-32). */
-    --check-badge-rim: #ffffff;
-    --check-badge-scrim: rgb(0 0 0 / 0.1);
-    --check-badge-scrim-hover: rgb(0 0 0 / 0.22);
-    --check-badge-shadow:
-      inset 0 0 0 0.5px rgb(0 0 0 / 0.3), 0 0 0 0.5px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.2);
-    /* Checked, and the ring round a selected thumbnail or card (owner feedback 2026-10-09, G7):
-       the app's lime, never the page's blue. The badge's lime takes an ink tick (16.42:1) and an
-       ink rim, so it holds on the white page in both themes; the ring sits off the page, on the
-       chrome, as --accent-ring (lime on dark, lime-800 on light). The focus ring tells itself
-       apart by form: two bands with an ink gap round the whole cell, never one band on the sheet. */
-    --check-badge-fill: var(--accent);
-    --check-badge-ink: var(--accent-ink);
-    --select-ring: var(--accent-ring);
-    /* The Library aura's three lights (home/LibraryView): the mark's mint, lime and yellow.
-       On the dark canvas a faint pure lime reads as olive, so dark takes the lime a third of
-       the way to the mint. */
-    --aura-mint: rgb(105 234 163);
-    --aura-lime: rgb(203 255 95);
-    --aura-yellow: rgb(237 250 109);
-    --progress-fill: var(--n12);
-    --field-well: var(--n1);
-    --field-placeholder: var(--n10);
-    --scroll-thumb: rgb(var(--ink-rgb) / 0.5);
-    --scroll-thumb-hover: rgb(var(--ink-rgb) / 0.65);
-    --scroll-thumb-drag: rgb(var(--ink-rgb) / 0.75);
-    --scroll-thumb-edge: inset 0 0 0 0.5px rgb(var(--white-rgb) / 0.45);
-    --scroll-thumb-rim: inset 0 0 0 1.5px rgb(var(--white-rgb) / 0.14);
-    --scroll-groove: rgb(var(--ink-rgb) / 0.05);
-    --scroll-groove-rim: inset 0 0 0 0.5px rgb(var(--ink-rgb) / 0.07);
-    /* The button lens (GLS-25): a soft ink wash on hover under the bright lobes (GLS-27: the
-       white lens read faint on light glass), a deeper one under the ink press glow. */
-    --lens-hover: rgb(var(--ink-rgb) / 0.06);
-    --lens-pressed: rgb(var(--ink-rgb) / 0.07);
-    --lens-selected: rgb(var(--white-rgb) / 0.92);
-    --lens-selected-lift: var(--e1);
-    --lens-rim:
-      inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.85),
-      inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.4),
-      inset 0 0 0 0.5px rgb(var(--ink-rgb) / 0.06);
-    --lens-rim-flat:
-      inset 0 1px 0 rgb(var(--white-rgb) / 0.85), inset 0 -1px 0 rgb(var(--white-rgb) / 0.4),
-      inset 0 0 0 0.5px rgb(var(--ink-rgb) / 0.06);
-    --lens-rim-hover:
-      inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 1),
-      inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.6),
-      inset 0 0 0 0.5px rgb(var(--ink-rgb) / 0.08), 0 1px 3px -1px rgb(var(--ink-rgb) / 0.22);
-    --lens-rim-pressed:
-      inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.5),
-      inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.2),
-      inset 0 1px 5px rgb(var(--ink-rgb) / 0.12);
-    --badge-fill: var(--n4);
-    --swatch-contrast: rgb(var(--ink-rgb) / 0.55);
-    --swatch-edge: rgb(var(--ink-rgb) / 0.35);
-    /* The focus bands serve both themes unchanged (language.md §9.2): lime and #08090c. Fields
-       and segments take the outset field form in light (styles/focus.css, option A). */
-    --focus-light: var(--lime-300);
-    --focus-dark: #08090c;
-
-    /* Tracking (language.md §4.2): dark text on light needs less. */
-    --track-caption: 0.01em;
-    --track-footnote: 0.005em;
-    --track-body: 0em;
-  }
-}
-
 /* ── §3 Theme-free ─────────────────────────────────────────────────────────────────────── */
 :root {
   /* The signature pad's "Sign here" hint and line: ink on the white page, so theme-free. The
@@ -1079,11 +495,21 @@
      with its metric-matched fallback next so a cold load moves nothing (quality-bar Q-8).
      JetBrains Mono left the UI: technical strings use the `.technical` class (fonts.css). */
   --font-ui: 'Inter Recto', 'Inter Recto Fallback', ui-sans-serif, system-ui, sans-serif;
-  /* Weights are 400, 500 and 600 only (Q-8, which rounds language.md §4.3's 450 · 550 · 650):
-     running text, buttons and labels, titles. */
+  /* The document face (DSN-89): Noto Serif Recto, 400, for document titles only (Home's covers
+     and Continue, the editor's tab titles, the phone's shelf and reader bar). Its stack ends in
+     the system serifs, so a title that shows before the face arrives sits in a single-line box
+     and moves nothing (Q-8). */
+  --font-serif: 'Noto Serif Recto', Georgia, 'Times New Roman', serif;
+  /* Weights: 400, 500 and 600 for running text, buttons and labels, titles (Q-8), and since
+     DSN-89 the four Colophon steps of the variable face: 450 reading text, 550 a label or a
+     tooltip, 560 a button and the hero line, 620 the brand's wordmark. */
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
+  --weight-book: 450;
+  --weight-label: 550;
+  --weight-button: 560;
+  --weight-brand: 620;
   --tracking-ui: 0.01em;
   --tracking-label: 0.04em;
   --tracking-display: -0.011em;
@@ -1119,6 +545,31 @@
   --track-display: -0.022em;
   --leading-tight: 16px;
   --leading-base: 20px;
+  /* The Colophon steps (DSN-89), size / line height / tracking, with the weight each is set at
+     (the numbers are the desktop's; the tablet and phone steps are set in the component):
+     hero 60/64, −0.028em, 560 with `opsz` 32 · doc-xl 34/39, −0.005em, serif (tablet 30/35,
+     phone 24/28) · doc 15/20, serif (the editor's tab title 16/20, the phone's shelf 14/18) ·
+     action 15/20 at 500 · button 13.5/18, +0.002em at 560 · section is the body step with
+     +0.005em at 600 in the secondary colour · key is the caption step with +0.02em at 500 and
+     `font-feature-settings: 'case'` · brand 19, +0.005em at 620 with `opsz` 22 (phone 18) ·
+     status is the footnote step at 500. */
+  --type-hero: 60px;
+  --type-hero-lh: 64px;
+  --track-hero: -0.028em;
+  --type-doc-xl: 34px;
+  --type-doc-xl-lh: 39px;
+  --track-doc-xl: -0.005em;
+  --type-doc: 15px;
+  --type-doc-lh: 20px;
+  --type-action: 15px;
+  --type-action-lh: 20px;
+  --type-button: 13.5px;
+  --type-button-lh: 18px;
+  --track-button: 0.002em;
+  --track-section: 0.005em;
+  --track-key: 0.02em;
+  --type-brand: 19px;
+  --track-brand: 0.005em;
 
   /* Concentric radii (system-audit-2026-10 §3.2, language.md §6.1 S-1): an inner radius is its
      outer radius minus the inset between them, rounded to a step, and anything that floats is a
@@ -1137,6 +588,10 @@
   --radius-xl: 20px;
   --radius-2xl: 28px;
   --radius-capsule: 999px;
+  /* Colophon (DSN-89): a keycap's 5, and the button's 10 (it was the capsule). The panel is
+     --radius-lg 16, the tooltip --radius-sm 8 and a cover --radius-page 2. */
+  --radius-key: 5px;
+  --button-radius: var(--radius-control);
 
   /* One 4 px grid with a 2 px half-step for optical fixes (system-audit-2026-10 §3.1,
      language.md §6.2): 2 segment inset, gap between tabs · 4 between controls in a piece · 6
@@ -1201,6 +656,9 @@
   --icon-sm: 16px;
   --icon-md: 20px;
   --icon-lg: 32px;
+  /* DSN-95: the desktop capsule's 22 and a Home action's 24; the phone's bars use 24 too. */
+  --icon-capsule: 22px;
+  --icon-action: 24px;
   --gap-target: 4px;
   --control-text: var(--type-body);
   --control-lh: var(--type-body-lh);
@@ -1210,6 +668,19 @@
      and an S close. A tooltip is 24 / 28 with a footnote label. */
   --toast-h: var(--piece-h);
   --tooltip-h: 24px;
+
+  /* The Colophon frame (DSN-89, DSN-91): the Home strip, the capsule (56 high, 44 slots, 6 pad,
+     14 of air between groups) and the options strip that sits 10 above it. The compact edition
+     overrides these on its own root: capsule-h 60, slot 48, options-gap 12. --piece-h stays 40
+     / 48 for the strip's pieces and the page pill. */
+  --strip-h: 64px;
+  --strip-control: 36px;
+  --capsule-h: 56px;
+  --capsule-slot: 44px;
+  --capsule-pad: 6px;
+  --capsule-group-gap: 14px;
+  --options-h: 44px;
+  --options-gap: 10px;
 
   /* The sheet (07-sheets §2.2; system-audit-2026-10 §3.6.1): radius 20 (28 for a phone's bottom
      sheet), padding 20 fine and 16 coarse, a 56 / 64 header; its grouped lists sit
@@ -1349,24 +820,16 @@
     --text-secondary: var(--n11);
     --text-tertiary: var(--n10);
   }
-
-  /* The strong border in ink for light (language.md §2.4: rgb(21 23 28 / 0.40)). */
-  :root[data-theme='light'] {
-    --border-hairline: rgb(var(--ink-rgb) / 0.22);
-    --border-strong: rgb(var(--ink-rgb) / 0.4);
-    --border-glass: rgb(var(--ink-rgb) / 0.4);
-  }
 }
 
 /* Dim pages (DESIGN.md §3's comfort toggle; decisions MOB-16 step 1, MOB-17), set in Settings ›
-   Appearance and written as `data-dim-pages` by `state/appearance-store.ts`: in the dark theme
-   only, the page bitmaps composite at 80 % brightness (`--page-filter`, read by the page canvases
+   Appearance and written as `data-dim-pages` by `state/appearance-store.ts`: the page bitmaps composite at 80 % brightness (`--page-filter`, read by the page canvases
    and the text editor's canvases) and the paper every DOM piece on a page shows (the sheet under
    a bitmap still rendering, fields, handles) is the same white at 80 %, #cccccc, so nothing on
    the page stays bright. A filter, not a translucent overlay: the document's pixels, saves and
    exports never change, and the overlays (selection, ink, highlights, the text editor's frame)
    stay at full strength over it. Forced colours turn it off (§6). */
-:root[data-theme='dark'][data-dim-pages] {
+:root[data-dim-pages] {
   --page-background: #cccccc;
   --page-filter: brightness(0.8);
 }
@@ -1409,7 +872,7 @@
   }
 
   /* The system's colours are in force: Dim pages has nothing to do. */
-  :root[data-theme='dark'][data-dim-pages] {
+  :root[data-dim-pages] {
     --page-background: #ffffff;
     --page-filter: none;
   }

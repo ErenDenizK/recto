@@ -12,6 +12,7 @@ import { expect, type Locator, type Page, test } from '@playwright/test';
 import {
   copySummary,
   fixturePath,
+  openButton,
   openFixtures,
   openSaveCopy,
   useFileInputPicker,
@@ -123,7 +124,7 @@ test('sign simple-text.pdf through Save a copy; the download re-opens as Intact'
 
   // Re-open the download: the new signature checks out as Intact.
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await chooser).setFiles({
     name: 'signed-download.pdf',
     mimeType: 'application/pdf',

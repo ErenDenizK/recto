@@ -6,7 +6,14 @@
  */
 import { expect, test } from '@playwright/test';
 
-import { fixturePath, openFindPanel, quiet, trackEngine, useFileInputPicker } from './helpers';
+import {
+  fixturePath,
+  openButton,
+  openFindPanel,
+  quiet,
+  trackEngine,
+  useFileInputPicker,
+} from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -28,10 +35,7 @@ test('a .txt opened with Open files becomes a PDF page and Find finds its words'
   await page.goto('./?lang=en');
 
   const chooser = page.waitForEvent('filechooser');
-  await page
-    .getByRole('button', { name: /^Open files$/ })
-    .first()
-    .click();
+  await openButton(page).click();
   await (await chooser).setFiles({
     name: 'notes.txt',
     mimeType: 'text/plain',
@@ -58,10 +62,7 @@ test('only .txt converts: a .log is ignored', async ({ page }) => {
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   const chooser = page.waitForEvent('filechooser');
-  await page
-    .getByRole('button', { name: /^Open files$/ })
-    .first()
-    .click();
+  await openButton(page).click();
   await (await chooser).setFiles([
     { name: 'server.log', mimeType: 'text/plain', buffer: Buffer.from('log line') },
     { name: 'kept.txt', mimeType: 'text/plain', buffer: Buffer.from('kept line') },
@@ -111,10 +112,7 @@ test('a .md opened with Open files becomes a PDF page without Markdown syntax', 
   await page.goto('./?lang=en');
 
   const chooser = page.waitForEvent('filechooser');
-  await page
-    .getByRole('button', { name: /^Open files$/ })
-    .first()
-    .click();
+  await openButton(page).click();
   await (await chooser).setFiles({
     name: 'readme.md',
     mimeType: 'text/markdown',
@@ -164,9 +162,9 @@ test('a .md with a table opens as a document at the default fit, and the table r
   await page.goto('./?lang=en');
   await expect(page.getByTestId('app-shell')).toBeVisible();
 
-  // From Home: the launcher's Open files… takes the Markdown and lands on the document.
+  // From Home: the panel's Open or drop files takes the Markdown and lands on the document.
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files…' }).click();
+  await page.getByRole('button', { name: 'Open or drop files' }).click();
   await (await chooser).setFiles(fixturePath('table-notes.md'));
   await expect(page.getByRole('tab', { name: 'table-notes' })).toBeVisible({ timeout: 30_000 });
   const first = page.locator('[data-page-index="0"]').first();
@@ -180,10 +178,7 @@ test('a .md with a table opens as a document at the default fit, and the table r
   const markdownWidth = await fitted();
   expect(markdownWidth).toBeGreaterThan(300);
   const second = page.waitForEvent('filechooser');
-  await page
-    .getByRole('button', { name: /^Open files$/ })
-    .first()
-    .click();
+  await openButton(page).click();
   await (await second).setFiles(fixturePath('simple-text.pdf'));
   await expect(page.getByRole('tab', { name: 'simple-text' })).toBeVisible({ timeout: 30_000 });
   await quiet(page);

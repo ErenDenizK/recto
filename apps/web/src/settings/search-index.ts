@@ -36,9 +36,6 @@ export type SettingsSectionId =
 export type SettingsPageId = 'kept' | 'signatures' | 'privacy' | 'about';
 
 export type SettingsRowId =
-  | 'theme'
-  /** Fener's theme colour (DSN-88): listed only while the Labs flag `fener` is on. */
-  | 'accent'
   | 'glass'
   | 'reduceMotion'
   | 'glow'
@@ -124,20 +121,6 @@ const PRIVACY = ['settings.privacy'] as const;
 
 /** Every row, in its order on the sheet (a page's rows in their order on the page). */
 export const SETTINGS_ROWS: readonly SettingsRow[] = [
-  {
-    id: 'theme',
-    section: 'appearance',
-    title: at(m.settings_theme),
-    keywords: at(m.settings_theme_keywords),
-    commands: ['view.theme.system', 'view.theme.light', 'view.theme.dark', 'settings.appearance'],
-  },
-  {
-    id: 'accent',
-    section: 'appearance',
-    title: at(m.settings_accent),
-    keywords: at(m.settings_accent_keywords),
-    commands: ['settings.appearance'],
-  },
   {
     id: 'glass',
     section: 'appearance',

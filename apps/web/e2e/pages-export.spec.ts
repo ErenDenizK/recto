@@ -284,7 +284,10 @@ test('Move to in More on a folded bar moves the pages to the other document', as
   // The bar folds below 1040 px of room on a coarse pointer (the tablet, 820 wide) and below
   // 860 on a fine one.
   if (!(await coarse(page))) await page.setViewportSize({ width: 820, height: 900 });
-  await openFixtures(page, ['mixed-sizes.pdf', 'simple-text.pdf']);
+  // One file opens into its document and the second joins as a tab (two at once would stay on
+  // Home as cards, which have no tabs).
+  await openFixtures(page, ['mixed-sizes.pdf']);
+  await openFixtures(page, ['simple-text.pdf']);
   await page.getByRole('tab', { name: /^mixed-sizes/ }).click();
   await enterGrid(page);
   await expect(cells(page)).toHaveCount(5);

@@ -130,6 +130,9 @@ test.describe('Text view', () => {
       const top = four?.getBoundingClientRect().top ?? 0;
       el.scrollTop += top + 200 - 100;
     });
+    // The scroll down hides the chrome; wait for that end state, so the scroll up below is a
+    // reversal and not folded into the same scroll event.
+    await expect(page.getByTestId('compact-top-bar')).toHaveAttribute('data-hidden', 'true');
     // A scroll up shows the chrome again.
     await page.getByTestId('compact-pages').evaluate((el) => {
       el.scrollTop -= 24;

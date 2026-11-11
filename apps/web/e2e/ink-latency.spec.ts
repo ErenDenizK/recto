@@ -19,7 +19,7 @@ import { loadavg } from 'node:os';
 
 import { type CDPSession, expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, quiet, trackEngine, useFileInputPicker } from './helpers';
+import { fixturePath, openButton, quiet, trackEngine, useFileInputPicker } from './helpers';
 
 /** `src/annotations/pen/ink-stats.ts` (kept in step by hand: e2e does not import app code). */
 const INK_STATS_STORAGE_KEY = 'pdf-editor:dev:ink-stats';
@@ -223,10 +223,7 @@ interface Box {
 /** Opens the demo report, arms the pen and returns the first page's layer box. */
 async function openDemoArmed(page: Page): Promise<Box> {
   const chooser = page.waitForEvent('filechooser');
-  await page
-    .getByRole('button', { name: /^(Open files|Dosya aç)$/ })
-    .first()
-    .click();
+  await openButton(page).click();
   await (await chooser).setFiles([fixturePath(DEMO)]);
   await expect(page.getByRole('tab', { name: 'demo-report-v1' })).toBeVisible();
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({

@@ -3,7 +3,7 @@
  * input rules of D1-5 (05-canvas §6; input-rules.spec.ts drives S1–S18): a file opens in Read;
  * nothing moves or arms there, while targeted acts (select an annotation, fill a field) and
  * the page menu's page operations need no Edit; `2` opens Markup and its palette appears; a
- * tab click leaves Home in the document's last state; `1` closes it and the dock shows its
+ * card click leaves Home in the document's last state; `1` closes it and the dock shows its
  * doors again (D2-3); a tool key in viewing opens Markup and arms the tool. A selection's
  * "Edit text" opens the paragraph editor in Markup; there a first click on text shows
  * "Double-click to edit text", and Edit text armed opens a paragraph in one click.
@@ -35,7 +35,7 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByTestId('app-shell')).toBeVisible();
 });
 
-test('opens in Read with the lock; nothing moves or arms; 2 and 1 switch; a tab click leaves Home', async ({
+test('opens in Read with the lock; nothing moves or arms; 2 and 1 switch; a card click leaves Home', async ({
   page,
 }) => {
   await openFixtures(page, ['annotations.pdf']);
@@ -75,10 +75,10 @@ test('opens in Read with the lock; nothing moves or arms; 2 and 1 switch; a tab 
   await expect(page.getByTestId('annotation-bar')).toBeVisible();
   await page.keyboard.press('Escape');
 
-  // Home, then the tab: back in the document's last mode (Edit).
+  // Home, then the document's card (Home shows no tabs, DSN-93): back in its last mode (Edit).
   await page.keyboard.press('0');
   await expect(page.getByRole('radiogroup', { name: 'View mode' })).toHaveCount(0);
-  await page.getByRole('tab', { name: 'annotations' }).click();
+  await page.getByRole('option', { name: /^annotations/ }).click();
   await expect(editShown(page)).toBeVisible();
   await expect(palette(page)).toBeVisible();
 

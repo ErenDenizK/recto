@@ -1,5 +1,5 @@
-// Visual gallery of the ink family (10-ink.md §3–§5): renders every part on dark glass over
-// a page and on light glass, in fine and coarse density, and writes screenshots to
+// Visual gallery of the ink family (10-ink.md §3–§5): renders every part on the smoked glass
+// over a page, in fine and coarse density, and writes screenshots to
 // apps/web/test-results/ink/. Not part of the suite: run on demand with INK_SHOTS.
 import '../styles/fonts.css';
 import '../styles/tokens.css';
@@ -31,44 +31,20 @@ function devtools(method: string, params: object): Promise<unknown> {
 
 const INKS = ['#1A1A1A', '#1760EE', '#DB1C22', '#02853C', '#8036D3', '#E46910'];
 
-function Glass({
-  theme,
-  zoom,
-  children,
-}: {
-  theme: 'dark' | 'light';
-  zoom: number;
-  children: ReactNode;
-}) {
+function Glass({ zoom, children }: { zoom: number; children: ReactNode }) {
   return (
     <div
-      data-theme={theme}
+      data-theme="dark"
       style={{
         zoom,
         position: 'relative',
         padding: 24,
-        background:
-          theme === 'dark'
-            ? 'linear-gradient(90deg, #ffffff 0 45%, #08090b 45% 100%)'
-            : 'linear-gradient(90deg, #e6e8eb 0 45%, #ffffff 45% 100%)',
+        background: 'linear-gradient(90deg, #ffffff 0 45%, #08090b 45% 100%)',
       }}
     >
       <div
-        className={theme === 'dark' ? 'mat mat-menu s12' : undefined}
-        style={{
-          padding: 16,
-          borderRadius: 16,
-          width: 'fit-content',
-          ...(theme === 'light'
-            ? {
-                background: 'rgb(250 250 252 / 0.78)',
-                backdropFilter: 'blur(24px) saturate(1.4) contrast(0.45) brightness(1.4)',
-                boxShadow:
-                  '0 16px 40px -12px rgb(21 23 28 / 0.25), inset 0 0 0 1px rgb(21 23 28 / 0.08)',
-                color: '#15171c',
-              }
-            : {}),
-        }}
+        className="mat mat-menu s12"
+        style={{ padding: 16, borderRadius: 16, width: 'fit-content' }}
       >
         {children}
       </div>
@@ -228,9 +204,9 @@ for (const density of ['fine', 'coarse'] as const) {
         noteRecentColour('#0E8080');
         noteRecentColour('#7A34C8');
         reloadColourLists();
-        for (const theme of ['dark', 'light'] as const) {
+        {
           const { container, unmount } = render(
-            <Glass theme={theme} zoom={scale}>
+            <Glass zoom={scale}>
               <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
                 <Controls />
                 <Panel view="grid" />
@@ -242,7 +218,7 @@ for (const density of ['fine', 'coarse'] as const) {
           await hold(container);
           await new Promise((resolve) => setTimeout(resolve, 400));
           await page.screenshot({
-            path: `../../test-results/ink/gallery-${theme}-${density}${scale === 1 ? '' : `@${scale}x`}.png`,
+            path: `../../test-results/ink/gallery-dark-${density}${scale === 1 ? '' : `@${scale}x`}.png`,
             element: container.firstElementChild as HTMLElement,
           });
           unmount();

@@ -2,18 +2,21 @@
  * The Fill & sign bar (R28 tools-visibility, DSN-75, in force): the capsule's content for the Fill & sign door, in place of the shared Markup palette.
  *
  * ```
- * ‹ 3/12 ›  │  ✑ Sign ▾  [saved signatures]  │  ▭ Date  │  ✓ Done
+ * ‹ 3/12 ›  │  ✑  [saved signatures]  │  ▭  │  Done
  * ```
  *
  * - **Field stepping** is the palette's stepper (`SignGroup.tsx` `FieldStepper`, `always`): the
  *   previous or next fillable field in tab order, opened so typing fills; the field is brought
  *   into view (`doors.ts` `revealStop`). A file without fields keeps the stepper, its buttons
  *   disabled and the hint "No fields" in the readout.
- * - **Signature** is the palette's Sign ▾ and its saved-signature chips, untouched
+ * - **Signature** is the palette's Sign and its saved-signature chips, untouched
  *   (`SignButton`, `SignatureChips`): signing places freely on the page with or without fields.
  * - **Date** (`fill-bar-date.ts`): fills the focused empty text field, else arms today's date
  *   for a click on the page.
  * - **Done** is the palette's Done (`closeMarkupDoor`).
+ *
+ * Glyphs only (DSN-91): Sign and Date are icon buttons whose name and tooltip carry the word; Done
+ * is the capsule's one visible word, at the trailing end.
  *
  * It is the same capsule, material and row pieces as the palette (`MarkupPalette.module.css`);
  * Esc follows the palette's ladder (`palette-escape.ts`). Desktop and tablet; the phone has its
@@ -110,7 +113,7 @@ export function FillSignBar() {
         </div>
         <span className={styles.sep} aria-hidden="true" />
         <div className={styles.group}>
-          <SignButton showLabel chipsShown />
+          <SignButton showLabel={false} chipsShown />
           <SignatureChips item="chips" />
         </div>
         <span className={styles.sep} aria-hidden="true" />
@@ -120,7 +123,6 @@ export function FillSignBar() {
             label={m.fillbar_date()}
             tooltip={m.fillbar_date_tooltip()}
             icon={<Icon name="calendar-blank" filled={false} />}
-            showLabel
             tool="date"
             aria-pressed={dateArmed}
             onMouseDown={(event) => event.preventDefault()}

@@ -60,43 +60,18 @@ describe('Home chrome', () => {
     // The Library has no sidebar (it lists the files itself); the stored view is kept.
     expect(screen.queryByRole('tablist', { name: 'Sidebar sections' })).toBeNull();
     expect(useUiStore.getState().leftPanelView).toBe('pages');
-    // The strip (01-frame F2 §4): ◆ current with its label, tabs, + and ⋯ alone (R11: the
-    // trailing piece is one control; ◎ shows there only as a warning, DSN-46).
+    // The Home strip (Colophon L2): the brand, the search, "On this device" and the gear; no
+    // ◆ button, tabs, + or ⋯, and ◎ is the "On this device" status.
     const strip = screen.getByRole('banner', { name: 'Library bar' });
-    expect(within(strip).getByTestId('home-button')).toHaveAttribute('aria-current', 'page');
+    expect(within(strip).getByTestId('home-search')).toBeVisible();
+    expect(within(strip).getByTestId('privacy-indicator')).toHaveTextContent('On this device');
+    expect(within(strip).getByTestId('home-settings')).toBeVisible();
+    expect(strip.getBoundingClientRect().height).toBe(64);
+    expect(within(strip).queryByTestId('home-button')).toBeNull();
     expect(within(strip).queryByTestId('sidebar-toggle')).toBeNull();
-    expect(within(strip).queryByRole('searchbox')).toBeNull();
+    expect(within(strip).queryByRole('tablist')).toBeNull();
     expect(within(strip).queryByTestId('undo-redo')).toBeNull();
-    expect(within(strip).getByTestId('library-menu')).toBeVisible();
-    expect(within(strip).queryByTestId('privacy-indicator')).toBeNull();
     expect(screen.queryByTestId('page-pill')).toBeNull();
-    // No tab is selected, nor looks it: no selected fill, no close affordance shown. A keyboard
-    // focus inside a tab shows its close on purpose (frame/TopStrip.module.css), and the focus may have
-    // been rescued into the tab list when Home took over, so judge the resting look unfocused.
-    (document.activeElement as HTMLElement | null)?.blur();
-    const tabs = screen.getAllByRole('tab', { name: /first-file|demo-agreement/ });
-    for (const tab of tabs) {
-      expect(tab).toHaveAttribute('aria-selected', 'false');
-      const wrap = tab.parentElement as HTMLElement;
-      expect(wrap).not.toHaveAttribute('data-selected');
-      const close = wrap.querySelector<HTMLElement>('[aria-hidden="true"]:last-child');
-      // After the selected look's short transition.
-      await waitFor(() => {
-        expect(getComputedStyle(wrap).backgroundColor).toBe('rgba(0, 0, 0, 0)');
-        // A pointer resting over a tab, or a page that cannot hover (an earlier file of the run
-        // that emulated touch leaves `hover: none` behind), shows the close on purpose
-        // (frame/TopStrip.module.css): neither is the resting look this checks.
-        if (!wrap.matches(':hover') && matchMedia('(hover: hover)').matches) {
-          expect(getComputedStyle(close as HTMLElement).opacity).toBe('0');
-        }
-      });
-    }
-    // A click on the active tab leaves the focus there; it still does not look selected.
-    tabs[0]?.focus();
-    expect(getComputedStyle(tabs[0]?.parentElement as HTMLElement).backgroundColor).toBe(
-      'rgba(0, 0, 0, 0)',
-    );
-
     // Back in the document, the sidebar and the page pill return.
     useUiStore.getState().showSurface('page');
     await waitFor(() => expect(railTabs()).toEqual(['Pages', 'Find', 'Review']));
@@ -127,7 +102,7 @@ describe('Home chrome', () => {
     expect(long.label.scrollWidth).toBeGreaterThan(long.label.clientWidth);
   });
 
-  it('shows Recents in one lit panel under the launcher, a plain recent with the page glyph', async () => {
+  it('shows Recents on the shelf, a plain recent with the page glyph', async () => {
     await recordRecent({ name: 'report.pdf', size: 6246, pages: 6 });
     render(<App />);
     const list = await screen.findByRole('list', { name: 'Recent files' });
@@ -135,13 +110,10 @@ describe('Home chrome', () => {
     // No kept snapshot: the glyph, never a thumbnail (02.Q1).
     expect(row.querySelector('svg')).not.toBeNull();
     expect(list.querySelector('canvas, img')).toBeNull();
-    const panel = row.closest('section') as HTMLElement;
-    expect(panel).toHaveAttribute('data-lit');
-    // The lit tint over the canvas, no blur of its own until the field lands (D3-8).
-    expect(getComputedStyle(panel).backgroundColor).toBe('rgba(48, 51, 58, 0.58)');
-    expect(getComputedStyle(panel).backdropFilter).toBe('none');
-    // One column, under the launcher card.
-    const launcher = screen.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' });
-    expect(launcher.getBoundingClientRect().bottom).toBeLessThan(panel.getBoundingClientRect().top);
+    // Colophon Home (DSN-93): the shelf stands on the desk itself, not in a lit panel.
+    expect(row.closest('[data-lit]')).toBeNull();
+    // One launcher above it, in the same Home.
+    const home = screen.getByTestId('home');
+    expect(within(home).getByTestId('library-open')).toBeVisible();
   });
 });

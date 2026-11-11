@@ -3,12 +3,13 @@
  * box, Note, Image, Edit text and Redact, and the shape of Done, Sign and the choice tools.
  *
  * - A `ui/IconButton` of the bar size, the M control (32 fine, 44 coarse; system-audit-2026-10
- *   §3.3) with a 20 px Phosphor glyph; with `showLabel` the circle stretches to a pill with the
- *   name beside the glyph (Edit text, Redact, Sign, Done), the same states. A labelled choice
- *   (Sign ▾) adds a 16 px caret after its name (`caret`, §3.7).
+ *   §3.3; the capsule's 44 px slot, DSN-91) with a 22 px Phosphor glyph and no visible word; with
+ *   `showLabel` the circle stretches to a pill with the name beside the glyph (Done, whose own
+ *   CSS draws the word alone; the Fill & sign bar's Sign and Date), the same states. A
+ *   labelled choice (Sign ▾) adds a 16 px caret after its name (`caret`, §3.7).
  * - Armed (`aria-pressed` with `data-tool`): the one armed form of §3.5, the
- *   `--tool-active-fill` disc from `ui/IconButton.module.css`, the glyph in its outline weight
- *   (callers pass `filled={false}`: 10-ink §2.4); exactly one tool is pressed across the
+ *   `--tool-active-fill` disc from `ui/IconButton.module.css` (lime) with the glyph's fill twin
+ *   in the disc's ink (DSN-91; it was the outline weight, 10-ink §2.4); exactly one tool is pressed across the
  *   palette and the pen well.
  * - Tooltip: the name and key, then "· Esc: Select" when armed, and "Press again for choices"
  *   on a tool whose second press opens choices (`markup_choices_hint`).

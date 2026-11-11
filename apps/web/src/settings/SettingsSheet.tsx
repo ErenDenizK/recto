@@ -33,7 +33,6 @@ import { Fragment, type ReactNode, useEffect, useLayoutEffect, useRef, useState 
 import { m } from '../i18n';
 import { navPush, reducedMotion, sheetPush } from '../motion';
 import { useLastInput, usePointerCapabilities } from '../shell/frame/input-modality';
-import { fenerEnabled } from '../state/fener';
 import { ScrollArea } from '../ui/ScrollArea';
 import { SearchField } from '../ui/SearchField';
 import { Sheet, useSheetDraft, useSheetOpen } from '../ui/sheet';
@@ -74,11 +73,9 @@ import {
   ShortcutsRow,
   ShowTipsRow,
 } from './sections';
-import { AccentRow } from './AccentRow';
 import { DimPagesRow } from './DimPagesRow';
 import { OfficePackageRow } from './OfficePackageRow';
 import { ReduceMotionRow } from './ReduceMotionRow';
-import { ThemeRow } from './ThemeRow';
 import styles from './Settings.module.css';
 
 type Push = (page: SettingsPageId) => void;
@@ -87,8 +84,6 @@ type Push = (page: SettingsPageId) => void;
 const ROWS: Readonly<
   Record<MainRowId, (props: { onPush: Push; hint: string | undefined }) => ReactNode>
 > = {
-  theme: () => <ThemeRow />,
-  accent: () => <AccentRow />,
   glass: () => <GlassRow />,
   reduceMotion: () => <ReduceMotionRow />,
   glow: () => <GlowRow />,
@@ -276,11 +271,7 @@ export default function SettingsSheet() {
     setPage(next);
   };
 
-  const shown = SETTINGS_ROWS.filter(
-    (row) =>
-      (row.id !== 'shortcuts' || !coarse || keyboardSeen) &&
-      (row.id !== 'accent' || fenerEnabled()),
-  );
+  const shown = SETTINGS_ROWS.filter((row) => row.id !== 'shortcuts' || !coarse || keyboardSeen);
   const searching = queryWords(query).length > 0;
   const hits = searching ? searchSettings(query, shown) : shown;
   const found = new Set<SettingsRowId>();

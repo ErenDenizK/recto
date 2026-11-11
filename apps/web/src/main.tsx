@@ -2,8 +2,6 @@
 // declares it and index.html preloads its Latin file (ADR-0027 §2.1).
 import './styles/fonts.css';
 import './styles/tokens.css';
-// Fener's overrides (DSN-88): inert unless the root carries `data-fener`, so after the tokens.
-import './styles/fener.css';
 import './styles/reset.css';
 import './styles/global.css';
 

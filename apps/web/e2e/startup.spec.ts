@@ -27,6 +27,7 @@ import { expect, type Page, test } from '@playwright/test';
 import {
   downloadCopy,
   fixturePath,
+  openButton,
   openSaveCopy,
   useDownloadPath,
   useFileInputPicker,
@@ -108,10 +109,7 @@ async function openAndTime(page: Page, name: string, buffer: Buffer): Promise<Op
     });
   });
   const chooser = page.waitForEvent('filechooser');
-  await page
-    .getByRole('button', { name: /^(Open files|Dosya aç)$/ })
-    .first()
-    .click();
+  await openButton(page).click();
   await (await chooser).setFiles({ name, mimeType: 'application/pdf', buffer });
   return page.evaluate(
     () => (window as unknown as { __openToFirstPage: Promise<OpenTiming> }).__openToFirstPage,

@@ -157,16 +157,9 @@ describe('the docked frame', () => {
     expect(useAppearanceStore.getState().dimPages).toBe(true);
     expect(root).toHaveAttribute('data-dim-pages');
     expect(commandRegistry.get('view.dimPages')?.title).toBe('Dim pages: On');
-    // System, in a browser that reports a dark scheme (vitest.config.ts).
-    expect(root.getAttribute('data-theme')).toBe('dark');
     expect(getComputedStyle(canvas).filter).toBe('brightness(0.8)');
     expect(getComputedStyle(sheet).backgroundColor).toBe('rgb(204, 204, 204)');
     expect(getComputedStyle(sheet).filter).toBe('none');
     if (overlays) expect(getComputedStyle(overlays).filter).toBe('none');
-    // The light theme keeps the pages as authored.
-    act(() => useAppearanceStore.getState().setTheme('light'));
-    expect(getComputedStyle(canvas).filter).toBe('none');
-    expect(getComputedStyle(sheet).backgroundColor).toBe('rgb(255, 255, 255)');
-    root.removeAttribute('data-theme');
   });
 });

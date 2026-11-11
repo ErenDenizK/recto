@@ -120,8 +120,8 @@ export function useSafeAreaInsets(): Insets {
 // The free rectangle (01-frame F1 §2)
 // ---------------------------------------------------------------------------------------------
 
-/** The dock band's offset from the window's bottom edge, medium and up (F1 §2, F10 §2). */
-export const BAND_OFFSET = 16;
+/** The dock band's offset from the window's bottom edge, medium and up (F1 §2, F10 §2); 24 in Colophon, the mockup's capsule stands 24 above the edge. */
+export const BAND_OFFSET = 24;
 /** The same on compact and compact-height (`max(safe-bottom, 12px)`). */
 export const BAND_OFFSET_COMPACT = 12;
 /** The soft scroll edge under the strip, and how far below the strip jumps land (01.9). */

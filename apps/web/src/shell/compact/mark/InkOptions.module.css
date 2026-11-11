@@ -56,11 +56,3 @@
 .badge[data-ring-dark] {
   box-shadow: 0 0 0 1.5px var(--swatch-contrast);
 }
-
-:global([data-theme='light']) .badge {
-  box-shadow: 0 0 0 1.5px var(--glass-bar-solid);
-}
-
-:global([data-theme='light']) .badge[data-ring-light] {
-  box-shadow: 0 0 0 1.5px var(--swatch-contrast);
-}

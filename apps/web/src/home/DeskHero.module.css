@@ -1,116 +1,145 @@
 /*
- * The hero slot (DeskHero.tsx; DSN-87 masa.md §2.2): at least 220 tall, the Continue card's
- * size, so the sample hero, the empty holding card and Continue share one geometry. The sample
- * hero's cover is the large static drawing; the whole card is one press target through the
- * button's ::after, with the sample card's hover rim and press sink (GLS-25).
+ * The hero slot (DeskHero.tsx; DSN-93, home-recents.html, tablet-home.html): the page as a real
+ * cover (216 wide, 190 under 1280 px, its own aspect, `--cover-shadow`, radius 2), and the text
+ * 40 px to its right. The text block stands 196 above the cover's foot (its top is the cover's
+ * bottom less 196, as the mockups set it): title at the doc-xl step (34/39, 30/35 under 1280),
+ * the meta line 12 below, a 240 × 2 reading track 14 below that, the Continue button 28 below.
  */
 .hero {
   position: relative;
-  height: 100%;
-  box-sizing: border-box;
-  min-height: 220px;
-  border-radius: var(--radius-xl);
-  color: var(--text-primary);
+  display: flex;
+  align-items: flex-start;
+  gap: 40px;
+  min-width: 0;
 }
 
-.holding {
-  width: 100%;
-}
-
-.sample {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  column-gap: var(--space-5);
-  width: 100%;
-  padding: var(--space-5);
-  text-align: start;
-  transition:
-    transform var(--spring-press) var(--ease-spring),
-    box-shadow var(--duration-fast) var(--ease-out);
-}
-
-/* The page is content: its own colours and the page hairline in both themes. */
 .cover {
+  --cover-box-w: var(--hero-w);
+  --cover-box-h: 999px;
   display: block;
-  height: 172px;
-  aspect-ratio: 210 / 297;
+  flex: none;
+  width: var(--hero-w);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 360px;
+  align-self: flex-end;
+  align-items: flex-start;
+  box-sizing: border-box;
+  min-width: 0;
+  height: 196px;
+}
+
+.title {
+  max-width: 100%;
+  margin: 0;
   overflow: hidden;
-  border-radius: var(--radius-page);
-  box-shadow: var(--page-shadow);
+  color: var(--text-primary);
+  font-family: var(--font-serif);
+  font-size: var(--type-doc-xl);
+  font-weight: var(--weight-regular);
+  line-height: var(--type-doc-xl-lh);
+  letter-spacing: var(--track-doc-xl);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  margin: 12px 0 0;
+  color: var(--text-tertiary);
+  font-size: var(--type-body);
+  line-height: var(--type-body-lh);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The reading track: 240 × 2, the lime fill (`--reading-progress`) on a quiet track. */
+.hero .progress {
+  width: 240px;
+  max-width: 100%;
+  height: 2px;
+  margin-top: 14px;
+  background: var(--reading-track);
+}
+
+.hero .progress > span {
+  background: var(--reading-progress);
+}
+
+.hero .go {
+  margin-top: 28px;
+  padding: 0 16px;
+  /* The button step, not the large button's callout (the mockup sets 13.5 at 560). */
+  font-size: var(--type-button);
+  line-height: var(--type-button-lh);
+}
+
+/* A finger needs 44; the large button is 52 there, so Continue stands at the target's size. */
+@media (pointer: coarse) {
+  .hero .go {
+    height: 44px;
+  }
+}
+
+/* The sample as the hero: the same size, the lime link where Continue's button would be. */
+.sample .title {
+  margin-bottom: 0;
 }
 
 .drawing {
   display: block;
+  width: var(--hero-w);
+  aspect-ratio: 210 / 297;
+  overflow: hidden;
+  border-radius: var(--radius-page);
+  box-shadow: var(--cover-shadow);
+}
+
+.drawingSvg {
+  display: block;
   width: 100%;
   height: 100%;
 }
 
-.text {
-  display: grid;
-  justify-items: start;
-  gap: var(--space-1);
-  min-width: 0;
+.try {
+  composes: focus-inset from global;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: var(--type-button);
+  font-weight: var(--weight-button);
+  line-height: var(--type-button-lh);
+  letter-spacing: var(--track-button);
+  -webkit-tap-highlight-color: transparent;
 }
 
-.title {
-  margin: 0;
-  font-size: var(--type-title3);
-  font-weight: var(--weight-semibold);
-  line-height: var(--type-title3-lh);
-  letter-spacing: var(--track-body);
-}
-
-.line {
-  margin: 0 0 var(--space-3);
-  color: var(--text-secondary);
-  font-size: var(--type-callout);
-  line-height: var(--type-callout-lh);
-  letter-spacing: var(--track-callout);
-  text-wrap: pretty;
-}
-
-/* One press target: the button's box grows over the whole card. */
-.sample .open {
-  position: static;
-}
-
-.open::after {
+/* The whole hero is the press target. */
+.try::after {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: inherit;
 }
 
-@media (hover: hover) {
-  .sample:not([data-unavailable]):hover {
-    --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--lens-rim-hover);
-  }
-}
-
-.sample:not([data-unavailable]):active {
-  --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--lens-rim-pressed);
-  transform: scale(var(--press-scale-large));
-  transition-duration: var(--duration-instant);
-}
-
-.sample[data-unavailable] .cover {
+.sample[data-unavailable] .drawing {
   opacity: 0.5;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .sample:active {
-    transform: none;
-  }
+.try[aria-disabled='true'] {
+  color: var(--text-tertiary);
 }
 
-:root[data-motion='reduced'] .sample:active {
-  transform: none;
-}
-
-@media (max-width: 480px) {
-  .sample {
-    grid-template-columns: minmax(0, 1fr);
-    justify-items: start;
-  }
+/* Recents not read yet: the cover's size held with a quiet rectangle. */
+.holding {
+  width: var(--hero-w);
+  aspect-ratio: 216 / 306;
+  border-radius: var(--radius-page);
+  background: var(--fill-ghost);
 }

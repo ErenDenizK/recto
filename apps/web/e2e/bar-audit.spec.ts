@@ -26,10 +26,11 @@ import {
   atRest,
   enterEdit,
   fixturePath,
+  openButton,
   openFixtures,
-  useFileInputPicker,
   openSaveCopyFromMenu,
   PALETTES,
+  useFileInputPicker,
   usePalette,
 } from './helpers';
 import { auditBars, type BarFinding, type ControlKind } from './support/bar-audit';
@@ -123,7 +124,7 @@ for (const palette of PALETTES) {
       test.setTimeout(60_000);
       const run = collector(page);
       await page.goto('./?lang=en');
-      await expect(page.getByRole('button', { name: /^Open files/ }).first()).toBeVisible();
+      await expect(openButton(page)).toBeVisible();
       await run.audit('Home');
 
       await openFixtures(page, ['simple-text.pdf']);
@@ -272,10 +273,7 @@ for (const palette of PALETTES) {
         .click({ modifiers: ['ControlOrMeta'] });
       await page.keyboard.press('Delete');
       const chooser = page.waitForEvent('filechooser');
-      await page
-        .getByRole('button', { name: /^Open files/ })
-        .first()
-        .click();
+      await openButton(page).click();
       await (await chooser).setFiles({
         name: 'scan.pdf',
         mimeType: 'application/pdf',
@@ -357,10 +355,7 @@ for (const palette of PALETTES) {
       const run = collector(page);
       await page.goto('./?lang=en');
       const chooser = page.waitForEvent('filechooser');
-      await page
-        .getByRole('button', { name: /^Open files/ })
-        .first()
-        .click();
+      await openButton(page).click();
       await (await chooser).setFiles(fixturePath('encrypted-aes-128.pdf'));
       await expect(page.getByRole('alertdialog', { name: 'Password required' })).toBeVisible();
       await run.audit('the password prompt');
@@ -377,7 +372,7 @@ for (const palette of PALETTES) {
         leaks.push(...result.leaks);
       };
       await page.goto('./?lang=en');
-      await expect(page.getByRole('button', { name: /^Open files/ }).first()).toBeVisible();
+      await expect(openButton(page)).toBeVisible();
       await tab('Home', () => page.locator('body').focus());
 
       await openFixtures(page, ['simple-text.pdf']);

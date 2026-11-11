@@ -58,10 +58,9 @@ test.describe('the download path', () => {
   test('drop two files, rotate a page, save a copy and download a verified PDF', async ({
     page,
   }) => {
-    await openFixtures(
-      page,
-      Object.keys(EXPECTED).map((name) => `${name}.pdf`),
-    );
+    // One at a time: two files opened together stay on Home as cards (DSN-93), while a single
+    // file opens its document and the tab strip's + adds the next as a tab.
+    for (const name of Object.keys(EXPECTED)) await openFixtures(page, [`${name}.pdf`]);
     const documentTabs = page.getByRole('tablist', { name: 'Open documents' }).getByRole('tab');
     await expect(documentTabs).toHaveCount(2);
 

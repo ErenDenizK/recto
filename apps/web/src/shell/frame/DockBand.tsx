@@ -24,12 +24,14 @@ import { PageContextMenu } from '../../stage/PageContextMenu';
 import { watchLockClosesMarkup } from '../capsule/capsule-content';
 import { Dock } from './Dock';
 import styles from './DockBand.module.css';
-import { PILL_CLEARANCE } from './dock-labels';
 import { useFrameStore } from './frame-store';
 import { PagePill } from './PagePill';
 import { PagePillMenu } from './PagePillMenu';
 import { raisePill } from './pill-rise';
 import type { SizeClass } from './size-class';
+
+/** How far the capsule keeps from the page pill at the band's trailing end (spec 01.6). */
+export const PILL_CLEARANCE = 12;
 
 /** Whether the pill must rise: the bar's trailing edge comes within 12 px of the pill. */
 export function pillMustRise(barRight: number, pillLeft: number): boolean {

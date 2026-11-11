@@ -1,8 +1,8 @@
 /**
- * The single capsule's state rules (EDN-24, Labs `phone-capsule`; plan "State transitions"):
- * which tool the capsule shows pressed, what a tap on a tool does, and the one subscription that
+ * The single capsule's state rules (EDN-24, EDN-29; plan "State transitions"):
+ * which tool the capsule shows armed, what a tap on a tool does, and the one subscription that
  * opens the tray when a tool goes from off to on. The pure table is apart from the store calls
- * (`tapCapsuleTool`) so it is tested alone. With the switch off nothing here runs.
+ * (`tapCapsuleTool`) so it is tested alone. With `?phonebar=0` nothing here runs.
  */
 import { type CompactTool, setTrayOpen, useCompactStore } from '../compact-store';
 import { armTool, eraserFrom, toolOff } from './bridge';
@@ -11,13 +11,21 @@ import { armTool, eraserFrom, toolOff } from './bridge';
 export type CapsuleTap = 'arm' | 'off' | 'open';
 
 /**
- * The capsule tool that shows pressed for the armed `tool`: the Eraser counts as the tool it
- * took over from (`from`), Edit text as Text; the tool off presses nothing.
+ * The capsule tool that shows armed (the lime circle) for the armed `tool`: the Eraser counts as
+ * the tool it took over from (`from`); the tool off arms nothing. Edit text has its own slot
+ * since EDN-29.
+ */
+export function pressedTool(tool: CompactTool | null, from: CompactTool): CompactTool | null {
+  return tool === 'eraser' ? from : tool;
+}
+
+/**
+ * The tool whose tray shows for the armed `tool`: as `pressedTool`, but Edit text borrows Text's
+ * options (size and colour).
  */
 export function trayTool(tool: CompactTool | null, from: CompactTool): CompactTool | null {
-  if (tool === 'eraser') return from;
-  if (tool === 'edit-text') return 'text';
-  return tool;
+  const pressed = pressedTool(tool, from);
+  return pressed === 'edit-text' ? 'text' : pressed;
 }
 
 /**
@@ -39,7 +47,7 @@ export function tapRule(
 export function tapCapsuleTool(id: CompactTool): void {
   const { editing, tool, trayOpen } = useCompactStore.getState();
   if (!editing) return;
-  const action = tapRule(tool, trayTool(tool, eraserFrom()), id, trayOpen);
+  const action = tapRule(tool, pressedTool(tool, eraserFrom()), id, trayOpen);
   if (action === 'off') {
     toolOff();
     setTrayOpen(false);

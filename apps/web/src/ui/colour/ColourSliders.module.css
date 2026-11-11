@@ -22,13 +22,6 @@
   height: 100%;
 }
 
-:global([data-theme='light']) .view {
-  --sv-well: var(--field-well, #fdfdff);
-  --sv-border: var(--control-border, rgb(21 23 28 / 0.55));
-  --sv-label: #4f535a;
-  --sv-text-colour: #15171c;
-}
-
 @media (pointer: coarse), (any-pointer: coarse) {
   .view {
     --sv-gap: 14px;

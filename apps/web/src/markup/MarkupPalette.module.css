@@ -27,31 +27,35 @@
  * here: it floats above the capsule as its own glass piece (`StripPiece.module.css`).
  */
 .content,
-:global(.mat[data-capsule='palette']),
-:global([data-strip-piece]) {
-  /* The piece: height, the row's inset inside the 1 px rim, the pill radius. */
-  --palette-h: var(--piece-h);
-  --palette-inset: var(--piece-pad);
+:global(.mat[data-capsule='palette']) {
+  /* The capsule (DSN-91): 56 high, a 44 slot with a 22 glyph, 2 apart. */
+  --palette-h: var(--capsule-h);
+  --palette-inset: calc(var(--capsule-pad) - 1px);
   --palette-radius: var(--piece-radius);
-  /* A control: the M size, its fill its box. */
-  --palette-control: var(--control-h);
-  /* Glyphs and marks: icons, a colour dot, the label. */
-  --palette-icon: var(--piece-icon);
+  --palette-control: var(--capsule-slot);
+  --palette-icon: var(--icon-capsule);
   --palette-dot: var(--icon-sm);
-  --palette-label: var(--piece-label);
-  /* Spacing: between controls, the hairline between groups and its margins. */
-  --palette-gap: var(--space-1);
+  --palette-label: var(--type-button);
+  --palette-gap: var(--space-half);
   --palette-sep-h: var(--icon-sm);
-  --palette-sep-m: var(--space-1);
+  --palette-sep-m: var(--space-half);
+  /* The slot is the control: IconButton, the pen cells and the buttons read --control-h. */
+  --control-h: var(--capsule-slot);
 }
 
-@media (pointer: coarse), (any-pointer: coarse) {
-  .content,
-  :global(.mat[data-capsule='palette']),
-  :global([data-strip-piece]) {
-    --palette-dot: var(--icon-md);
-    --palette-sep-h: var(--icon-md);
-  }
+/* The options strip (`StripPiece.module.css`): --options-h high, its own controls the default M
+   size (32 / 44), 18 px swatches (DSN-91). */
+:global([data-strip-piece]) {
+  --palette-h: var(--options-h);
+  --palette-inset: 0px;
+  --palette-radius: var(--piece-radius);
+  --palette-control: var(--control-h);
+  --palette-icon: var(--piece-icon);
+  --palette-dot: 18px;
+  --palette-label: var(--piece-label);
+  --palette-gap: 0px;
+  --palette-sep-h: 20px;
+  --palette-sep-m: var(--space-3);
 }
 
 .content {
@@ -107,11 +111,12 @@
 }
 
 .sep {
+  /* 14 px of empty space between groups, not a hairline (DSN-91): with the groups' 2 px
+     either side, the mockup's 18 between two slots' edges. */
   flex: none;
-  width: 1px;
+  width: var(--capsule-group-gap);
   height: var(--palette-sep-h);
   margin-inline: var(--palette-sep-m);
-  background: var(--border-hairline);
 }
 
 /* --- Controls -------------------------------------------------------------------------- */
@@ -140,9 +145,23 @@
   color: inherit;
 }
 
-/* Done: a plain control, never lime (MK-3 §3); its name in the primary colour. */
-.done {
+/* Done (DSN-91): the one word the capsule shows, at its trailing end. A text pill of 36, padding
+   0 14, 13 px at 550 and no fill; never lime (MK-3 §3). The check glyph the button carries is
+   not drawn: its name is the word. */
+.done.done {
+  width: auto;
+  height: var(--strip-control);
+  padding-inline: 14px;
   color: var(--text-primary);
+  /* 13 on every pointer: the capsule's one word (DSN-91) keeps its size on touch. */
+  --done-size: 13px;
+  font-size: var(--done-size);
+  font-weight: var(--weight-label);
+  letter-spacing: 0;
+}
+
+.done.done > svg {
+  display: none;
 }
 
 /* A labelled choice (Sign ▾; §3.7, 10-ink §2.4): a 16 px caret glyph at the label's cap height,

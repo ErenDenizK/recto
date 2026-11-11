@@ -88,6 +88,7 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PRD-39](decisions/product.md) | Intent bar: the palette reads sentences (TR/EN, chained), previews each step, runs only what was shown; no model; an exact command title is never a sentence | In force | 2026-10-31 |
 | [PRD-40](decisions/product.md) | Save a copy takes a request from the palette (images, text, size target); the bar never writes a file itself | In force | 2026-10-31 |
 | [PRD-41](decisions/product.md) | My info UI: chip plus one-line suggestion, ghost-value preview, one profile with a save chip; a portable module | In force behind Labs | 2026-10-31 |
+| [PRD-42](decisions/product.md) | Dark only: the Theme setting, the light theme and `theme.js` are removed; supersedes ADR-0022 §2.4, DSN-83, GLS-27 | In force | 2026-11-10 |
 | [PRD-14](decisions/product.md) | W0-q findings are assigned to waves: signed fixture opens locked and saves byte-identical (W1-a/W1-b), truncated.pdf… | In force; W1-b and W1-g merged | 2026-10-09 |
 | [PF-18](decisions/product.md) | A closed document's source is parked; the engine worker ends when none is open | In force | 2026-10-22 |
 | [PF-19](decisions/product.md) | Read mode's whole-page bitmap is capped at 4 MP on every edition; tiles keep the visible page 1:1 | In force | 2026-10-22 |
@@ -105,7 +106,7 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | Id | Decision | Status | Date |
 |---|---|---|---|
 | [DSN-1](decisions/design.md) | The visual design system comes first | In force | 2026-10-09 |
-| [DSN-2](decisions/design.md) | Recto Glass: content is solid, controls are glass, light lives beneath glass | In force | 2026-10-04 |
+| [DSN-2](decisions/design.md) | Recto Glass: content is solid, controls are glass, light lives beneath glass | In force; the light theme retired by PRD-42 | 2026-10-04 |
 | [DSN-3](decisions/design.md) | Colour roles: one lime #c8fb3d for accent, focus and brand | In force | 2026-10-04 |
 | [DSN-4](decisions/design.md) | Glass: five tiers (M1 chip to M5 sheet) plus lit glass | In force; "no grain" was a misrecording, see DSN-22 | 2026-10-04, amended 2026-10-10 |
 | [DSN-5](decisions/design.md) | Light: an in-house aurora that is still by default and answers events | In force | 2026-10-04 |
@@ -184,12 +185,20 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-77](decisions/design.md) | A success toast clears that action's earlier errors (same key); Use signature shows a placement hint; the phone's Delete pill keeps off form fields | In force | 2026-10-25 |
 | [DSN-75](decisions/design.md) | Fill & sign gets its own short bar (field stepping, Signature, Date, Done) (no flag), replacing the shared palette on that door | In force (owner board yes, 25 Oct) | 2026-10-24 |
 | [DSN-79](decisions/design.md) | Dark text ladder lifted for APCA: dark n9/n10/n11 and danger step up, light n10 darker, APCA floor test (colour audit 25 Oct 2026) | In force | 2026-10-25 |
-| [DSN-83](decisions/design.md) | Light theme: lime is a fill with ink on it and a lime-800 edge; accent text is lime-900; amends ADR-0023 §2.3 | In force | 2026-10-26 |
+| [DSN-83](decisions/design.md) | Light theme: lime is a fill with ink on it and a lime-800 edge; accent text is lime-900; amends ADR-0023 §2.3 | Superseded by PRD-42 (no light theme) | 2026-10-26 |
 | [DSN-78](decisions/design.md) | Scan lives as a Library launcher button and ⌘K "Scan document…" (one home, not Tools); one overlay sheet holds camera, review and corner editor | Prototype behind `?scan=1`; owner taste open | 2026-10-25 |
 | [DSN-82](decisions/design.md) | A Labs panel in Settings (revealed by five taps on the version) toggles every feature flag; address, then Labs toggle, then the flag's own value, then default | In force | 2026-10-26 |
 | [DSN-84](decisions/design.md) | The Text view's reading surface: scale, measure, spacing, `--reader-*` themes at 7:1; amends "page never themed" for it | In force behind Labs | 2026-10-26 |
 | [DSN-87](decisions/design.md) | Masa: Home becomes a desk (Continue, intents, Recent as covers); lands on Continue at launch | In force behind Labs `desk` | 2026-10-31 |
-| [DSN-88](decisions/design.md) | Fener colour system: one theme colour, tinted-glass controls, gradient only in the glow; amends DSN-3, DSN-83 | In force behind Labs `fener` | 2026-10-31 |
+| [DSN-88](decisions/design.md) | Fener colour system: one theme colour, tinted-glass controls, gradient only in the glow; amends DSN-3, DSN-83 | Superseded by DSN-90 | 2026-10-31 |
+| [DSN-89](decisions/design.md) | Colophon: serif titles, new type scale and weights, smoked glass, solid tooltips, radius-10 buttons, new greys | In force | 2026-11-10 |
+| [DSN-90](decisions/design.md) | Fener retires: lime is the only accent; mint and teal are atmosphere; supersedes DSN-88 | In force | 2026-11-10 |
+| [DSN-91](decisions/design.md) | The capsule shows glyphs, not words; at most one word per bar ("Done"); 56/44/22 desktop, 60/48/24 phone | In force | 2026-11-10 |
+| [DSN-92](decisions/design.md) | Privacy is a frame status: "On this device" in the Home strip, a lock glyph in the editor; amends DSN-46 | In force | 2026-11-10 |
+| [DSN-93](decisions/design.md) | Colophon Home replaces the Library on every edition; the desk is the default; Labs flags of DSN-64, 66, 87 retire | In force | 2026-11-10 |
+| [DSN-94](decisions/design.md) | Home's light is a static CSS beam of three layers; degrades at 3 and 4 and under Solid; Aura becomes two lobes | In force | 2026-11-10 |
+| [DSN-95](decisions/design.md) | Phosphor sizes: 16 carets, 20 strip, 22 desktop capsule, 24 Home actions and phone bars; amends I-3 | In force | 2026-11-10 |
+| [DSN-93a](decisions/design.md) | Colophon Home build details: Continue text placement, one-row shelves with Show all, cover-and-title tiles, no blur on the panel or lobes | In force | 2026-11-10 |
 
 ## Motion
 
@@ -249,7 +258,7 @@ Full rows: [`decisions/glass.md`](decisions/glass.md).
 | [GLS-24](decisions/glass.md) | One scroll bar, app-wide (owner, R21 brief B-6: "both in the PDFs and in every menu") | Amended by GLS-26 (the overlay replaces the CSS bar and the WebKit case) | 2026-10-16 |
 | [GLS-25](decisions/glass.md) | Glass buttons: a lens of the same glass (owner, R21 brief B-11: "buttons that suit the glass … hover and click") | In force | 2026-10-16 |
 | [GLS-26](decisions/glass.md) | A scroll bar worth having: one overlay of the glass for every scroller (owner, R22 brief C-10: "the point is that it… | In force (amends GLS-24) | 2026-10-17 |
-| [GLS-27](decisions/glass.md) | The light theme's hover is a soft ink wash (lead's call, R22 brief C-7; owner: "a dark shade could work; I never use… | In force | 2026-10-17 |
+| [GLS-27](decisions/glass.md) | The light theme's hover is a soft ink wash (lead's call, R22 brief C-7; owner: "a dark shade could work; I never use… | Superseded by PRD-42 (no light theme) | 2026-10-17 |
 
 ## Ink
 
@@ -305,6 +314,8 @@ Full rows: [`decisions/editions.md`](decisions/editions.md).
 | [EDN-26](decisions/editions.md) | The Text view loads on intent; lease held only while open; the static door stays under 1 KB with the flag off | In force behind Labs | 2026-10-26 |
 | [EDN-27](decisions/editions.md) | OCR on the phone starts only from the Text view's scanned-page card; opt-in pack download with its size, one undo step | In force behind Labs | 2026-10-26 |
 | [EDN-28](decisions/editions.md) | The first phone stroke after picking Pen or Highlight draws; phone Save a copy shows the success toast | In force; amends EDN-18 | 2026-10-26 |
+| [EDN-29](decisions/editions.md) | The phone takes Colophon: brand header, Continue cover, Recent shelf, Open dock; single capsule by default | In force | 2026-11-10 |
+| [EDN-30](decisions/editions.md) | The phone's Colophon details: Undo and Redo chips beside the tray, Edit text in the capsule, the dock offset, the sample on the shelf | In force | 2026-11-10 |
 
 ## Phone work
 

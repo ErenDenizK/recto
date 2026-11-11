@@ -4,7 +4,7 @@
  * root renders the Library without the full shell, a file opens into the read-only reader,
  * and the Library comes back with the file first in Recents.
  */
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
@@ -55,29 +55,32 @@ describe('CompactApp', () => {
     resetCompactStore();
   });
 
-  it('renders the Library, not the full shell', () => {
+  it('renders the Library, not the full shell', async () => {
     render(<CompactApp />);
     expect(screen.getByRole('button', { name: 'Open PDF' })).toBeVisible();
-    // The phone's tools as chips and where the others are (DSN-31, DSN-51).
-    expect(screen.getByText('Every tool on a computer or tablet.')).toBeVisible();
-    expect(screen.getByTestId('compact-tools')).toBeVisible();
+    // The Colophon Home (EDN-29): the Margin cover and the sample before the first file; no
+    // chips for the tools.
+    expect(await screen.findByRole('button', { name: 'Try the sample' })).toBeVisible();
+    expect(screen.queryByTestId('compact-tools')).toBeNull();
     expect(screen.queryByTestId('app-shell')).toBeNull();
   });
 
-  it('opens a file read-only, and the Library lists it first', async () => {
+  it('opens a file read-only, and the Library continues it', async () => {
     render(<CompactApp />);
     expect(await openPdf(await fixture())).toBe(true);
     expect(await screen.findByTestId('compact-reader')).toBeVisible();
     expect(screen.getByRole('heading', { name: 'simple-text' })).toBeVisible();
-    expect(screen.getByTestId('compact-page-number')).toHaveTextContent('1 / 3');
-    // Reading: no tool, Markup, Save or Undo; only Edit, which opens the edit island (EDN-8).
+    // The single capsule is its own chunk (EDN-29): wait for it.
+    expect(
+      await screen.findByTestId('compact-page-number', {}, { timeout: 10_000 }),
+    ).toHaveTextContent('1 / 3');
+    // Reading: no tool, Markup, Save or Undo; only Edit, which opens the editing capsule.
     expect(screen.queryByRole('button', { name: /^(Markup|Save|Undo|Pen)\b/ })).toBeNull();
     expect(screen.getByRole('button', { name: 'Edit' })).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Library' }));
-    await waitFor(() => {
-      expect(
-        screen.getByRole('button', { name: /^simple-text\.pdf, .*Reading now$/ }),
-      ).toBeVisible();
-    });
+    // The document read last is Continue (EDN-29), the shelf does not list it twice.
+    const card = await screen.findByTestId('continue-card');
+    expect(card).toHaveTextContent('simple-text');
+    expect(screen.queryByRole('button', { name: /Reading now$/ })).toBeNull();
   });
 });

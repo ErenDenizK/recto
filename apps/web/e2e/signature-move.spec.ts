@@ -12,13 +12,14 @@ import { type CDPSession, expect, type Locator, type Page, test } from '@playwri
 
 import {
   atRest,
+  openButton,
+  openFixtures,
   PAGE_CANVAS,
   quiet,
   saveCopyBytes,
   trackEngine,
   useDownloadPath,
   useFileInputPicker,
-  openFixtures,
 } from './helpers';
 import { decodePng } from './support/pixels';
 
@@ -196,7 +197,7 @@ test('a placed signature moved by a drag still draws, after Undo and in the save
   const copy = testInfo.outputPath('signature-moved.pdf');
   await writeFile(copy, bytes);
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await chooser).setFiles(copy);
   await expect(page.getByRole('tab', { name: 'signature-moved' })).toHaveAttribute(
     'aria-selected',

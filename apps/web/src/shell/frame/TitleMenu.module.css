@@ -100,8 +100,11 @@
   border-radius: var(--radius-control);
   background: var(--field-well);
   color: var(--text-primary);
-  font-size: var(--field-text);
-  font-weight: 600;
+  /* The document's title in its serif (Colophon L2). */
+  font-family: var(--font-serif);
+  --title-size: 16px;
+  font-size: var(--title-size);
+  font-weight: 400;
 }
 
 .name[readonly] {

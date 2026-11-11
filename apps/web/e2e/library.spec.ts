@@ -3,14 +3,14 @@
  * journeys it carries, counted as a person does them (each click, tap, key press, drop and file
  * dialog choice is one step):
  *
- * - **J1** first visit: Open files… · pick = 2 (Try the sample = 1).
- * - **J3** combine two: Open files… · pick both · Combine 2 files = 3; by drop 2. The new
+ * - **J1** first visit: Open or drop files · pick = 2 (Try the sample = 1).
+ * - **J3** combine two: Open or drop files · pick both · Combine 2 files = 3; by drop 2. The new
  *   document exists at once in card order, opens in its Pages grid, "Combined 2 files · Undo".
  * - **J12** compare two open versions from the Library: ○ A · ○ B · Compare = 3.
  * - **J14** back via Recents: 0 when the document was open as the browser closed (restored),
  *   else 1 (the row reopens the snapshot, no picker).
  *
- * Plus a card dragged with the mouse reorders the cards and the tabs, and the drop overlay over
+ * Plus a card dragged with the mouse reorders the cards, and the drop overlay over
  * a document. Script-built drops are Chromium's (as in batch.spec); the tablet project runs the
  * touch journeys (J3 by taps, J12 by long press and taps).
  */
@@ -86,18 +86,21 @@ const card = (page: Page, title: string) =>
     .getByRole('option', { name: new RegExp(`^${title},`) });
 const checked = (page: Page) => cards(page).and(page.getByRole('option', { selected: true }));
 const tabs = (page: Page) => page.getByRole('tablist', { name: 'Open documents' }).getByRole('tab');
-const openButton = (page: Page) => library(page).getByRole('button', { name: 'Open files…' });
+const openButton = (page: Page) =>
+  library(page).getByRole('button', { name: 'Open or drop files' });
 
 test.beforeEach(async ({ page }) => {
   await useFileInputPicker(page);
 });
 
-test('J1: a first visit opens a PDF in two steps, with Open files… focused', async ({ page }) => {
+test('J1: a first visit opens a PDF in two steps, with Open or drop files focused', async ({
+  page,
+}) => {
   await page.goto('./?lang=en');
   await expect(
-    page.getByRole('heading', { level: 1, name: 'Read, mark up, sign and arrange PDFs.' }),
+    page.getByRole('heading', { level: 1, name: 'Read, mark up, sign and arrange.' }),
   ).toBeVisible();
-  // The keyboard path's first step: Open files… already has the focus.
+  // The keyboard path's first step: Open or drop files already has the focus.
   await expect(openButton(page)).toBeFocused();
   const person = new Person(page);
   await person.pick(openButton(page), ['simple-text.pdf']);
@@ -117,7 +120,9 @@ test('J1 by the sample: Try the sample opens it in one step', async ({ page }) =
   expect(person.steps).toBe(1);
 });
 
-test('J3: Open files…, pick both, Combine 2 files: three steps, no dialog', async ({ page }) => {
+test('J3: Open or drop files, pick both, Combine 2 files: three steps, no dialog', async ({
+  page,
+}) => {
   await page.goto('./?lang=en');
   const person = new Person(page);
   await person.pick(openButton(page), ['simple-text.pdf', 'rotated-pages.pdf']);
@@ -148,7 +153,7 @@ test('J3 by drop: two files dropped, then Combine 2 files: two steps', async ({
   test.skip(browserName !== 'chromium', 'Script-built file drops need Chromium');
   await page.goto('./?lang=en');
   const person = new Person(page);
-  // While the files are over the Library the launcher lifts and says what a release does.
+  // While the files are over the Library the first visit's heading says what a release does.
   await dropFiles(page.getByTestId('app-shell'), ['simple-text.pdf', 'rotated-pages.pdf'], false);
   await expect(page.getByTestId('library-launcher')).toHaveAttribute('data-dragging', 'true');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Drop to open 2 files');
@@ -239,55 +244,6 @@ test('3a: ?open=page takes one file opened from the Library to its page', async 
   });
 });
 
-test('3d: ?home=search filters and sorts Recents by name, folding Turkish case', async ({
-  page,
-}) => {
-  await page.goto('./?lang=en&home=search');
-  const names = [
-    'simple-text',
-    'rotated-pages',
-    'compare-a',
-    'compare-b',
-    'annotations',
-    'cropbox',
-  ];
-  const chooser = page.waitForEvent('filechooser');
-  await openButton(page).click();
-  await (await chooser).setFiles(names.map((n) => fixturePath(`${n}.pdf`)));
-  await expect(cards(page)).toHaveCount(6, { timeout: 30_000 });
-  for (const name of names) {
-    await page.getByRole('tab', { name }).focus();
-    await page.keyboard.press('Delete');
-  }
-  const recents = page.getByRole('list', { name: 'Recent files' });
-  await expect(recents.locator('[data-recent-id]')).toHaveCount(6);
-  const search = page.getByRole('searchbox', { name: 'Search recent files' });
-  await search.fill('ROTATED');
-  await expect(recents.getByRole('button', { name: /^rotated-pages\.pdf, / })).toBeVisible();
-  await expect(recents.getByRole('button', { name: /^simple-text\.pdf, / })).toHaveCount(0);
-  await search.fill('zzz');
-  await expect(page.getByRole('status').filter({ hasText: 'No recent files match' })).toBeVisible();
-  await search.fill('');
-  await page.getByRole('radio', { name: 'Name' }).click();
-  await expect(recents.locator('[data-recent-id]').first()).toHaveAccessibleName(
-    /^annotations\.pdf, /,
-  );
-});
-
-test('3d: with fewer than six recents the card has no search tools', async ({ page }) => {
-  await page.goto('./?lang=en&home=search');
-  const chooser = page.waitForEvent('filechooser');
-  await openButton(page).click();
-  await (await chooser).setFiles(['simple-text.pdf', 'rotated-pages.pdf'].map(fixturePath));
-  await expect(cards(page)).toHaveCount(2, { timeout: 20_000 });
-  for (const name of ['simple-text', 'rotated-pages']) {
-    await page.getByRole('tab', { name }).focus();
-    await page.keyboard.press('Delete');
-  }
-  await expect(page.getByRole('list', { name: 'Recent files' })).toBeVisible();
-  await expect(page.getByTestId('recent-tools')).toHaveCount(0);
-});
-
 /**
  * Whether this launch keeps snapshots (ADR-0032 §2.5). An engine whose test context refuses OPFS
  * (Playwright's WebKit, like a private window) keeps none and says so; Chromium always keeps.
@@ -332,8 +288,8 @@ test('J14: a closed document reopens from Recents in one step, with its thumbnai
   await page.reload();
   await sessionSettled(page);
   await expect(row).toBeVisible();
-  // A kept row shows its first page (02.Q1) and the panel says where it is kept.
-  await expect(row.getByTestId('recent-thumb')).toBeVisible({ timeout: 20_000 });
+  // A kept tile is a cover (02.Q1) and the shelf says where it is kept.
+  await expect(row.locator('[data-library-sheet]')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId('recent-kept-footnote')).toContainText(
     'Kept on this device while the browser keeps it',
   );
@@ -364,13 +320,11 @@ test('J14 at zero: documents open when the browser closed are back after a reloa
   await waitForSnapshot(page);
   await page.reload();
   await sessionSettled(page);
-  await expectOpenDocuments(page, 2, 20_000);
+  // Home has no tabs (DSN-93): the open documents are its two cards.
+  await expect(cards(page)).toHaveCount(2, { timeout: 20_000 });
 });
 
-test('a card dragged with the mouse reorders the cards and the tabs', async ({
-  page,
-  browserName,
-}) => {
+test('a card dragged with the mouse reorders the cards', async ({ page, browserName }) => {
   test.skip(
     test.info().project.name === 'tablet',
     'Touch reorders with Alt+arrows for now (the touch drag is not wired)',
@@ -397,12 +351,11 @@ test('a card dragged with the mouse reorders the cards and the tabs', async ({
   await expect(
     cards(page).evaluateAll((els) => els.map((el) => el.getAttribute('aria-label')?.split(',')[0])),
   ).resolves.toEqual(['rotated-pages', 'mixed-sizes', 'simple-text']);
-  await expect(tabs(page).first()).toHaveAccessibleName(/^rotated-pages/);
-  // The drop did not open the dragged card.
+  // The drop did not open the dragged card (the tabs follow the cards' order once one opens).
   await expect(library(page)).toBeVisible();
 });
 
-test('files dragged over a document show the lit drop card, and open as tabs', async ({
+test('files dragged over a document show the drop card, and open as tabs', async ({
   page,
   browserName,
 }) => {
@@ -432,7 +385,7 @@ test('files dragged over a document show the lit drop card, and open as tabs', a
  */
 test('R26: Continue returns to page 4 at the same zoom and offset', async ({ page }) => {
   await page.goto('./?lang=en&home=continue');
-  await page.getByTestId('library-sample').click();
+  await page.getByTestId('home-try-sample').click();
   const viewport = page.locator('[data-read-viewport]');
   await expect(viewport).toBeVisible({ timeout: 30_000 });
   await page.keyboard.press('Control+=');

@@ -168,11 +168,10 @@ test('search finds each row in English and Turkish, and says when nothing matche
   const panel = sheet(page);
   const search = panel.getByRole('searchbox', { name: 'Search settings' });
   if (info.project.name === TABLET) {
-    // A coarse pointer starts on the first row, Theme (spec D3-7), so no keyboard pops up
-    // (07 S3 §6).
+    // A coarse pointer starts on the first row, Glass, so no keyboard pops up (07 S3 §6).
     await expect(
       panel
-        .locator('[data-row="theme"]')
+        .locator('[data-row="glass"]')
         .locator('[role="radio"][aria-checked="true"], [role="combobox"]')
         .first(),
     ).toBeFocused();
@@ -198,8 +197,6 @@ test('search finds each row in English and Turkish, and says when nothing matche
 
   const rows = () => panel.locator('[data-row]');
   const cases: readonly [string, string][] = [
-    ['dark mode', 'theme'],
-    ['karanlik', 'theme'],
     ['transparency', 'glass'],
     ['saydamlik', 'glass'],
     ['buzlu', 'glass'],

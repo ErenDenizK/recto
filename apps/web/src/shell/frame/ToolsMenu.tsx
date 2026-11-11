@@ -3,7 +3,7 @@
  * document power tools the README sells, as a menu above the dock. Each row is a doorway to the
  * command the title menu already runs (DSN-46: a second appearance needs a reason, recorded in
  * DSN-76), so `commandRegistry.execute(id)` is the whole act and a row dims with the command's
- * own reason, and no tooltip repeats the visible label (RA-20). The menu is the dock's More recipe (`ui/Menu.module.css`, Base UI Menu): Esc
+ * own reason, and the glyph-only trigger is named by its tooltip (DSN-91). The menu is the dock's More recipe (`ui/Menu.module.css`, Base UI Menu): Esc
  * closes it and returns focus to the entry, the arrows move through the rows.
  */
 import { Menu } from '@base-ui/react/menu';
@@ -14,6 +14,7 @@ import { m } from '../../i18n';
 import { abovePalette } from '../../markup/anchor';
 import { Icon, type IconName } from '../../ui/Icon';
 import menuStyles from '../../ui/Menu.module.css';
+import { Tooltip } from '../../ui/Tooltip';
 import styles from './Dock.module.css';
 import toolStyles from './ToolsMenu.module.css';
 
@@ -53,15 +54,18 @@ export function ToolsMenu() {
   const [trigger, setTrigger] = useState<HTMLElement | null>(null);
   return (
     <Menu.Root>
-      <Menu.Trigger
-        ref={setTrigger}
-        className={`btn btn-quiet ${styles.item}`}
-        data-capsule-item="tools"
-        data-dock-item="tools"
-      >
-        <Icon name="wrench" className={styles.icon} />
-        <span data-btn-label="">{m.dock_tools()}</span>
-      </Menu.Trigger>
+      <Tooltip label={m.dock_tools()} side="top">
+        <Menu.Trigger
+          ref={setTrigger}
+          className={styles.item}
+          data-size="bar"
+          aria-label={m.dock_tools()}
+          data-capsule-item="tools"
+          data-dock-item="tools"
+        >
+          <Icon name="wrench" className={styles.icon} />
+        </Menu.Trigger>
+      </Tooltip>
       <Menu.Portal>
         <Menu.Positioner
           side="top"

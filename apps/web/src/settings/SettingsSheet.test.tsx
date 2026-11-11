@@ -2,7 +2,7 @@
  * S3 in the browser (components/07-sheets.md §5.4, §5.6, §5.8, §5.9; spec redesign D0-10): the
  * centred form sheet of 600 px (R15) with its sections, one height while search filters; search filters and says when nothing matches; an
  * opener's row is revealed and its control focused; a system override forces Glass to Solid,
- * disabled, with its reason; Theme sets System · Light · Dark and Glass Clear · Tinted · Solid;
+ * disabled, with its reason; Glass sets Clear · Tinted · Solid;
  * Background glow is a switch, on by default;
  * Show tips again shows its state until a tip is used up; About Recto shows the About dialog's facts in order, for a pre-release and a release, in
  * the UI language.
@@ -73,7 +73,6 @@ describe('the Settings sheet', () => {
     expect(within(dialog).getByRole('search')).toContainElement(search);
 
     await userEvent.type(search, 'gorunum');
-    expect(within(dialog).getByRole('radiogroup', { name: 'Theme' })).toBeVisible();
     // Fewer rows, the same sheet: a centred sheet that shrank would jump.
     expect(dialog.getBoundingClientRect().height).toBe(760);
     expect(within(dialog).getByRole('radiogroup', { name: 'Glass' })).toBeVisible();
@@ -81,7 +80,7 @@ describe('the Settings sheet', () => {
     expect(within(dialog).getByRole('switch', { name: 'Dim pages' })).toBeVisible();
     expect(within(dialog).queryByRole('switch', { name: /Pen draws/ })).toBeNull();
     await waitFor(() =>
-      expect(within(dialog).getByRole('status')).toHaveTextContent('5 settings found'),
+      expect(within(dialog).getByRole('status')).toHaveTextContent('4 settings found'),
     );
     await userEvent.clear(search);
     await userEvent.type(search, 'xyzzy');
@@ -157,24 +156,6 @@ describe('the Settings sheet', () => {
     act(() => useAppearanceStore.setState({ glass: null }));
   });
 
-  it('sets Theme: System · Light · Dark, the first row of Appearance (spec D3-7)', async () => {
-    act(() => openSettings({ row: 'theme' }));
-    render(<SettingsSheet />);
-    const dialog = await screen.findByRole('dialog', { name: 'Settings' });
-    await settled(dialog);
-    const appearance = within(dialog).getByRole('region', { name: 'Appearance' });
-    expect(appearance.querySelector('[data-row]')?.getAttribute('data-row')).toBe('theme');
-    const group = within(dialog).getByRole('radiogroup', { name: 'Theme' });
-    expect(within(group).getByRole('radio', { name: 'System' })).toBeChecked();
-    expect(within(dialog).getByText('System follows your device.')).toBeVisible();
-    await userEvent.click(within(group).getByRole('radio', { name: 'Light' }));
-    expect(useAppearanceStore.getState().theme).toBe('light');
-    await userEvent.click(within(group).getByRole('radio', { name: 'Dark' }));
-    expect(useAppearanceStore.getState().theme).toBe('dark');
-    await userEvent.click(within(group).getByRole('radio', { name: 'System' }));
-    expect(useAppearanceStore.getState().theme).toBe('system');
-  });
-
   it('sets Reduce motion: System · On (language.md §7.6, spec D3-4)', async () => {
     act(() => openSettings({ row: 'reduceMotion' }));
     render(<SettingsSheet />);
@@ -209,8 +190,7 @@ describe('the Settings sheet', () => {
     expect(useAppearanceStore.getState().glow).toBe(true);
   });
 
-  it('turns Dim pages on in the dark theme, off by default, and disables it in light (MOB-17)', async () => {
-    act(() => useAppearanceStore.getState().setTheme('dark'));
+  it('turns Dim pages on, off by default (MOB-17)', async () => {
     act(() => openSettings({ row: 'dimPages' }));
     render(<SettingsSheet />);
     const dialog = await screen.findByRole('dialog', { name: 'Settings' });
@@ -219,17 +199,11 @@ describe('the Settings sheet', () => {
     expect(dim).not.toBeChecked();
     expect(dim).not.toHaveAttribute('data-disabled');
     expect(
-      within(dialog).getByText(
-        'Shows pages less bright in the dark theme. Your files don’t change.',
-      ),
+      within(dialog).getByText('Shows pages less bright. Your files don’t change.'),
     ).toBeVisible();
     await userEvent.click(dim);
     expect(useAppearanceStore.getState().dimPages).toBe(true);
     expect(dim).toBeChecked();
-    act(() => useAppearanceStore.getState().setTheme('light'));
-    expect(dim).toHaveAttribute('data-disabled');
-    expect(dim).toBeChecked();
-    expect(dim).toHaveAccessibleDescription('Only in the dark theme');
   });
 
   it('a system setting shows Reduce motion On, disabled, with its reason', async () => {

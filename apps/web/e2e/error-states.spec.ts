@@ -8,7 +8,7 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, useFileInputPicker } from './helpers';
+import { fixturePath, openButton, useFileInputPicker } from './helpers';
 import {
   corruptPdf,
   emptyPdf,
@@ -31,10 +31,7 @@ test.beforeEach(async ({ page }) => {
 /** Opens a file from memory or the corpus through the Open button. */
 async function openRaw(page: Page, file: ErrorFixture | string): Promise<void> {
   const chooser = page.waitForEvent('filechooser');
-  await page
-    .getByRole('button', { name: /^(Open files|Open files…)$/ })
-    .first()
-    .click();
+  await openButton(page).click();
   await (await chooser).setFiles(typeof file === 'string' ? fixturePath(file) : file);
 }
 

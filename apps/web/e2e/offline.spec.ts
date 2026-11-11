@@ -57,10 +57,13 @@ test('the shell and the engine work offline after one visit', async ({ page, con
     )
     .toBeGreaterThan(0);
 
-  // About Recto reports the worker as installed (on the Library, from its ⋯; the footer's
-  // privacy chip left, DSN-46).
-  await page.getByTestId('library-menu').click();
-  await page.getByTestId('library-menu-about').click();
+  // About Recto reports the worker as installed (on Home, from the strip's search).
+  await page.getByTestId('home-search').click();
+  await page.getByRole('combobox', { name: 'Search commands' }).fill('About Recto');
+  await page
+    .getByRole('option', { name: /About Recto/ })
+    .first()
+    .click();
   await expect(page.getByTestId('about-offline')).toHaveAttribute('data-status', 'ready');
   await expect(page.getByTestId('about-offline')).toHaveText(/works offline/);
   await page.keyboard.press('Escape');
@@ -69,7 +72,7 @@ test('the shell and the engine work offline after one visit', async ({ page, con
   await page.reload();
   await expect(page.getByTestId('app-shell')).toBeVisible();
   await expect(
-    page.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+    page.getByRole('heading', { name: 'Read, mark up, sign and arrange.' }),
   ).toBeVisible();
   // Really offline: anything not in a cache fails.
   const reachable = await page.evaluate(() =>
@@ -217,11 +220,8 @@ test('every precached file and every split surface opens offline (PF-17)', async
 
   // The Turkish locale and the compact edition load from the precache too.
   await page.goto('./?lang=tr');
-  await expect(
-    page.getByRole('heading', {
-      name: 'PDF’leri okuyun, işaretleyin, imzalayın ve sayfalarını düzenleyin.',
-    }),
-  ).toBeVisible();
+  // The documents are still open, so Home leads with Open, not the first-visit headline.
+  await expect(page.getByTestId('library-open')).toContainText('Dosya açın veya bırakın');
   await page.goto('./?edition=compact&lang=en');
   await expect(page.getByTestId('compact-library')).toBeVisible();
   await context.setOffline(false);

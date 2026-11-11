@@ -81,11 +81,6 @@
   transition: border-color var(--duration-fast) var(--ease-out);
 }
 
-:global([data-theme='light']) .well {
-  --field-border: var(--control-border, rgb(21 23 28 / 0.55));
-  --field-border-hover: var(--control-border-hover, rgb(21 23 28 / 0.7));
-}
-
 @media (pointer: coarse), (any-pointer: coarse) {
   .well {
     --field-h: var(--control-h, 44px);

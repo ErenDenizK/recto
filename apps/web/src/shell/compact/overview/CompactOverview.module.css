@@ -126,11 +126,6 @@
   color: var(--text-primary);
 }
 
-/* Over white pages, as the capsule: the sheet tier's denser tint in the light theme. */
-:global([data-theme='light']) .bar {
-  --mat-tint: var(--glass-sheet-tint);
-}
-
 .count {
   color: var(--text-secondary);
   font-size: var(--type-body);

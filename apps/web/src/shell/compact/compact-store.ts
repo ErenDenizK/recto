@@ -87,7 +87,7 @@ export interface CompactState {
   /** The tool drawer is open over the island (README §3). */
   readonly drawerOpen: boolean;
   /**
-   * The single capsule's tray is open above it (EDN-24, behind Labs `phone-capsule`). Only the
+   * The single capsule's tray is open above it (EDN-24). Only the
    * new capsule reads it; begin and end of editing and the Library close it, typing leaves it.
    */
   readonly trayOpen: boolean;

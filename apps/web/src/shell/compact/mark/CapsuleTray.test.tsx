@@ -58,7 +58,7 @@ afterEach(() => {
 const tray = () => screen.getByRole('toolbar');
 
 describe('what each tray holds', () => {
-  it('Pen: its colours and sizes, then the Eraser, in a 324 × 56 px toolbar', async () => {
+  it('Pen: its colours and sizes, then the Eraser, in a 44 px high toolbar', async () => {
     arm('pen');
     render(<CapsuleTray />);
     const bar = await settled(await screen.findByRole('toolbar', { name: 'Pen options' }));
@@ -67,7 +67,8 @@ describe('what each tray holds', () => {
     expect(bar.hasAttribute('data-annotation-keep')).toBe(true);
     expect(bar.hasAttribute('data-compact-above-capsule')).toBe(true);
     const box = bar.getBoundingClientRect();
-    expect([box.width, box.height]).toEqual([324, 56]);
+    expect(box.height).toBe(44);
+    expect(bar.getAttribute('data-glass-group')).toBe('compact-options');
     expect(within(bar).getAllByRole('radio')).toHaveLength(6);
     const buttons = within(bar).getAllByRole('button');
     expect(buttons.at(-1)?.getAttribute('aria-label')).toBe('Eraser');

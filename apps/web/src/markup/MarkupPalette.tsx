@@ -3,14 +3,16 @@
  * tool in one row with Done at its leading end, Select armed on opening.
  *
  * ```
- * ✓ Done │ ↖ │ ◉ ● ● ▬  ⌫ ◌ │ ▭▾ T □ ▣ ◈▾ │ ✑ Sign▾ [chips] ‹3/12› ⊞ ⬚ │ ¶ Edit text ▮ Redact │ +
+ * ↖ ◉ ● ● ▬ ⌫ ◌ │ T □ ▭▾ ▣ ◈▾ │ ✑▾ [chips] ‹3/12› ⊞ ⬚ │ ¶ ▮ │ + Done
  * ```
  *
- * - **Groups** (`palette-groups.ts`): Select · Draw · Add · Fill & sign · Page content, each a
- *   named `role="group"`, a hairline between them.
+ * - **Glyphs only** (DSN-91): no tool shows its name; each keeps its accessible name, its keys
+ *   and a tooltip with the name and the keycap. "Done" is the one word, at the trailing end.
+ * - **Groups** (`palette-groups.ts`): Draw (Select, the pens, Highlighter, Eraser, Lasso) ·
+ *   Add · Fill & sign · Page content, each a named `role="group"`, 14 px of air between them.
  * - **Measured fold** (`palette-fold.ts`, `palette-measure.ts`): the full row is laid out and
  *   measured ahead, once per language, density and set of items (`PaletteMeasurer`, mounted
- *   by the dock), then items drop their labels and fold into + in a fixed order until the row
+ *   by the dock), then items fold into + in a fixed order until the row
  *   fits the free rectangle less 2 × 16 px. A `ResizeObserver` on the band re-runs the fold,
  *   one frame late at most, never during a stroke or while focus is inside. The palette so
  *   arrives folded, and the capsule morphs to the size it keeps.
@@ -120,14 +122,8 @@ type RowItem = PaletteItem | GroupHeader;
 const isHeader = (item: RowItem): item is GroupHeader => item.startsWith('group-');
 const taskOfHeader = (item: GroupHeader) => item.slice('group-'.length) as TaskGroup;
 
-/** Items that carry a label the fold may drop (they keep their glyph). */
-const LABELLED: ReadonlySet<RowItem> = new Set<RowItem>([
-  'done',
-  'sign',
-  'edit-text',
-  'redact',
-  ...TASK_GROUPS.map(headerOf),
-]);
+/** Items that show a name in the row: Done alone (DSN-91); the grouped palette names its groups. */
+const LABELLED: ReadonlySet<RowItem> = new Set<RowItem>(['done', ...TASK_GROUPS.map(headerOf)]);
 
 /**
  * The labelled row (`?palette=labels`, layout B of `design/markup-groups-2026-10.md`): these
@@ -191,7 +187,10 @@ function measureRow(row: HTMLElement): Omit<Measured, 'key'> {
     widths,
     metrics: {
       gap: group ? px(getComputedStyle(group).columnGap) : 0,
-      separator: sep && sepStyle ? 1 + px(sepStyle.marginLeft) + px(sepStyle.marginRight) : 0,
+      separator:
+        sep && sepStyle
+          ? px(sepStyle.width) + px(sepStyle.marginLeft) + px(sepStyle.marginRight)
+          : 0,
       // Both paddings and the capsule's 1 px rim each side.
       padding: px(rowStyle.paddingLeft) + px(rowStyle.paddingRight) + 2,
     },
@@ -304,7 +303,8 @@ function PaletteItemView({
   const named = paletteVariant() === 'labels' && labelledHere(item) && !bare.has(item);
   switch (item) {
     case 'done':
-      return <DoneButton item={item} showLabel={!bare.has(item)} />;
+      // Never folded and never bare: its word is the capsule's one (DSN-91).
+      return <DoneButton item={item} showLabel />;
     case 'select':
       return <SimpleTool mode="select" item={item} showLabel={named} />;
     case 'pens': {
@@ -328,13 +328,13 @@ function PaletteItemView({
       return <SimpleTool mode={item} item={item} showLabel={named} />;
     case 'edit-text':
     case 'redact':
-      return <SimpleTool mode={item} item={item} showLabel={!bare.has(item)} />;
+      return <SimpleTool mode={item} item={item} showLabel={named} />;
     case 'shapes':
       return <ShapesTool showLabel={named} />;
     case 'stamp':
       return <StampTool showLabel={named} />;
     case 'sign':
-      return <SignButton showLabel={!bare.has(item)} chipsShown={visible.has('chips')} />;
+      return <SignButton showLabel={named} chipsShown={visible.has('chips')} />;
     case 'chips':
       return <SignatureChips item={item} />;
     case 'stepper':
@@ -661,7 +661,7 @@ function SimpleTool({
           ? (tool.tooltip?.() ?? label)
           : armedTooltip(tool.tooltip?.() ?? label, armed, choices && armed)
       }
-      icon={<Icon name={tool.icon} filled={false} />}
+      icon={<Icon name={tool.icon} />}
       command={`tool.${mode}`}
       showLabel={showLabel}
       // The capsule's focus on arrival (Capsule.tsx): the armed Select, the palette's Tab stop.
@@ -682,7 +682,7 @@ function ShapesTool({ showLabel = false }: { readonly showLabel?: boolean }) {
   return (
     <ChoiceTool
       label={label}
-      icon={<Icon name={shown.icon} filled={false} />}
+      icon={<Icon name={shown.icon} />}
       armed={armed}
       command={`tool.${shown.mode}`}
       item="shapes"
@@ -717,7 +717,7 @@ function StampTool({ showLabel = false }: { readonly showLabel?: boolean }) {
   return (
     <ChoiceTool
       label={tool.title()}
-      icon={<Icon name="stamp" filled={false} />}
+      icon={<Icon name="stamp" />}
       armed={armed}
       command="tool.stamp"
       item="stamp"

@@ -21,19 +21,14 @@ export type LabsKey =
   | 'receipt'
   | 'office'
   | 'open-page'
-  | 'open-light'
   | 'home-search'
-  | 'home-continue'
-  | 'desk'
   | 'top'
   | 'drawer'
-  | 'phone-capsule'
   | 'textpre'
   | 'scan'
   | 'paragraph-frame'
   | 'paragraph-outlines'
-  | 'text-view'
-  | 'fener';
+  | 'text-view';
 
 export type LabsEdition = 'full' | 'compact' | 'all';
 
@@ -104,21 +99,14 @@ export const LABS_FLAGS: readonly LabsFlag[] = [
   sw('receipt', 'receipt', 'full', 'soon', session('pdf-editor:receipt:v1')),
   sw('office', 'office', 'all', 'prototype', local('pdf-editor:office:v1')),
   sw('open-page', 'open', 'all', 'prototype', local('pdf-editor:open-page:v1'), 'page'),
-  sw('open-light', 'open', 'all', 'prototype', local('pdf-editor:open-light:v1'), 'light'),
   sw('home-search', 'home', 'all', 'soon', local('pdf-editor:home-search:v1'), 'search'),
-  sw('home-continue', 'home', 'all', 'soon', local('pdf-editor:home-continue:v1'), 'continue'),
-  // Masa, the desk (DSN-87, PRC-25): the new Home on desktop and tablet, behind this flag until
-  // the owner says yes. `home/desk-flag.ts` reads it; on, the Continue card is on too.
-  sw('desk', 'desk', 'full', 'prototype'),
   choice('top', 'top', ['split', 'capsule'], 'compact', session('pdf-editor:top:v1')),
   choice('drawer', 'drawer', ['tiles', 'list'], 'compact', session('pdf-editor:drawer:v1')),
-  sw('phone-capsule', 'phonebar', 'compact', 'prototype'),
   sw('textpre', 'textpre', 'all', 'prototype'),
   sw('scan', 'scan', 'all', 'prototype'),
   sw('paragraph-frame', 'paraframe', 'full', 'prototype'),
   sw('paragraph-outlines', 'paraoutlines', 'full', 'prototype'),
   sw('text-view', 'textview', 'compact', 'prototype'),
-  sw('fener', 'fener', 'all', 'prototype'),
 ];
 
 /** Where a flag's value came from. */

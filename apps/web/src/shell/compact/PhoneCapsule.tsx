@@ -1,17 +1,17 @@
 /**
- * The phone's single capsule (EDN-24, Labs `phone-capsule`, `?phonebar=1`; `phone-capsule-flag.ts`):
- * the bottom chrome as one capsule that morphs between its two contents, the host on the static
- * compact path. `CompactChrome`'s `CompactCapsule` hands over to it on the one branch; with the
- * switch off none of it renders.
+ * The phone's single capsule (EDN-24, EDN-29; `phone-capsule-flag.ts`): the bottom chrome as one
+ * smoked capsule that morphs between its two contents, the host on the static compact path. It is
+ * the default; `CompactChrome`'s `CompactCapsule` hands over to it on the one branch, and with
+ * `?phonebar=0` none of it renders.
  *
  * - **Reading:** Pages (icon), "3 / 12" (the same button as the shipped capsule: the strip's
  *   hold and Go to page), Find (icon), a hairline and ✎ (`compact-capsule-edit`: its own id, so
  *   `capsule-liquid` never takes it for the shipped ✎ beside the capsule).
  * - **Editing:** the mark chunk's `CapsuleTools` in the nav, its `CapsuleTray` in the tray slot
- *   and its `RedoChip` in the chip slot (EDN-21: they load on intent, with the chunk). The three
- *   stand in one column above the home indicator, the chip over Undo, the tray over the capsule.
- *   On a phone on its side the capsule rests right of centre and the tray opens beside it, so
- *   nothing moves when the tray toggles (`PhoneCapsule.module.css`).
+ *   and its `UndoChip` and `RedoChip` in the chip slots either side of it (EDN-21: they load on
+ *   intent, with the chunk). The row above the capsule is the chips and the tray between them,
+ *   12 px over the capsule. On a phone on its side the capsule rests right of centre and the row
+ *   joins it, so nothing moves when the tray toggles (`PhoneCapsule.module.css`).
  * - **Morph:** the box before the swap (`takeCapsuleSnapshot`) to the box after, `morphCapsule`
  *   (transform only, MOT-14). Focus goes to the Pen on entering editing and back to ✎ on Done.
  * - The nav keeps `data-testid="compact-capsule"` and the `chrome.capsule` class: the selection
@@ -71,8 +71,11 @@ export function PhoneCapsule({ doc }: { readonly doc: VirtualDocument }) {
   return (
     <>
       <div className={styles.dock} data-editing={island || undefined}>
-        <div className={styles.chip}>{island && !away ? <mark.RedoChip /> : null}</div>
-        <div className={styles.tray}>{island ? <mark.CapsuleTray /> : null}</div>
+        <div className={styles.aux}>
+          <div className={styles.undo}>{island && !away ? <mark.UndoChip /> : null}</div>
+          <div className={styles.tray}>{island ? <mark.CapsuleTray /> : null}</div>
+          <div className={styles.redo}>{island && !away ? <mark.RedoChip /> : null}</div>
+        </div>
         <nav
           ref={capsuleRef}
           className={`${chrome.capsule} ${styles.bar}`}

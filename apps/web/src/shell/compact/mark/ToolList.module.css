@@ -217,18 +217,9 @@
   box-shadow: inset 0 0 0 1px var(--swatch-contrast);
 }
 
-:global([data-theme='light']) .dot {
-  box-shadow: none;
-}
-
-:global([data-theme='light']) .dot[data-ring-light] {
-  box-shadow: inset 0 0 0 1px var(--swatch-contrast);
-}
-
-/* The current row's fill is the ink's backdrop there (lime, or ink in light): a ring of the
-   row's own ink holds the dot's edge, so a black pen still reads on the light theme's ink. */
-.row[aria-pressed='true'] .dot,
-:global([data-theme='light']) .row[aria-pressed='true'] .dot {
+/* The current row's fill is the ink's backdrop there (lime): a ring of the row's own ink holds
+   the dot's edge, so a black pen still reads on it. */
+.row[aria-pressed='true'] .dot {
   box-shadow: 0 0 0 1.5px color-mix(in srgb, currentColor 55%, transparent);
 }
 

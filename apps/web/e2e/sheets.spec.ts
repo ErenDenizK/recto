@@ -29,7 +29,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, type Page, test, type TestInfo } from '@playwright/test';
 import { createServer, type ViteDevServer } from 'vite';
 
-import { atRest, fixturePath, useFileInputPicker, pastDeadline } from './helpers';
+import { atRest, fixturePath, openButton, pastDeadline, useFileInputPicker } from './helpers';
 import { expectGlassClean, walkGlass } from './support/glass-walker';
 
 const WEB = fileURLToPath(new URL('..', import.meta.url));
@@ -659,7 +659,7 @@ test.describe('the ports in the app', () => {
     page,
   }, info) => {
     await page.goto('./?lang=en');
-    await expect(page.getByRole('button', { name: /^Open files/ }).first()).toBeVisible();
+    await expect(openButton(page)).toBeVisible();
     await page.locator('body').press('?');
     const overlay = page.getByRole('dialog', { name: 'Keyboard shortcuts' });
     await expect(overlay).toBeVisible();
@@ -685,10 +685,7 @@ test.describe('the ports in the app', () => {
     await page.goto('./?lang=en');
     // The prompt starts in its field, ready to type, even after a pointer opened it.
     const chooser = page.waitForEvent('filechooser');
-    await page
-      .getByRole('button', { name: /^Open files/ })
-      .first()
-      .click();
+    await openButton(page).click();
     await (await chooser).setFiles(fixturePath('encrypted-aes-128.pdf'));
     const prompt = page.getByRole('alertdialog', { name: 'Password required' });
     await expect(prompt).toBeVisible();

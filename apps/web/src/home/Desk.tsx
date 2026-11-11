@@ -1,47 +1,44 @@
 /**
- * The desk (DSN-87, Masa; PRC-25, behind Labs' "Desk (new Home)"): Home on desktop and tablet,
- * the place where you were, then what you can start, then what you had (`masa.md` §2).
+ * The desk (DSN-87, Masa; DSN-93, Colophon): Home on desktop and tablet, the place where you were,
+ * then what you can start, then what you had.
  *
- *   hero (Continue, or the sample)  ·  intents (Open, Sign, Combine, Scan)   8 / 4 columns
- *   the drop line and "More ways…"
- *   the open documents (the Library's head and grid, unchanged), only while some are open
- *   Recent as a shelf of covers (`RecentShelf`), the sample its last tile while off screen
+ *   hero (Continue, or the sample)  ·  the action panel (Open, Combine, Sign, Scan, All commands)
+ *   the Open shelf (the open documents as covers), only while some are open
+ *   the Recent shelf of covers (`RecentShelf`), the sample its last tile while off screen
  *
- * - **First visit** (Recents read and empty, nothing open, nothing to continue): the identity
- *   (mark, headline, promise) a third of the way down as the Library had it, and the sample
- *   hero in the slot Continue takes later, the same size, so nothing re-flows.
- * - **Returning**: no identity (the strip's "◆ Library" names the place, DSN-50), a visually
- *   hidden `h1`; the slot holds Continue, else the sample while it is not on screen, else
- *   collapses and the intents run as one row.
- * - **Loading** (Recents not read yet): the slot holds its size as an empty lit card; after
- *   300 ms with no answer it falls back to the first-visit sample hero.
+ * - **First visit** (Recents read and empty, nothing open, nothing to continue): the 60 px
+ *   heading, the Open / Combine / Sign / More row and the Margin cover (`FirstVisit`).
+ * - **Returning**: a visually hidden `h1`; the hero slot holds Continue, else the sample while it
+ *   is not on screen, else collapses and the panel starts at the left margin.
+ * - **Loading** (Recents not read yet): the slot holds its size as a quiet rectangle; after
+ *   300 ms with no answer it falls back to the sample hero.
  * - **Nothing on the first paint needs the engine**: covers are stored images, the sample a
- *   drawing, Continue's page a cover (the open grid's live thumbnails exist only when documents
- *   are open, so the engine is running). Recents and covers are read by `desk-prefetch.ts`.
+ *   drawing, Continue's page a cover (the open shelf's live pages exist only when documents are
+ *   open, so the engine is running). Recents and covers are read by `desk-prefetch.ts`.
+ * - **The light** (`Beam`) is laid behind the content inside the scroller, so it scrolls with it.
  * - **First focus** (quiet focus, no ring until a key, as the launcher had it): Continue when it
- *   shows, else Open files… One primary per view (ADR-0023): Continue, else Open files….
- * - **Heading**: the section is the Library landmark; `h2`s are "Where you left off", "Ways to
- *   start" (the group's label), "Open" (the head) and "Recent".
+ *   shows, else Open or drop files. One primary per view (ADR-0023): Continue, else Open.
+ * - **Headings**: the section is the Library landmark; `h2`s are "Where you left off" (Continue,
+ *   hidden), "Open" and "Recent".
  *
  * Esc ladder, Select mode and the selection bar are the Library's (`useSelectionEscape`).
  */
 import type { DocumentId } from '@pdf-editor/document-model';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
-import { BrandMark } from '../brand/BrandMark';
 import { loadRecents, useRecentsStore } from '../files/recents';
 import { m } from '../i18n';
 import { scanEnabled } from '../scan/scan-flag';
 import { useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { Beam } from './Beam';
 import { useCovers } from './covers';
 import { useDeskContinue } from './DeskContinue';
-import { DeskDropLine } from './DeskDropLine';
 import { DeskHero } from './DeskHero';
-import { DeskIntents } from './DeskIntents';
+import { DeskPanel } from './DeskPanel';
 import { heroKind, isFirstVisit, LOADING_FALLBACK_MS } from './desk-model';
 import styles from './Desk.module.css';
-import { dropTitle } from './DropOverlay';
+import { FirstVisit } from './FirstVisit';
 import type { HomeCardData } from './home-cards';
 import { liveSelection, sampleOnScreen, visibleRecents } from './home-model';
 import { LibraryGrid } from './LibraryGrid';
@@ -49,12 +46,13 @@ import { LibraryHead } from './LibraryHead';
 import { useSelecting } from './library-store';
 import view from './LibraryView.module.css';
 import { RecentShelf } from './RecentShelf';
-import { useOpenFiles } from './RecentList';
+import { useOpenFiles } from './recent-support';
 import { SelectionBarPresence } from './SelectionBar';
+import { Shelf } from './Shelf';
 import { useHasCamera } from './use-camera';
 import { useSelectionEscape } from './use-selection-escape';
 
-export default function Desk({
+export function Desk({
   cards,
   dragging,
   dragCount,
@@ -74,7 +72,6 @@ export default function Desk({
   const rawSelection = useUiStore((s) => s.homeSelection);
   const order = useMemo<readonly DocumentId[]>(() => cards.map((c) => c.id), [cards]);
   const selection = useMemo(() => liveSelection(order, rawSelection), [order, rawSelection]);
-  const pages = cards.reduce((sum, c) => sum + c.pageCount, 0);
   useSelectionEscape(selecting, selection);
 
   // The early read (`desk-prefetch.ts`) normally has Recents already; this is the same read.
@@ -138,24 +135,7 @@ export default function Desk({
     };
   }, [ready, hero]);
 
-  const top = (
-    <div className={styles.top} data-hero={hero}>
-      {hero === 'none' ? null : (
-        <div className={styles.hero}>
-          <DeskHero kind={hero} source={continueSource} rise={settled} />
-        </div>
-      )}
-      <div className={styles.intents}>
-        <DeskIntents
-          scan={camera}
-          dragging={dragging}
-          selecting={selecting && selection.length >= 2}
-          wide={hero === 'none'}
-        />
-      </div>
-    </div>
-  );
-
+  const openHeading = useId();
   return (
     <section
       ref={rootRef}
@@ -168,30 +148,41 @@ export default function Desk({
       data-selecting={selecting || undefined}
     >
       <div className={view.scroller}>
-        <div className={firstVisit ? `${view.column} ${view.empty}` : view.column}>
-          {/* One wrapper, one order of slots in both states, so a first visit turning into a
-              returning desk (or Continue arriving) never remounts the intents or loses focus. */}
-          <div className={firstVisit ? `${view.welcome} ${styles.welcome}` : styles.stack}>
+        <div className={styles.page} data-hero={hero}>
+          <Beam key={firstVisit ? 'first' : 'recents'} kind={firstVisit ? 'first' : 'recents'} />
+          <div className={styles.content}>
             {firstVisit ? (
-              <div className={styles.identity} data-dragging={dragging || undefined}>
-                <BrandMark size={56} className={styles.mark} />
-                <h1 className={styles.headline}>
-                  {dragging ? dropTitle(dragCount) : m.library_headline()}
-                </h1>
-                <p className={styles.promise}>{m.library_line()}</p>
-              </div>
+              <>
+                <FirstVisit dragging={dragging} dragCount={dragCount} scan={camera} />
+                {/* Only a failed clear's note shows here: there is nothing to shelve. */}
+                <RecentShelf entries={listed} covers={covers} sampleTile={false} />
+              </>
             ) : (
-              <h1 className="visually-hidden">{m.library_label()}</h1>
+              <>
+                <h1 className="visually-hidden">{m.library_label()}</h1>
+                <div className={styles.top} data-hero={hero}>
+                  {hero === 'none' ? null : (
+                    <div className={styles.hero} data-hero={hero}>
+                      <DeskHero kind={hero} source={continueSource} rise={settled} />
+                    </div>
+                  )}
+                  <div className={styles.panel}>
+                    <DeskPanel scan={camera} dragging={dragging} dragCount={dragCount} />
+                  </div>
+                </div>
+                {cards.length > 0 ? (
+                  <Shelf
+                    headingId={openHeading}
+                    label={m.home_open_section()}
+                    testId="library-open-shelf"
+                    right={<LibraryHead order={order} />}
+                  >
+                    <LibraryGrid cards={cards} workspace={workspace} />
+                  </Shelf>
+                ) : null}
+                <RecentShelf entries={listed} covers={covers} sampleTile={sampleTile} />
+              </>
             )}
-            {top}
-            <DeskDropLine dragging={dragging} dragCount={dragCount} more={camera} />
-            {cards.length > 0 ? (
-              <div className={view.documents}>
-                <LibraryHead order={order} pages={pages} />
-                <LibraryGrid cards={cards} workspace={workspace} />
-              </div>
-            ) : null}
-            <RecentShelf entries={listed} covers={covers} sampleTile={sampleTile} />
           </div>
         </div>
       </div>

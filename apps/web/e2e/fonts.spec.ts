@@ -30,6 +30,8 @@ import type { AddressInfo } from 'node:net';
 
 import { type Browser, expect, type Page, test } from '@playwright/test';
 
+import { openButton } from './helpers';
+
 test.use({ viewport: { width: 1440, height: 900 } });
 
 /** Records layout shifts from navigation on, as `window.__shifts` (no input in these runs). */
@@ -66,7 +68,7 @@ async function coldLoad(page: Page, lang: 'en' | 'tr'): Promise<void> {
 
 /** Waits for Home, the fonts and the shell at rest. */
 async function settle(page: Page): Promise<void> {
-  await expect(page.getByRole('button', { name: /^(Open files|Dosya aç)/ }).first()).toBeVisible();
+  await expect(openButton(page)).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
   await page.waitForFunction(() =>
     document
@@ -244,7 +246,7 @@ test('with the font held back, the swap from the fallback barely moves the chrom
   });
   // `load` would wait for the preloaded font.
   await page.goto('./?lang=en', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('button', { name: /^Open files/ }).first()).toBeVisible();
+  await expect(openButton(page)).toBeVisible();
   expect(await page.evaluate(() => document.fonts.check("13px 'Inter Recto'", 'A'))).toBe(false);
   // The shell has drawn with the fallback face before the font arrives.
   await page.evaluate(

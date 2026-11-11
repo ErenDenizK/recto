@@ -30,6 +30,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import {
   atRest,
+  openButton,
   openFixtures,
   saveCopyBytes,
   useDownloadPath,
@@ -124,10 +125,7 @@ test.afterEach(async ({ page }, testInfo) => {
 /** Picks a file through the Open files button. */
 async function pick(page: Page, name: string, mimeType: string, buffer: Buffer): Promise<void> {
   const chooser = page.waitForEvent('filechooser');
-  await page
-    .getByRole('button', { name: /^(Open files|Dosya aç)$/ })
-    .first()
-    .click();
+  await openButton(page).click();
   await (await chooser).setFiles({ name, mimeType, buffer });
 }
 

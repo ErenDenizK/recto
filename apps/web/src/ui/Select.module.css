@@ -37,12 +37,6 @@
   transition: background-color var(--duration-fast) var(--ease-out);
 }
 
-:global([data-theme='light']) .trigger {
-  --sel-fill: var(--control-fill, rgb(21 23 28 / 0.06));
-  --sel-fill-hover: var(--control-fill-hover, rgb(21 23 28 / 0.09));
-  --sel-fill-pressed: var(--control-fill-pressed, rgb(21 23 28 / 0.12));
-}
-
 @media (pointer: coarse), (any-pointer: coarse) {
   .trigger {
     padding-inline: 14px 10px;

@@ -15,13 +15,9 @@ export const LABS_TEXT: Readonly<
   receipt: { title: m.labs_receipt, hint: m.labs_receipt_hint },
   office: { title: m.labs_office, hint: m.labs_office_hint },
   'open-page': { title: m.labs_open_page, hint: m.labs_open_page_hint },
-  'open-light': { title: m.labs_open_light, hint: m.labs_open_light_hint },
   'home-search': { title: m.labs_home_search, hint: m.labs_home_search_hint },
-  'home-continue': { title: m.labs_home_continue, hint: m.labs_home_continue_hint },
-  desk: { title: m.labs_desk, hint: m.labs_desk_hint },
   top: { title: m.labs_top, hint: m.labs_top_hint },
   drawer: { title: m.labs_drawer, hint: m.labs_drawer_hint },
-  'phone-capsule': { title: m.labs_phone_capsule, hint: m.labs_phone_capsule_hint },
   textpre: { title: m.labs_textpre, hint: m.labs_textpre_hint },
   scan: { title: m.labs_scan, hint: m.labs_scan_hint },
   'paragraph-frame': { title: m.labs_paragraph_frame, hint: m.labs_paragraph_frame_hint },
@@ -30,7 +26,6 @@ export const LABS_TEXT: Readonly<
     hint: m.labs_paragraph_outlines_hint,
   },
   'text-view': { title: m.labs_text_view, hint: m.labs_text_view_hint },
-  fener: { title: m.labs_fener, hint: m.labs_fener_hint },
 };
 
 /** The names of a choice flag's values. */

@@ -1,12 +1,12 @@
 /**
- * The phone's single capsule (EDN-24, Labs `phone-capsule`, `?phonebar=1`), on the `phone` and
- * `phone-land` projects with CDP touch: how the switch resolves (the address beats the Labs
- * toggle), the capsule at 360, 390 and 430 px, the ✎ morph, Pen arming and opening its tray, a
- * stroke, a colour change, Undo and the Redo chip, the armed-tool tap that turns the tool off
- * (and one finger scrolling again), the Eraser, Text with the keyboard's Done, the Edit text
- * switch, Sign's New, Use, placing and Delete, Find and Pages from the icons, reduced motion,
- * the 44 px targets, and a phone on its side (the capsule and the tray side by side, nothing
- * moving when the tray toggles).
+ * The phone's single capsule (EDN-24, EDN-29; the default, `?phonebar=0` keeps the drawer), on
+ * the `phone` and `phone-land` projects with CDP touch: how the switch resolves, the capsule at
+ * 360, 390 and 430 px, the ✎ morph, Pen arming and opening its tray, a stroke, a colour change,
+ * the Undo and Redo chips beside the tray, the armed-tool tap that turns the tool off (and one
+ * finger scrolling again), the Eraser, Text with the keyboard's Done, the Edit text slot and
+ * switch, Sign's New, Use, placing and Delete, Find and Pages from the icons, reduced motion, the
+ * 44 px targets, and a phone on its side (the capsule and the tray side by side, nothing moving
+ * when the tray toggles).
  *
  * The motion waits are `motionDone` (the browser spec's `settled`: no finite animation running
  * for two frames), never a fixed pause. Nothing here leans on one engine.
@@ -22,7 +22,6 @@ import { fixturePath, motionDone, useFileInputPicker } from './helpers';
 import { sampleEntry } from './sample-manifest';
 
 const SHOTS = process.env.CAPTURE_SCREENSHOTS;
-const LABS_KEY = 'pdf-editor:labs:v1';
 
 async function shot(page: Page, name: string): Promise<void> {
   if (!SHOTS) return;
@@ -35,7 +34,7 @@ async function shot(page: Page, name: string): Promise<void> {
 }
 
 /** Opens the reader on a PDF; `query` is what follows `?lang=en` in the address. */
-async function openReader(page: Page, query = '&phonebar=1'): Promise<void> {
+async function openReader(page: Page, query = ''): Promise<void> {
   await useFileInputPicker(page);
   await page.goto(`./?lang=en${query}`);
   await expect(page.getByTestId('compact-library')).toBeVisible();
@@ -54,8 +53,8 @@ const edit = (page: Page) => page.getByTestId('compact-capsule-edit');
 const undo = (page: Page) => page.getByTestId('compact-undo');
 const redo = (page: Page) => page.getByTestId('compact-redo');
 const tray = (page: Page) => page.getByTestId('compact-tool-tray');
-const toolButton = (page: Page, tool: 'pen' | 'highlight' | 'text' | 'sign') =>
-  page.getByTestId(`compact-capsule-tool-${tool}`);
+type Tool = 'pen' | 'highlight' | 'text' | 'edit-text' | 'sign';
+const toolButton = (page: Page, tool: Tool) => page.getByTestId(`compact-capsule-tool-${tool}`);
 const done = (page: Page) => page.getByTestId('compact-edit-done');
 const isLandscape = (page: Page) => {
   const view = page.viewportSize();
@@ -71,7 +70,7 @@ async function startEditing(page: Page): Promise<void> {
 }
 
 /** Arms `tool` from the capsule and waits for its tray. */
-async function arm(page: Page, tool: 'pen' | 'highlight' | 'text' | 'sign'): Promise<void> {
+async function arm(page: Page, tool: Tool): Promise<void> {
   await toolButton(page, tool).click();
   await expect(toolButton(page, tool)).toHaveAttribute('aria-pressed', 'true');
   await expect(tray(page)).toBeVisible();
@@ -162,31 +161,15 @@ async function inViewport(page: Page, locator: Locator): Promise<void> {
 }
 
 test.describe('the single capsule: the switch', () => {
-  test('is off without a switch, on by ?phonebar=1', async ({ page }) => {
+  test('is on by default and ?phonebar=0 keeps the shipped capsule and drawer', async ({
+    page,
+  }) => {
     await openReader(page, '');
-    await expect(page.getByTestId('compact-edit')).toBeVisible();
-    await expect(edit(page)).toHaveCount(0);
-    await openReader(page, '&phonebar=1');
     await expect(edit(page)).toBeVisible();
     await expect(page.getByTestId('compact-edit')).toHaveCount(0);
     await expect(capsule(page).getByRole('button', { name: 'Pages' })).toBeVisible();
     await expect(capsule(page).getByRole('button', { name: 'Find' })).toBeVisible();
     await shot(page, 'reading');
-  });
-
-  test('the Labs toggle turns it on, and ?phonebar=0 beats the toggle', async ({ page }) => {
-    await page.addInitScript(
-      ([key]) => {
-        try {
-          localStorage.setItem(key ?? '', JSON.stringify({ flags: { 'phone-capsule': '1' } }));
-        } catch {
-          // Storage blocked: the test fails below, loudly.
-        }
-      },
-      [LABS_KEY],
-    );
-    await openReader(page, '');
-    await expect(edit(page)).toBeVisible();
     await openReader(page, '&phonebar=0');
     await expect(page.getByTestId('compact-edit')).toBeVisible();
     await expect(edit(page)).toHaveCount(0);
@@ -235,10 +218,12 @@ test.describe('the single capsule: editing', () => {
     await edit(page).click();
     await expect(capsule(page)).toHaveAttribute('data-editing');
     await motionDone(page);
-    // The same nav, now Undo, four tools and Done; no tool on and no tray.
+    // The same nav, now five tools and Done; no tool on and no tray. Undo is the chip beside the
+    // tray's place, outside the capsule.
     await expect(capsule(page)).toHaveAccessibleName('Editing tools');
     await expect(undo(page)).toHaveAttribute('aria-disabled', 'true');
-    for (const tool of ['pen', 'highlight', 'text', 'sign'] as const) {
+    await expect(capsule(page).getByTestId('compact-undo')).toHaveCount(0);
+    for (const tool of ['pen', 'highlight', 'text', 'edit-text', 'sign'] as const) {
       await expect(toolButton(page, tool)).toHaveAttribute('aria-pressed', 'false');
     }
     await expect(tray(page)).toHaveCount(0);
@@ -403,8 +388,9 @@ test.describe('the single capsule: editing', () => {
     await edits.click();
     await expect(edits).toHaveAttribute('aria-checked', 'true');
     await expect(page.getByTestId('compact-edit-text-hint')).toBeVisible();
-    // Text stays the pressed tool in the capsule.
-    await expect(toolButton(page, 'text')).toHaveAttribute('aria-pressed', 'true');
+    // The capsule's Edit text slot takes the lime; Text lets go of it.
+    await expect(toolButton(page, 'edit-text')).toHaveAttribute('aria-pressed', 'true');
+    await expect(toolButton(page, 'text')).toHaveAttribute('aria-pressed', 'false');
     await shot(page, 'edit-text-tray');
     await edits.click();
     await expect(edits).toHaveAttribute('aria-checked', 'false');
@@ -414,7 +400,7 @@ test.describe('the single capsule: editing', () => {
     const entry = sampleEntry('en', 'phone');
     const featureIndex = entry.featurePage - 1;
     const start = entry.edit.p4?.start ?? '';
-    await page.goto('./?sample&lang=en&phonebar=1');
+    await page.goto('./?sample&lang=en');
     await expect(page.getByTestId('compact-reader')).toBeVisible();
     await expect(page.locator('[data-page-index="0"] canvas').first()).toHaveAttribute(
       'data-state',

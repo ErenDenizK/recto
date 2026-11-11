@@ -40,53 +40,5 @@ export const MARK_GRADIENT = {
   ],
 } as const;
 
-/**
- * The gradient on a light ground (system-audit-2026-10 §3.9: the mark keeps its gradient in
- * both themes): the same teal → mint → lime ramp at the same angle and knee, taken down
- * in lightness until every stop holds 3.3:1 against the light theme's glass (`#eceef1`) and
- * 3.9:1 against white (WCAG 1.4.11's 3:1 for a graphic). The dark ground's stops fall under 1.3:1
- * there, which is why the light theme drew the mark in ink until now.
- */
-export const MARK_GRADIENT_LIGHT = {
-  ...MARK_GRADIENT,
-  stops: [
-    { offset: 0, color: '#0D5E57' },
-    { offset: 0.5944, color: '#136D5B' },
-    { offset: 1, color: '#3F8A2A' },
-  ],
-} as const;
-
-/**
- * Fener's mark (DSN-88; Labs flag `fener`, `state/fener.ts`): the same geometry, angle and knee,
- * the gradient taken from indigo to sky to green, the ramp the background glow draws. The brand
- * mark is fixed: it does not follow the theme colour preset (Çivit, Mor, Mavi).
- * On a light ground the hand-tuned stops, indigo `#3A42D9` (OKLCH 0.480 0.225 272), cerulean
- * `#0096C3` (0.629 0.123 228) and green `#3BCA60` (0.741 0.190 148), measured against white at
- * 7.1:1 (stem), 3.4:1 (knee) and 2.1:1 (tip).
- */
-export const MARK_GRADIENT_FENER_LIGHT = {
-  ...MARK_GRADIENT,
-  stops: [
-    { offset: 0, color: '#3A42D9' },
-    { offset: 0.5944, color: '#0096C3' },
-    { offset: 1, color: '#3BCA60' },
-  ],
-} as const;
-
-/**
- * Fener's mark on a dark ground: the same three hues (272, 228, 148) lifted to L 0.66, 0.76 and
- * 0.86 at the light ramp's chroma, so the brand's dark look, a bright ramp that glows on the
- * graphite, stays recognisable. Against the dark tile (`#17191e` at its lightest) the stem holds
- * 5.4:1 (WCAG 1.4.11 asks 3:1 of a graphic), the knee 8.4:1 and the tip 12.3:1.
- */
-export const MARK_GRADIENT_FENER_DARK = {
-  ...MARK_GRADIENT,
-  stops: [
-    { offset: 0, color: '#6E86FD' },
-    { offset: 0.5944, color: '#3FC0F2' },
-    { offset: 1, color: '#6AF286' },
-  ],
-} as const;
-
 /** The mono treatments (the brand's near-black on light, white on dark). */
 export const MARK_INK = { black: '#0B0C0E', white: '#FFFFFF' } as const;

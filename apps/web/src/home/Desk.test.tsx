@@ -1,24 +1,20 @@
 /**
- * The desk on real documents (Vitest browser mode, Chromium; DSN-87, `masa.md` §2.2, §2.4, §2.6,
- * §2.8): the first visit (sample hero, identity, one primary on Open files…), a returning desk
- * (Continue from a stored place and cover, the shelf of covers with badges and labels), nothing
- * to continue, the shelf's keys (one tab stop, 2D arrows, Delete) and the flag's default (off).
+ * The desk on real documents (Vitest browser mode, Chromium; DSN-87, DSN-93 Colophon): the first
+ * visit (the heading, Open or drop files as the one primary, the Margin cover), a returning desk
+ * (Continue from a stored place and cover, the action panel, the shelf of covers with their
+ * labels), nothing to continue, the shelf's keys (one tab stop, 2D arrows, Delete), "Show all",
+ * and the panel's arrows.
  */
 import '../styles/tokens.css';
 import '../styles/reset.css';
 import '../styles/global.css';
 
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
 import { App } from '../app';
-import {
-  loadRecents,
-  memoryRecentsBackend,
-  setRecentsBackend,
-  storedHandlesReadable,
-} from '../files/recents';
+import { memoryRecentsBackend, setRecentsBackend, storedHandlesReadable } from '../files/recents';
 import { setLocale } from '../i18n';
 import { useUiStore } from '../state/ui-store';
 import { resetWorkspace } from '../state/workspace-store';
@@ -59,6 +55,9 @@ async function seed(entries: readonly Seed[], withCovers: boolean): Promise<void
   );
   const covers = memoryCoversBackend();
   if (withCovers) {
+    // One encode, copied per cover: twelve recents own 24 covers, and encoding each on a loaded
+    // CI runner outlasted the test's timeout before the app rendered.
+    const encoded = await jpeg(66, 88);
     for (const e of entries) {
       for (const kind of ['first', 'left'] as const) {
         await covers.put({
@@ -68,7 +67,7 @@ async function seed(entries: readonly Seed[], withCovers: boolean): Promise<void
           width: 66,
           height: 88,
           type: 'image/jpeg',
-          bytes: await jpeg(66, 88),
+          bytes: encoded.slice(0),
           at: now,
         });
       }
@@ -82,7 +81,7 @@ const SHELF_NAME = { name: 'Recent files' };
 describe('Desk', () => {
   beforeEach(async () => {
     await page.viewport(1440, 900);
-    history.replaceState(null, '', '/?desk=1');
+    history.replaceState(null, '', '/');
     resetWorkspace();
     resetLibraryStore();
     useUiStore.setState({
@@ -103,47 +102,52 @@ describe('Desk', () => {
     setCoversBackend(undefined);
   });
 
-  it('is today’s Library with the flag off', async () => {
-    history.replaceState(null, '', '/');
+  it('is the desk on every load: no flag, no address word', async () => {
     setRecentsBackend(memoryRecentsBackend());
     render(<App />);
-    const home = await screen.findByTestId('home');
-    expect(home).not.toHaveAttribute('data-desk');
-    expect(screen.queryByTestId('desk-sample')).toBeNull();
+    const home = await screen.findByTestId('home', undefined, { timeout: 8000 });
+    expect(home).toHaveAttribute('data-desk');
+    expect(within(home).queryByTestId('library-aura')).toBeNull();
   });
 
-  it('opens a first visit on the sample hero with Open files… as the one primary and first focus', async () => {
+  it('opens a first visit with Open or drop files as the one primary and first focus', async () => {
     setRecentsBackend(memoryRecentsBackend());
     setCoversBackend(memoryCoversBackend());
     render(<App />);
-    // The desk is a lazy chunk: the first load in a cold run takes longer than the default wait.
     const home = await screen.findByTestId('home', undefined, { timeout: 8000 });
     expect(home).toHaveAttribute('data-desk');
-    // The identity is the first visit's alone: the headline is the one h1.
+    // The heading is the first visit's one h1 (two lines, one accessible name).
     expect(
       await within(home).findByRole('heading', {
         level: 1,
-        name: 'Read, mark up, sign and arrange PDFs.',
+        name: /^Read, mark up,\s+sign and arrange\.$/,
       }),
     ).toBeVisible();
     const sample = await within(home).findByTestId('desk-sample');
     expect(sample.querySelector('[data-library-sheet]')).not.toBeNull();
-    expect(within(sample).getByRole('button', { name: 'Open the sample' })).toHaveAttribute(
-      'class',
-      expect.stringContaining('btn-standard'),
-    );
+    // The sample is a lime link, never a filled button: one primary per view.
+    const link = within(sample).getByRole('button', { name: 'Try the sample' });
+    expect(link).not.toHaveClass('btn-prominent');
     const group = within(home).getByRole('group', { name: 'Ways to start' });
-    const names = within(group)
-      .getAllByRole('button')
-      .map((b) => b.querySelectorAll('span')[1]?.textContent);
-    expect(names).toEqual(['Open files…', 'Sign a PDF…', 'Combine files…', 'More ways…']);
-    const open = within(group).getByRole('button', { name: /^Open files…/ });
-    expect(open).toHaveAttribute('data-prominent');
-    expect(home.querySelectorAll('[data-prominent]')).toHaveLength(1);
+    const buttons = within(group).getAllByRole('button');
+    expect(buttons).toHaveLength(4);
+    ['Open or drop files', 'Combine', 'Sign', 'More'].forEach((name, i) => {
+      expect(buttons[i]).toHaveAccessibleName(name);
+    });
+    const open = within(group).getByRole('button', { name: 'Open or drop files' });
+    expect(open).toHaveClass('btn-prominent');
+    expect(home.querySelectorAll('.btn-prominent')).toHaveLength(1);
     await waitFor(() => expect(open).toHaveFocus());
     // No Recent section, no Scan without its flag.
     expect(within(home).queryByRole('heading', { name: 'Recent' })).toBeNull();
     expect(within(home).queryByTestId('library-scan')).toBeNull();
+    // Combine and Sign are ghosts (Home's standard form).
+    expect(within(group).getByTestId('library-combine-files')).toHaveAttribute('data-ghost');
+    // The beam: decorative, behind the content, three layers, nothing moving.
+    const beam = within(home).getByTestId('home-beam');
+    expect(beam).toHaveAttribute('aria-hidden', 'true');
+    expect(beam.children).toHaveLength(3);
+    expect(beam.getAnimations({ subtree: true })).toHaveLength(0);
   });
 
   it('opens a returning desk on Continue, from the stored place and cover, with no engine', async () => {
@@ -170,16 +174,28 @@ describe('Desk', () => {
       const image = card.querySelector<HTMLImageElement>('[data-library-sheet] img[data-cover]');
       expect(image?.src.startsWith('blob:')).toBe(true);
     });
-    // One primary: Continue; Open files… drops to the standard fill. Continue has first focus.
-    expect(home.querySelectorAll('[data-prominent]')).toHaveLength(0);
+    // One primary: Continue (the panel's rows are not buttons of the action kind). First focus.
+    expect(home.querySelectorAll('.btn-prominent')).toHaveLength(1);
     const resume = within(card).getByTestId('continue-resume');
     await waitFor(() => expect(resume).toHaveFocus());
+    // The text beside the page: the title, one meta line, the reading track, the button.
+    expect(within(card).getByRole('progressbar', { name: 'Reading progress' })).toHaveAttribute(
+      'aria-valuenow',
+      '40',
+    );
+    // The action panel, in order: Open or drop files, Combine files, Fill and sign, All commands.
+    const panel = within(home).getByRole('group', { name: 'Ways to start' });
+    expect(
+      within(panel)
+        .getAllByRole('button')
+        .map((b) => b.querySelector('span[id]')?.textContent),
+    ).toEqual(['Open or drop files', 'Combine files', 'Fill and sign', 'All commands']);
     // A returning desk draws no identity: the heading is the hidden "Library".
     expect(within(home).getByRole('heading', { level: 1, name: 'Library' })).toBeInTheDocument();
     expect(within(home).queryByTestId('desk-sample')).toBeNull();
   });
 
-  it('shows Recent as covers with one-sentence labels and the badge a press needs', async () => {
+  it('shows Recent as covers with one-sentence labels and the hint a press needs', async () => {
     await seed(
       [
         {
@@ -219,6 +235,12 @@ describe('Desk', () => {
     expect(labels[0]).toBe(
       'report-v2.pdf, page 4 of 10, 40 percent read, yesterday, Edited, changes kept',
     );
+    // Nothing but the cover and the serif title is drawn: no meta, no badge, no bar.
+    expect(tiles[0]?.querySelector('[data-testid="progress-bar"]')).toBeNull();
+    expect(tiles[0]?.textContent).toBe('report-v2.pdf');
+    // Kept changes are the lime dot before the title.
+    expect(tiles[0]?.querySelector('span[class*="dot"]')).not.toBeNull();
+    expect(tiles[1]?.querySelector('span[class*="dot"]')).toBeNull();
     // A stored handle asks for permission on the press, except where the browser cannot read it.
     const handleHint = storedHandlesReadable() ? 'Needs permission' : 'Open again…';
     expect(labels[1]).toBe(`lease.pdf, 4 pages, yesterday, ${handleHint}`);
@@ -293,35 +315,55 @@ describe('Desk', () => {
     expect(shelf.contains(document.activeElement)).toBe(true);
   });
 
-  it('moves inside the intents with the arrows and keeps them one tab stop', async () => {
-    setRecentsBackend(memoryRecentsBackend());
-    setCoversBackend(memoryCoversBackend());
+  it('moves inside the panel with the arrows, one tab stop, Home and End', async () => {
+    await seed([{ id: 'r1', name: 'lease.pdf', size: 2000, pages: 4 }], true);
     render(<App />);
     const group = await screen.findByRole('group', { name: 'Ways to start' });
-    await act(async () => {
-      await loadRecents();
-    });
-    const tiles = () => Array.from(group.querySelectorAll<HTMLElement>('[data-intent]'));
-    expect(tiles().filter((t) => t.tabIndex === 0)).toHaveLength(1);
-    tiles()[0]?.focus();
-    await userEvent.keyboard('{ArrowRight}');
-    expect(tiles()[1]).toHaveFocus();
-    await userEvent.keyboard('{ArrowLeft}');
-    expect(tiles()[0]).toHaveFocus();
+    const rows = () => Array.from(group.querySelectorAll<HTMLElement>('[data-intent]'));
+    expect(rows().filter((t) => t.tabIndex === 0)).toHaveLength(1);
+    rows()[0]?.focus();
+    await userEvent.keyboard('{ArrowDown}');
+    expect(rows()[1]).toHaveFocus();
+    await userEvent.keyboard('{ArrowUp}');
+    expect(rows()[0]).toHaveFocus();
+    await userEvent.keyboard('{End}');
+    expect(rows().at(-1)).toHaveFocus();
+    await userEvent.keyboard('{Home}');
+    expect(rows()[0]).toHaveFocus();
+    // The rows carry the launcher's test ids and All commands its own.
+    expect(within(group).getByTestId('library-open')).toHaveAttribute('data-library-open');
+    expect(within(group).getByTestId('home-all-commands')).toBeVisible();
   });
 
-  it('lists the More ways… menu by the names ⌘K finds', async () => {
-    setRecentsBackend(memoryRecentsBackend());
-    setCoversBackend(memoryCoversBackend());
+  it('shows one row of covers and "Show all" wraps the rest, with Clear beside it', async () => {
+    await seed(
+      Array.from({ length: 12 }, (_, i) => ({
+        id: `r${i}`,
+        name: `file-${i}.pdf`,
+        size: i + 1,
+        pages: 1,
+      })),
+      true,
+    );
     render(<App />);
-    const more = await screen.findByTestId('desk-more');
-    await userEvent.click(more);
-    const menu = await screen.findByTestId('desk-more-menu');
-    expect(
-      within(menu)
-        .getAllByRole('menuitem')
-        .map((i) => i.querySelector('span')?.textContent),
-    ).toEqual(['Batch…', 'Images to PDF…', 'PDF to images…', 'Text to PDF…', 'Markdown to PDF…']);
+    const home = await screen.findByTestId('home');
+    const shelf = await within(home).findByRole('list', SHELF_NAME);
+    const showAll = await within(home).findByTestId('home-show-all');
+    const visible = () =>
+      Array.from(shelf.querySelectorAll<HTMLElement>('li')).filter((li) => !li.hidden);
+    // At 1440 px a row holds six 158 px covers and their gaps: far fewer than twelve.
+    const one = visible().length;
+    expect(one).toBeGreaterThan(0);
+    expect(one).toBeLessThan(12);
+    expect(new Set(visible().map((li) => li.offsetTop)).size).toBe(1);
+    expect(showAll).toHaveAttribute('aria-expanded', 'false');
+    expect(within(home).queryByTestId('home-clear')).toBeNull();
+    await userEvent.click(showAll);
+    expect(showAll).toHaveAttribute('aria-expanded', 'true');
+    expect(visible().length).toBeGreaterThan(one);
+    expect(within(home).getByTestId('home-clear')).toBeVisible();
+    await userEvent.click(showAll);
+    await waitFor(() => expect(visible()).toHaveLength(one));
   });
 
   it('speaks Turkish, siz form', async () => {
@@ -342,5 +384,6 @@ describe('Desk', () => {
     const card = await screen.findByTestId('continue-card');
     expect(within(card).getByRole('heading', { name: 'Kaldığınız yer' })).toBeVisible();
     expect(screen.getByRole('group', { name: 'Başlama yolları' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Dosyaları birleştir' })).toBeVisible();
   });
 });

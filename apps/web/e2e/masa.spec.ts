@@ -1,6 +1,6 @@
 /**
- * The desk's opening motion, exact resume and paint budget (DSN-87, Masa lane M3; behind Labs'
- * "Desk (new Home)", so every test opens `?desk=1`):
+ * The desk's opening motion, exact resume and paint budget (DSN-87, Masa lane M3; the only Home
+ * since DSN-93):
  *
  * - **Continue after close.** A document is read to page 4 at a zoom and 90 px into the page,
  *   then closed; the desk's Continue shows page 4 from a stored cover (a `blob:` image) and lands
@@ -64,7 +64,7 @@ interface Left {
  * closes the document. Resolves to the pill's text and the offset the reader was left at.
  */
 async function readAndClose(page: Page): Promise<Left> {
-  await page.goto('/?lang=en&desk=1');
+  await page.goto('/?lang=en');
   await sessionSettled(page);
   await openFixtures(page, ['many-pages.pdf']);
   await expect(viewportOf(page)).toBeVisible({ timeout: 30_000 });
@@ -187,7 +187,7 @@ test('Continue after a cold start: covers from storage, no engine before the pai
   fresh.on('request', (request) => {
     if (request.url().includes('.wasm')) wasm.push(Date.now());
   });
-  await fresh.goto('/?lang=en&desk=1');
+  await fresh.goto('/?lang=en');
   await sessionSettled(fresh);
   await expectContinueCover(fresh);
 
@@ -200,7 +200,13 @@ test('Continue after a cold start: covers from storage, no engine before the pai
     expect(src).toMatch(/^blob:/);
   }
 
-  // The paint mark exists and is within the CI allowance; the number is recorded.
+  // The paint mark exists and is within the CI allowance; the number is recorded. It follows the
+  // cover by the decode wait (COVER_WAIT_MS) and a frame, so wait for it rather than read once.
+  await expect
+    .poll(() => fresh.evaluate((name) => performance.getEntriesByName(name).length, MARK), {
+      timeout: 10_000,
+    })
+    .toBeGreaterThan(0);
   const { painted, paintedAt } = await fresh.evaluate((name) => {
     const startTime = performance.getEntriesByName(name)[0]?.startTime ?? null;
     return {
@@ -298,7 +304,9 @@ const framesOf = (page: Page) =>
 function expectOneObjectTravelling(frames: readonly Frame[]): void {
   const widths = frames.flatMap((f) => (f.clone ? [f.clone.width] : []));
   expect(widths.length, 'the cover was drawn').toBeGreaterThanOrEqual(2);
-  expect(Math.max(...widths), 'it grew').toBeGreaterThan(Math.min(...widths) * 1.4);
+  // The first-visit cover is 420 px wide (the Colophon mockup), so the page it grows into is
+  // about 1.26 times it, not the 1.4 of the old, smaller cover: the page must simply be larger.
+  expect(Math.max(...widths), 'it grew').toBeGreaterThan(Math.min(...widths) * 1.15);
   // The desk is the only screen until the cover flies: no reader chrome while it is held.
   const held = frames.filter((f) => f.hold && f.clone && !f.clone.phase.startsWith('flying'));
   for (const frame of held) {
@@ -338,9 +346,9 @@ test('the sample hero lifts and grows into the page, which never shows its bare 
 }) => {
   test.skip(browserName !== 'chromium', 'Frame sampling is Chromium-only');
   await recordOpening(page);
-  await page.goto('/?lang=en&desk=1');
+  await page.goto('/?lang=en');
   await sessionSettled(page);
-  await page.getByTestId('desk-sample-open').click();
+  await page.getByTestId('home-try-sample').click();
   await expect(page.locator(`[data-page-index="0"] ${PAGE_CANVAS}`)).toHaveAttribute(
     'data-state',
     'rendered',
@@ -348,7 +356,7 @@ test('the sample hero lifts and grows into the page, which never shows its bare 
   );
   await expect(page.locator('[data-open-grow]')).toHaveCount(0, { timeout: 10_000 });
   expectOneObjectTravelling(await framesOf(page));
-  // Focus lands where Open files… and the sample put it: the page view.
+  // Focus lands where Open or drop files and the sample put it: the page view.
   await expect(page.locator('[data-read-viewport]')).toBeFocused();
 });
 
@@ -358,7 +366,7 @@ test('a kept document reopened from its tile holds, then grows into a page that 
 }) => {
   test.skip(browserName !== 'chromium', 'Frame sampling is Chromium-only');
   await recordOpening(page);
-  await page.goto('/?lang=en&desk=1');
+  await page.goto('/?lang=en');
   await sessionSettled(page);
   await openFixtures(page, ['simple-text.pdf']);
   // A change makes the document worth keeping: rotate its first page, then close it.
@@ -398,16 +406,16 @@ test('an open that fails settles the cover back into its tile and changes nothin
   // The sample's file cannot be fetched: the press lifts the cover, nothing opens, and after the
   // wait for an action it settles back (masa.md §2.7 step 6).
   await page.route(/recto-sample-.*\.pdf/, (route) => route.abort());
-  await page.goto('/?lang=en&desk=1');
+  await page.goto('/?lang=en');
   await sessionSettled(page);
   const sheet = page.locator('[data-testid="desk-sample"] [data-library-sheet]');
-  await page.getByTestId('desk-sample-open').click();
+  await page.getByTestId('home-try-sample').click();
   await expect(page.locator('[data-open-grow]')).toHaveCount(1);
   await expect(page.locator('[data-open-grow]')).toHaveCount(0, { timeout: 20_000 });
   // The desk never changed: its cover is back, nothing is busy, no reader mounted.
   await expect(page.getByTestId('home')).toBeVisible();
   await expect(sheet).toHaveCSS('opacity', '1');
-  await expect(page.getByTestId('desk-sample-open')).not.toHaveAttribute('aria-busy', 'true');
+  await expect(page.getByTestId('home-try-sample')).not.toHaveAttribute('aria-busy', 'true');
   await expect(page.locator('[data-read-viewport]')).toHaveCount(0);
   await expect(page.locator('html')).not.toHaveAttribute('data-open-hold', '');
 });
@@ -416,9 +424,9 @@ test('under reduced motion nothing lifts or grows', async ({ page, browserName }
   test.skip(browserName !== 'chromium', 'Frame sampling is Chromium-only');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await recordOpening(page);
-  await page.goto('/?lang=en&desk=1');
+  await page.goto('/?lang=en');
   await sessionSettled(page);
-  await page.getByTestId('desk-sample-open').click();
+  await page.getByTestId('home-try-sample').click();
   await expect(page.locator(`[data-page-index="0"] ${PAGE_CANVAS}`)).toHaveAttribute(
     'data-state',
     'rendered',

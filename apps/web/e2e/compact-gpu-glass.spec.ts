@@ -34,7 +34,7 @@ async function forceGpu(page: Page): Promise<void> {
 }
 
 async function openSample(page: Page, query = ''): Promise<void> {
-  await page.goto(`./?sample${query}&lang=en`);
+  await page.goto(`./?sample${query}&lang=en&phonebar=0`);
   await expect(page.locator('[data-page-index="0"] canvas').first()).toHaveAttribute(
     'data-state',
     'rendered',
@@ -94,6 +94,11 @@ for (const variant of ['capsule', 'split'] as const) {
     test.beforeEach(async ({ page }) => {
       await forceGpu(page);
       await openSample(page, `&top=${variant}`);
+      // An open's light answers once (DSN-64, DSN-93), on springs the CSS animation list does not
+      // see: wait for it to come and go, or its pulse reads as glass drawn outside the pieces.
+      const pulse = page.locator('[data-open-light]');
+      await pulse.waitFor({ state: 'attached', timeout: 5_000 }).catch(() => undefined);
+      await pulse.waitFor({ state: 'detached' });
       await glassSettled(page);
     });
 

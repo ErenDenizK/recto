@@ -1,7 +1,6 @@
 /**
  * The dock at rest and the capsule it lives in (`components/01-frame.md` F10; flows.md §4.2;
- * spec X1, D2-2). In viewing the capsule (`shell/capsule/Capsule.tsx`) holds the labelled
- * entry to everything that changes the document; the same glass morphs into the Markup palette
+ * spec X1, D2-2). In viewing the capsule (`shell/capsule/Capsule.tsx`) holds the entry to everything that changes the document; the same glass morphs into the Markup palette
  * and into Locked.
  *
  * - **Dock:** Pages · Markup · Fill & sign · Tools · More (Sign on a compact window). Pages opens the
@@ -18,15 +17,16 @@
  * - **Palette:** the Markup palette (`markup/MarkupPalette.tsx`, D2-3), its ink strip a glass
  *   piece of its own floating above the capsule (`markup/StripPiece.tsx`, owner feedback F3);
  *   both fade while a stroke is in progress, never with focus inside (MK-17).
- * - **Labels** are always shown (RA-20): beside the icons when the dock fits so, else under
- *   them (`dock-labels.ts`); a compact window stacks them, as the phone's dock does.
+ * - **Glyphs only** (DSN-91, which retires RA-20's always-visible labels for the capsule): every
+ *   item is a 44 px circle with a 22 px glyph and no visible word; its name is its accessible
+ *   name and its tooltip ("Markup" and the keycap), and the keys stay in `aria-keyshortcuts`.
  * - **Keyboard:** one Tab stop with arrows between items (roving); F6 lands on the last focused
  *   item, else Pages (`regions.ts`). Focus that was in the capsule follows the morph: into the
  *   palette's Tab stop on opening, back to the door Markup was opened through on closing.
  * - **Announcements:** "Markup on. Select armed." once when a door opens it (A-14); the palette
  *   and the guard say the rest.
  *
- * The dock's pieces carry `data-capsule-item` keys (`pages`, `markup`, `sign`, `tools`, `locked`, `more`),
+ * The dock's pieces carry `data-capsule-item` keys (`pages`, `markup`, `fill-sign`, `tools`, `locked`, `more`),
  * so Pages and More slide into their Locked places instead of fading.
  */
 import { Menu } from '@base-ui/react/menu';
@@ -34,7 +34,6 @@ import type { VirtualDocument } from '@pdf-editor/document-model';
 import {
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
-  type RefObject,
   useLayoutEffect,
   useRef,
   useState,
@@ -44,11 +43,10 @@ import { commandRegistry } from '../../commands/registry';
 import { currentPlatform, toAriaKeyShortcut } from '../../commands/shortcuts';
 import { useDragSession } from '../../dnd/drag-store';
 import { useCommands } from '../../commands/use-commands';
-import { m, useLocale } from '../../i18n';
+import { m } from '../../i18n';
 import { isLocked } from '../../state/lock-store';
 import { type PaletteSet, useStageView, useUiStore } from '../../state/ui-store';
 import { useActiveDocument, useWorkspaceStore } from '../../state/workspace-store';
-import { Button } from '../../ui/Button';
 import { Icon, type IconName } from '../../ui/Icon';
 import menuStyles from '../../ui/Menu.module.css';
 import { Tooltip } from '../../ui/Tooltip';
@@ -64,10 +62,9 @@ import { useRovingTabindex } from '../../markup/roving';
 import { useStrokeFade } from '../../markup/stroke-fade';
 import { PagesBar, usePagesBarKey } from '../../stage/grid/PagesBar';
 import styles from './Dock.module.css';
-import { type DockLabelForm, dockLabelForm, dockRoom } from './dock-labels';
 import { openTitleMenu } from './frame-store';
 import { usePointerCapabilities } from './input-modality';
-import { type SizeClass, useSizeClass } from './size-class';
+import { useSizeClass } from './size-class';
 import { ToolsMenu } from './ToolsMenu';
 
 /**
@@ -153,7 +150,6 @@ const keysOf = (id: string) => {
 function DockItems({ locked, doc }: { readonly locked: boolean; readonly doc: VirtualDocument }) {
   const ref = useRef<HTMLDivElement>(null);
   const frame = useSizeClass();
-  const form = useLabelForm(ref, frame.size);
   const door = useUiStore((s) => s.docUi[doc.id]?.paletteSet ?? 'draw');
   const roving = useRovingTabindex(ref, '[data-dock-item="pages"]');
   // Re-render when commands register (Pages and More read them).
@@ -161,8 +157,7 @@ function DockItems({ locked, doc }: { readonly locked: boolean; readonly doc: Vi
   const empty = doc.pages.length === 0;
   const reason = empty ? m.dock_no_pages() : undefined;
   const compact = frame.size === 'compact';
-  // The capsule rests at this bar's size plus its rim, centred in the dock by a flex column:
-  // with the labels' fractional width it sat between pixels (x 517.72, V2 review item 16). The
+  // The capsule rests at this bar's size plus its rim, centred in the dock by a flex column. The
   // bar's width rounds so the capsule's edges both land on whole pixels (Q-2).
   useLayoutEffect(() => {
     const el = ref.current;
@@ -176,7 +171,6 @@ function DockItems({ locked, doc }: { readonly locked: boolean; readonly doc: Vi
       aria-label={m.dock_label()}
       aria-orientation="horizontal"
       className={styles.toolbar}
-      data-labels={form}
       data-bar-view={locked ? 'locked' : 'dock'}
       onKeyDown={roving.onKeyDown}
       onFocus={roving.onFocus}
@@ -232,63 +226,11 @@ function DockItems({ locked, doc }: { readonly locked: boolean; readonly doc: Vi
 }
 
 /**
- * The label form from the room the band leaves: measured with labels beside once per locale
- * (`dock-labels.ts`), the room from the band and the page pill, re-read on every resize.
+ * The key the morph knows an item by. Fill & sign and the palette's Sign now draw the same
+ * glyph, so under one key the morph would slide Sign across the dock over Tools; each fades
+ * in its own place instead (`capsule-morph.ts`, "a twin that looks different").
  */
-function useLabelForm(ref: RefObject<HTMLDivElement | null>, size: SizeClass): DockLabelForm {
-  const locale = useLocale();
-  const [beside, setBeside] = useState<{ readonly width: number; readonly locale: string } | null>(
-    null,
-  );
-  const [room, setRoom] = useState(Number.POSITIVE_INFINITY);
-  const form = dockLabelForm({
-    size,
-    besideWidth: beside?.locale === locale ? beside.width : null,
-    room,
-  });
-
-  // While beside, keep the measured width current (the labels, the items or the font changed).
-  useLayoutEffect(() => {
-    const toolbar = ref.current;
-    if (!toolbar || form !== 'beside' || size === 'compact') return;
-    const record = () => {
-      const width = toolbar.getBoundingClientRect().width;
-      setBeside((was) =>
-        was?.locale === locale && Math.abs(was.width - width) <= 0.5 ? was : { width, locale },
-      );
-    };
-    record();
-    const observer = new ResizeObserver(record);
-    observer.observe(toolbar);
-    return () => observer.disconnect();
-  }, [ref, form, size, locale]);
-
-  useLayoutEffect(() => {
-    const band = ref.current?.closest<HTMLElement>('[data-frame-layer="band"]');
-    if (!band) return;
-    const measure = () => {
-      const pill = band.querySelector<HTMLElement>('[data-region="pill"]');
-      setRoom(dockRoom(band.clientWidth, pill?.offsetWidth ?? 0));
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(band);
-    const mutation = new MutationObserver(() => {
-      const pill = band.querySelector('[data-region="pill"]');
-      if (pill) observer.observe(pill);
-      measure();
-    });
-    mutation.observe(band, { childList: true });
-    const pill = band.querySelector('[data-region="pill"]');
-    if (pill) observer.observe(pill);
-    return () => {
-      observer.disconnect();
-      mutation.disconnect();
-    };
-  }, [ref]);
-
-  return form;
-}
+const capsuleKey = (item: string): string => (item === 'sign' ? 'fill-sign' : item);
 
 function DockButton({
   item,
@@ -319,17 +261,20 @@ function DockButton({
   readonly onActivate: () => void;
 }) {
   const disabled = reason !== undefined;
-  // An M quiet button (ui/Button; system-audit-2026-10 §3.3), dimmed by `aria-disabled` alone
-  // so a press still says why (RA-21) instead of being swallowed.
+  // An icon button at the slot size (`Dock.module.css`), named by `aria-label` and dimmed by
+  // `aria-disabled` alone so a press still says why (RA-21) instead of being swallowed.
   const button = (
-    <Button
-      variant="quiet"
+    <button
+      type="button"
+      // The IconButton's circle (`styles.item` composes it) with the tooltip's `reason` below,
+      // which IconButton does not carry: a dimmed item says why (RA-21).
+      // eslint-disable-next-line recto/q9-controls
       className={styles.item}
-      icon={<Icon name={icon} className={styles.icon} />}
-      data-capsule-item={item}
+      data-size="bar"
+      data-capsule-item={capsuleKey(item)}
       data-dock-item={item}
       data-capsule-focus={focusOnArrival ? '' : undefined}
-      aria-label={name}
+      aria-label={name ?? label}
       aria-pressed={pressed}
       aria-haspopup={popup}
       aria-keyshortcuts={keys}
@@ -343,11 +288,10 @@ function DockButton({
         onActivate();
       }}
     >
-      {label}
-    </Button>
+      <Icon name={icon} className={styles.icon} />
+    </button>
   );
-  // The label is always shown (RA-20): a tooltip only adds the key or the reason (F10 §5).
-  if (shortcut === undefined && reason === undefined) return button;
+  // No visible word (DSN-91): the tooltip names the item, with its key or the reason (F10 §5).
   return (
     <Tooltip label={label} shortcut={shortcut} reason={reason} side="top">
       {button}
@@ -390,12 +334,13 @@ function MoreMenu() {
       <Tooltip label={m.dock_more()} shortcut={shortcutOf('view.palette')} side="top">
         <Menu.Trigger
           ref={setTrigger}
-          className={`btn btn-quiet ${styles.item}`}
+          className={styles.item}
+          data-size="bar"
+          aria-label={m.dock_more()}
           data-capsule-item="more"
           data-dock-item="more"
         >
           <Icon name="dots-three" className={styles.icon} />
-          <span data-btn-label="">{m.dock_more()}</span>
         </Menu.Trigger>
       </Tooltip>
       <Menu.Portal>

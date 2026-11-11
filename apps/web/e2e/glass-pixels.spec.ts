@@ -39,7 +39,7 @@ import { dirname } from 'node:path';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { useFileInputPicker } from './helpers';
+import { openButton, useFileInputPicker } from './helpers';
 import {
   BACKDROPS,
   COVERAGE_REGISTRY,
@@ -72,7 +72,7 @@ test.use({ viewport: { width: 1440, height: 900 } });
 const WHITE: Rgb = [255, 255, 255];
 /** `--text-primary` and `--glass-text-secondary` (styles/tokens.css), kept in step by hand. */
 const TEXT_PRIMARY: Rgb = [0xe8, 0xe9, 0xec];
-const GLASS_TEXT_SECONDARY: Rgb = [0xbb, 0xbe, 0xc3];
+const GLASS_TEXT_SECONDARY: Rgb = [0xc8, 0xcb, 0xd0];
 
 /** One blank US Letter page: white everywhere the bar and the menus can sit. */
 async function blankPdf(): Promise<Uint8Array> {
@@ -87,10 +87,7 @@ async function openBlankPage(page: Page, file: string): Promise<void> {
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   const chooser = page.waitForEvent('filechooser');
-  await page
-    .getByRole('button', { name: /^(Open files|Dosya aç)$/ })
-    .first()
-    .click();
+  await openButton(page).click();
   await (await chooser).setFiles(file);
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
     timeout: 30_000,
@@ -187,7 +184,7 @@ test(
     // the theme's tone (GLS-20).
     const model = glassModel(await glassStyle(page.locator('[data-capsule]')), WHITE);
     // The composite tokens.test.ts asserts for the bar tier (M2) over white.
-    expect(hex(model)).toBe('#444548');
+    expect(hex(model)).toBe('#363739');
     // Near the bar's top and bottom edges the page still leaks in (1 − c grows towards an
     // edge, research 22 §3.2): recorded, not asserted.
     const top = median4x4(image, group.x + 4, barBox.y + 2);
@@ -200,9 +197,9 @@ test(
       channelDistance(sample, model),
       `rendered ${hex(sample)} against the model ${hex(model)}`,
     ).toBeLessThanOrEqual(2);
-    // So the text on it holds what the model promises (tokens.test.ts: 7.89 and 5.14).
-    expect(contrastRatio(TEXT_PRIMARY, sample)).toBeGreaterThanOrEqual(7.7);
-    expect(contrastRatio(GLASS_TEXT_SECONDARY, sample)).toBeGreaterThanOrEqual(5);
+    // So the text on it holds what the model promises (tokens.test.ts: 9.81 and 7.32).
+    expect(contrastRatio(TEXT_PRIMARY, sample)).toBeGreaterThanOrEqual(9.5);
+    expect(contrastRatio(GLASS_TEXT_SECONDARY, sample)).toBeGreaterThanOrEqual(7);
   },
 );
 
@@ -261,7 +258,7 @@ test(
     });
     const sample = median4x4(image, point.x - 2, point.y - 2);
     const model = glassModel(await glassStyle(menu), WHITE);
-    expect(hex(model)).toBe('#424347');
+    expect(hex(model)).toBe('#363739');
     testInfo.annotations.push({
       type: 'menu over white',
       description: `rendered ${hex(sample)}, model ${hex(model)}; primary ${contrastRatio(TEXT_PRIMARY, sample).toFixed(2)}:1, glass secondary ${contrastRatio(GLASS_TEXT_SECONDARY, sample).toFixed(2)}:1`,
@@ -289,69 +286,6 @@ test('no link shows a ring or mark after the sample opens without the keyboard',
     }),
   );
   expect(new Set(marks)).toEqual(new Set(['false | none | rgba(0, 0, 0, 0)']));
-});
-
-test.describe('in the light theme (spec D3-7)', () => {
-  test.use({ colorScheme: 'light' });
-
-  test(
-    'the palette over a white page renders the floored light bar within 2 levels',
-    { tag: '@pixels' },
-    async ({ page, browserName }, testInfo) => {
-      test.skip(browserName !== 'chromium', APP_SURFACES_CHROMIUM_ONLY);
-      await openBlankPage(page, testInfo.outputPath('white-page.pdf'));
-      await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-      await page.keyboard.press('2');
-      const bar = page.locator('[data-markup-palette]');
-      await expect(bar.locator('[data-labelled]').first()).toBeVisible();
-      await page.mouse.move(340, 450);
-      await capsuleAtRest(page);
-      const barBox = await bar.boundingBox();
-      const pageBox = await page.locator('[data-page-index="0"]').first().boundingBox();
-      if (!barBox || !pageBox) throw new Error('bar or page not laid out');
-      expect(pageBox.x).toBeLessThan(barBox.x - 40);
-      // The left padding of the unarmed labelled tool nearest the middle: glass and nothing else.
-      const group = await bar.evaluate((el) => {
-        const middle = el.getBoundingClientRect().left + el.getBoundingClientRect().width / 2;
-        const groups = [...el.querySelectorAll<HTMLElement>('[data-labelled]')]
-          .filter((g) => g.getAttribute('aria-pressed') !== 'true')
-          .map((g) => g.getBoundingClientRect());
-        groups.sort(
-          (a, b) =>
-            Math.abs(a.left + a.width / 2 - middle) - Math.abs(b.left + b.width / 2 - middle),
-        );
-        const r = groups[0];
-        return r ? { x: r.left } : null;
-      });
-      if (!group) throw new Error('no group on the bar');
-      const centreY = barBox.y + barBox.height / 2;
-      const image = await fullViewportPixels(page);
-      await testInfo.attach('light bar over a white page', {
-        body: await page.screenshot({ animations: 'disabled' }),
-        contentType: 'image/png',
-      });
-      expect(await bar.boundingBox(), 'the palette after the screenshot').toEqual(barBox);
-      const sample = median4x4(image, group.x + 4, centreY - 2);
-      expect(median4x4(image, pageBox.x + 40, centreY - 2), 'the page beside the bar').toEqual(
-        WHITE,
-      );
-      const model = glassModel(await glassStyle(page.locator('[data-capsule]')), WHITE);
-      // The composite tokens.test.ts asserts for the light bar tier (M2) over white.
-      expect(hex(model)).toBe('#fbfbfd');
-      expect(
-        channelDistance(sample, model),
-        `rendered ${hex(sample)} against the model ${hex(model)}`,
-      ).toBeLessThanOrEqual(2);
-      const primary = tokenColour('--text-primary', 'light');
-      const secondary = tokenColour('--glass-text-secondary', 'light');
-      testInfo.annotations.push({
-        type: 'light bar over white',
-        description: `rendered ${hex(sample)}, model ${hex(model)}; primary ${contrastRatio(primary, sample).toFixed(2)}:1, glass secondary ${contrastRatio(secondary, sample).toFixed(2)}:1`,
-      });
-      expect(contrastRatio(primary, sample)).toBeGreaterThanOrEqual(15);
-      expect(contrastRatio(secondary, sample)).toBeGreaterThanOrEqual(9);
-    },
-  );
 });
 
 /** The four edge samples: 4 px inside each side at its middle (09-primitives §28). */

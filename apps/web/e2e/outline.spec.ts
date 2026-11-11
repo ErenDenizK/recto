@@ -10,7 +10,7 @@ import type { PDFNumber } from '@cantoo/pdf-lib';
 import { PDFArray, PDFDict, PDFDocument, PDFHexString, PDFName, PDFRef } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, openSaveCopy, useFileInputPicker, showSidebar } from './helpers';
+import { openButton, openFixtures, openSaveCopy, showSidebar, useFileInputPicker } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Download flow is verified on Chromium');
 
@@ -129,7 +129,7 @@ test('edit the outline, export, and read the new tree back', async ({ page }, te
 
   // 5. Re-open the export: the Outline panel shows the new tree, read back by PDFium.
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await chooser).setFiles(saved);
   await expect(page.getByRole('tab', { name: 'outline-edited' })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'outline-edited' })).toHaveAttribute(

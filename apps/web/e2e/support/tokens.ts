@@ -5,8 +5,8 @@
  * a σ or a boost and the spec follows; a rendered surface that drifts from its tokens fails.
  *
  * Scopes, highest first: the Glass setting's block (`:root[data-glass='solid']`,
- * `:root[data-glass='tinted']`), the light theme's block when there is one, the dark theme block
- * (`:root, [data-theme='dark']`), then the theme-free `:root` block. `var()` is resolved
+ * `:root[data-glass='tinted']`), the theme block (`:root, [data-theme='dark']`), then the
+ * theme-free `:root` block (Recto is dark only, PRD-42). `var()` is resolved
  * through the same chain, as the cascade does on the root.
  */
 import { readFileSync } from 'node:fs';
@@ -41,8 +41,7 @@ function declarations(body: string): Scope {
 
 /** The custom properties of the first top-level rule whose selector matches `selector`. */
 function block(selector: RegExp): Scope | undefined {
-  // The boundary is looked behind, not consumed, so a rule right after another's `}` (the light
-  // block after the dark one) is found too.
+  // The boundary is looked behind, not consumed, so a rule right after another's `}` is found.
   for (const match of source.matchAll(/(^|(?<=[{};]))\s*([^{};@]+?)\s*\{([^{}]*)\}/g)) {
     const prelude = (match[2] ?? '').replace(/\s+/g, ' ');
     if (selector.test(prelude)) return declarations(match[3] ?? '');
@@ -52,7 +51,6 @@ function block(selector: RegExp): Scope | undefined {
 
 const DARK = block(/^:root, \[data-theme='dark'\]$/);
 const THEME_FREE = block(/^:root$/);
-const LIGHT = block(/^(?::root)?\[data-theme='light'\]$/);
 const SOLID = block(/^:root\[data-glass='solid'\]$/);
 const TINTED = block(/^:root\[data-glass='tinted'\]$/);
 
@@ -60,27 +58,29 @@ if (!DARK || !SOLID) {
   throw new Error('tokens.css has no dark theme block or no Solid block where the spec looks');
 }
 
-/** The themes `tokens.css` defines: dark always, light once D3 adds its block. */
-export const TOKEN_THEMES: readonly Theme[] = LIGHT ? ['dark', 'light'] : ['dark'];
+/** The themes `tokens.css` defines: dark, the only one (PRD-42). */
+export const TOKEN_THEMES: readonly Theme[] = ['dark'];
 
 /** The Glass settings `tokens.css` defines: Clear, and Tinted and Solid by their blocks. */
 export const TOKEN_GLASS_MODES: readonly GlassMode[] = TINTED
   ? ['clear', 'tinted', 'solid']
   : ['clear', 'solid'];
 
-function scopes(theme: Theme, glass: GlassMode): Scope[] {
+function scopes(glass: GlassMode): Scope[] {
   const chain: (Scope | undefined)[] = [
     glass === 'solid' ? SOLID : glass === 'tinted' ? TINTED : undefined,
-    theme === 'light' ? LIGHT : undefined,
     DARK,
     THEME_FREE,
   ];
   return chain.filter((scope): scope is Scope => scope !== undefined);
 }
 
-/** A token's value in `theme` under the Glass setting `glass`, every `var()` resolved. */
-export function tokenValue(name: string, theme: Theme, glass: GlassMode): string {
-  const chain = scopes(theme, glass);
+/**
+ * A token's value under the Glass setting `glass`, every `var()` resolved. The theme argument is
+ * kept for the callers' sake: there is one theme (PRD-42).
+ */
+export function tokenValue(name: string, _theme: Theme, glass: GlassMode): string {
+  const chain = scopes(glass);
   const resolve = (token: string, depth: number): string => {
     if (depth > 12) throw new Error(`var() cycle at ${token}`);
     const value = chain.find((scope) => scope.has(token))?.get(token);

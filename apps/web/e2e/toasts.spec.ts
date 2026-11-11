@@ -16,6 +16,7 @@ import { expect, type Page, test } from '@playwright/test';
 
 import {
   fixturePath,
+  openButton,
   openFixtures,
   openSaveCopy,
   quiet,
@@ -45,10 +46,7 @@ const DAMAGED = {
 
 async function openDamaged(page: Page): Promise<void> {
   const chooser = page.waitForEvent('filechooser');
-  await page
-    .getByRole('button', { name: /^(Open files|Dosya aç)$/ })
-    .first()
-    .click();
+  await openButton(page).click();
   await (await chooser).setFiles(DAMAGED);
 }
 
@@ -87,10 +85,7 @@ test('on the Library the stack keeps 8 px (--space-2) above the selection bar, n
   await page.goto('./?lang=en');
   // Two files land in the Library checked: the selection bar is up (02-library L6).
   const chooser = page.waitForEvent('filechooser');
-  await page
-    .getByRole('button', { name: /^(Open files|Dosya aç)$/ })
-    .first()
-    .click();
+  await openButton(page).click();
   await (await chooser).setFiles(['simple-text.pdf', 'rotated-pages.pdf'].map(fixturePath));
   const bar = page.getByTestId('library-selection-bar');
   await expect(bar).toBeVisible({ timeout: 20_000 });

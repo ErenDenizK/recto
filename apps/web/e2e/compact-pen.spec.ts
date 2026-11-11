@@ -33,7 +33,7 @@ async function expectUndoable(locator: Locator, on: boolean): Promise<void> {
 
 /** The sample's first page, rendered, then editing with the tool off (MOB-18). */
 async function editSample(page: Page): Promise<void> {
-  await page.goto('./?sample&lang=en');
+  await page.goto('./?sample&lang=en&phonebar=0');
   await expect(page.getByTestId('compact-reader')).toBeVisible();
   await expect(page.locator('[data-page-index="0"] canvas').first()).toHaveAttribute(
     'data-state',

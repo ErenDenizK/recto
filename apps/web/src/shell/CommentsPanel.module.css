@@ -34,10 +34,6 @@
   color: var(--note-ink);
 }
 
-:global([data-theme='light']) .icon[data-tinted] {
-  color: color-mix(in srgb, var(--note-ink) 45%, black);
-}
-
 .icon svg {
   width: var(--icon-sm);
   height: var(--icon-sm);

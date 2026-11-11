@@ -111,7 +111,6 @@ beforeEach(() => {
 
 afterEach(() => {
   document.documentElement.removeAttribute('data-motion');
-  document.documentElement.removeAttribute('data-theme');
 });
 
 describe('the semantic tree (PRD-36 §7)', () => {
@@ -245,12 +244,9 @@ describe('the look (DSN-84)', () => {
     expect(getComputedStyle(body()).fontFamily).toContain('Georgia');
   });
 
-  it('follows the theme setting: Auto is the app’s, Light and Dark are their own', async () => {
-    document.documentElement.setAttribute('data-theme', 'light');
+  it('follows the theme setting: Auto is the app’s dark, Light and Dark are their own', () => {
     render(<View loader={fakeLoader(documentPages())} />);
-    expect(root()).toHaveAttribute('data-theme', 'light');
-    document.documentElement.setAttribute('data-theme', 'dark');
-    await waitFor(() => expect(root()).toHaveAttribute('data-theme', 'dark'));
+    expect(root()).toHaveAttribute('data-theme', 'dark');
     act(() => setReadingPrefs({ theme: 'light' }));
     expect(root()).toHaveAttribute('data-theme', 'light');
     expect(getComputedStyle(root()).backgroundColor).toBe('rgb(253, 253, 255)');

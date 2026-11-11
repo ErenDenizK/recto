@@ -1,0 +1,76 @@
+/*
+ * The beam (Beam.tsx; DSN-94): three layers of one lamp, clipped to a thin wedge and blurred.
+ * The lamp's place (--lamp-x, --lamp-y) and length (--beam-len) are written by the component;
+ * the angle, spread and intensity are the kind's. The ramps are tokens (--beam-ramp,
+ * --beam-core-ramp). Static, behind the content; the box clips what leaves it.
+ */
+.beam {
+  --a: 3.5deg;
+  --s: 170px;
+  --i: 0.4;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.beam[data-kind='first'] {
+  --a: 4.4deg;
+  --s: 150px;
+  --i: 0.95;
+}
+
+.layer {
+  position: absolute;
+  left: calc(var(--lamp-x, 0px) - var(--beam-len, 1700px));
+  top: calc(var(--lamp-y, 0px) - var(--h) / 2);
+  width: var(--beam-len, 1700px);
+  height: var(--h);
+  transform-origin: 100% 50%;
+  transform: rotate(var(--a));
+  filter: blur(var(--blur));
+  opacity: var(--op);
+}
+
+.body {
+  --h: calc(var(--s) * 2.2);
+  --blur: 70px;
+  --op: calc(var(--i) * 0.22);
+}
+
+.mid {
+  --h: var(--s);
+  --blur: 26px;
+  --op: calc(var(--i) * 0.38);
+}
+
+.core {
+  --h: calc(var(--s) * 0.22);
+  --blur: 3px;
+  --op: calc(var(--i) * 0.75);
+}
+
+.fill {
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(0 0, 100% 49.4%, 100% 50.6%, 0 100%);
+  background: linear-gradient(90deg, var(--beam-ramp));
+}
+
+.coreFill {
+  background: linear-gradient(90deg, var(--beam-core-ramp));
+}
+
+/* Degrade 3 and 4 drop the body; Solid glass keeps the core only. */
+:global(:root:is([data-degrade='3'], [data-degrade='4'])) .body,
+:global(:root[data-glass='solid']) .body,
+:global(:root[data-glass='solid']) .mid {
+  display: none;
+}
+
+@media (prefers-contrast: more), (forced-colors: active) {
+  .beam {
+    display: none;
+  }
+}

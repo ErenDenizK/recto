@@ -1,0 +1,67 @@
+/*
+ * The phone Home's beam (CompactBeam.tsx; DSN-94, phone-home.html): a lamp at x 470, y 61.6 % of
+ * the window (520 of 844 px), the beam leaving it at 186 degrees, L 700, spread s 160, intensity
+ * i 0.45. Each layer is a box of the beam's length whose right edge is the lamp, turned 6 degrees
+ * about it, clipped to a wedge (49.4 % to 50.6 % at the lamp, the full spread at the far end) and
+ * blurred. The body is 2.2 spreads tall at i times 0.22, the mid layer one spread at i times 0.38
+ * and the core 0.22 of a spread at i times 0.75. The ramps are the tokens' (`--beam-ramp`, `--beam-core-ramp`). Static: nothing animates.
+ */
+.beam {
+  --lamp-x: 470px;
+  --lamp-y: 61.6%;
+  --length: 700px;
+  --spread: 160px;
+  --turn: 6deg;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.layer {
+  --h: var(--spread);
+  position: absolute;
+  top: calc(var(--lamp-y) - var(--h) / 2);
+  left: calc(var(--lamp-x) - var(--length));
+  width: var(--length);
+  height: var(--h);
+  transform: rotate(var(--turn));
+  transform-origin: 100% 50%;
+}
+
+.wedge {
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(0 0, 100% 49.4%, 100% 50.6%, 0 100%);
+  background: linear-gradient(90deg, var(--beam-ramp));
+}
+
+.body {
+  --h: calc(var(--spread) * 2.2);
+  opacity: 0.099;
+  filter: blur(70px);
+}
+
+.mid {
+  opacity: 0.171;
+  filter: blur(26px);
+}
+
+.core {
+  --h: calc(var(--spread) * 0.22);
+  opacity: 0.3375;
+  filter: blur(3px);
+}
+
+.core .wedge {
+  background: linear-gradient(90deg, var(--beam-core-ramp));
+}
+
+/* Degrade: the body goes at steps 3 and 4, and under Solid glass only the core stays. */
+:global(:root[data-degrade='3']) .body,
+:global(:root[data-degrade='4']) .body,
+:global(:root[data-glass='solid']) .body,
+:global(:root[data-glass='solid']) .mid {
+  display: none;
+}

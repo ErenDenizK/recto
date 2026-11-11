@@ -5,7 +5,7 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { useFileInputPicker } from './helpers';
+import { openButton, useFileInputPicker } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -41,10 +41,7 @@ for (const [name, mimeType] of [
     await page.goto('./?lang=en');
     const image = await makeImage(page, name, mimeType);
     const chooser = page.waitForEvent('filechooser');
-    await page
-      .getByRole('button', { name: /^Open files$/ })
-      .first()
-      .click();
+    await openButton(page).click();
     await (await chooser).setFiles({
       name: image.name,
       mimeType,

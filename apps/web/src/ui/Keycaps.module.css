@@ -11,16 +11,17 @@
   justify-content: center;
   min-width: 18px;
   height: 18px;
-  padding: 0 5px;
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-xs);
+  padding: 3px 5px;
+  border: 1px solid var(--border-key);
+  border-radius: var(--radius-key);
   background: var(--surface-raised);
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
   font-family: var(--font-ui);
   font-size: var(--type-caption);
-  font-weight: 500;
+  font-weight: var(--weight-medium);
+  font-feature-settings: 'case' 1;
   line-height: 1;
-  letter-spacing: 0;
+  letter-spacing: var(--track-key);
   font-variant-numeric: tabular-nums;
 }
 

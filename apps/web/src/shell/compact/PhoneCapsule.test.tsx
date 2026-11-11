@@ -1,8 +1,9 @@
 /**
- * The single capsule on the static path (PhoneCapsule.tsx, EDN-24): with the switch off the
- * shipped capsule's DOM is unchanged (the round ✎ and the "Pages" and "Find" words), and with
- * `?phonebar=1` the reading capsule is the icon capsule, ✎ morphs it into the editing tools with
- * the tray opening from a tool, Done brings the reading content back and focus returns to ✎.
+ * The single capsule on the static path (PhoneCapsule.tsx, EDN-24, EDN-29): it is the default, so
+ * the reading capsule is the icon capsule, ✎ morphs it into the editing tools with the tray
+ * opening from a tool and the Undo chip beside it, Done brings the reading content back and
+ * focus returns to ✎. With `?phonebar=0` the shipped capsule's DOM is unchanged (the round ✎ and
+ * the "Pages" and "Find" words).
  */
 import '../../styles/tokens.css';
 import '../../styles/reset.css';
@@ -40,9 +41,9 @@ afterEach(() => {
   resetPhoneCapsule();
 });
 
-describe('with the switch off', () => {
+describe('with ?phonebar=0', () => {
   it('keeps the shipped capsule: the ✎ circle beside it, "Pages" and "Find" as words', async () => {
-    await open('');
+    await open('?phonebar=0');
     const capsule = screen.getByTestId('compact-capsule');
     expect(screen.getByTestId('compact-edit')).toBeVisible();
     expect(screen.queryByTestId('compact-capsule-edit')).toBeNull();
@@ -52,9 +53,9 @@ describe('with the switch off', () => {
   });
 });
 
-describe('with ?phonebar=1', () => {
+describe('by default', () => {
   it('reads as the icon capsule with ✎ inside it', async () => {
-    await open('?phonebar=1');
+    await open('');
     // The host loads lazily (PF-23): wait for it.
     await screen.findByTestId('compact-capsule-edit', {}, { timeout: 10_000 });
     const capsule = screen.getByTestId('compact-capsule');
@@ -68,7 +69,7 @@ describe('with ?phonebar=1', () => {
   });
 
   it('morphs into the tools with a tray, and Done gives focus back to ✎', async () => {
-    await open('?phonebar=1');
+    await open('');
     await userEvent.click(
       await screen.findByTestId('compact-capsule-edit', {}, { timeout: 10_000 }),
     );
@@ -76,6 +77,9 @@ describe('with ?phonebar=1', () => {
     const capsule = screen.getByTestId('compact-capsule');
     expect(capsule).toHaveAccessibleName('Editing tools');
     expect(capsule).toContainElement(pen);
+    // Edit text has its own slot, and Undo is the chip beside the tray, outside the capsule.
+    expect(capsule).toContainElement(screen.getByTestId('compact-capsule-tool-edit-text'));
+    expect(capsule).not.toContainElement(screen.getByTestId('compact-undo'));
     await waitFor(() => expect(pen).toHaveFocus());
     expect(screen.queryByTestId('compact-tool-tray')).toBeNull();
     await userEvent.click(pen);
@@ -87,7 +91,7 @@ describe('with ?phonebar=1', () => {
   });
 
   it('has no tool drawer, whatever ?drawer asks', async () => {
-    await open('?phonebar=1&drawer=list');
+    await open('?drawer=list');
     await userEvent.click(screen.getByTestId('compact-capsule-edit'));
     await screen.findByTestId('compact-capsule-tool-pen', {}, { timeout: 10_000 });
     expect(screen.queryByTestId('compact-tool-more')).toBeNull();

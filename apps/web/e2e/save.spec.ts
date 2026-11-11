@@ -19,6 +19,7 @@ import { expect, type Page, test } from '@playwright/test';
 
 import {
   markupDoor,
+  openButton,
   openFixtures,
   seedFile,
   stub,
@@ -73,7 +74,7 @@ test('J13A: Save in place costs 3 presses the first time and 1 after; Read mode 
   await stubFileSystemAccess(page);
   await page.goto('./?lang=en');
   await seedFile(page, 'simple-text.pdf');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await expect(page.getByRole('tab', { name: 'simple-text' })).toBeVisible();
 
   // As opened: nothing to save, and nothing shown until the first save after an edit.
@@ -213,7 +214,7 @@ test.describe('screenshots for review (SAVE_SHOTS)', () => {
     await stubFileSystemAccess(page);
     await page.goto('./?lang=tr');
     await seedFile(page, 'simple-text.pdf');
-    await page.getByRole('button', { name: 'Dosya aç' }).first().click();
+    await openButton(page).click();
     await expect(page.getByRole('tab', { name: 'simple-text' })).toBeVisible();
     await shot(page, 'tr-820-saved');
     await rotateFirstPage(page);

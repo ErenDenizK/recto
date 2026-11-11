@@ -19,7 +19,7 @@ afterEach(() => {
 const bg = (el: Element) => getComputedStyle(el).backgroundColor;
 
 describe('Button (09-primitives §3)', () => {
-  it('is a 32 px pill with a 16 px glyph on a fine pointer', () => {
+  it('is a 32 px button of radius 10 with a 16 px glyph on a fine pointer (DSN-89)', () => {
     render(
       <Button icon={<svg data-testid="glyph" />} variant="standard">
         Save copy
@@ -27,11 +27,11 @@ describe('Button (09-primitives §3)', () => {
     );
     const button = screen.getByRole('button', { name: 'Save copy' });
     expect(button.getBoundingClientRect().height).toBe(32);
-    expect(getComputedStyle(button).borderTopLeftRadius).toBe('999px');
+    expect(getComputedStyle(button).borderTopLeftRadius).toBe('10px');
     expect(screen.getByTestId('glyph').getBoundingClientRect().width).toBe(16);
   });
 
-  it('comes in S, M and L: 24, 32 and 40 px, footnote, body and callout (system audit §3.3)', () => {
+  it('comes in S, M and L: 24, 32 and 40 px, footnote, button and callout (system audit §3.3, DSN-89)', () => {
     render(
       <>
         <Button size="sm" icon={<svg data-testid="s-glyph" />}>
@@ -50,14 +50,14 @@ describe('Button (09-primitives §3)', () => {
     });
     expect(sizes).toEqual([
       [24, root.getPropertyValue('--type-footnote').trim()],
-      [32, root.getPropertyValue('--type-body').trim()],
+      [32, root.getPropertyValue('--type-button').trim()],
       [40, root.getPropertyValue('--type-callout').trim()],
     ]);
     expect(screen.getByTestId('s-glyph').getBoundingClientRect().width).toBe(16);
     expect(screen.getByTestId('l-glyph').getBoundingClientRect().width).toBe(20);
     for (const name of ['Small', 'Large']) {
       expect(getComputedStyle(screen.getByRole('button', { name })).borderTopLeftRadius).toBe(
-        '999px',
+        '10px',
       );
     }
   });

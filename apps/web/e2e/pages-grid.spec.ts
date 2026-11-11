@@ -26,10 +26,11 @@ import {
   atRest,
   expectOpenDocuments,
   fixturePath,
+  openButton,
   openDocumentTitles,
   openFixtures,
-  useFileInputPicker,
   pastDeadline,
+  useFileInputPicker,
 } from './helpers';
 
 /** Counts the presses of one job (as `jobs.spec.ts`); a tap where the pointer is a finger. */
@@ -72,7 +73,7 @@ async function openNested(page: Page, name: string): Promise<void> {
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await chooser).setFiles(fixturePath(name));
   const title = name.replace(/^.*\//, '').replace(/\.pdf$/, '');
   await expect(page.getByRole('tab', { name: title })).toBeVisible();
@@ -447,7 +448,10 @@ test('a drop on a tab after 500 ms moves the pages to that document', async ({
 }) => {
   test.skip(browserName === 'webkit', "WebKit's Playwright cannot start a native drag");
   test.skip(await coarse(page), 'touch has no tab drop (Move to instead)');
-  await open(page, ['simple-text.pdf', 'rotated-pages.pdf']);
+  // One file opens into its document and the second joins as a tab (two at once would stay on
+  // Home as cards, which have no tabs).
+  await open(page, ['simple-text.pdf']);
+  await openFixtures(page, ['rotated-pages.pdf']);
   await page.getByRole('tab', { name: 'simple-text' }).click();
   await page.keyboard.press('Escape');
   await enterGrid(page);

@@ -5,8 +5,9 @@
  *
  *   .save { composes: btn btn-prominent from global; }
  *
- * One shape, the capsule, in the three control sizes of system-audit-2026-10 §3.3, so a bar of
- * buttons shares one height and one centre line:
+ * One shape, radius 10 (--button-radius, DSN-89: it was the capsule), in the three control sizes
+ * of system-audit-2026-10 §3.3, so a bar of buttons shares one height and one centre line. The
+ * label is the button step (13.5/18 at 560, +0.002em; the coarse pointer keeps its body step):
  *
  * - `btn-sm` (S): --control-h-sm (24 px fine, 32 px coarse with a 44 px hit area), a footnote
  *   label and a 16 px glyph at both densities. Inline actions: a field's or a toast's.
@@ -19,7 +20,8 @@
  * label. Four variants:
  *
  * - prominent: the primary fill with its ink label. One per surface.
- * - standard: a white wash (--control-fill) with the primary label.
+ * - standard: a white wash (--control-fill) with the primary label. `data-ghost` is Home's form
+ *   (DSN-93): --fill-ghost with a --border-quiet inset line.
  * - quiet: no fill; the hover and pressed washes only.
  * - danger: the standard fill under a danger label; hover adds a 1 px danger ring instead of a
  *   deeper fill (09 §3.4: a 0.12 fill would drop the label to 4.27:1).
@@ -69,15 +71,15 @@
   min-width: var(--control-h);
   padding: 0 var(--btn-pad, var(--space-3));
   border: 0;
-  border-radius: var(--radius-capsule);
+  border-radius: var(--button-radius);
   background: transparent;
   box-shadow: var(--shadow-own);
   color: var(--text-primary);
   font-family: inherit;
-  font-size: var(--control-text);
-  font-weight: var(--weight-medium);
-  line-height: var(--control-lh);
-  letter-spacing: inherit;
+  font-size: var(--type-button);
+  font-weight: var(--weight-button);
+  line-height: var(--type-button-lh);
+  letter-spacing: var(--track-button);
   /* Counts in labels keep their width as they change (09 §3.5). */
   font-variant-numeric: tabular-nums;
   text-decoration: none;
@@ -103,6 +105,8 @@
 @media (pointer: coarse), (any-pointer: coarse) {
   .btn {
     --btn-pad: var(--space-4);
+    font-size: var(--control-text);
+    line-height: var(--control-lh);
   }
 
   .btn svg {
@@ -251,6 +255,19 @@
 .btn-standard,
 .btn-danger {
   background: var(--control-fill);
+}
+
+/* Home's standard button (DSN-93): a ghost fill and one quiet line, not the lens. */
+.btn.btn-standard[data-ghost] {
+  --shadow-own: inset 0 0 0 1px var(--border-quiet);
+  background: var(--fill-ghost);
+}
+
+@media (hover: hover) {
+  .btn.btn-standard[data-ghost]:hover:not([aria-disabled='true'], [data-blocked]) {
+    --shadow-own: inset 0 0 0 1px var(--border-key);
+    background: var(--control-fill);
+  }
 }
 
 @media (hover: hover) {

@@ -8,8 +8,6 @@
 import type { DocumentId } from '@pdf-editor/document-model';
 
 import { lazyModule } from '../motion/lazy';
-import { deskEnabled } from './desk-flag';
-import { homeFlagEnabled, OPEN_LIGHT_FLAG } from './home-flags';
 import type { OpenSeed } from './library-transition';
 
 export const libraryTransition = lazyModule(() => import('./library-transition'));
@@ -28,14 +26,10 @@ export function backToLibraryMorph(show: () => void): void {
 }
 
 /**
- * The phone's open behind `?open=light` (DSN-64): a paper sheet grows out of the tapped Library
- * `row` into the reader's page and the light answers; without the flag, `open` alone.
+ * The phone's open (DSN-64): a paper sheet grows out of the tapped Library `row` into the
+ * reader's page and the light answers.
  */
 export function openRowMorph(row: HTMLElement | null, open: () => void): void {
-  if (!homeFlagEnabled(OPEN_LIGHT_FLAG)) {
-    open();
-    return;
-  }
   libraryTransition.run((module) => module.openRowMorph(row, open), open);
 }
 
@@ -46,7 +40,7 @@ export function openRowMorph(row: HTMLElement | null, open: () => void): void {
 /** The cover a desk press lifts: Continue, a Recent tile, the sample hero (the tile contract). */
 const TILE = '[data-desk-tile]';
 const CONTINUE_PRESS = '[data-testid="continue-resume"]';
-const SAMPLE_PRESS = '[data-testid="desk-sample-open"], [data-testid="desk-sample-tile"]';
+const SAMPLE_PRESS = '[data-testid="home-try-sample"], [data-testid="desk-sample-tile"]';
 const SHEET = '[data-library-sheet]';
 
 /** A press older than this is not the one an open belongs to (ms). */
@@ -74,7 +68,7 @@ function sheetOfPress(target: Element): { sheet: HTMLElement; sample: boolean } 
   return sheet ? { sheet, sample: false } : null;
 }
 
-if (typeof document !== 'undefined' && deskEnabled()) {
+if (typeof document !== 'undefined') {
   // Captured, so the cover is read before any handler changes the view. A press that opens a
   // document asks for it with `openFromDesk`; the sample's own button has no hook, so its
   // press lifts here and settles when nothing is opening (`liftOpen`, no action).

@@ -187,11 +187,11 @@ test.describe('the split top (DSN-34)', () => {
     expect(titleBox.x + titleBox.width).toBeLessThan(view.width - backBox.x - backBox.width + 1);
     expect(Math.abs(titleBox.x + titleBox.width / 2 - view.width / 2)).toBeLessThan(2);
     await expect(titleTrigger(page)).toContainText('Recto sample');
-    // The glass rules hold, and the pieces and the fade count as one surface (Q-11): the top,
-    // the capsule and the edit button.
+    // The glass rules hold, and the pieces and the fade count as one surface (Q-11): the top
+    // and the capsule, whose ✎ is inside it (EDN-29).
     await settleAnimations(page);
     const rest = await expectGlassClean(page, 'the split top at rest');
-    expect(rest.visible).toBe(3);
+    expect(rest.visible).toBe(2);
 
     // Hides on scroll with the capsule: away, inert, each piece faded on itself; back on a
     // scroll up. First, before a key or a press puts the focus in the chrome (`canHide`).
@@ -457,7 +457,7 @@ test.describe('the split top (DSN-34)', () => {
     await expect(topBar(page)).not.toHaveAttribute('data-hidden');
   });
 
-  for (const theme of ['light', 'dark'] as const) {
+  for (const theme of ['dark'] as const) {
     test(`the fade and the title keep the theme's tone over any page, ${theme} (GLS-20)`, async ({
       page,
     }) => {
@@ -529,5 +529,29 @@ test.describe('the split top (DSN-34)', () => {
       await page.keyboard.press('Escape');
       await expect(fileMenu).toHaveCount(0);
     });
+  });
+});
+
+test.describe('the split top: the title in the serif, the page count after it (EDN-29)', () => {
+  test('sets the title at 16 in the serif with "1 / N" in the tertiary ink beside it', async ({
+    page,
+  }) => {
+    await openSample(page, '');
+    const text = page.getByTestId('compact-title-text');
+    const style = await text.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return { family: s.fontFamily, size: s.fontSize, weight: s.fontWeight };
+    });
+    expect(style.family).toContain('Noto Serif Recto');
+    expect(style.size).toBe('16px');
+    expect(style.weight).toBe('400');
+    const count = page.getByTestId('compact-title-count');
+    await expect(count).toHaveText(/^1 \/ \d+$/);
+    // 13 px in the tertiary ink, and the heading's accessible name carries the title alone.
+    expect(await count.evaluate((el) => getComputedStyle(el).fontSize)).toBe('13px');
+    await expect(page.getByRole('heading', { level: 1 })).not.toHaveAccessibleName(/\d \/ \d/);
+    // It follows the page the reader is on.
+    await scrollPages(page, 2000);
+    await expect(count).not.toHaveText(/^1 \//);
   });
 });
