@@ -27,7 +27,7 @@ You do not need them to use or contribute to Recto.
 | Document | What it gives you |
 |---|---|
 | [`process/decisions.md`](process/decisions.md) | Every product and technical decision with its source (the index; full rows in `process/decisions/`). When it disagrees with an older document, the decision wins. |
-| [`process/`](process/) | The workflow, how agents are briefed and routed, lessons learned and metrics |
+| [`process/`](process/) | The workflow, how agents are briefed and routed, lessons learned and metrics; [one lane walked end to end](process/lane-walkthrough.md) |
 | [`company/`](company/charter.md) | The charter, the roadmap and the epics: who decides what, and what comes next |
 | [`../CLAUDE.md`](../CLAUDE.md) | The working rules the agents read first |
 
