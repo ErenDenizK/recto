@@ -81,7 +81,7 @@ describe('the free rectangle (01-frame F1 §2)', () => {
   };
 
   it('leaves out the strip and the dock band at rest', () => {
-    expect(freeInsets(large)).toEqual({ top: 44, right: 0, bottom: 60, left: 0 });
+    expect(freeInsets(large)).toEqual({ top: 44, right: 0, bottom: BAND_OFFSET + 44, left: 0 });
   });
 
   it('insets nothing on the left: the sidebar floats over the canvas (DSN-26)', () => {
@@ -106,7 +106,7 @@ describe('the free rectangle (01-frame F1 §2)', () => {
   });
 
   it('grows with a taller band item (the palette) and uses 12 px on compact', () => {
-    expect(freeInsets({ ...large, band: 64 }).bottom).toBe(80);
+    expect(freeInsets({ ...large, band: 64 }).bottom).toBe(BAND_OFFSET + 64);
     const compact = { ...large, width: 390, offset: BAND_OFFSET_COMPACT, band: 44 };
     expect(freeInsets(compact).bottom).toBe(56);
   });
