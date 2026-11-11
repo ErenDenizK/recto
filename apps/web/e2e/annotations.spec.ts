@@ -309,7 +309,9 @@ test.describe('annotations', () => {
     await page.locator('body').press('p');
     await expect(layer(page)).toHaveAttribute('data-tool', 'ink');
     await expect(penStyle.getByRole('button', { name: 'Colour: Blue' })).toBeVisible();
-    await drag(page, 0, [0.25, 0.5], [0.6, 0.5]);
+    // High on the page, as the strokes above: at the fit zoom of a shorter window the page's
+    // middle lies under the 56 px capsule and its ink strip (DSN-91), which take the drag.
+    await drag(page, 0, [0.25, 0.3], [0.6, 0.3]);
     await expect(ink).toHaveCount(1, { timeout: 10_000 });
     await expect(page.getByTestId('annotation-bar')).toHaveCount(0);
 
@@ -318,7 +320,7 @@ test.describe('annotations', () => {
     await expect(layer(page)).toHaveAttribute('data-tool', 'select');
     const box = await layer(page).boundingBox();
     if (!box) throw new Error('page not rendered');
-    await page.mouse.click(box.x + box.width * 0.42, box.y + box.height * 0.5);
+    await page.mouse.click(box.x + box.width * 0.42, box.y + box.height * 0.3);
     const bar = page.getByTestId('annotation-bar');
     await expect(bar).toBeVisible();
     await expect(bar.getByRole('radio', { name: 'Blue' })).toHaveAttribute('aria-checked', 'true');
