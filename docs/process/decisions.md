@@ -199,7 +199,8 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-94](decisions/design.md) | Home's light is a static CSS beam of three layers; degrades at 3 and 4 and under Solid; Aura becomes two lobes | In force | 2026-11-10 |
 | [DSN-95](decisions/design.md) | Phosphor sizes: 16 carets, 20 strip, 22 desktop capsule, 24 Home actions and phone bars; amends I-3 | In force | 2026-11-10 |
 | [DSN-93a](decisions/design.md) | Colophon Home build details: Continue text placement, one-row shelves with Show all, cover-and-title tiles, no blur on the panel or lobes | In force | 2026-11-10 |
-| [DSN-96](decisions/design.md) | The about page is a book in the Colophon look; lazy posters and a play button; clips 09 Markup and 10 phone | In force | 2026-11-11 |
+| [DSN-96](decisions/design.md) | The about page is one screen: pitch, one clip, three facts, two buttons; clips 09 Markup and 10 phone | In force | 2026-11-11 |
+| [DSN-97](decisions/design.md) | README product first (hero, feature grid, check, quick start, how it's built); its media committed in docs/media | In force | 2026-11-11 |
 
 ## Motion
 

@@ -182,14 +182,15 @@ Scenes import `openFixtures` and `useFileInputPicker` from `apps/web/e2e/helpers
 
 Committing media (about 10 MB per regeneration) or an orphan `media` branch (fetched by
 default clones) is rejected; release assets serve as the archive, not as README images.
+Exception (DSN-97): the README's own six images, under 8 MB together, are committed in
+`docs/media/` by `pnpm readme`, so the GitHub page does not depend on the site.
 
 `deploy.yml` gains a `media` job after `build` on a plain `ubuntu-24.04` runner (not the
 Playwright container, whose ffmpeg is stripped): `playwright install --with-deps
 chromium`, `apt-get install -y ffmpeg`, serve `dist`, run the scenes, check budgets, add
 `media/` to the Pages artifact. The release workflow zips the same files onto the release.
-`media/**` is added to Workbox `globIgnores`, so it is never precached. README image URLs
-point at the site (`https://erendenizk.github.io/recto/media/<id>.gif`); a later domain move
-changes one prefix.
+`media/**` is added to Workbox `globIgnores`, so it is never precached. The README's
+images are relative paths into `docs/media/` (DSN-97).
 
 ## 3. The about page (`/about/`)
 
@@ -267,9 +268,9 @@ Library's selection bar.
 Documents: clip 1 uses all three, 2 the report and agreement, 3 and 7 the agreement, 4 the
 scan, 5 both report versions, 6 and 8 the report. Clip 7 shows the test certificate's label.
 
-The README uses the hero still and clips 2, 3, 4 and 5 as GIFs; the about page uses clips 1
-to 7, 9 and 10 as MP4 and WebM (DSN-96). Clip 10 records the compact edition through the
-harness's phone device (`Scene.device: 'phone'`).
+The README uses the Home still (`11-home`) and clips 1, 3, 7, 9 and 10 as GIFs, committed in
+`docs/media/` (DSN-97); the about page uses clip 9 as MP4 and WebM (DSN-96). Clip 10 records
+the compact edition through the harness's phone device (`Scene.device: 'phone'`).
 
 ## 7. Rename checklist (one pass, after the owner confirms the name)
 

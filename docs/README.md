@@ -7,7 +7,7 @@ and how it is built, and a section on how the project is run, which is optional 
 
 | Document | What it gives you |
 |---|---|
-| [`README.md`](../README.md) | What Recto is, what it does not do, how to check its privacy claims |
+| [`README.md`](../README.md) | What Recto is and does, how to check its privacy claim, how it is built |
 | [`VISION.md`](VISION.md) | Thesis, principles, non-goals |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Layering, the document model, the export pipeline, the editions, the workers |
 | [`adr/README.md`](adr/README.md) | The architecture decision records |
