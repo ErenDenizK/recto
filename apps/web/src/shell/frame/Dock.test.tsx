@@ -112,7 +112,10 @@ describe('dock', () => {
     const box = item.getBoundingClientRect();
     expect([box.width, box.height]).toEqual([44, 44]);
     expect(getComputedStyle(item.querySelector('svg') as Element).width).toBe('22px');
-    expect(getComputedStyle(item).color).toBe('rgb(213, 216, 220)');
+    // The resting colour, read on an item without focus: the focused one eases to its focus
+    // colour, and a read mid-transition is a flake.
+    const resting = within(dock()).getByRole('button', { name: 'Tools' });
+    expect(getComputedStyle(resting).color).toBe('rgb(213, 216, 220)');
     expect(item).toHaveAttribute('aria-keyshortcuts', expect.stringContaining('M'));
   });
 

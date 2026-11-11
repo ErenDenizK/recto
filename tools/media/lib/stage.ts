@@ -161,7 +161,12 @@ export class Stage {
    */
   async openFixtures(names: readonly string[]): Promise<void> {
     const chooser = this.page.waitForEvent('filechooser');
-    await this.page.getByRole('button', { name: 'Open files' }).first().click();
+    // The tab strip's + in a document; on Home (no tabs there, DSN-93) the desk's Open.
+    await this.page
+      .getByRole('button', { name: 'Open files' })
+      .or(this.page.getByTestId('library-open'))
+      .first()
+      .click();
     // The files are made in the page, stamped with the fixed clock: a path would carry the
     // checkout's modification time and Playwright stamps bytes with the real one, and the
     // Library's cards and the document info show the date.
@@ -187,7 +192,13 @@ export class Stage {
       { list: files, modified: DEMO_TIME.getTime() },
     );
     for (const name of names) {
-      await expect(this.page.getByRole('tab', { name: tabName(name), exact: true })).toBeVisible();
+      // A tab in a document; on Home, which has no tabs (DSN-93), the file's card.
+      await expect(
+        this.page
+          .getByRole('tab', { name: tabName(name), exact: true })
+          .or(this.page.getByRole('option', { name: new RegExp(`^${tabName(name)}`) }))
+          .first(),
+      ).toBeVisible();
     }
   }
 
