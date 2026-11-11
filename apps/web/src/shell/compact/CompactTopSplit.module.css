@@ -203,9 +203,22 @@
   white-space: nowrap;
 }
 
+/* The title and the count after it. The count stands outside the title's own box, over the room
+   where ⋯ stood (DSN-53), so the title keeps its centre on the window and its whole room. */
+.titleWrap {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+}
+
 /* "3 / 6" after the title: 13 in the tertiary ink, tabular, in the title's own lift. */
 .count {
-  flex: none;
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 100%;
+  display: flex;
+  align-items: center;
   color: var(--text-tertiary);
   font-size: var(--type-footnote);
   font-variant-numeric: tabular-nums;

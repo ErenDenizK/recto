@@ -3,7 +3,8 @@
  * one grid column above the home indicator, bottom up: the capsule (60 high, 16 from each side,
  * max(home indicator, 30) from the bottom) and, while editing, the row above it, 12 up
  * (--options-gap): the Undo chip, the tray and the Redo chip, 44 high, the chips in the 46 px
- * gutters either side of the tray (tray left and right 62). The capsule's own look is
+ * gutters either side of the tray (the left one always, the right one while there is a step to
+ * redo). The capsule's own look is
  * `CompactChrome.module.css` `.capsule` (its material, the hide-on-scroll spring and the morph's
  * `data-liquid` rules), so nothing here composes a material. Layout only: the dock holds still
  * while the tray toggles, and the morph moves the capsule by transform alone (MOT-14).
@@ -34,7 +35,7 @@
 /* The row above the capsule: only while editing. An empty slot takes no presses. */
 .aux {
   display: none;
-  grid-template-columns: var(--options-h) minmax(0, 1fr) var(--options-h);
+  grid-template-columns: var(--options-h) minmax(0, 1fr) auto;
   column-gap: 2px;
   align-items: center;
   pointer-events: none;
@@ -47,6 +48,12 @@
 .aux > * {
   display: flex;
   justify-content: center;
+  min-width: 0;
+}
+
+/* Redo's column is as wide as its chip and nothing while there is no step to redo, so the tray
+   has the room (a Pen tray with its Eraser is 309 px of the 312 left) until Redo arrives. */
+.redo {
   min-width: 0;
 }
 

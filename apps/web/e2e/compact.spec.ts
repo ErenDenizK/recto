@@ -252,7 +252,7 @@ test.describe('the compact edition', () => {
     await openLibrary(page, 'tr');
     await expect(page.getByRole('button', { name: 'PDF aç' })).toBeVisible();
     await expect(page.getByRole('heading', { level: 2, name: 'Kenar, Sayı 07' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Örnek belgeyi dene' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Örneği deneyin' })).toBeVisible();
     // Turkish is longer: nothing in the Library clips or spills sideways.
     const clipped = await page.evaluate(() =>
       [...document.querySelectorAll('[data-testid="compact-library"] *')]
@@ -293,9 +293,7 @@ test.describe('the compact edition', () => {
     page.on('filechooser', () => choosers.push('filechooser'));
     // By the dock, not by role: a modal sheet takes the page under it out of the accessibility
     // tree, which is the point.
-    const open = page
-      .getByTestId('compact-library-dock')
-      .locator('button', { hasText: 'Open PDF' });
+    const open = page.getByTestId('compact-library-dock').locator('button', { hasText: 'Open' });
     await expect(open).toBeVisible();
     await page.getByRole('button', { name: 'Settings' }).click();
     const settings = page.getByTestId('compact-settings-sheet');
@@ -325,7 +323,7 @@ test.describe('the compact edition', () => {
       ([x, y]) => document.elementFromPoint(x ?? 0, y ?? 0)?.closest('button')?.textContent ?? '',
       [box.x + box.width / 2, box.y + box.height / 2],
     );
-    expect(reached).not.toContain('Open PDF');
+    expect(reached).not.toContain('Open');
     // Focus stays in the sheet through a full lap of Tab (Base UI's focus guards aside).
     for (let i = 0; i < 12; i++) {
       await page.keyboard.press('Tab');
@@ -347,8 +345,10 @@ test.describe('the compact edition', () => {
     await page.getByRole('button', { name: 'Library' }).click();
     await openPdf(page, 'annotations.pdf');
     await page.getByRole('button', { name: 'Library' }).click();
+    await openPdf(page, 'outline-named-dests.pdf');
+    await page.getByRole('button', { name: 'Library' }).click();
     const recents = page.getByTestId('compact-recents');
-    // Two files and the sample as the shelf's last tile.
+    // The file read last is Continue; two files and the sample as the shelf's last tile.
     await expect(recents.getByRole('button')).toHaveCount(3);
     // Clear is set at the section title's size, with a 44 px target.
     const title = page.getByRole('heading', { name: 'Recent' });

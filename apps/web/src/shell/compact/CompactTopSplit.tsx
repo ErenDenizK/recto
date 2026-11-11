@@ -113,20 +113,22 @@ function FileMenu({
       }}
     >
       <h1 ref={headingRef} className={styles.heading}>
-        <Menu.Trigger
-          className={styles.title}
-          aria-label={m.compact_title_menu({ title: doc.title })}
-          data-testid="compact-title-menu-trigger"
-        >
-          <span ref={textRef} className={styles.titleText} data-testid="compact-title-text">
-            {title}
+        <span className={styles.titleWrap}>
+          <Menu.Trigger
+            className={styles.title}
+            aria-label={m.compact_title_menu({ title: doc.title })}
+            data-testid="compact-title-menu-trigger"
+          >
+            <span ref={textRef} className={styles.titleText} data-testid="compact-title-text">
+              {title}
+            </span>
+            <span className={styles.chevron} aria-hidden="true">
+              <Icon name="caret-down" />
+            </span>
+          </Menu.Trigger>
+          <span className={styles.count} aria-hidden="true" data-testid="compact-title-count">
+            {Math.min(current, doc.pages.length - 1) + 1} / {doc.pages.length}
           </span>
-          <span className={styles.chevron} aria-hidden="true">
-            <Icon name="caret-down" />
-          </span>
-        </Menu.Trigger>
-        <span className={styles.count} aria-hidden="true" data-testid="compact-title-count">
-          {Math.min(current, doc.pages.length - 1) + 1} / {doc.pages.length}
         </span>
       </h1>
       <Menu.Portal>

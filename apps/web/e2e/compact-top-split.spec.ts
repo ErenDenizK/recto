@@ -187,11 +187,11 @@ test.describe('the split top (DSN-34)', () => {
     expect(titleBox.x + titleBox.width).toBeLessThan(view.width - backBox.x - backBox.width + 1);
     expect(Math.abs(titleBox.x + titleBox.width / 2 - view.width / 2)).toBeLessThan(2);
     await expect(titleTrigger(page)).toContainText('Recto sample');
-    // The glass rules hold, and the pieces and the fade count as one surface (Q-11): the top,
-    // the capsule and the edit button.
+    // The glass rules hold, and the pieces and the fade count as one surface (Q-11): the top
+    // and the capsule, whose ✎ is inside it (EDN-29).
     await settleAnimations(page);
     const rest = await expectGlassClean(page, 'the split top at rest');
-    expect(rest.visible).toBe(3);
+    expect(rest.visible).toBe(2);
 
     // Hides on scroll with the capsule: away, inert, each piece faded on itself; back on a
     // scroll up. First, before a key or a press puts the focus in the chrome (`canHide`).
