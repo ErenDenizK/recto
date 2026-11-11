@@ -1,4 +1,4 @@
-# Records the README and about-page media (docs/specs/presentation.md §2) and checks their
+# Records the README media (docs/specs/presentation.md §2) and checks their
 # budgets. Used by deploy.yml and release.yml after checkout, pnpm, Node and
 # `pnpm install`. Leaves the publishable files (and requests.log) in tools/media/out/media/.
 #

@@ -116,8 +116,7 @@ describe('sw-office.js (ADR-0035 §4)', () => {
     const script = await worker.fetch(asWorkerScript(`${scope}assets/pdfium.worker-abc.js`));
     expect(script?.headers.get('Cross-Origin-Embedder-Policy')).toBe('require-corp');
 
-    // Other pages beside the app (the about page) and ordinary subresources are left alone.
-    expect(worker.fetch(asNavigation(`${scope}about/`))).toBeUndefined();
+    // Ordinary subresources are left alone.
     expect(worker.fetch(new Request(`${scope}assets/app-abc.js`))).toBeUndefined();
 
     await cache.delete(`${scope}convert/installed.json`);

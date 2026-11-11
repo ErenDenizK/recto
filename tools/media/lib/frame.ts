@@ -6,7 +6,7 @@
  * It is drawn by the browser rather than by hand: the image goes into a small HTML page
  * that clips it to the rounded rectangle and draws the hairline on top, and a screenshot
  * with `omitBackground: true` keeps the corners transparent. Radius and hairline are CSS
- * pixels at the size the image is shown at (README and about page: about 900 px wide),
+ * pixels at the size the image is shown at (the README: about 900 px wide),
  * so a 1800 px image gets a 20 px radius and a 2 px line.
  *
  * GIFs are the exception: they keep square corners and get only the hairline
@@ -16,7 +16,7 @@
  */
 import type { Browser } from '@playwright/test';
 
-/** The width the README and the about page show media at, in CSS pixels. */
+/** The width the README shows media at, in CSS pixels. */
 export const DISPLAY_WIDTH = 900;
 export const RADIUS = 10;
 export const HAIRLINE = 'rgb(255 255 255 / 0.1)';

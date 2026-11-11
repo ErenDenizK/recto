@@ -424,10 +424,9 @@ jobs:
           retention-days: 14
 
   # Public copy and links (docs/specs/presentation.md §1.3, §8 "Links"). A plain runner: no
-  # browsers. After `verify`, so the built about page (base path `/`) can be checked too.
+  # browsers.
   docs:
     name: Copy and links
-    needs: verify
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -438,7 +437,7 @@ jobs:
           node-version-file: .nvmrc
 
       # Banned words, phrases and structures, exclamation marks and emoji (presentation spec
-      # §1.3, brand plan §7) in README.md, apps/web/about/, .github/release-notes.md and the
+      # §1.3, brand plan §7) in README.md, .github/release-notes.md and the
       # message catalogs in EN and TR; and the source bans under apps/web/src (no inline or
       # background PNGs in CSS, quality-bar Q-12; no native colour or range inputs outside
       # ui/, 10-ink §7). No dependencies, so no install.
@@ -469,22 +468,3 @@ jobs:
           args: >-
             --config lychee.toml --no-progress --offline
             'docs/research/*.md'
-
-      - name: Download build
-        uses: actions/download-artifact@v8
-        with:
-          name: web-dist
-          path: apps/web/dist
-
-      # Root-relative links in the built page resolve against dist/; the media it shows are
-      # built by the deploy workflow only and are excluded in lychee.toml.
-      - name: Links in the built about page
-        if: hashFiles('apps/web/dist/about/index.html') != ''
-        uses: lycheeverse/lychee-action@v2
-        with:
-          lycheeVersion: v0.24.2
-          fail: true
-          args: >-
-            --config lychee.toml --no-progress
-            --root-dir ${{ github.workspace }}/apps/web/dist
-            apps/web/dist/about/index.html

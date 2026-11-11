@@ -8,9 +8,7 @@
  *   constant rate. README GIF: 15 fps, 1200 px wide, the scene's crop, two-pass palette
  *   (`palettegen`, see GIF_STATS_MODE; `paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle`)
  *   and the hairline; square corners, since transparency makes ffmpeg write whole frames
- *   (lib/frame.ts). Web clip: 30 fps MP4 (H.264, `-crf 20
- *   -preset slow -pix_fmt yuv420p -movflags +faststart`), WebM (VP9, constant quality) and
- *   a WebP poster from the last frame.
+ *   (lib/frame.ts).
  *
  * `out/requests.log` is copied next to the media, which it is published with.
  */
@@ -47,9 +45,6 @@ export const GIF_FPS = 15;
  * (docs/research/10-media-spike.md). MEDIA_GIF_STATS=diff restores the spec's choice.
  */
 export const GIF_STATS_MODE = process.env.MEDIA_GIF_STATS === 'diff' ? 'diff' : 'full';
-/** About-page clip: the frames' own width (1440 px at the default capture), 30 fps. */
-export const WEB_WIDTH = 1440;
-export const WEB_FPS = 30;
 
 function ffmpeg(args: readonly string[]): void {
   execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...args], {
@@ -64,16 +59,10 @@ function cropFilter(crop: Crop | undefined, scale: number): string[] {
   return [`crop=${px(crop.width)}:${px(crop.height)}:${px(crop.x)}:${px(crop.y)}`];
 }
 
-/** Output height for `width`, from the crop's (or viewport's) aspect ratio; even if asked. */
-function heightFor(
-  width: number,
-  crop: Crop | undefined,
-  viewport: Viewport,
-  even: boolean,
-): number {
+/** Output height for `width`, from the crop's (or viewport's) aspect ratio. */
+function heightFor(width: number, crop: Crop | undefined, viewport: Viewport): number {
   const box = crop ?? viewport;
-  const height = Math.round((width * box.height) / box.width);
-  return even ? height + (height % 2) : height;
+  return Math.round((width * box.height) / box.width);
 }
 
 async function encodeStill(browser: Browser, record: SceneRecord): Promise<string[]> {
@@ -111,15 +100,14 @@ async function encodeClip(browser: Browser, record: SceneRecord): Promise<string
   // Frames may be 1x or 2x of the viewport (lib/viewport.ts); crops are in CSS pixels.
   const crop = cropFilter(record.crop, frameSize.width / record.viewport.width);
   // Narrow (phone) frames are never scaled up: the screencast sends them at the viewport's
-  // CSS size (390 × 844), so the GIF and the about-page clip keep that width.
+  // CSS size (390 × 844), so the GIF keeps that width.
   const gifW = Math.min(GIF_WIDTH, frameSize.width);
-  const webW = Math.min(WEB_WIDTH, frameSize.width);
   const input = ['-f', 'concat', '-safe', '0', '-i', list];
   const outputs: string[] = [];
 
   // README GIF: the hairline over every frame, then one palette for the whole clip, and
   // only the changed rectangle of each frame written.
-  const gifHeight = heightFor(gifW, record.crop, record.viewport, false);
+  const gifHeight = heightFor(gifW, record.crop, record.viewport);
   const hairlinePath = join(dir, 'gif-hairline.png');
   writeFileSync(hairlinePath, await hairlineLayer(browser, gifW, gifHeight));
   const gif = join(MEDIA_DIR, `${record.id}.gif`);
@@ -138,37 +126,6 @@ async function encodeClip(browser: Browser, record: SceneRecord): Promise<string
     ...['-loop', '0', gif],
   ]);
   outputs.push(gif);
-
-  // About-page clip.
-  const webHeight = heightFor(webW, record.crop, record.viewport, true);
-  const webChain = [
-    `fps=${WEB_FPS}`,
-    ...crop,
-    `scale=${webW}:${webHeight}:flags=lanczos`,
-    'format=yuv420p',
-  ].join(',');
-  const mp4 = join(MEDIA_DIR, `${record.id}.mp4`);
-  ffmpeg([
-    ...input,
-    ...['-vf', webChain, '-an'],
-    ...['-c:v', 'libx264', '-crf', '20', '-preset', 'slow', '-pix_fmt', 'yuv420p'],
-    ...['-movflags', '+faststart', mp4],
-  ]);
-  const webm = join(MEDIA_DIR, `${record.id}.webm`);
-  ffmpeg([
-    ...input,
-    ...['-vf', webChain, '-an'],
-    ...['-c:v', 'libvpx-vp9', '-crf', '34', '-b:v', '0', '-row-mt', '1'],
-    ...['-deadline', 'good', '-cpu-used', '2', '-pix_fmt', 'yuv420p', webm],
-  ]);
-  // The last beat is the poster (spec §6).
-  const poster = join(MEDIA_DIR, `${record.id}.poster.webp`);
-  ffmpeg([
-    ...['-i', join(dir, last.file)],
-    ...['-vf', [...crop, `scale=${webW}:${webHeight}:flags=lanczos`].join(',')],
-    ...['-c:v', 'libwebp', '-quality', '85', '-compression_level', '6', poster],
-  ]);
-  outputs.push(mp4, webm, poster);
   return outputs;
 }
 

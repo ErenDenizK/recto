@@ -2,7 +2,7 @@
   "name": "@pdf-editor/media-tool",
   "version": "0.0.0",
   "private": true,
-  "description": "Scripted README and about-page media (docs/specs/presentation.md §2): Playwright scenes against the preview build, ffmpeg encoding, the social preview, size budgets and a request log.",
+  "description": "Scripted README media (docs/specs/presentation.md §2): Playwright scenes against the preview build, ffmpeg encoding, the social preview, size budgets and a request log.",
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {

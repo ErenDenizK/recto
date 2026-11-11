@@ -36,7 +36,6 @@ export {
   cmd_file_text_to_pdf_keywords,
   cmd_file_save_keywords,
   cmd_forms_design_keywords,
-  cmd_help_about_page_keywords,
   cmd_mode_arrange_keywords,
   cmd_mode_compare_keywords,
   cmd_mode_edit_keywords,
