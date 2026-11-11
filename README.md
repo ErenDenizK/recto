@@ -44,7 +44,7 @@ and Safari, and keeps working offline after the first visit. Public beta.
 </tr>
 <tr>
 <td valign="top">
-<img src="docs/media/phone.gif" alt="The phone edition: the sample magazine, a sentence highlighted by touch"><br>
+<p align="center"><img src="docs/media/phone.gif" width="200" alt="The phone edition: the sample magazine, a sentence highlighted by touch"></p>
 <b>On your phone.</b> A reader with pen, highlight, text, edit text and signature by touch.
 </td>
 <td valign="top">
