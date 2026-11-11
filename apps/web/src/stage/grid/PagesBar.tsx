@@ -25,8 +25,8 @@
  *   pages… and Resize pages… for the whole document are the title menu's rows. With a selection
  *   it offers Crop, Resize and Insert from file for the selected pages.
  * - **Shedding** (§2.2) by the room the dock band leaves: Duplicate and Move to fold into ⋯
- *   first, then Extract. Rotate and move are glyphs with their names in tooltips; the rest keep
- *   their labels (RA-20).
+ *   first, then Extract. Every act is a glyph with its name in its tooltip and accessible name
+ *   (DSN-91); only Done keeps a word, so no two labels can run together.
  * - **Keyboard**: one Tab stop, arrows between items (`useRovingTabindex`), as the dock. The
  *   count is announced by whoever changed the selection, never by the bar (A-14).
  * - **Material**: the capsule's (M2, one σ per size); the bar adds no surface of its own, so
@@ -295,6 +295,7 @@ export function PagesBar({ doc }: { readonly doc: VirtualDocument }) {
           <span className={styles.separator} data-capsule-item="sep-3" aria-hidden="true" />
           <BarButton
             item="delete"
+            iconOnly
             icon="trash"
             label={m.pages_bar_delete()}
             danger
@@ -305,6 +306,7 @@ export function PagesBar({ doc }: { readonly doc: VirtualDocument }) {
           {fold !== 'tight' ? (
             <BarButton
               item="extract"
+              iconOnly
               icon="file-arrow-up"
               label={m.pages_bar_extract()}
               shortcut={shortcutOf('pages.extract')}
@@ -316,6 +318,7 @@ export function PagesBar({ doc }: { readonly doc: VirtualDocument }) {
             <>
               <BarButton
                 item="duplicate"
+                iconOnly
                 icon="copy"
                 label={m.pages_bar_duplicate()}
                 shortcut={shortcutOf('pages.duplicate')}
@@ -331,6 +334,7 @@ export function PagesBar({ doc }: { readonly doc: VirtualDocument }) {
         <>
           <BarButton
             item="extract"
+            iconOnly
             icon="file-arrow-up"
             label={m.pages_bar_extract()}
             reason={reasonOf('pages.extract')}
@@ -338,6 +342,7 @@ export function PagesBar({ doc }: { readonly doc: VirtualDocument }) {
           />
           <BarButton
             item="copy"
+            iconOnly
             icon="copy"
             label={m.pages_bar_copy()}
             reason={reasonOf('pages.copy')}
@@ -348,6 +353,7 @@ export function PagesBar({ doc }: { readonly doc: VirtualDocument }) {
       {!some && selecting ? (
         <BarButton
           item="select-all"
+          iconOnly
           icon="selection"
           label={m.pages_bar_select_all()}
           shortcut={shortcutOf('pages.selectAll')}
@@ -357,6 +363,7 @@ export function PagesBar({ doc }: { readonly doc: VirtualDocument }) {
       {!selecting ? (
         <BarButton
           item="select"
+          iconOnly
           icon="check-circle"
           label={m.pages_bar_select()}
           onActivate={startSelecting}
@@ -365,6 +372,7 @@ export function PagesBar({ doc }: { readonly doc: VirtualDocument }) {
       {locked ? (
         <BarButton
           item="locked"
+          iconOnly
           icon="lock-simple"
           label={m.pages_bar_unlock()}
           popup="dialog"
@@ -493,6 +501,8 @@ function MoveToMenu({ documentId }: { readonly documentId: DocumentId }) {
         className={`btn btn-quiet ${dockStyles.item}`}
         data-capsule-item="move-to"
         data-pages-item="move-to"
+        data-icon-only=""
+        aria-label={m.pages_bar_move_to()}
         aria-disabled={reason ? 'true' : undefined}
       >
         <Icon name="folder" className={dockStyles.icon} />
