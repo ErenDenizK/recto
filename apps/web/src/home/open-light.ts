@@ -6,18 +6,12 @@
  * opens keep only the grow (`library-transition.ts`). Reduced motion plays nothing (A-9).
  */
 import { animate } from '../motion/animate';
-import { deskEnabled } from './desk-flag';
-import { homeFlagEnabled, OPEN_LIGHT_FLAG } from './home-flags';
 import { reducedMotion } from '../motion/reduced-motion';
 import { clamp } from '../motion/velocity';
 
-/**
- * Whether the open moment is on (DSN-64): on the desk (DSN-87, Masa) by default, `?open=0` turns
- * it off; elsewhere behind `?open=light` or Labs' "Open in light".
- */
+/** Whether the open moment is on (DSN-64, DSN-93): always, and `?open=0` turns it off. */
 export function openLightOn(): boolean {
-  if (deskEnabled()) return new URLSearchParams(location.search).get('open') !== '0';
-  return homeFlagEnabled(OPEN_LIGHT_FLAG);
+  return new URLSearchParams(location.search).get('open') !== '0';
 }
 
 /** True once the pulse has played in this session. */

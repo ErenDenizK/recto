@@ -1,8 +1,8 @@
 /**
- * The desk end to end (DSN-87, Masa lane M2; behind Labs' "Desk (new Home)", so every test opens
- * `?desk=1`): the first visit's sample hero and intents, the one primary and first focus, the
- * conversions found by name with nothing open, and the cover shelf after a document is closed
- * (a cover image, one tab stop, a press reopens it).
+ * The desk end to end (DSN-87, DSN-93 Colophon; the only Home): the first visit's heading, buttons
+ * and Margin cover, the one primary and first focus, the conversions found by name with nothing
+ * open, and the cover shelf after a document is closed (a cover image, one tab stop, a press
+ * reopens it).
  */
 import { expect, test } from '@playwright/test';
 
@@ -12,33 +12,34 @@ test.beforeEach(async ({ page }) => {
   await useFileInputPicker(page);
 });
 
-test('first visit: the sample hero, three intents, one primary with first focus', async ({
+test('first visit: the heading, Open or drop files as the one primary with first focus, the Margin cover', async ({
   page,
 }) => {
-  await page.goto('/?desk=1');
+  await page.goto('/');
   await sessionSettled(page);
   const home = page.getByTestId('home');
   await expect(home).toHaveAttribute('data-desk', '');
   await expect(
-    home.getByRole('heading', { level: 1, name: 'Read, mark up, sign and arrange PDFs.' }),
+    home.getByRole('heading', { level: 1, name: 'Read, mark up, sign and arrange.' }),
   ).toBeVisible();
   await expect(home.getByTestId('desk-sample')).toBeVisible();
   const group = home.getByRole('group', { name: 'Ways to start' });
   const open = group.getByTestId('library-open');
   await expect(open).toBeFocused();
-  await expect(home.locator('[data-prominent]')).toHaveCount(1);
+  await expect(open).toHaveText('Open or drop files');
+  await expect(home.locator('.btn-prominent')).toHaveCount(1);
   await expect(group.getByTestId('library-sign')).toBeVisible();
   await expect(group.getByTestId('library-combine-files')).toBeVisible();
+  await expect(group.getByTestId('home-all-commands')).toBeVisible();
   // Scan stays off without its flag, whatever the camera.
   await expect(group.getByTestId('library-scan')).toHaveCount(0);
   await expect(home.getByRole('heading', { name: 'Recent' })).toHaveCount(0);
-  // The intents are one tab stop and the arrows move inside them.
-  await page.keyboard.press('ArrowRight');
-  await expect(group.getByTestId('library-sign')).toBeFocused();
+  // The beam is decorative and still.
+  await expect(home.getByTestId('home-beam')).toHaveAttribute('aria-hidden', 'true');
 });
 
 test('PDF to JPG and Images to PDF are found by name with nothing open', async ({ page }) => {
-  await page.goto('/?desk=1');
+  await page.goto('/');
   await sessionSettled(page);
   await page.keyboard.press('ControlOrMeta+k');
   const field = page.getByRole('combobox', { name: 'Search commands' });
@@ -50,21 +51,11 @@ test('PDF to JPG and Images to PDF are found by name with nothing open', async (
   await expect(page.getByRole('option', { name: /Sign a PDF…/ })).toBeVisible();
 });
 
-test('More ways… lists the conversions by the names ⌘K finds', async ({ page }) => {
-  await page.goto('/?desk=1');
-  await sessionSettled(page);
-  await page.getByTestId('desk-more').click();
-  const menu = page.getByTestId('desk-more-menu');
-  for (const name of ['Batch…', 'Images to PDF…', 'PDF to images…', 'Text to PDF…']) {
-    await expect(menu.getByRole('menuitem', { name: new RegExp(name) })).toBeVisible();
-  }
-});
-
 test('a closed document is a cover on the shelf, one tab stop, and a press reopens it', async ({
   page,
   browserName,
 }) => {
-  await page.goto('/?desk=1');
+  await page.goto('/');
   await sessionSettled(page);
   if ((await page.locator('html').getAttribute('data-session')) === 'off') {
     // An engine whose test context refuses OPFS keeps nothing, and says so (session.spec.ts,

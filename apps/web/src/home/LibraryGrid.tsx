@@ -39,7 +39,6 @@ import {
 import { currentPlatform } from '../commands/shortcuts';
 import { m } from '../i18n';
 import { useLongPress } from '../motion/gesture';
-import { usePointerCapabilities } from '../shell/frame/input-modality';
 import { changeRefusal, refusalReason } from '../state/guard';
 import { useLockStore } from '../state/lock-store';
 import { matchesMark, useSavedStore } from '../state/saved-store';
@@ -57,6 +56,7 @@ import {
   rangeBetween,
   toggleSelection,
 } from './home-model';
+import { useCoverSizes } from './cover-size';
 import { LibraryCard } from './LibraryCard';
 import { libraryTransition, openCardMorph } from './library-morph';
 import styles from './LibraryGrid.module.css';
@@ -100,8 +100,7 @@ export function LibraryGrid({
   const marks = useSavedStore((s) => s.marks);
   const locks = useLockStore((s) => s.locks);
   const selecting = useSelecting();
-  const pointers = usePointerCapabilities();
-  const coarse = pointers.primary === 'coarse' || pointers.anyCoarse;
+  const coverHeight = useCoverSizes().shelf;
   const order = cards.map((c) => c.id);
   const selection = liveSelection(order, rawSelection);
   const [focused, setFocused] = useState<DocumentId | null>(null);
@@ -415,7 +414,7 @@ export function LibraryGrid({
             lock={locks[card.id]}
             dragging={drag?.id === card.id}
             renaming={renaming === card.id}
-            coarse={coarse}
+            coverHeight={coverHeight}
             onClick={(event) => onCardClick(event, card.id)}
             onCheck={(event) => onCheck(event, card.id)}
             onFocus={() => setFocused(card.id)}
@@ -502,7 +501,8 @@ function caretBox(
   const after = items[gap - 1];
   const box = (before ?? after)?.getBoundingClientRect();
   if (!box) return null;
-  // Half the 16 px gap away from the card it sits beside.
-  const x = before ? box.left - 9 : box.right + 7;
+  // Half the gap away from the card it sits beside.
+  const half = (Number.parseFloat(getComputedStyle(grid).columnGap) || 16) / 2;
+  const x = before ? box.left - half - 1 : box.right + half - 1;
   return { left: x - origin.left, top: box.top - origin.top, height: box.height };
 }

@@ -1,23 +1,24 @@
 /**
- * Recent on the desk, a shelf of covers (DSN-87, `masa.md` §2.4, §2.8; replaces `RecentList`'s
- * rows when the desk flag is on): at most 12 tiles, newest first, kept rows not hoisted, files
- * open right now hidden (the open grid shows them). A tile is the cover (the page left once past
- * page 1), the name (two lines, middle-truncated), one meta line ("Page 4 of 10 · yesterday" or
- * "8 pages · yesterday"), a 3 px neutral progress bar and, on the meta line, a badge for what a
- * press will need: "Edited, changes kept", "Needs permission", "Open again…".
+ * Recent on the desk, a shelf of covers (DSN-93, `home-recents.html`; the shelf of DSN-87 in its
+ * Colophon form): at most 12 tiles, newest first, kept rows not hoisted, files open right now
+ * hidden (the Open shelf shows them). A tile is the cover (the page left once past page 1) on the
+ * shelf line and its serif title under it, one line, with a 6 px lime dot before it when changes
+ * are kept. Nothing else is visible: the page reached, the time, the hints and the progress are
+ * the tile's accessible name and its tooltip (`desk_tile_label`, `desk_tile_meta_read`).
  *
  * The tile contract (M3, M4): `li > button[data-desk-tile][data-recent-id]` holding the cover in
  * `[data-library-sheet]`. The sample is the shelf's last tile while it is not on screen
  * (`sampleTile`), `data-testid="desk-sample-tile"`.
  *
+ * - **One row** until "Show all" (shown only when some covers do not fit, `useFirstRow`), which
+ *   wraps them; expanded, "Clear" appears beside it and asks first when kept changes are on the
+ *   list (`clearWithConfirm`).
  * - **Keys**: a roving tabindex, so the shelf is one tab stop. The arrows move in two dimensions
  *   over the live column count (`gridStep`), Home and End go to the ends, Enter or Space opens,
  *   Delete or Backspace removes, Shift+F10 or the context-menu key opens the tile's ⋯ menu (the
  *   ⋯ button itself is `tabIndex={-1}`: the pointer and touch reach it, keys use Shift+F10).
- * - **Labels**: a tile reads as one sentence, its visible parts `aria-hidden`: "report-v2.pdf,
- *   page 4 of 10, 40 percent read, edited, changes kept, yesterday".
- * - **Head, Clear, notes, footnote** are Recents' own (02-library L7): Clear asks first when kept
- *   changes are on the list; the notes and the footnote keep their words.
+ * - **Notes and footnote** are Recents' own (02-library L7): the notes and the footnote keep
+ *   their words.
  */
 import { Menu } from '@base-ui/react/menu';
 import { type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
@@ -31,21 +32,20 @@ import { pagesPhrase } from '../state/workspace-store';
 import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
 import menuStyles from '../ui/Menu.module.css';
+import { Tooltip } from '../ui/Tooltip';
 import { openSample } from '../sample/open-sample';
 import type { Cover } from './covers';
+import { useCoverSizes } from './cover-size';
 import { columnsOf, entryProgress, isRead, pickCover } from './desk-model';
 import { DeskCover } from './DeskCover';
 import { removeRecentEntry } from './home-actions';
-import { gridStep, middleTruncate, relativeTime } from './home-model';
-import lit from './lit.module.css';
-import { ProgressBar } from './ProgressBar';
-import { clearWithConfirm, recentHint, useNow } from './RecentList';
+import { gridStep, relativeTime } from './home-model';
+import { clearWithConfirm, recentHint, useNow } from './recent-support';
 import styles from './RecentShelf.module.css';
-import { TEXT_SAFE_ATTR } from './text-safe';
+import { Shelf, ShelfText, ShowAll, useFirstRow } from './Shelf';
 import { useSampleAvailable } from './use-sample-available';
 import { openEntryAtPlace } from './DeskContinue';
 
-const TILE_NAME_LENGTH = 40;
 const SAMPLE_ID = '\u0000sample';
 
 export function RecentShelf({
@@ -75,7 +75,23 @@ export function RecentShelf({
     () => [...entries.map((e) => e.id), ...(sampleTile ? [SAMPLE_ID] : [])],
     [entries, sampleTile],
   );
-  const tabbable = focused !== null && ids.includes(focused) ? focused : (ids[0] ?? null);
+  const sizes = useCoverSizes();
+  // A cover is as wide as its height and aspect make it, up to 360 (`RecentShelf.module.css`).
+  const widths = useMemo(
+    () => [
+      ...entries.map((entry) => {
+        const cover = pickCover(entry, covers);
+        const ratio = cover === undefined ? 210 / 297 : cover.width / cover.height;
+        return Math.min(360, Math.round(sizes.shelf * ratio));
+      }),
+      ...(sampleTile ? [Math.round((sizes.shelf * 210) / 297)] : []),
+    ],
+    [entries, covers, sampleTile, sizes.shelf],
+  );
+  const row = useFirstRow(listRef, widths, sizes.gap);
+  const reachable = ids.slice(0, row.shown);
+  const tabbable =
+    focused !== null && reachable.includes(focused) ? focused : (reachable[0] ?? null);
   const pendingFocus = useRef<string | null>(null);
   useEffect(() => {
     const id = pendingFocus.current;
@@ -84,7 +100,14 @@ export function RecentShelf({
     listRef.current?.querySelector<HTMLElement>(`[data-desk-id="${CSS.escape(id)}"]`)?.focus();
   });
 
-  if (entries.length === 0 && !sampleTile && !clearFailed) return null;
+  if (entries.length === 0 && !sampleTile) {
+    // Nothing to shelve: only the note of a clear that could not finish is left to say.
+    return clearFailed ? (
+      <p className={styles.note} data-testid="recent-clear-failed">
+        {m.recents_clear_failed()}
+      </p>
+    ) : null;
+  }
   const anyKept = entries.some((e) => e.kept !== undefined);
 
   const focusTile = (id: string | undefined) => {
@@ -112,7 +135,7 @@ export function RecentShelf({
     if (event.key === 'Delete' || event.key === 'Backspace') {
       if (entry === undefined) return;
       event.preventDefault();
-      const after = ids[index + 1] ?? ids[index - 1];
+      const after = reachable[index + 1] ?? reachable[index - 1];
       removeRecentEntry(entry);
       if (after !== undefined) {
         setFocused(after);
@@ -121,38 +144,42 @@ export function RecentShelf({
       }
       return;
     }
-    const items = Array.from(listRef.current?.children ?? []) as HTMLElement[];
-    const next = gridStep(index, event.key, ids.length, columnsOf(items));
+    const items = (Array.from(listRef.current?.children ?? []) as HTMLElement[]).filter(
+      (item) => !item.hidden,
+    );
+    const next = gridStep(index, event.key, reachable.length, columnsOf(items));
     if (next === null) return;
     event.preventDefault();
-    focusTile(ids[next]);
+    focusTile(reachable[next]);
   };
 
   return (
-    <section className={styles.shelf} aria-labelledby={headingId} data-testid="library-recents">
-      <div className={styles.head} {...{ [TEXT_SAFE_ATTR]: '' }}>
-        <h2 id={headingId} className={styles.title}>
-          {m.recents_heading()}
-        </h2>
-        <Button
-          variant="quiet"
-          className={styles.clear}
-          onClick={() => void clearWithConfirm(entries)}
-        >
-          {m.recents_clear()}
-        </Button>
-      </div>
+    <Shelf
+      headingId={headingId}
+      label={m.home_recent()}
+      testId="library-recents"
+      right={
+        <>
+          {row.expanded ? (
+            <ShelfText data-testid="home-clear" onClick={() => void clearWithConfirm(entries)}>
+              {m.home_clear()}
+            </ShelfText>
+          ) : null}
+          {row.overflow ? <ShowAll expanded={row.expanded} onToggle={row.toggle} /> : null}
+        </>
+      }
+    >
       <ul
         ref={listRef}
-        className={styles.grid}
+        className={styles.row}
         aria-label={m.recents_list_label()}
         data-testid="recent-files"
       >
-        {entries.map((entry) => {
+        {entries.map((entry, index) => {
           const hint = recentHint(entry, access[entry.id]);
           const time = relativeTime(entry.place?.at ?? entry.openedAt, now, locale);
           return (
-            <li key={entry.id} className={styles.item}>
+            <li key={entry.id} className={styles.item} hidden={index >= row.shown}>
               <Tile
                 entry={entry}
                 cover={pickCover(entry, covers)}
@@ -191,40 +218,39 @@ export function RecentShelf({
           );
         })}
         {sampleTile ? (
-          <li className={styles.item}>
-            <button
-              type="button"
-              // eslint-disable-next-line recto/q9-controls
-              className={`${lit.lit} ${styles.tile}`}
-              data-lit=""
-              data-desk-tile=""
-              data-desk-id={SAMPLE_ID}
-              data-testid="desk-sample-tile"
-              tabIndex={SAMPLE_ID === tabbable ? 0 : -1}
-              aria-disabled={sampleAvailable ? undefined : true}
-              aria-label={
-                sampleAvailable
-                  ? m.desk_sample_label()
-                  : `${m.cmd_try_sample()}, ${m.sample_offline()}`
-              }
-              onFocus={() => setFocused(SAMPLE_ID)}
-              onKeyDown={onKeyDown}
-              onClick={() => {
-                if (sampleAvailable) void openSample();
-              }}
-            >
-              <span className={styles.stage} aria-hidden="true">
-                <span className={styles.drawing} data-library-sheet="">
-                  <SampleCover className={styles.drawingSvg} />
+          <li className={styles.item} hidden={entries.length >= row.shown}>
+            <Tooltip label={m.desk_sample_label()} side="top">
+              <button
+                type="button"
+                // the tile is the cover, not an action button
+                // eslint-disable-next-line recto/q9-controls
+                className={styles.tile}
+                data-desk-tile=""
+                data-desk-id={SAMPLE_ID}
+                data-testid="desk-sample-tile"
+                tabIndex={SAMPLE_ID === tabbable ? 0 : -1}
+                aria-disabled={sampleAvailable ? undefined : true}
+                aria-label={
+                  sampleAvailable
+                    ? m.desk_sample_label()
+                    : `${m.cmd_try_sample()}, ${m.sample_offline()}`
+                }
+                onFocus={() => setFocused(SAMPLE_ID)}
+                onKeyDown={onKeyDown}
+                onClick={() => {
+                  if (sampleAvailable) void openSample();
+                }}
+              >
+                <span className={styles.stage} aria-hidden="true">
+                  <span className={styles.drawing} data-library-sheet="">
+                    <SampleCover className={styles.drawingSvg} />
+                  </span>
                 </span>
-              </span>
-              <span className={styles.name} aria-hidden="true">
-                {m.cmd_try_sample()}
-              </span>
-              <span className={styles.meta} aria-hidden="true">
-                {sampleAvailable ? m.library_sample_line() : m.sample_offline()}
-              </span>
-            </button>
+                <span className={styles.name} aria-hidden="true">
+                  {m.cmd_try_sample()}
+                </span>
+              </button>
+            </Tooltip>
           </li>
         ) : null}
       </ul>
@@ -258,7 +284,7 @@ export function RecentShelf({
           </Button>
         </p>
       ) : null}
-    </section>
+    </Shelf>
   );
 }
 
@@ -293,39 +319,43 @@ function Tile({
   const label = [
     read
       ? m.desk_tile_label({ name: entry.name, page, total, percent, time })
-      : m.desk_tile_label_unread({ name: entry.name, pages, time }),
+      : pages === ''
+        ? `${entry.name}, ${time}`
+        : m.desk_tile_label_unread({ name: entry.name, pages, time }),
     hint,
   ]
     .filter((part) => part !== undefined && part !== '')
     .join(', ');
+  // The visible parts the tile no longer shows, for the pointer: the name, where, when, the hint.
+  const tip = [entry.name, meta, hint]
+    .filter((part) => part !== undefined && part !== '')
+    .join(' · ');
   return (
-    <button
-      type="button"
-      // eslint-disable-next-line recto/q9-controls
-      className={`${lit.lit} ${styles.tile}`}
-      data-lit=""
-      data-desk-tile=""
-      data-desk-id={entry.id}
-      data-recent-id={entry.id}
-      tabIndex={tabbable ? 0 : -1}
-      aria-label={label}
-      aria-keyshortcuts="Delete"
-      onFocus={onFocus}
-      onKeyDown={onKeyDown}
-      // No await before openRecent: the permission prompt needs this click's activation.
-      onClick={() => void openEntryAtPlace(entry)}
-    >
-      <span className={styles.stage} aria-hidden="true">
-        <DeskCover cover={cover} />
-      </span>
-      <span className={styles.name} aria-hidden="true">
-        {middleTruncate(entry.name, TILE_NAME_LENGTH)}
-      </span>
-      <span className={styles.meta} aria-hidden="true">
-        {meta}
-        {hint === undefined ? null : <span className={styles.badge}>{hint}</span>}
-      </span>
-      {read ? <ProgressBar value={entryProgress(entry)} className={styles.bar} /> : null}
-    </button>
+    <Tooltip label={tip} side="top">
+      <button
+        type="button"
+        // the tile is the cover, not an action button
+        // eslint-disable-next-line recto/q9-controls
+        className={styles.tile}
+        data-desk-tile=""
+        data-desk-id={entry.id}
+        data-recent-id={entry.id}
+        tabIndex={tabbable ? 0 : -1}
+        aria-label={label}
+        aria-keyshortcuts="Delete"
+        onFocus={onFocus}
+        onKeyDown={onKeyDown}
+        // No await before openRecent: the permission prompt needs this click's activation.
+        onClick={() => void openEntryAtPlace(entry)}
+      >
+        <span className={styles.stage} aria-hidden="true">
+          <DeskCover cover={cover} />
+        </span>
+        <span className={styles.name} aria-hidden="true">
+          {entry.kept?.changed === true ? <span className={styles.dot} /> : null}
+          <span className={styles.nameText}>{entry.name}</span>
+        </span>
+      </button>
+    </Tooltip>
   );
 }

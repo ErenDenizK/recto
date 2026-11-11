@@ -1,7 +1,9 @@
 /**
  * The aura (owner feedback 2026-10-08, "missing aura"; 2026-10-09, G3 and G5; the CSS form of
- * `02-library` L3's field): five soft lobes in the mark's mint, lime and yellow lime, fixed to
- * the window behind the app's content, which give the glass above them something to refract.
+ * `02-library` L3's field), fixed to the window behind the app's content, which gives the glass
+ * above it something to refract. Home's tone is two lobes (DSN-94): teal from the top right
+ * (radius 420 at 0.85 W, 0.1 H) and mint from the lower left (radius 380 at 0.1 W, 1.0 H), blurred
+ * 20; the reader's tone keeps the mark's five lobes in mint, lime and yellow lime.
  *
  * Slowly alive on the Library (G3): each lobe drifts on its own 37–59 s loop by transform and
  * opacity alone, so the compositor moves layers painted once and nothing lays out or repaints
@@ -19,7 +21,10 @@ import { useSyncExternalStore } from 'react';
 
 import styles from './Aura.module.css';
 
-const LOBES = ['mint', 'lime', 'yellow', 'glint', 'low'] as const;
+/** The reader's light: the mark's five lobes, dim and still (G5). */
+const READER_LOBES = ['mint', 'lime', 'yellow', 'glint', 'low'] as const;
+/** Home's light (DSN-94): a teal lobe from the top right and a mint one from the lower left. */
+const HOME_LOBES = ['teal', 'home-mint'] as const;
 
 function subscribeVisibility(listener: () => void): () => void {
   document.addEventListener('visibilitychange', listener);
@@ -49,7 +54,7 @@ export function Aura({
       data-paused={hidden || undefined}
       data-testid={testId}
     >
-      {LOBES.map((lobe) => (
+      {(tone === 'library' ? HOME_LOBES : READER_LOBES).map((lobe) => (
         <span key={lobe} className={styles.lobe} data-lobe={lobe} />
       ))}
     </div>

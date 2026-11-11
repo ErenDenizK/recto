@@ -1,0 +1,107 @@
+/*
+ * The action panel (DeskPanel.tsx; DSN-93, home-recents.html, tablet-home.html): a smoked panel
+ * (`mat mat-bar`, radius 16, 4 px above and below), rows 72 high with `0 20px 0 22px` padding and
+ * a 16 px gap. The glyph is 24 px in the secondary colour, Open's lime; the label is the action
+ * step at 500; a keycap or a 16 px caret in tertiary ends the row. The hairline runs between
+ * rows, from x 62 to 20 short of the right edge. No blur: nothing passes under the panel but the
+ * aura, so the smoked tint alone is the material (it carries no σ class, as lit glass did).
+ */
+.panel {
+  composes: mat mat-bar from global;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 4px 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+}
+
+/* A file dragged over the window: one quiet accent ring inside the panel's edge. */
+.panel[data-dragging] {
+  --shadow-own:
+    var(--mat-edge), inset 0 0 0 1px var(--accent-line), var(--mat-rim), var(--mat-inner),
+    var(--mat-shadow);
+}
+
+.row {
+  composes: focus-inset from global;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-sizing: border-box;
+  width: 100%;
+  height: 72px;
+  padding: 0 20px 0 22px;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--type-action);
+  font-weight: var(--weight-medium);
+  line-height: var(--type-action-lh);
+  text-align: start;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.row + .row::after {
+  content: '';
+  position: absolute;
+  inset: 0 20px auto 62px;
+  height: 1px;
+  background: var(--border-quiet);
+}
+
+/* The first and last rows follow the panel's radius. */
+.row:first-child {
+  border-start-start-radius: calc(var(--radius-lg) - 4px);
+  border-start-end-radius: calc(var(--radius-lg) - 4px);
+}
+
+.row:last-child {
+  border-end-start-radius: calc(var(--radius-lg) - 4px);
+  border-end-end-radius: calc(var(--radius-lg) - 4px);
+}
+
+@media (hover: hover) {
+  .row:hover {
+    background: var(--fill-ghost);
+  }
+}
+
+.row:active {
+  background: var(--fill-ghost);
+}
+
+.glyph {
+  flex: none;
+  color: var(--text-secondary);
+}
+
+.row[data-hot] .glyph {
+  color: var(--accent);
+}
+
+.label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.caret {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+:root[dir='rtl'] .caret {
+  scale: -1 1;
+}

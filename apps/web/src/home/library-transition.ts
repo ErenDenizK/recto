@@ -52,7 +52,6 @@ import { stageView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { ghostOf } from './card-motion';
-import { deskEnabled } from './desk-flag';
 import { lightPulse, openLightOn } from './open-light';
 import {
   canLift,
@@ -956,12 +955,10 @@ export function openCardMorph(id: DocumentId, open: (id: DocumentId) => void): v
  * the document's open card.
  */
 export function backTarget(id: DocumentId | undefined): HTMLElement | null {
-  if (deskEnabled()) {
-    const card = document.querySelector<HTMLElement>(
-      '[data-testid="continue-card"] [data-library-sheet]',
-    );
-    if (card && inView(card)) return card;
-  }
+  const card = document.querySelector<HTMLElement>(
+    '[data-testid="continue-card"] [data-library-sheet]',
+  );
+  if (card && inView(card)) return card;
   return id === undefined ? null : cardSheet(id);
 }
 

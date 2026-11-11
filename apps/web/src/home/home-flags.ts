@@ -3,12 +3,12 @@
  * 3a: opening one file from the Library goes to its page, until board question 1 is answered)
  * `?open=light` (R26 concept 2, DSN-64), `?home=search` (3d: Recents search and sort, until the design
  * director has seen it) and `?home=continue` (3b, 3c and R26 concept 4: the Continue card, progress on
- * the cards and exact resume, DSN-66).
+ * the cards and exact resume, DSN-66). Since Colophon Home (DSN-93) `?open=light` and
+ * `?home=continue` are always on.
  * Each flag has its own word; `?open=0` and `?home=0` turn it off again. The choice is kept in
  * `localStorage`; when storage is unavailable it lasts as long as the address carries it.
  */
 import { labsStored } from '../labs/stored';
-import { deskEnabled } from './desk-flag';
 
 export interface HomeFlag {
   /** Its key in the Labs registry (`labs/flags.ts`, DSN-82). */
@@ -55,8 +55,8 @@ export function decideHomeFlag(flag: HomeFlag, search: string, stored: string | 
 
 /** Whether `flag` is on in this browser; the address wins and is remembered. */
 export function homeFlagEnabled(flag: HomeFlag): boolean {
-  // The desk (DSN-87) brings the Continue card, progress and exact resume with it.
-  if (flag === HOME_CONTINUE_FLAG && deskEnabled()) return true;
+  // Colophon Home (DSN-93) has the Continue card, progress, exact resume and the open moment on.
+  if (flag === HOME_CONTINUE_FLAG || flag === OPEN_LIGHT_FLAG) return true;
   const value = new URLSearchParams(location.search).get(flag.param);
   let stored: string | null = null;
   try {

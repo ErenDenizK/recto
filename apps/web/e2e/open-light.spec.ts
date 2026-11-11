@@ -1,6 +1,6 @@
 /**
- * Opening in light (R26 concept 2, DSN-64). The page is never bare white, and behind
- * `?open=light` a card opens with a grow and one pulse of light.
+ * Opening in light (R26 concept 2, DSN-64; on by default since DSN-93, `?open=0` turns it off).
+ * The page is never bare white, and a cover opens with a grow and one pulse of light.
  *
  * - **No blank page.** A 400-page document is flung 60 pages down; one frame later the landing
  *   page is on screen and fewer than 98 % of its pixels are white (a stretched thumbnail, a
@@ -9,8 +9,8 @@
  * - **The open moment.** From the Library the card's sheet grows into the page (a clone laid on
  *   the window, growing on a spring, gone at rest), the light pulses on the session's first
  *   open only, and nothing of it is left on the page.
- * - **On the desk** (DSN-87, Masa; `?desk=1`) the grow is on by default and `?open=0` turns it
- *   off; the desk's own openings (Continue, tiles, the sample) are `masa.spec.ts`'s.
+ * - **On the desk** (DSN-87, DSN-93) the grow is on by default and `?open=0` turns it off; the
+ *   desk's own openings (Continue, tiles, the sample) are `masa.spec.ts`'s.
  */
 import { expect, type Page, test } from '@playwright/test';
 
@@ -107,7 +107,7 @@ test.describe('no blank page', () => {
   });
 });
 
-test.describe('opening in light (?open=light)', () => {
+test.describe('opening in light', () => {
   test.beforeEach(async ({ page }) => {
     await useFileInputPicker(page);
     // Counts what the open adds to the window: the growing clone and the pulse of light.
@@ -141,7 +141,7 @@ test.describe('opening in light (?open=light)', () => {
       browserName !== 'chromium',
       'Script-built file picks and frame sampling are Chromium-only',
     );
-    await page.goto('./?lang=en&open=light');
+    await page.goto('./?lang=en');
     await openFixtures(page, ['simple-text.pdf']);
     await expect(page.locator(`[data-page-index="0"] ${PAGE_CANVAS}`)).toHaveAttribute(
       'data-state',
@@ -186,7 +186,7 @@ test.describe('opening in light (?open=light)', () => {
   }) => {
     test.skip(browserName !== 'chromium', 'Script-built file picks are Chromium-only');
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.goto('./?lang=en&open=light');
+    await page.goto('./?lang=en');
     await openFixtures(page, ['simple-text.pdf']);
     await page.getByRole('button', { name: 'Library' }).click();
     await page.getByRole('listbox', { name: 'Files' }).getByRole('option').first().click();
@@ -202,32 +202,9 @@ test.describe('opening in light (?open=light)', () => {
     expect(seen.widths.length).toBe(0);
   });
 
-  test('without the flag the card opens as before: no clone, no pulse', async ({
-    page,
-    browserName,
-  }) => {
-    test.skip(
-      browserName !== 'chromium',
-      'Script-built file picks and frame sampling are Chromium-only',
-    );
-    await page.goto('./?lang=en&open=0');
-    await openFixtures(page, ['simple-text.pdf']);
-    await page.getByRole('button', { name: 'Library' }).click();
-    await page.getByRole('listbox', { name: 'Files' }).getByRole('option').first().click();
-    await expect(page.locator(`[data-page-index="0"] ${PAGE_CANVAS}`)).toHaveAttribute(
-      'data-state',
-      'rendered',
-    );
-    const seen = await page.evaluate(
-      () => (window as unknown as { __open: { halos: number; widths: number[] } }).__open,
-    );
-    expect(seen.halos).toBe(0);
-    expect(seen.widths.length).toBe(0);
-  });
-
   for (const [title, search, grows] of [
-    ['on the desk the card grows with no flag', '?lang=en&desk=1', true],
-    ['on the desk ?open=0 turns the grow off', '?lang=en&desk=1&open=0', false],
+    ['the cover grows with no flag', '?lang=en', true],
+    ['?open=0 turns the grow off: no clone, no pulse', '?lang=en&open=0', false],
   ] as const) {
     test(title, async ({ page, browserName }) => {
       test.skip(

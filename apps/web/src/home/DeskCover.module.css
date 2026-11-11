@@ -15,7 +15,18 @@
   overflow: hidden;
   border-radius: var(--radius-page);
   background: var(--page-background);
-  box-shadow: var(--page-shadow);
+  box-shadow: var(--cover-shadow);
+  filter: var(--page-filter);
+}
+
+/* A page drawn live (`PageThumb`: Continue of an open document, the open covers). */
+.page {
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  border-radius: var(--radius-page);
+  background: var(--page-background);
+  box-shadow: var(--cover-shadow);
   filter: var(--page-filter);
 }
 

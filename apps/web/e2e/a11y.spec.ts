@@ -163,7 +163,7 @@ test.describe('keyboard', () => {
     await expect(navigator.locator('[aria-current="page"]')).toBeFocused();
   });
 
-  test('Library: the launcher, Select, then the cards; arrows, Space, the Esc ladder, Enter; F6 lands on a card', async ({
+  test('Library: Continue, the panel, Select, then the covers; arrows, Space, the Esc ladder, Enter; F6 lands on a cover', async ({
     page,
   }) => {
     await page.goto('./?lang=en');
@@ -183,18 +183,18 @@ test.describe('keyboard', () => {
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('library-select')).toHaveText('Select');
 
-    // The launcher's actions first, then Select, then one Tab stop in the grid (L1 §6).
-    const launcher = page.getByTestId('library-launcher').getByRole('button');
-    const actions = await launcher.count();
-    // Open files…, Combine files…, Batch…; Library ⋯ is in the top strip (L12) and Try the
-    // sample is the card after the documents (DSN-50).
-    expect(actions).toBe(3);
-    await launcher.first().focus();
-    await expect(launcher.first()).toHaveAccessibleName('Open files…');
-    for (let i = 1; i < actions; i++) {
-      await page.keyboard.press('Tab');
-      await expect(launcher.nth(i)).toBeFocused();
-    }
+    // Continue first, then the action panel (one Tab stop: its rows move with the arrows), then
+    // Select, then one Tab stop in the covers (L1 §6, DSN-93). Library ⋯ is in the top strip
+    // (L12).
+    const panel = page.getByTestId('library-launcher');
+    await expect(panel.getByRole('button')).toHaveCount(4);
+    await expect(panel.locator('[data-intent][tabindex="0"]')).toHaveCount(1);
+    await page.getByTestId('continue-resume').focus();
+    await page.keyboard.press('Tab');
+    await expect(panel.getByTestId('library-open')).toBeFocused();
+    await expect(panel.getByTestId('library-open')).toHaveAccessibleName('Open or drop files');
+    await page.keyboard.press('ArrowDown');
+    await expect(panel.getByTestId('library-combine-files')).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(page.getByTestId('library-select')).toBeFocused();
     await page.keyboard.press('Tab');
@@ -575,7 +575,7 @@ test.describe('axe', () => {
   test('Home, empty and with files', async ({ page }) => {
     await page.goto('./?lang=en');
     await expect(
-      page.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+      page.getByRole('heading', { name: 'Read, mark up, sign and arrange.' }),
     ).toBeVisible();
     await axe(page, 'empty Home');
     await openFixtures(page, ['simple-text.pdf', 'rotated-pages.pdf']);
@@ -584,10 +584,10 @@ test.describe('axe', () => {
     await axe(page, 'Home with files');
   });
 
-  test('the desk (DSN-87): first visit, with open documents, returning with covers', async ({
+  test('the desk (DSN-87, DSN-93): first visit, with open documents, returning with covers', async ({
     page,
   }) => {
-    await page.goto('./?lang=en&desk=1');
+    await page.goto('./?lang=en');
     await expect(page.getByTestId('desk-sample')).toBeVisible();
     await axe(page, 'desk, first visit');
     await openFixtures(page, ['simple-text.pdf', 'rotated-pages.pdf']);

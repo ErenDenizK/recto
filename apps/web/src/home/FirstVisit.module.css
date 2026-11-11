@@ -1,0 +1,167 @@
+/*
+ * The first visit (FirstVisit.tsx; DSN-93, home-first.html): the page's content box is the grid.
+ * The heading's top is 248 from the window (136 under the first row at 112), the buttons 86 below
+ * its foot; the cover is 420 wide on the right edge, 594 high at the sample's aspect, with the
+ * lit shelf line at its foot (24 past the content box on both sides) and the caption 18 below.
+ */
+.first {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  column-gap: var(--space-6);
+  align-items: start;
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding-top: 136px;
+}
+
+.headline {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--type-hero);
+  font-weight: var(--weight-button);
+  font-variation-settings: 'opsz' 32;
+  line-height: var(--type-hero-lh);
+  letter-spacing: var(--track-hero);
+  white-space: pre-line;
+  text-wrap: balance;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 86px;
+}
+
+.first .actions .action {
+  height: 44px;
+  padding: 0 18px;
+  /* The button step, not the large button's callout (the mockup sets 13.5 at 560). */
+  font-size: var(--type-button);
+  line-height: var(--type-button-lh);
+}
+
+.first .actions .action svg {
+  width: 20px;
+  height: 20px;
+}
+
+.more {
+  color: var(--text-secondary);
+}
+
+.sample {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 420px;
+}
+
+.cover {
+  display: block;
+}
+
+.sheet {
+  display: block;
+  width: 420px;
+  aspect-ratio: 210 / 297;
+  overflow: hidden;
+  border-radius: var(--radius-page);
+  box-shadow: var(--cover-shadow-hero);
+}
+
+.drawing {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.sample[data-unavailable] .sheet {
+  opacity: 0.5;
+}
+
+.caption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-top: 18px;
+}
+
+.name {
+  color: var(--text-primary);
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: var(--weight-regular);
+  line-height: 22px;
+  letter-spacing: var(--track-doc-xl);
+}
+
+.try {
+  composes: focus-inset from global;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: var(--type-button);
+  font-weight: var(--weight-button);
+  line-height: var(--type-button-lh);
+  letter-spacing: var(--track-button);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The cover and the caption are one press target. */
+.try::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.try[aria-disabled='true'] {
+  color: var(--text-tertiary);
+}
+
+/* The lit shelf line at the cover's foot (--shelf-line-lit), 24 past the content box. */
+.line {
+  position: absolute;
+  top: calc(420px * 297 / 210);
+  inset-inline: calc(-1 * var(--shelf-bleed));
+  height: 1px;
+  pointer-events: none;
+  background: var(--shelf-line-lit);
+}
+
+/* Narrow windows: the cover goes under the heading. */
+@media (max-width: 999px) {
+  .first {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--space-8);
+  }
+
+  .copy {
+    padding-top: 0;
+  }
+
+  .actions {
+    margin-top: var(--space-6);
+  }
+
+  .sample,
+  .sheet {
+    width: min(420px, 100%);
+  }
+
+  .line {
+    display: none;
+  }
+}
