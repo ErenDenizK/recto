@@ -373,5 +373,4 @@ export type MainRowId = Exclude<
   | 'aboutSource'
   | 'aboutStorage'
   | 'aboutOffline'
-  | 'aboutPage'
 >;

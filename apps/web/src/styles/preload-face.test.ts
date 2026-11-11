@@ -6,7 +6,6 @@
  */
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import aboutHtml from '../../about/index.html?raw';
 import indexHtml from '../../index.html?raw';
 import fontsCss from './fonts.css?raw';
 
@@ -35,11 +34,8 @@ describe('the face preload (public/preload-face.js)', () => {
     expect(script).toContain('dataset.href');
   });
 
-  it('is loaded by both pages as a classic script in the head, naming the face’s Latin file', () => {
-    for (const [page, source] of [
-      ['index.html', indexHtml],
-      ['about/index.html', aboutHtml],
-    ] as const) {
+  it('is loaded by the page as a classic script in the head, naming the face’s Latin file', () => {
+    for (const [page, source] of [['index.html', indexHtml]] as const) {
       const html = new DOMParser().parseFromString(source, 'text/html');
       const element = html.head.querySelector<HTMLScriptElement>('script[src$="preload-face.js"]');
       expect(element, page).not.toBeNull();

@@ -96,16 +96,6 @@ function showing(view: 'home' | 'grid' | 'page' | 'markup'): boolean {
 const selection = () => useSelectionStore.getState();
 const activeDocument = () => getActiveDocument(model().workspace);
 
-/** The about page, `about/` under the deployment base (a sibling of the app). */
-function aboutPageUrl(): string {
-  return new URL('about/', new URL(import.meta.env.BASE_URL, location.href)).href;
-}
-
-/** Opens the about page in a new tab, with no handle back to the app. */
-function openAboutPage(): void {
-  window.open(aboutPageUrl(), '_blank', 'noopener');
-}
-
 /**
  * Opens files as tabs (in the given order) and announces the outcome. PDFs open one tab
  * each; images (PNG, JPEG, WebP) become the pages of one new document, and each text or Markdown
@@ -562,18 +552,6 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       act: null,
       keywords: ['version', 'build', 'release notes', 'licence', 'license', 'source', 'storage'],
       run: () => openSettings({ row: 'about' }),
-    }),
-    // The about page beside the app (presentation spec §3), listed last in the Document
-    // menu's "Document" section.
-    registry.register({
-      id: 'help.aboutPage',
-      title: m.menu_about_page(),
-      group: m.group_general(),
-      act: null,
-      // "About Recto" (`help.about`) is the palette's one About entry; this one stays for the
-      // Document menu and the callers that run it by id.
-      hiddenInPalette: true,
-      run: openAboutPage,
     }),
     registry.register({
       id: 'selection.clear',

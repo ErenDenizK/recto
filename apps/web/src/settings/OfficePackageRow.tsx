@@ -2,7 +2,7 @@
  * The Office conversion package in Settings (PRD-21; ADR-0035 phase 2): a row beside Recents,
  * shown when the package is installed or the `?office=1` flag is on, with its stored size and
  * **Remove**, which asks once, deletes the package and says the app stops being isolated at
- * the next load. The About page's "Conversion package licences" row lives here too: it opens
+ * the next load. The About section's "Conversion package licences" row lives here too: it opens
  * the stored NOTICE.txt (offline, from Cache Storage) or, with no package, the served one.
  *
  * Nothing from `office/` is imported statically: the lock and the download manager are a lazy

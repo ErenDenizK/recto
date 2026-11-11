@@ -251,8 +251,8 @@ describe("'Inter Recto' coverage", () => {
     }
   });
 
-  it('is preloaded by index.html and the about page (Latin only; ADR-0027 §2.1, PRC-16)', () => {
-    for (const page of ['apps/web/index.html', 'apps/web/about/index.html']) {
+  it('is preloaded by index.html (Latin only; ADR-0027 §2.1, PRC-16)', () => {
+    for (const page of ['apps/web/index.html']) {
       const html = readFileSync(join(ROOT, page), 'utf8');
       // public/preload-face.js adds the `<link rel=preload>` (crossorigin per engine).
       expect(html, page).toMatch(

@@ -1,5 +1,5 @@
-# Deploys the site to GitHub Pages (ADR-0004, ADR-0016): the app, its about page and the
-# README and about-page media under media/ (docs/specs/presentation.md §2.6).
+# Deploys the site to GitHub Pages (ADR-0004, ADR-0016): the app and the
+# README media and social preview under media/ (docs/specs/presentation.md §2.6).
 # Actions are pinned to major tags here; Renovate (helpers:pinGitHubActionDigests) rewrites
 # them to commit digests with the tag kept as a comment.
 #
@@ -145,7 +145,7 @@ jobs:
           path: site/media
 
       # Fallback: copy every file in budgets.json from the live site, so the README and
-      # about-page media keep working. Missing files are warned about, never fatal.
+      # social preview keep working. Missing files are warned about, never fatal.
       - name: Carry over published media
         if: ${{ steps.media.outcome != 'success' }}
         env:

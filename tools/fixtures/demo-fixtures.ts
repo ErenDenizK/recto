@@ -1,6 +1,6 @@
 /**
  * Milestone M7 demo fixtures (docs/specs/presentation.md §2.2): four fictional documents
- * that the README GIFs and the about page are recorded from, so they have to look like
+ * that the README GIFs are recorded from, so they have to look like
  * finished documents rather than test scaffolding.
  *
  *   demo/demo-report-v1.pdf, demo/demo-report-v2.pdf  annual report of a fictional club
@@ -2607,7 +2607,7 @@ export function renderDemoReadme(entries: ManifestEntry[]): string {
   return `## Demo documents (M7)
 
 Built by \`tools/fixtures/demo-fixtures.ts\` into \`test/fixtures/demo/\` for the README GIFs
-and the about page (docs/specs/presentation.md §2.2 and §6). They are meant to look like
+(docs/specs/presentation.md §2.2 and §6). They are meant to look like
 real documents: a fictional club's annual report in two versions, a room-hire agreement
 with a form, and a scanned letter. Everything in them is invented and every page says
 "${DEMO_FOOTER}". The club name "${CLUB}" was searched for before use (October 2026)

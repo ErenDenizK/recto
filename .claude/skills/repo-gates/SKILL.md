@@ -17,7 +17,7 @@ at a time (never vitest beside lint, typecheck or build).
 |---|---|---|
 | anything | `pnpm format:check`, then `pnpm lint`, then `pnpm typecheck` (root) | format, eslint, i18n compile, types |
 | any `.css` under `apps/web/src`, a token, a colour, a focus or motion rule | `cd apps/web && pnpm exec vitest run --maxWorkers=1 src/styles src/annotations/palette.test.ts` | see the notes below |
-| `en.json` / `tr.json`, `README.md`, `apps/web/about/` | `node --experimental-strip-types --no-warnings=ExperimentalWarning tools/copy-check/check.ts` | banned words, `!`, emoji, PNGs in CSS, native colour inputs |
+| `en.json` / `tr.json`, `README.md` | `node --experimental-strip-types --no-warnings=ExperimentalWarning tools/copy-check/check.ts` | banned words, `!`, emoji, PNGs in CSS, native colour inputs |
 | `docs/process/decisions*` | `node --experimental-strip-types --no-warnings=ExperimentalWarning tools/qa/decisions-index.ts` | an id in one file and not the other, twice, or in the wrong area (`decision-rows`) |
 | a link in `docs/research/` | check each relative target exists (CI runs lychee offline on it) | a missing file or anchor |
 | a label, command id, test id or visible name | `grep -rn '<old text>' apps/web/src apps/web/e2e apps/web/test` | a test or spec still names the old one |
