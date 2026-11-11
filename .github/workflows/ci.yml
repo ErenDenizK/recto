@@ -3,9 +3,11 @@
 # them to commit digests with the tag kept as a comment.
 name: CI
 
+# A pull request runs CI once, on its own event: a push to its branch would start the same jobs
+# a second time. Pushes run CI only on the two long-lived branches, where merges land.
 on:
   push:
-    branches: ['**']
+    branches: [develop, main]
   pull_request:
 
 concurrency:
