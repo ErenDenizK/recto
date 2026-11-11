@@ -10,7 +10,6 @@
  * raw), not in a hidden tab.
  */
 
-import { deskEnabled } from '../home/desk-flag';
 import { getEngineService } from './engine-service';
 
 interface NetworkInformation {
@@ -55,7 +54,7 @@ function whenEntry(type: 'paint' | 'mark', name: string, run: () => void): void 
 }
 
 /**
- * Calls `run` once the first content has painted and, with the desk on, the desk has (its mark
+ * Calls `run` once the first content has painted and the desk has (its mark
  * is the paint budget, so nothing starts ahead of it); after 3 s anyway where nothing tells.
  */
 function afterFirstPaint(run: () => void): void {
@@ -67,8 +66,9 @@ function afterFirstPaint(run: () => void): void {
   };
   setTimeout(go, 3_000);
   whenEntry('paint', 'first-contentful-paint', () => {
-    if (deskEnabled()) whenEntry('mark', DESK_PAINTED, go);
-    else go();
+    // The desk is the only Home (DSN-93): wait for its first paint; the timeout covers a start
+    // that opens a document instead.
+    whenEntry('mark', DESK_PAINTED, go);
   });
 }
 
