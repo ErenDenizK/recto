@@ -1,5 +1,5 @@
 {
-  "$comment": "Size limits per published file in out/media/ (docs/specs/presentation.md §2.4), in bytes, decimal (1 KB = 1000 B). `check` fails on a file over its limit, on a listed file that is missing, and on a file with no entry. `readme` lists the files the README shows on first view; their total has its own limit. `social.png` is the social preview and og:image (spec §4: under 1 MB).",
+  "$comment": "Size limits per published file in out/media/ (docs/specs/presentation.md \u00a72.4), in bytes, decimal (1 KB = 1000 B). `check` fails on a file over its limit, on a listed file that is missing, and on a file with no entry. `readme` lists the files the README shows on first view; their total has its own limit. `social.png` is the social preview and og:image (spec \u00a74: under 1 MB).",
   "files": {
     "00-hero.png": 600000,
     "00-hero.webp": 600000,
@@ -35,6 +35,14 @@
     "08-markdown.mp4": 1500000,
     "08-markdown.webm": 1500000,
     "08-markdown.poster.webp": 1500000,
+    "09-markup.gif": 3000000,
+    "09-markup.mp4": 1500000,
+    "09-markup.webm": 1500000,
+    "09-markup.poster.webp": 1500000,
+    "10-phone.gif": 3000000,
+    "10-phone.mp4": 1500000,
+    "10-phone.webm": 1500000,
+    "10-phone.poster.webp": 1500000,
     "social.png": 999999
   },
   "readme": {

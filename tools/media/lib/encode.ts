@@ -33,7 +33,7 @@ import { type Crop, frameStill, hairlineLayer } from './frame.ts';
 import { MEDIA_DIR, OUT_DIR, REQUEST_LOG, sceneDir } from './paths.ts';
 import { imageSize, type FrameRecord } from './recorder.ts';
 import type { SceneRecord } from './scene.ts';
-import { VIEWPORT } from './viewport.ts';
+import type { Viewport } from './viewport.ts';
 
 /** Hero still width (spec §2.4: "PNG 1800 px"), twice the 900 px it is shown at. */
 export const STILL_WIDTH = 1800;
@@ -65,8 +65,13 @@ function cropFilter(crop: Crop | undefined, scale: number): string[] {
 }
 
 /** Output height for `width`, from the crop's (or viewport's) aspect ratio; even if asked. */
-function heightFor(width: number, crop: Crop | undefined, even: boolean): number {
-  const box = crop ?? VIEWPORT;
+function heightFor(
+  width: number,
+  crop: Crop | undefined,
+  viewport: Viewport,
+  even: boolean,
+): number {
+  const box = crop ?? viewport;
   const height = Math.round((width * box.height) / box.width);
   return even ? height + (height % 2) : height;
 }
@@ -76,8 +81,8 @@ async function encodeStill(browser: Browser, record: SceneRecord): Promise<strin
   const size = imageSize(raw);
   if (!size) throw new Error(`${record.id}: raw.png is not a PNG`);
   const framed = await frameStill(browser, raw, {
-    scale: size.width / VIEWPORT.width,
-    width: STILL_WIDTH,
+    scale: size.width / record.viewport.width,
+    width: Math.min(STILL_WIDTH, size.width),
     crop: record.crop,
   });
   const framedPath = join(sceneDir(record.id), 'framed.png');
@@ -104,17 +109,21 @@ async function encodeClip(browser: Browser, record: SceneRecord): Promise<string
   const frameSize = imageSize(readFileSync(join(dir, last.file)));
   if (!frameSize) throw new Error(`${record.id}: unreadable frame ${last.file}`);
   // Frames may be 1x or 2x of the viewport (lib/viewport.ts); crops are in CSS pixels.
-  const crop = cropFilter(record.crop, frameSize.width / VIEWPORT.width);
+  const crop = cropFilter(record.crop, frameSize.width / record.viewport.width);
+  // Narrow (phone) frames are never scaled up: the screencast sends them at the viewport's
+  // CSS size (390 × 844), so the GIF and the about-page clip keep that width.
+  const gifW = Math.min(GIF_WIDTH, frameSize.width);
+  const webW = Math.min(WEB_WIDTH, frameSize.width);
   const input = ['-f', 'concat', '-safe', '0', '-i', list];
   const outputs: string[] = [];
 
   // README GIF: the hairline over every frame, then one palette for the whole clip, and
   // only the changed rectangle of each frame written.
-  const gifHeight = heightFor(GIF_WIDTH, record.crop, false);
+  const gifHeight = heightFor(gifW, record.crop, record.viewport, false);
   const hairlinePath = join(dir, 'gif-hairline.png');
-  writeFileSync(hairlinePath, await hairlineLayer(browser, GIF_WIDTH, gifHeight));
+  writeFileSync(hairlinePath, await hairlineLayer(browser, gifW, gifHeight));
   const gif = join(MEDIA_DIR, `${record.id}.gif`);
-  const gifChain = [`fps=${GIF_FPS}`, ...crop, `scale=${GIF_WIDTH}:${gifHeight}:flags=lanczos`];
+  const gifChain = [`fps=${GIF_FPS}`, ...crop, `scale=${gifW}:${gifHeight}:flags=lanczos`];
   ffmpeg([
     ...input,
     ...['-i', hairlinePath],
@@ -131,11 +140,11 @@ async function encodeClip(browser: Browser, record: SceneRecord): Promise<string
   outputs.push(gif);
 
   // About-page clip.
-  const webHeight = heightFor(WEB_WIDTH, record.crop, true);
+  const webHeight = heightFor(webW, record.crop, record.viewport, true);
   const webChain = [
     `fps=${WEB_FPS}`,
     ...crop,
-    `scale=${WEB_WIDTH}:${webHeight}:flags=lanczos`,
+    `scale=${webW}:${webHeight}:flags=lanczos`,
     'format=yuv420p',
   ].join(',');
   const mp4 = join(MEDIA_DIR, `${record.id}.mp4`);
@@ -156,7 +165,7 @@ async function encodeClip(browser: Browser, record: SceneRecord): Promise<string
   const poster = join(MEDIA_DIR, `${record.id}.poster.webp`);
   ffmpeg([
     ...['-i', join(dir, last.file)],
-    ...['-vf', [...crop, `scale=${WEB_WIDTH}:${webHeight}:flags=lanczos`].join(',')],
+    ...['-vf', [...crop, `scale=${webW}:${webHeight}:flags=lanczos`].join(',')],
     ...['-c:v', 'libwebp', '-quality', '85', '-compression_level', '6', poster],
   ]);
   outputs.push(mp4, webm, poster);

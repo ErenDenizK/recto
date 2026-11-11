@@ -261,12 +261,15 @@ Library's selection bar.
 | 6 | Edit a line of text | E: the capsule turns into the Markup palette, Edit text pressed → click a line → "2024" to "2025" → settled preview, no substitute-font line | 5.5 s |
 | 7 | Sign, and see what was checked | title menu → Sign with certificate… (test certificate) → Save a copy signs it → copy dropped back → facts row opens the Signatures sheet: "Intact" | 6 s |
 | 8 | Pages to Markdown | title menu → Export as Markdown / text… → Save a copy sheet on Text, pp. 2–4 → preview with headings → Copy | 5.5 s |
+| 9 | Mark up a page | the dock's Markup door → the palette → yellow highlighter across a sentence → red pen under a phrase → Done: the dock again (DSN-96) | 8.5 s |
+| 10 | The phone edits too | 390 × 844 with touch: Home's sample → a swipe to the letter → ✎ → Highlight and its tray → one fingertip along a line (DSN-96) | 7 s |
 
 Documents: clip 1 uses all three, 2 the report and agreement, 3 and 7 the agreement, 4 the
 scan, 5 both report versions, 6 and 8 the report. Clip 7 shows the test certificate's label.
 
-The README uses the hero still and clips 2, 3, 4 and 5 as GIFs; the about page uses all
-eight as MP4, plus an optional ninth (batch recipes).
+The README uses the hero still and clips 2, 3, 4 and 5 as GIFs; the about page uses clips 1
+to 7, 9 and 10 as MP4 and WebM (DSN-96). Clip 10 records the compact edition through the
+harness's phone device (`Scene.device: 'phone'`).
 
 ## 7. Rename checklist (one pass, after the owner confirms the name)
 

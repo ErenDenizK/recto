@@ -8,20 +8,25 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { expect, test } from '@playwright/test';
+import { devices, expect, test } from '@playwright/test';
 
 import type { Crop } from './frame.ts';
 import { sceneDir } from './paths.ts';
 import { watchRequests } from './privacy.ts';
 import { Recorder, type RecordingStats } from './recorder.ts';
-import { FINAL_HOLD_MS, type SceneKind, Stage } from './stage.ts';
-import { SCALE, VIEWPORT } from './viewport.ts';
+import { type Device, FINAL_HOLD_MS, type SceneKind, Stage } from './stage.ts';
+import { PHONE_VIEWPORT, SCALE, VIEWPORT } from './viewport.ts';
 
 export interface Scene {
   /** `NN-name`, the prefix of every output file (`00-hero.png`, `01-open-many.gif`). */
   readonly id: string;
   readonly kind: SceneKind;
-  /** The region that matters, in CSS pixels of the 1440 × 900 viewport. */
+  /**
+   * `desktop` (default): 1440 × 900, the full edition, a drawn pointer. `phone`: 390 × 844
+   * with touch, so the compact edition loads (ADR-0033); taps show as a fingertip.
+   */
+  readonly device?: Device;
+  /** The region that matters, in CSS pixels of the scene's viewport. */
   readonly crop?: Crop;
   /**
    * Sets the scene off camera (open the documents, go to the page): a clip starts on what
@@ -86,15 +91,26 @@ function logBeats(id: string, stage: Stage, recorder: Recorder): void {
 }
 
 export function scene(definition: Scene): void {
+  const phone = definition.device === 'phone';
+  // The e2e `phone` project's device (apps/web/playwright.config.ts) at the media's 2x.
+  if (phone) {
+    test.use({
+      viewport: { ...PHONE_VIEWPORT },
+      deviceScaleFactor: 2,
+      isMobile: true,
+      hasTouch: true,
+      userAgent: devices['Pixel 7'].userAgent,
+    });
+  }
   test(definition.id, async ({ page, context, baseURL }) => {
     const origin = new URL(baseURL ?? 'http://localhost/').origin;
     const requests = watchRequests(context, definition.id, origin);
     const dir = sceneDir(definition.id);
     mkdirSync(dir, { recursive: true });
-    // Stage.open checks that the page is 1440 × 900 at 2x before anything is captured.
-    const stage = await Stage.open(page, definition.kind);
-    const viewport = { ...VIEWPORT };
-    const scale = SCALE;
+    // Stage.open checks the page's size and scale before anything is captured.
+    const stage = await Stage.open(page, definition.kind, { device: definition.device });
+    const viewport = phone ? { ...PHONE_VIEWPORT } : { ...VIEWPORT };
+    const scale = phone ? 2 : SCALE;
     let recording: RecordingStats | undefined;
     await definition.prepare?.(stage);
     if (definition.kind === 'clip') {

@@ -14,6 +14,16 @@
 import { expect, type Page } from '@playwright/test';
 
 export const VIEWPORT = { width: 1440, height: 900 } as const;
+/**
+ * The phone scenes' viewport (`Scene.device: 'phone'`): the e2e `phone` project's 390 × 844
+ * (apps/web/playwright.config.ts), at 2x like the desktop scenes, so the compact edition
+ * (ADR-0033) is what loads. Always emulated: a real window cannot be that narrow.
+ */
+export const PHONE_VIEWPORT = { width: 390, height: 844 } as const;
+export interface Viewport {
+  readonly width: number;
+  readonly height: number;
+}
 const windowScale = Number(process.env.MEDIA_WINDOW_SCALE ?? 0);
 export const EMULATED = !(windowScale > 0);
 export const SCALE = EMULATED ? 2 : windowScale;
@@ -38,8 +48,8 @@ export function viewportOptions(): {
  * Sizes a real window so its page is exactly 1440 × 900 (headless Chromium may reserve
  * part of the window, the headless shell does not), then checks the scale factor.
  */
-export async function fitWindow(page: Page): Promise<void> {
-  if (!EMULATED) {
+export async function fitWindow(page: Page, size: Viewport = VIEWPORT): Promise<void> {
+  if (!EMULATED && size === VIEWPORT) {
     const session = await page.context().newCDPSession(page);
     try {
       // Window and page sizes round differently at fractional scales; a few passes settle.
@@ -65,5 +75,5 @@ export async function fitWindow(page: Page): Promise<void> {
   }
   await expect
     .poll(() => page.evaluate(() => [innerWidth, innerHeight, devicePixelRatio]))
-    .toEqual([VIEWPORT.width, VIEWPORT.height, SCALE]);
+    .toEqual([size.width, size.height, size === VIEWPORT ? SCALE : 2]);
 }

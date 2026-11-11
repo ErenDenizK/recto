@@ -16,7 +16,8 @@ import { Cursor, MOVE_MS } from './cursor.ts';
 import { DragGhost } from './drag-ghost.ts';
 import { POINTER_EVENT, type PointerDetail } from './page-api.ts';
 import type { Recorder } from './recorder.ts';
-import { fitWindow } from './viewport.ts';
+import { installTouch } from './touch.ts';
+import { fitWindow, PHONE_VIEWPORT, VIEWPORT } from './viewport.ts';
 
 /**
  * Scenes name their documents by file name; they are the demo documents of spec §2.2
@@ -42,6 +43,8 @@ export const HOLD_MS = 600;
 export const FINAL_HOLD_MS = 1200;
 
 export type SceneKind = 'still' | 'clip';
+/** Which edition a scene shows: the full one at 1440 × 900, or the phone's (lib/viewport.ts). */
+export type Device = 'desktop' | 'phone';
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -75,8 +78,14 @@ export class Stage {
     this.ghost = ghost;
   }
 
-  /** Prepares `page` and opens the app at `path` (the Library, English by default). */
-  static async open(page: Page, kind: SceneKind, path = './?lang=en'): Promise<Stage> {
+  /** Prepares `page` and opens the app at `path` (Home, English by default). */
+  static async open(
+    page: Page,
+    kind: SceneKind,
+    options: { readonly device?: Device | undefined; readonly path?: string } = {},
+  ): Promise<Stage> {
+    const phone = options.device === 'phone';
+    const path = options.path ?? './?lang=en';
     // Stills are single moments: no transitions caught half-way. Clips show real motion.
     await page.emulateMedia({
       colorScheme: 'dark',
@@ -112,14 +121,17 @@ export class Stage {
         document.head.append(style);
       });
     });
-    // Stills show the result, not a pointer.
-    const cursor = await Cursor.install(page, kind === 'clip');
+    // Stills show the result, not a pointer; a phone has none, and shows its taps instead.
+    const cursor = await Cursor.install(page, kind === 'clip' && !phone);
+    if (phone && kind === 'clip') await installTouch(page);
     const ghost = await DragGhost.install(page);
     const stage = new Stage(page, kind, cursor, ghost);
 
-    await fitWindow(page);
+    // A phone page is sized by its viewport meta tag, so it is checked once the app has loaded.
+    if (!phone) await fitWindow(page, VIEWPORT);
     await page.goto(path);
-    await expect(page.getByTestId('app-shell')).toBeVisible();
+    if (phone) await fitWindow(page, PHONE_VIEWPORT);
+    await expect(page.getByTestId(phone ? 'compact-app' : 'app-shell')).toBeVisible();
     // A build without the override would record Tinted glass at step 2: fail rather than
     // publish that.
     const root = page.locator('html');
@@ -130,7 +142,8 @@ export class Stage {
     await expect(root, 'no cost-ladder step').not.toHaveAttribute('data-degrade', /.*/);
     // The aura's hold above must reach its lobes, or the clips' GIFs grow again.
     const lobes = page.locator('[data-lobe]');
-    await expect(lobes.first(), 'the aura is laid').toBeAttached();
+    // The phone's Home lays no aura (EDN-29).
+    if (!phone) await expect(lobes.first(), 'the aura is laid').toBeAttached();
     for (const lobe of await lobes.all()) {
       await expect(lobe, 'the aura holds still').toHaveCSS('animation-play-state', 'paused');
     }
@@ -161,7 +174,12 @@ export class Stage {
    */
   async openFixtures(names: readonly string[]): Promise<void> {
     const chooser = this.page.waitForEvent('filechooser');
-    await this.page.getByRole('button', { name: 'Open files' }).first().click();
+    // The tab strip's + in a document; on Home (no tabs there, DSN-93) the desk's Open.
+    await this.page
+      .getByRole('button', { name: 'Open files' })
+      .or(this.page.getByTestId('library-open'))
+      .first()
+      .click();
     // The files are made in the page, stamped with the fixed clock: a path would carry the
     // checkout's modification time and Playwright stamps bytes with the real one, and the
     // Library's cards and the document info show the date.
@@ -187,7 +205,13 @@ export class Stage {
       { list: files, modified: DEMO_TIME.getTime() },
     );
     for (const name of names) {
-      await expect(this.page.getByRole('tab', { name: tabName(name), exact: true })).toBeVisible();
+      // A tab in a document; on Home, which has no tabs (DSN-93), the file's card.
+      await expect(
+        this.page
+          .getByRole('tab', { name: tabName(name), exact: true })
+          .or(this.page.getByRole('option', { name: new RegExp(`^${tabName(name)}`) }))
+          .first(),
+      ).toBeVisible();
     }
   }
 
