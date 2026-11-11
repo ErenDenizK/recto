@@ -34,7 +34,7 @@ async function forceGpu(page: Page): Promise<void> {
 }
 
 async function openSample(page: Page, query = ''): Promise<void> {
-  await page.goto(`./?sample${query}&lang=en`);
+  await page.goto(`./?sample${query}&lang=en&phonebar=0`);
   await expect(page.locator('[data-page-index="0"] canvas').first()).toHaveAttribute(
     'data-state',
     'rendered',

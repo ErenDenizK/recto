@@ -1,14 +1,16 @@
 /**
- * The single capsule's editing content and the Redo chip (CapsuleTools.tsx, RedoChip.tsx; EDN-24):
- * four tools and no Edit text, the pressed tool's states, the tap rule through the store, Undo at
- * the editing floor, the tray opener, 44 px targets, the capsule's width, and the chip's arrival,
- * departure and focus hand-off.
+ * The single capsule's editing content and the Undo and Redo chips (CapsuleTools.tsx,
+ * RedoChip.tsx; EDN-24, EDN-29): five tools with Edit text in its own slot and Done, the pressed
+ * tool's states, the tap rule through the store, the tray opener, 48 px slots with 24 px glyphs,
+ * the capsule's width, Undo at the editing floor, and Redo's arrival, departure and focus
+ * hand-off.
  */
 import '../../../styles/tokens.css';
 import '../../../styles/reset.css';
 import '../../../styles/global.css';
 
 import type { History } from '@pdf-editor/document-model';
+import type { CSSProperties } from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -21,8 +23,9 @@ import { openPdf } from '../compact-actions';
 import { resetCompactStore, setCompactTool, showLibrary, useCompactStore } from '../compact-store';
 import { enterEditing, exitEditing, resetBridge, toggleEraser } from './bridge';
 import { CapsuleTools } from './CapsuleTools';
-import { RedoChip } from './RedoChip';
+import { RedoChip, UndoChip } from './RedoChip';
 import './tools';
+import './edit-text';
 
 const compact = () => useCompactStore.getState();
 const tool = (id: string) => screen.getByTestId(`compact-capsule-tool-${id}`);
@@ -37,18 +40,18 @@ function historyOf(past: number, future = 0): History {
   };
 }
 
-/** The capsule's row as the host styles it: 2 px gap, 6 px padding, 2 px border. */
+/** The capsule's row as the host styles it: 358 wide at 390, 6 px padding, tools then Done. */
 function Capsule() {
   return (
     <nav
       data-testid="capsule"
       style={{
+        ...({ '--capsule-slot': '48px' } as CSSProperties),
         display: 'flex',
         alignItems: 'center',
-        gap: 2,
+        justifyContent: 'space-between',
         padding: '0 6px',
-        border: '1px solid transparent',
-        width: 'max-content',
+        width: 358,
       }}
     >
       <CapsuleTools />
@@ -72,13 +75,19 @@ afterEach(() => {
 });
 
 describe('the capsule tools', () => {
-  it('shows Undo, Pen, Highlight, Text, Sign and Done, and no Edit text', () => {
+  it('shows Pen, Highlight, Text, Edit text, Sign and Done, in that order, and no Undo', () => {
     render(<Capsule />);
-    expect(screen.getByRole('group', { name: 'Tools' })).toBeTruthy();
-    for (const id of ['pen', 'highlight', 'text', 'sign']) expect(tool(id)).toBeTruthy();
-    expect(screen.queryByTestId('compact-capsule-tool-edit-text')).toBeNull();
-    expect(screen.getByTestId('compact-undo')).toBeTruthy();
+    const group = screen.getByRole('group', { name: 'Tools' });
+    const ids = Array.from(group.querySelectorAll('button')).map((b) =>
+      b.getAttribute('data-testid'),
+    );
+    expect(ids).toEqual(
+      ['pen', 'highlight', 'text', 'edit-text', 'sign'].map((id) => `compact-capsule-tool-${id}`),
+    );
+    // Undo is a chip beside the tray (RedoChip.tsx): five tools and Done fill the row.
+    expect(screen.queryByTestId('compact-undo')).toBeNull();
     expect(screen.getByTestId('compact-edit-done').getAttribute('aria-label')).toBe('Done');
+    expect(screen.getByTestId('compact-edit-done').textContent).toBe('Done');
   });
 
   it('presses the armed tool, with the tray state and the flight marker on it alone', () => {
@@ -96,14 +105,15 @@ describe('the capsule tools', () => {
     expect(tool('pen').hasAttribute('aria-expanded')).toBe(false);
   });
 
-  it('keeps the tool pressed under the Eraser, and Text pressed under Edit text', () => {
+  it('keeps the tool pressed under the Eraser, and Edit text presses its own slot', () => {
     render(<Capsule />);
     act(() => setCompactTool('highlight'));
     act(() => toggleEraser());
     expect(compact().tool).toBe('eraser');
     expect(tool('highlight').getAttribute('aria-pressed')).toBe('true');
     act(() => setCompactTool('edit-text'));
-    expect(tool('text').getAttribute('aria-pressed')).toBe('true');
+    expect(tool('edit-text').getAttribute('aria-pressed')).toBe('true');
+    expect(tool('text').getAttribute('aria-pressed')).toBe('false');
   });
 
   it('arms on a tap and opens the tray, then the pressed tool turns the tool off', () => {
@@ -122,10 +132,10 @@ describe('the capsule tools', () => {
     render(<Capsule />);
     const group = screen.getByRole('group', { name: 'Tools' });
     fireEvent.click(tool('sign'));
-    expect(group.dataset.index).toBe('3');
+    expect(group.dataset.index).toBe('4');
     expect(group.hasAttribute('data-armed')).toBe(true);
     fireEvent.click(tool('sign'));
-    expect(group.dataset.index).toBe('3');
+    expect(group.dataset.index).toBe('4');
     expect(group.hasAttribute('data-armed')).toBe(false);
     // Transform only, and nothing inline at rest (Q-2, MOT-14).
     const wash = screen.getByTestId('compact-capsule-wash');
@@ -143,8 +153,8 @@ describe('the capsule tools', () => {
     expect(compact().trayOpen).toBe(false);
   });
 
-  it('keeps Undo off at the editing floor and live above it', () => {
-    render(<Capsule />);
+  it('keeps Undo, the chip, off at the editing floor and live above it', () => {
+    render(<UndoChip />);
     const undo = screen.getByTestId('compact-undo');
     expect(undo.getAttribute('aria-disabled')).toBe('true');
     const floor = useWorkspaceStore.getState().history.past.length;
@@ -152,14 +162,34 @@ describe('the capsule tools', () => {
     expect(undo.hasAttribute('aria-disabled')).toBe(false);
   });
 
-  it('makes every target 44 px, and fits the capsule in 324 px', () => {
+  it('makes every slot 48 px with a 24 px glyph, and fits tools and Done in 358 px', () => {
     render(<Capsule />);
-    for (const button of screen.getByTestId('capsule').querySelectorAll('button')) {
+    const capsule = screen.getByTestId('capsule');
+    for (const button of capsule.querySelectorAll('button')) {
       const box = button.getBoundingClientRect();
-      expect(box.width, button.getAttribute('aria-label') ?? '').toBeGreaterThanOrEqual(44);
-      expect(box.height).toBeGreaterThanOrEqual(44);
+      expect(box.width, button.getAttribute('aria-label') ?? '').toBeGreaterThanOrEqual(48);
+      expect(box.height).toBeGreaterThanOrEqual(48);
     }
-    expect(screen.getByTestId('capsule').getBoundingClientRect().width).toBeLessThanOrEqual(324);
+    for (const glyph of capsule.querySelectorAll('[role="group"] svg')) {
+      expect(glyph.getBoundingClientRect().width).toBe(24);
+    }
+    const done = screen.getByTestId('compact-edit-done').getBoundingClientRect();
+    const last = tool('sign').getBoundingClientRect();
+    expect(done.left).toBeGreaterThanOrEqual(last.right);
+    expect(done.right).toBeLessThanOrEqual(capsule.getBoundingClientRect().right);
+  });
+
+  it('presses the armed slot in lime, the one lime of the capsule', () => {
+    render(<Capsule />);
+    fireEvent.click(tool('pen'));
+    const wash = screen.getByTestId('compact-capsule-wash');
+    const lime = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    expect(lime).not.toBe('');
+    expect(getComputedStyle(wash).backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
+    // Done is a text pill: no fill of its own.
+    expect(getComputedStyle(screen.getByTestId('compact-edit-done')).backgroundColor).toBe(
+      'rgba(0, 0, 0, 0)',
+    );
   });
 });
 
@@ -174,6 +204,7 @@ describe('the Redo chip', () => {
       'data-compact-chrome',
       'data-annotation-keep',
       'data-compact-above-capsule',
+      'data-glass-group',
     ])
       expect(chip.hasAttribute(name)).toBe(true);
     // Measured at rest: it enters from scale .6.
@@ -189,7 +220,7 @@ describe('the Redo chip', () => {
     act(() => useWorkspaceStore.setState({ history: historyOf(2, 1) }));
     render(
       <>
-        <Capsule />
+        <UndoChip />
         <RedoChip />
       </>,
     );

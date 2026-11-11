@@ -1,26 +1,30 @@
 /*
- * The single capsule's dock (PhoneCapsule.tsx; EDN-24, plan "Widths" and "Phone on its side").
- * Three slots in one grid column above the home indicator, bottom up: the capsule, the tray and
- * the Redo chip. The capsule's own look is `CompactChrome.module.css` `.capsule` (its material,
- * the hide-on-scroll spring and the morph's `data-liquid` rules), so nothing here composes a
- * material. Layout only: the dock holds still while the tray toggles, and the morph moves the
- * capsule by transform alone (MOT-14).
+ * The single capsule's dock (PhoneCapsule.tsx; EDN-24, EDN-29; phone-editor.html). Two rows in
+ * one grid column above the home indicator, bottom up: the capsule (60 high, 16 from each side,
+ * max(home indicator, 30) from the bottom) and, while editing, the row above it, 12 up
+ * (--options-gap): the Undo chip, the tray and the Redo chip, 44 high, the chips in the 46 px
+ * gutters either side of the tray (the left one always, the right one while there is a step to
+ * redo). The capsule's own look is
+ * `CompactChrome.module.css` `.capsule` (its material, the hide-on-scroll spring and the morph's
+ * `data-liquid` rules), so nothing here composes a material. Layout only: the dock holds still
+ * while the tray toggles, and the morph moves the capsule by transform alone (MOT-14).
  *
- * Safe areas: the dock keeps `max(env(safe-area-inset-bottom), 12px)` from the bottom and
- * `max(env(safe-area-inset-left/right), 12px)` from the sides.
+ * Safe areas: the dock keeps `max(env(safe-area-inset-bottom), 30px)` from the bottom and
+ * `max(env(safe-area-inset-left/right), 16px)` from the sides.
  */
 .dock {
+  --dock-bottom: max(env(safe-area-inset-bottom, 0px), 30px);
   position: fixed;
   right: 0;
-  bottom: max(env(safe-area-inset-bottom, 0px), 12px);
+  bottom: var(--dock-bottom);
   left: 0;
   z-index: 2;
   display: grid;
+  grid-template-columns: minmax(0, 420px);
   justify-content: center;
-  justify-items: center;
-  row-gap: var(--space-2);
-  padding-inline: max(env(safe-area-inset-left, 0px), 12px)
-    max(env(safe-area-inset-right, 0px), 12px);
+  row-gap: var(--options-gap);
+  padding-inline: max(env(safe-area-inset-left, 0px), 16px)
+    max(env(safe-area-inset-right, 0px), 16px);
   pointer-events: none;
 }
 
@@ -28,44 +32,84 @@
   pointer-events: auto;
 }
 
-/* An empty slot takes no room and no presses. */
-.chip,
-.tray {
-  display: contents;
-}
-
-.chip:empty,
-.tray:empty {
+/* The row above the capsule: only while editing. An empty slot takes no presses. */
+.aux {
   display: none;
+  grid-template-columns: var(--options-h) minmax(0, 1fr) auto;
+  column-gap: 2px;
+  align-items: center;
+  pointer-events: none;
 }
 
-/* The chip sits over Undo, the capsule's leading end (1 px rim + 6 px padding). */
-.chip > * {
-  justify-self: start;
-  margin-inline-start: calc(1px + var(--space-1h));
+.dock[data-editing] .aux {
+  display: grid;
 }
 
-/* The capsule has the row to itself: no edit button beside it. */
-.dock .bar,
+.aux > * {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+/* Redo's column is as wide as its chip and nothing while there is no step to redo, so the tray
+   has the room (a Pen tray with its Eraser is 309 px of the 312 left) until Redo arrives. */
+.redo {
+  min-width: 0;
+}
+
+/* The slots never take a press themselves; their content does. */
+.undo,
+.redo,
+.tray {
+  pointer-events: none;
+}
+
+.undo > *,
+.redo > *,
+.tray > * {
+  pointer-events: auto;
+}
+
+/* Reading: the capsule is as wide as its content. Editing: the row of five tools and Done fills
+   the window less its 16 px sides, to 420 on a wider screen. */
+.dock .bar {
+  justify-self: center;
+  max-width: 100%;
+  height: var(--capsule-h);
+  padding: 0 var(--capsule-pad);
+}
+
 .dock .bar[data-editing] {
-  max-width: calc(100vw - 24px);
+  justify-content: space-between;
+  width: 100%;
 }
 
-/* The icon targets are 44 px on a fine pointer too (Q-9), over IconButton's own 32 px box. */
+/* Hidden, the capsule leaves past its own offset from the bottom, not the shipped capsule's. */
+.dock .bar[data-hidden] {
+  transform: translateY(calc(100% + var(--dock-bottom)));
+}
+
+/* A slot of the reading capsule: 48 with the 24 px glyph in the glass ink (DSN-95). */
 button.icon[data-size] {
   flex: none;
-  width: 44px;
-  height: 44px;
-  color: var(--text-primary);
+  width: var(--capsule-slot);
+  height: var(--capsule-slot);
+  color: var(--glyph-on-glass);
+}
+
+button.icon[data-size] svg {
+  width: var(--icon-action);
+  height: var(--icon-action);
 }
 
 /* The page button is wide enough for the largest number, so scrolling never changes the
    capsule's width: the shipped button's `minWidth`, as rules of its digit count. */
 button.page {
   flex: none;
-  height: 44px;
+  height: var(--capsule-slot);
   padding: 0 14px;
   color: var(--text-primary);
+  font-size: var(--type-action);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -102,27 +146,40 @@ button.page[data-digits='4'] {
 
 /*
  * A phone on its side (landscape, 500 px or less high, 760 px or more wide): while editing the
- * capsule rests right of centre and the tray opens to its left, in a column the dock keeps for
- * it, so nothing moves when the tray toggles. The chip stays over Undo.
+ * capsule rests right of centre and the row joins it on its left, in a column the dock keeps for
+ * it, so nothing moves when the tray toggles: Undo, the tray, the capsule, Redo, on one line.
  */
 @media (orientation: landscape) and (max-height: 500px) and (min-width: 760px) {
   .dock[data-editing] {
-    grid-template-columns: var(--tray-w, 324px) auto;
-    grid-template-areas:
-      '. chip'
-      'tray bar';
+    grid-template-columns: var(--options-h) var(--tray-w, 324px) auto var(--options-h);
+    grid-auto-flow: column;
     column-gap: var(--space-2);
+    row-gap: 0;
+    align-items: center;
   }
 
-  .dock[data-editing] .chip > * {
-    grid-area: chip;
+  .dock[data-editing] .aux {
+    display: contents;
   }
 
-  .dock[data-editing] .tray > * {
-    grid-area: tray;
+  .dock[data-editing] .undo {
+    grid-column: 1;
+  }
+
+  .dock[data-editing] .tray {
+    grid-column: 2;
   }
 
   .dock[data-editing] .bar {
-    grid-area: bar;
+    grid-column: 3;
+    width: auto;
+  }
+
+  .dock[data-editing] .redo {
+    grid-column: 4;
+  }
+
+  .dock[data-editing] :is(.undo, .tray, .bar, .redo) {
+    grid-row: 1;
   }
 }

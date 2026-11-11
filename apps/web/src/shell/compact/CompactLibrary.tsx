@@ -1,153 +1,151 @@
 /**
- * The compact edition's Library (ADR-0033 §2.3, §3; composition DSN-31): the same product as the
- * full Library (`home/Launcher.tsx`), laid out for one hand. Top to bottom:
+ * The compact edition's Home (EDN-29, DSN-93; ADR-0033 §2.3; spec `colophon-plan.md` L4): the
+ * same product as the full Home, laid out for one hand, over the beam of light. Top to bottom:
  *
- * 1. **Identity.** The Recto mark (`BrandMark`, its gradient in both themes) with the wordmark
- *    and the one-line promise, in the upper third. On a phone on its side the mark and wordmark
- *    fold into the header row (visual audit 2026-10 item 6). No language switch (DSN-46): the
- *    phone follows the browser's language until About's settings rows change it.
- *    **A gear** (DSN-51, amended for R22 brief C-2), a lit glass circle named "Settings" where
- *    the reader's ⋯ stands (top trailing), opens About
- *    with those rows (Theme, Reduce motion, Dim pages, Language), so the settings are one tap
- *    away before a file is open. About is the phone's settings home (DSN-48); the Library
- *    mounts the on-demand sheets without a document to show it (`CompactSheets`), so the
- *    compact closure carries only the button.
- * 2. **What the phone does.** Pen, Highlight, Text and Sign as a quiet row of glyph chips, the
- *    tool names of the edit island (EDN-8), and "Every tool on a computer or tablet." under them
- *    (EDN-15, ADR-0033 §3 "Honesty"). A screen reader hears what is shown, the four names as a
- *    list and the line after it (DSN-51): the hidden sentence that said the same again is gone.
- * 3. **Recents**, the full edition's (`files/recents.ts`), as one lit card of rows: newest first,
- *    the open document first as "Reading now" (a tap goes back to it), a row without a kept file
- *    handle reopens through the file dialog ("Open again…"), and Clear forgets them all.
- * 4. **The sample.** **Try the sample** as a lit card (02-library L10) with a drawing of the
- *    sample's first page (`SampleCover`): static, so the Library loads no engine before a file
- *    is chosen. Before the first file it comes before Recents, whose card then holds one quiet
- *    row, "No files yet" (the order is the stylesheet's, DSN-50).
- * 5. **Open PDF**, the one lime, in a floating glass dock where the reader's capsule stands
- *    (M2, `compact-library-dock` in the coverage registry): in thumb reach, above the home
- *    indicator, with Recents scrolling under it.
+ * 1. **Header.** The Recto mark with the wordmark, and the gear (DSN-51: Settings, About's rows,
+ *    one tap away before a file is open; the compact closure carries only the button, the sheet is
+ *    `CompactSheets`'). No language switch (DSN-46).
+ * 2. **Continue.** The document open and read last: its page left (`ContinueCover`, lazy), the
+ *    name in the serif, "Page 2 of 4", a 2 px progress line and Continue, the view's one lime
+ *    (DSN-89). It resumes the page, zoom and offset (`compact-resume`). On the first visit the
+ *    same slot holds the Margin cover, its name and "Try the sample" as a lime link.
+ * 3. **Recent.** A horizontal shelf of covers (`ShelfCovers`, lazy) 200 high, the serif title
+ *    under each, on the shelf line. A tap reopens (`openRecentEntry`: "Reading now" goes back to
+ *    the reader, a file without a kept handle asks for the dialog); a long press opens the row
+ *    menu, Remove. The sample is the shelf's last tile once there are files. Clear forgets them.
+ * 4. **The dock.** A smoked capsule over the home indicator: Open (`compact-library-dock`), the
+ *    lime primary, or a ghost pill while Continue shows (owner, one lime per view), and Scan as a
+ *    glyph slot when the device has a camera (EDN-23). Combine and Sign are not on the phone.
  *
- * Behind `?scan=1`, when the device reports a camera, a **Scan** button stands left of Open PDF in
- * the same dock (EDN-23): a quiet text button, so Open PDF stays the one lime; it opens the
- * phone's scan sheet (`scan/`), whose code loads only then (PF-23).
- *
- * A file that did not open leaves one line saying why (`role="alert"`), under the sample.
+ * A file that did not open leaves one line saying why (`role="alert"`), under the shelf.
  */
-import { lazy, type ReactNode, Suspense, useState } from 'react';
+import { ContextMenu } from '@base-ui/react/context-menu';
+import type { DocumentId } from '@pdf-editor/document-model';
+import { type CSSProperties, lazy, Suspense, useState } from 'react';
 
 import { BrandMark } from '../../brand/BrandMark';
 import {
   canReopenRecent,
   clearRecents,
   type RecentEntry,
+  removeRecent,
   useRecentsStore,
 } from '../../files/recents';
-import { HOME_CONTINUE_FLAG, homeFlagEnabled } from '../../home/home-flags';
-import { formatFileSize, middleTruncate, relativeTime } from '../../home/home-model';
+import { presentError } from '../../errors/present';
+import { formatFileSize, relativeTime } from '../../home/home-model';
 import { getLocale, m } from '../../i18n';
 import { SampleCover } from '../../sample/SampleCover';
-import { pagesPhrase } from '../../state/workspace-store';
+import { progressOf, type ResumePoint, useResumeStore } from '../../session/resume';
+import { pagesPhrase, useWorkspaceStore } from '../../state/workspace-store';
 import { Icon } from '../../ui/Icon';
-import type { IconName } from '../../ui/icons.generated';
+import menuStyles from '../../ui/Menu.module.css';
 import { announce } from '../announcer';
 import { PRODUCT_NAME } from '../about/build-info';
+import { CompactBeam } from './CompactBeam';
 import { CompactSheets, loadMoreSheets } from './CompactSheets';
 import { ScanButton } from './scan/ScanEntry';
 import { isOpenEntry, openRecentEntry, pickAndOpen, trySample } from './compact-actions';
 import { openSheet, useCompactStore } from './compact-store';
-import controls from './controls.module.css';
 import styles from './CompactLibrary.module.css';
-import { presentError } from '../../errors/present';
+import type { CoverOf } from './ShelfCovers';
 
-/** Characters of a Recents name before the middle is elided (the row also ellipsizes). */
-const NAME_LENGTH = 48;
+/** The page left and the covers load after the first paint (PF-23). */
+const ContinueCover = lazy(() => import('./ContinueCover'));
+const ShelfCovers = lazy(() => import('./ShelfCovers'));
 
-/** The phone's tools, as the edit island names them (EDN-8, EDN-15). */
-const TOOLS: readonly { readonly icon: IconName; readonly label: () => string }[] = [
-  { icon: 'pen', label: m.compact_tool_pen },
-  { icon: 'highlighter', label: m.compact_tool_highlight },
-  { icon: 'text-aa', label: m.compact_tool_text },
-  { icon: 'signature', label: m.compact_tool_sign },
-];
+/** The sample's name on the first visit, in the language of the cut the person would open. */
+const SAMPLE_TITLE: Readonly<Record<string, string>> = {
+  en: 'Margin, No. 07',
+  tr: 'Kenar, Sayı 07',
+};
 
-/**
- * The Library. Behind `?home=continue` it is `ContinuedLibrary` (DSN-66, EDN-10), a lazy chunk
- * that adds the Continue card and the one-lime swap; without the flag the phone carries none of
- * it, and the plain screen shows meanwhile.
- */
-const ContinuedLibrary = lazy(() => import('./ContinuedLibrary'));
+/** A page's proportion when no cover is stored yet: A4, a paper sheet. */
+const PAPER_RATIO = 210 / 297;
 
-export function CompactLibrary() {
-  const plain = <LibraryScreen continued={false} slot={null} />;
-  if (!homeFlagEnabled(HOME_CONTINUE_FLAG)) return plain;
-  return (
-    <Suspense fallback={plain}>
-      <ContinuedLibrary />
-    </Suspense>
-  );
+interface ContinueSource {
+  readonly id: DocumentId;
+  readonly title: string;
+  readonly point: ResumePoint;
 }
 
-/** `continued`: while Continue shows it holds the one lime and Open PDF is secondary (DSN-66). */
-export function LibraryScreen({
-  continued,
-  slot,
-}: {
-  readonly continued: boolean;
-  readonly slot: ReactNode;
-}) {
+/** The document the Continue block stands for: the one read last that is still open. */
+function useContinue(): ContinueSource | undefined {
+  const workspace = useWorkspaceStore((s) => s.workspace);
+  const points = useResumeStore((s) => s.points);
+  const last = useResumeStore((s) => s.last);
+  const id =
+    last !== null && workspace.documents[last] !== undefined
+      ? last
+      : (workspace.activeDocument ?? undefined);
+  const doc = id === undefined ? undefined : workspace.documents[id];
+  const point = id === undefined ? undefined : points[id];
+  if (doc === undefined || point === undefined) return undefined;
+  return { id: doc.id, title: doc.title, point };
+}
+
+export function CompactLibrary() {
   const opening = useCompactStore((s) => s.opening);
   const openError = useCompactStore((s) => s.openError);
-  const firstRun = useRecentsStore((s) => s.loaded && s.entries.length === 0);
+  const loaded = useRecentsStore((s) => s.loaded);
+  const entries = useRecentsStore((s) => s.entries);
+  const resume = useContinue();
+  const continued = resume !== undefined;
+  const firstRun = loaded && entries.length === 0 && !continued;
   return (
     <main
       className={styles.library}
       data-testid="compact-library"
       data-first-run={firstRun || undefined}
+      data-continued={continued || undefined}
     >
+      <CompactBeam />
       <header className={styles.header}>
         <h1 className={styles.brand}>
-          <BrandMark size={64} className={styles.mark} />
+          <BrandMark size={22} className={styles.mark} />
           <span className={styles.wordmark}>{PRODUCT_NAME}</span>
         </h1>
+        <button
+          type="button"
+          className={styles.gear}
+          aria-label={m.settings_title()}
+          aria-haspopup="dialog"
+          data-testid="compact-library-more"
+          onPointerDown={() => void loadMoreSheets().catch(() => undefined)}
+          onClick={() => openSheet('settings')}
+        >
+          <Icon name="gear-six" size={24} />
+        </button>
       </header>
-      <button
-        type="button"
-        className={styles.more}
-        aria-label={m.settings_title()}
-        aria-haspopup="dialog"
-        data-testid="compact-library-more"
-        onPointerDown={() => void loadMoreSheets().catch(() => undefined)}
-        onClick={() => openSheet('settings')}
-      >
-        <Icon name="gear-six" />
-      </button>
       <div className={styles.body}>
-        {slot}
-        <div className={styles.intro}>
-          <p className={styles.promise}>{m.compact_library_promise()}</p>
-          <Tools />
-          <SampleCard disabled={opening} />
-          {openError ? (
-            <p className={styles.error} role="alert" data-testid="compact-open-error">
-              {openError}
-            </p>
-          ) : null}
-        </div>
-        <Recents continued={continued} />
+        {resume ? (
+          <Continue resume={resume} />
+        ) : firstRun ? (
+          <FirstVisit disabled={opening} />
+        ) : loaded ? null : (
+          <div className={styles.holder} aria-hidden="true" />
+        )}
+        <Recent continued={continued} />
+        {openError ? (
+          <p className={styles.error} role="alert" data-testid="compact-open-error">
+            {openError}
+          </p>
+        ) : null}
       </div>
       <div className={styles.dock}>
         <div className={styles.dockPiece} data-testid="compact-library-dock">
-          <ScanButton />
           <button
             type="button"
-            className={`${continued ? controls.text : controls.primary} ${styles.open}`}
+            className={styles.open}
+            data-ghost={continued || undefined}
+            aria-label={opening ? m.compact_opening() : m.compact_open_pdf()}
             aria-busy={opening || undefined}
             disabled={opening}
             onClick={() => void pickAndOpen()}
           >
-            <Icon name="folder-open" />
-            {opening ? m.compact_opening() : m.compact_open_pdf()}
+            <Icon name="folder-open" size={24} />
+            {m.home_open_short()}
           </button>
+          <ScanButton className={styles.slot} />
         </div>
       </div>
       <CompactSheets />
@@ -155,128 +153,113 @@ export function LibraryScreen({
   );
 }
 
-/** The phone's four tools as glyph chips, read as a list, and where the others are. */
-function Tools() {
+/** Continue: the page left, the name, where it stands and the one lime (DSN-66, DSN-89). */
+function Continue({ resume }: { readonly resume: ContinueSource }) {
+  const { id, title, point } = resume;
+  const page = point.page + 1;
+  const total = point.total;
+  const progress = progressOf(point);
   return (
-    <div className={styles.tools} data-testid="compact-tools">
-      <ul className={styles.chips}>
-        {TOOLS.map((tool) => (
-          <li key={tool.icon} className={styles.chip}>
-            <Icon name={tool.icon} />
-            {tool.label()}
-          </li>
-        ))}
-      </ul>
-      <p className={styles.moreTools}>{m.compact_library_more_tools()}</p>
-    </div>
+    <section className={styles.hero} aria-labelledby="continue-name" data-testid="continue-card">
+      <div className={styles.cover} aria-hidden="true">
+        <Suspense fallback={<span className={styles.sheet} data-empty="" />}>
+          <ContinueCover id={id} page={point.page} />
+        </Suspense>
+      </div>
+      <div className={styles.heroText}>
+        <h2 id="continue-name" className={styles.title} data-testid="continue-name">
+          {title}
+        </h2>
+        <p className={styles.page} data-testid="continue-page">
+          {m.continue_page({ page, total })}
+        </p>
+        <div
+          className={styles.progress}
+          role="progressbar"
+          aria-label={m.continue_progress()}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(progress * 100)}
+        >
+          <span className={styles.fill} style={{ width: `${progress * 100}%` }} />
+        </div>
+        <button
+          type="button"
+          className={styles.go}
+          aria-label={m.continue_resume_named({ name: title, page, total })}
+          data-testid="continue-resume"
+          onClick={() => void import('./compact-resume').then((v) => v.resumeCompact(id, point))}
+        >
+          {m.continue_resume()}
+        </button>
+      </div>
+    </section>
   );
 }
 
-/** Try the sample as a card: the first page drawn small, the name and what it is. */
-function SampleCard({ disabled }: { readonly disabled: boolean }) {
+/** The first visit: the Margin cover, its name and the sample as a lime link (EDN-29). */
+function FirstVisit({ disabled }: { readonly disabled: boolean }) {
   return (
-    <button
-      type="button"
-      className={styles.sample}
-      disabled={disabled}
-      aria-label={m.cmd_try_sample()}
-      aria-describedby="compact-sample-line"
-      data-testid="compact-sample"
-      onClick={() => void trySample()}
-    >
-      <SampleCover className={styles.samplePage} />
-      <span className={styles.sampleText}>
-        <span className={styles.sampleTitle}>{m.cmd_try_sample()}</span>
-        <span id="compact-sample-line" className={styles.sampleLine}>
-          {m.compact_library_sample_line()}
-        </span>
-      </span>
-      <Icon name="caret-right" className={styles.sampleCaret} />
-    </button>
+    <section className={styles.hero} aria-labelledby="first-visit-name">
+      <div className={styles.cover}>
+        <SampleCover className={styles.sheetSvg} />
+      </div>
+      <div className={styles.heroText}>
+        <h2 id="first-visit-name" className={styles.title}>
+          {SAMPLE_TITLE[getLocale()] ?? SAMPLE_TITLE.en}
+        </h2>
+        <button
+          type="button"
+          className={styles.sampleLink}
+          disabled={disabled}
+          data-testid="compact-sample"
+          onClick={() => void trySample()}
+        >
+          {m.home_try_sample()}
+        </button>
+      </div>
+    </section>
   );
 }
 
-function ClearButton() {
-  return (
-    <button
-      type="button"
-      className={`${controls.text} ${controls.quiet} ${styles.clear}`}
-      aria-label={m.recents_clear()}
-      onClick={() => {
-        void clearRecents().then((cleared) => {
-          if (cleared) announce(m.recents_announce_cleared());
-          else presentError({ kind: 'message', text: m.recents_clear_failed() });
-        });
-      }}
-    >
-      {m.compact_recents_clear()}
-    </button>
-  );
-}
+const NO_COVERS: CoverOf = () => undefined;
 
-/**
- * Recents as one lit card of rows under the section title and Clear. Before the first file the
- * card holds one quiet row of the list's shape in their place ("No files yet"), under the same
- * title and without Clear: one section, so the two states cannot drift apart.
- */
-function Recents({ continued }: { readonly continued: boolean }) {
+/** Recent: the shelf of covers, newest first, and Clear. Nothing before the first file. */
+function Recent({ continued }: { readonly continued: boolean }) {
   const entries = useRecentsStore((s) => s.entries);
   const loaded = useRecentsStore((s) => s.loaded);
-  const access = useRecentsStore((s) => s.access);
   const note = useRecentsStore((s) => s.note);
-  const locale = getLocale();
-  // Relative times ("5 minutes ago") are read once per visit.
-  const [now] = useState(() => Date.now());
-  if (!loaded) return null;
-  const empty = entries.length === 0;
+  if (!loaded || entries.length === 0) return null;
   // The open document first, then the rest newest first; while Continue shows the open one, its
-  // "Reading now" row would say it twice (DSN-66).
+  // tile would say it twice (DSN-66).
   const ordered = [
     ...(continued ? [] : entries.filter(isOpenEntry)),
     ...entries.filter((e) => !isOpenEntry(e)),
   ];
-  // Nothing else to list: the section would be an empty card under its title.
-  if (continued && ordered.length === 0) return null;
+  const shelf = (coverOf: CoverOf) => <Shelf entries={ordered} coverOf={coverOf} />;
   return (
-    <section
-      className={styles.recents}
-      aria-labelledby="compact-recents-heading"
-      data-testid={empty ? 'compact-recents-empty' : undefined}
-    >
-      <div className={styles.recentsHeader}>
-        <h2 id="compact-recents-heading" className={styles.recentsTitle}>
-          {m.recents_heading()}
+    <section className={styles.recent} aria-labelledby="compact-recents-heading">
+      <div className={styles.recentHead}>
+        <h2 id="compact-recents-heading" className={styles.recentTitle}>
+          {m.home_recent()}
         </h2>
-        {empty ? null : <ClearButton />}
-      </div>
-      {empty ? (
-        <div className={`${styles.recentList} ${styles.emptyRow}`}>
-          <span className={styles.recentGlyph} aria-hidden="true">
-            <Icon name="file-text" />
-          </span>
-          <span className={styles.recentText}>
-            <span className={styles.emptyTitle}>{m.compact_recents_empty_title()}</span>
-            <span className={styles.emptyLine}>{m.compact_recents_empty()}</span>
-          </span>
-        </div>
-      ) : (
-        <ul
-          className={styles.recentList}
-          aria-label={m.recents_list_label()}
-          data-testid="compact-recents"
+        <button
+          type="button"
+          className={styles.clear}
+          aria-label={m.recents_clear()}
+          onClick={() => {
+            void clearRecents().then((cleared) => {
+              if (cleared) announce(m.recents_announce_cleared());
+              else presentError({ kind: 'message', text: m.recents_clear_failed() });
+            });
+          }}
         >
-          {ordered.map((entry) => (
-            <RecentRow
-              key={entry.id}
-              entry={entry}
-              reading={isOpenEntry(entry)}
-              hint={recentHint(entry, access[entry.id])}
-              time={relativeTime(entry.openedAt, now, locale)}
-              locale={locale}
-            />
-          ))}
-        </ul>
-      )}
+          {m.home_clear()}
+        </button>
+      </div>
+      <Suspense fallback={shelf(NO_COVERS)}>
+        <ShelfCovers>{shelf}</ShelfCovers>
+      </Suspense>
       {note ? (
         <p className={styles.note} data-testid="compact-recent-note">
           {note.kind === 'open-again'
@@ -285,6 +268,37 @@ function Recents({ continued }: { readonly continued: boolean }) {
         </p>
       ) : null}
     </section>
+  );
+}
+
+function Shelf({
+  entries,
+  coverOf,
+}: {
+  readonly entries: readonly RecentEntry[];
+  readonly coverOf: CoverOf;
+}) {
+  const access = useRecentsStore((s) => s.access);
+  const locale = getLocale();
+  // Relative times ("5 minutes ago") are read once per visit.
+  const [now] = useState(() => Date.now());
+  return (
+    <div className={styles.shelf}>
+      <ul className={styles.list} aria-label={m.recents_list_label()} data-testid="compact-recents">
+        {entries.map((entry) => (
+          <RecentTile
+            key={entry.id}
+            entry={entry}
+            cover={coverOf(entry)}
+            reading={isOpenEntry(entry)}
+            hint={recentHint(entry, access[entry.id])}
+            time={relativeTime(entry.openedAt, now, locale)}
+            locale={locale}
+          />
+        ))}
+        <SampleTile />
+      </ul>
+    </div>
   );
 }
 
@@ -297,14 +311,18 @@ function recentHint(entry: RecentEntry, access: string | undefined): string | un
   return undefined;
 }
 
-function RecentRow({
+function RecentTile({
   entry,
+  cover,
   reading,
   hint,
   time,
   locale,
 }: {
   readonly entry: RecentEntry;
+  readonly cover:
+    | { readonly url: string; readonly width: number; readonly height: number }
+    | undefined;
   readonly reading: boolean;
   readonly hint: string | undefined;
   readonly time: string;
@@ -320,30 +338,79 @@ function RecentRow({
   const label = [entry.name, details, reading ? undefined : time, status]
     .filter(Boolean)
     .join(', ');
+  const ratio = cover === undefined ? PAPER_RATIO : cover.width / cover.height;
+  const edited = entry.kept?.changed === true;
   return (
-    <li>
+    <ContextMenu.Root>
+      <ContextMenu.Trigger
+        render={<li className={styles.item} style={{ '--cover-ratio': ratio } as CSSProperties} />}
+      >
+        <button
+          type="button"
+          className={styles.tile}
+          aria-label={label}
+          aria-current={reading || undefined}
+          data-reading={reading || undefined}
+          data-testid="compact-recent"
+          // No await before the reopen: a permission prompt needs this tap's activation.
+          onClick={(event) => void openRecentEntry(entry, event.currentTarget)}
+        >
+          <span className={styles.sheet} data-empty={cover === undefined || undefined}>
+            {cover === undefined ? (
+              <Icon name="file" size={24} className={styles.glyph} />
+            ) : (
+              <img
+                className={styles.image}
+                src={cover.url}
+                width={cover.width}
+                height={cover.height}
+                alt=""
+                decoding="async"
+                draggable={false}
+              />
+            )}
+          </span>
+          <span className={styles.name} aria-hidden="true">
+            {edited ? <span className={styles.dot} /> : null}
+            <span className={styles.nameText}>{entry.name.replace(/\.pdf$/i, '')}</span>
+          </span>
+        </button>
+      </ContextMenu.Trigger>
+      <ContextMenu.Portal>
+        <ContextMenu.Positioner sideOffset={8} collisionPadding={8}>
+          <ContextMenu.Popup className={menuStyles.popup} data-testid="compact-recent-menu">
+            <ContextMenu.Item
+              className={menuStyles.item}
+              onClick={() => {
+                void removeRecent(entry.id);
+                announce(m.recents_announce_removed({ name: entry.name }));
+              }}
+            >
+              <Icon name="trash" />
+              <span className={menuStyles.label}>{m.recents_remove()}</span>
+            </ContextMenu.Item>
+          </ContextMenu.Popup>
+        </ContextMenu.Positioner>
+      </ContextMenu.Portal>
+    </ContextMenu.Root>
+  );
+}
+
+/** The sample, the shelf's last tile: its cover drawn small, no engine until it is chosen. */
+function SampleTile() {
+  const opening = useCompactStore((s) => s.opening);
+  return (
+    <li className={styles.item} style={{ '--cover-ratio': PAPER_RATIO } as CSSProperties}>
       <button
         type="button"
-        className={styles.recentRow}
-        aria-label={label}
-        aria-current={reading || undefined}
-        data-reading={reading || undefined}
-        // No await before the reopen: a permission prompt needs this tap's activation.
-        onClick={(event) => void openRecentEntry(entry, event.currentTarget)}
+        className={styles.tile}
+        disabled={opening}
+        data-testid="compact-sample"
+        onClick={() => void trySample()}
       >
-        <span className={styles.recentGlyph} aria-hidden="true">
-          <Icon name="file-text" />
-        </span>
-        <span className={styles.recentText} aria-hidden="true">
-          <span className={styles.recentName}>{middleTruncate(entry.name, NAME_LENGTH)}</span>
-          <span className={styles.recentMeta}>
-            {[details, reading ? undefined : time].filter(Boolean).join(' · ')}
-          </span>
-          {status ? (
-            <span className={styles.recentStatus} data-reading={reading || undefined}>
-              {status}
-            </span>
-          ) : null}
+        <SampleCover className={styles.sheetSvg} />
+        <span className={styles.name}>
+          <span className={styles.nameText}>{m.home_try_sample()}</span>
         </span>
       </button>
     </li>

@@ -312,6 +312,7 @@ Full rows: [`decisions/editions.md`](decisions/editions.md).
 | [EDN-27](decisions/editions.md) | OCR on the phone starts only from the Text view's scanned-page card; opt-in pack download with its size, one undo step | In force behind Labs | 2026-10-26 |
 | [EDN-28](decisions/editions.md) | The first phone stroke after picking Pen or Highlight draws; phone Save a copy shows the success toast | In force; amends EDN-18 | 2026-10-26 |
 | [EDN-29](decisions/editions.md) | The phone takes Colophon: brand header, Continue cover, Recent shelf, Open dock; single capsule by default | In force | 2026-11-10 |
+| [EDN-30](decisions/editions.md) | The phone's Colophon details: Undo and Redo chips beside the tray, Edit text in the capsule, the dock offset, the sample on the shelf | In force | 2026-11-10 |
 
 ## Phone work
 

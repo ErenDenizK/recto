@@ -93,7 +93,10 @@ import { CompactTopSplit } from './CompactTopSplit';
 import { phoneCapsule } from './phone-capsule-flag';
 import { topVariant } from './top-variant';
 
-/** The single capsule (EDN-24) loads only when its Labs switch is on, outside the read session (PF-23). */
+/**
+ * The single capsule (EDN-24, EDN-29) is the default and loads as its own chunk: the app asks for
+ * it once the Library has painted (`CompactApp`), so the reader finds it ready (PF-23).
+ */
 const PhoneCapsule = lazy(() =>
   import('./PhoneCapsule').then((mod) => ({ default: mod.PhoneCapsule })),
 );

@@ -32,7 +32,6 @@ import {
 } from '../../files/recents';
 import { getLocale, m } from '../../i18n';
 import { formatSize } from '../../i18n/format';
-import { HOME_CONTINUE_FLAG, homeFlagEnabled } from '../../home/home-flags';
 import { openRowMorph } from '../../home/library-morph';
 import { officeEnabled } from '../../office/flag';
 import { offerOfficeFiles } from '../../office/intake';
@@ -46,8 +45,13 @@ import { clearSearch } from '../../viewer/search';
 import { announce } from '../announcer';
 import { showReader, useCompactStore } from './compact-store';
 
-// Behind `?home=continue` the resume wiring loads on its own, outside the phone's first load.
-if (homeFlagEnabled(HOME_CONTINUE_FLAG)) void import('./compact-resume');
+// "Where you left off" (DSN-66, EDN-29): the resume wiring loads on its own the first time the
+// reader shows, outside the phone's first load.
+const stopResumeLoad = useCompactStore.subscribe((state) => {
+  if (state.place !== 'reader') return;
+  stopResumeLoad();
+  void import('./compact-resume');
+});
 
 const set = (patch: Partial<ReturnType<typeof useCompactStore.getState>>) =>
   useCompactStore.setState(patch);
@@ -245,11 +249,8 @@ async function openKept(
     setRecentNote(null);
     // A document with changes is not the file as opened: its copy goes through the export.
     const { place } = result.record;
-    // Behind `?home=continue` it opens at the zoom and offset it was left at (DSN-66).
-    const resumed =
-      place.resume !== undefined && homeFlagEnabled(HOME_CONTINUE_FLAG)
-        ? await import('./compact-resume')
-        : undefined;
+    // It opens at the zoom and offset it was left at (DSN-66).
+    const resumed = place.resume !== undefined ? await import('./compact-resume') : undefined;
     const resume = resumed?.keptResume(doc, place);
     set({
       openedDocument: isDocumentChanged(doc.id) ? null : doc,

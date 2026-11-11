@@ -6,8 +6,9 @@
  * the name whole (DSN-34).
  *
  * The cut is measured, once per name and width (a resize, a rotation), never per frame: the
- * room is the heading's width less the title's padding, gap and ▾; the text is measured in the
- * title's own font on a 2D canvas.
+ * room is the heading's width less the title's padding, gap and ▾ and what stands beside the
+ * title in the heading; the text is measured in the title's own font on a 2D
+ * canvas.
  */
 import { type RefObject, useLayoutEffect, useState } from 'react';
 

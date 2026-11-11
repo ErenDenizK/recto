@@ -1,7 +1,7 @@
 /**
- * The single capsule's tray (EDN-24, Labs `phone-capsule`; plan "Component structure"): one
- * 56 px row, 324 px wide (`--tray-w`) and centred on the capsule, that holds the armed tool's
- * options in 7 targets of 44 px. It renders the tool's `Tray`, else its `Options` (`registry.ts`);
+ * The single capsule's tray (EDN-24, EDN-29; plan "Component structure"): one 44 px row between
+ * the Undo and Redo chips, 12 px above the capsule, that holds the armed tool's options in
+ * targets of 44 px (`CapsuleTray.module.css`). It renders the tool's `Tray`, else its `Options` (`registry.ts`);
  * Pen and Highlight add the Eraser at the end (`toggleEraser`). The pressed tool is
  * `trayTool`: the Eraser counts as the tool it took over from, Edit text as Text.
  *
@@ -237,6 +237,7 @@ function Panel({
       data-compact-chrome=""
       data-annotation-keep=""
       data-compact-above-capsule=""
+      data-glass-group="compact-options"
       data-closing={open ? undefined : ''}
       data-testid="compact-tool-tray"
       inert={!open}

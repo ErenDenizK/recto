@@ -32,7 +32,7 @@ async function settled(page: Page): Promise<void> {
 }
 
 async function openSample(page: Page, query = 'drawer=list'): Promise<void> {
-  await page.goto(`./?sample&${query}&lang=en`);
+  await page.goto(`./?sample&${query}&lang=en&phonebar=0`);
   await expect(page.locator('[data-page-index="0"] canvas').first()).toHaveAttribute(
     'data-state',
     'rendered',
@@ -163,7 +163,7 @@ test.describe('the drawer’s list variant (EDN-16)', () => {
     await expect(capsule(page)).toHaveCSS('opacity', '1');
 
     // A reload without the parameter keeps the list for this tab; `?drawer=tiles` goes back.
-    await page.goto('./?sample&lang=en');
+    await page.goto('./?sample&lang=en&phonebar=0');
     await expect(page.locator('[data-page-index="0"] canvas').first()).toHaveAttribute(
       'data-state',
       'rendered',

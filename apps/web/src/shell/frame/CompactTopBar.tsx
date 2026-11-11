@@ -22,7 +22,6 @@ import { Menu } from '@base-ui/react/menu';
 import { useSyncExternalStore } from 'react';
 
 import { commandRegistry } from '../../commands/registry';
-import { LibraryMenu } from '../../home/LibraryMenu';
 import { formatNumber, m } from '../../i18n';
 import { useExternalRequests } from '../../privacy/external-requests';
 import { PrivacyShield } from '../../privacy/PrivacyShield';
@@ -92,7 +91,7 @@ export function CompactTopBar({
           </p>
           <span className={styles.spacer} />
           <LibraryPrivacyWarning />
-          <LibraryMenu />
+          <SettingsGear />
         </>
       ) : (
         <>
@@ -105,6 +104,18 @@ export function CompactTopBar({
         </>
       )}
     </header>
+  );
+}
+
+/** The gear on the Library's bar (DSN-93: the ⋯ menu became the gear): Settings, one press away. */
+function SettingsGear() {
+  return (
+    <IconButton
+      label={m.frame_settings()}
+      icon={<Icon name="gear-six" size={24} />}
+      data-testid="library-gear"
+      onClick={() => void commandRegistry.execute('settings.open')}
+    />
   );
 }
 
