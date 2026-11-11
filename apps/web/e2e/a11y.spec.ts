@@ -30,10 +30,11 @@ import {
   atRest,
   enterEdit,
   fixturePath,
+  openButton,
   openFixtures,
-  useFileInputPicker,
   openSaveCopyFromMenu,
   showSidebar,
+  useFileInputPicker,
 } from './helpers';
 import { settleAnimations } from './support/glass-walker';
 import { auditTargets } from './support/targets';
@@ -302,12 +303,15 @@ test.describe('keyboard', () => {
     await expect(bar(page).locator('button[tabindex="0"]')).toHaveCount(1);
     await bar(page).locator('button[tabindex="0"]').focus();
     await page.keyboard.press('Home');
-    // Done leads the palette; Select, armed on opening, follows (03-markup MK-2, MK-3).
-    await expect(bar(page).getByRole('button', { name: 'Done', exact: true })).toBeFocused();
-    await page.keyboard.press('ArrowRight');
+    // Select, armed on opening, leads the palette and Done trails it (03-markup MK-2, MK-3;
+    // DSN-91 moves Done to the trailing end).
     const select = bar(page).getByRole('button', { name: 'Select', exact: true });
     await expect(select).toBeFocused();
     await expect(select).toHaveAttribute('aria-pressed', 'true');
+    await page.keyboard.press('End');
+    await expect(bar(page).getByRole('button', { name: 'Done', exact: true })).toBeFocused();
+    await page.keyboard.press('Home');
+    await expect(select).toBeFocused();
 
     // Arrows reach Note; Enter arms it (aria-pressed), its ink strip follows arming.
     const note = bar(page).getByRole('button', { name: 'Note', exact: true });
@@ -790,8 +794,8 @@ test.describe('reduced motion', () => {
 
 test('the focus ring tokens apply to the new controls', async ({ page }) => {
   await page.goto('./?lang=en');
-  await openFixtures(page, ['simple-text.pdf', 'annotations.pdf']);
-  await page.getByRole('tab', { name: 'annotations' }).click();
+  // One file opens straight into its document; two would stay on Home as cards.
+  await openFixtures(page, ['annotations.pdf']);
   await enterEdit(page);
   const expectRing = async (name: string, target: Locator) => {
     // After a key press, so :focus-visible applies to a scripted focus.
@@ -868,10 +872,7 @@ test('the focus ring tokens apply to the new controls', async ({ page }) => {
 async function openWordTagged(page: Page, lang = 'en'): Promise<void> {
   await page.goto(`./?lang=${lang}`);
   const chooser = page.waitForEvent('filechooser');
-  await page
-    .getByRole('button', { name: /^(Open files|Dosya aç)$/ })
-    .first()
-    .click();
+  await openButton(page).click();
   await (await chooser).setFiles(fixturePath('text-edit-corpus/word-tagged.pdf'));
   await expect(page.getByRole('tab', { name: 'word-tagged' })).toBeVisible();
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
@@ -1150,12 +1151,11 @@ test.describe('craft spec §9', () => {
 
   test('Home: Recents, when the build has them', async ({ page }) => {
     await page.goto('./?lang=en');
-    await openFixtures(page, ['simple-text.pdf', 'rotated-pages.pdf']);
-    // Recents lists files opened lately that are not open now: close one (its tab's ✕).
-    await page.getByRole('tab', { name: 'simple-text' }).click();
+    await openFixtures(page, ['rotated-pages.pdf']);
+    // Recents lists files opened lately that are not open now: close it (its tab's ✕), which
+    // returns to Home.
     await page.getByTitle('Close rotated-pages').click();
     await expect(page.getByRole('tab', { name: 'rotated-pages' })).toHaveCount(0);
-    await page.keyboard.press('0');
     await expect(page.getByTestId('home')).toBeVisible();
     const recents = page.getByRole('list', { name: 'Recent files' });
     await recents.waitFor({ timeout: 3000 }).catch(() => undefined);
@@ -1472,7 +1472,7 @@ test.describe('D0 sheets and toasts', () => {
     const one = { polite: 1, assertive: 1, toastRegionLive: false, sheetLive: false };
 
     await page.goto('./?lang=en');
-    await expect(page.getByRole('button', { name: /^Open files/ }).first()).toBeVisible();
+    await expect(openButton(page)).toBeVisible();
     expect(await regions(), 'Home').toEqual(one);
     await openFixtures(page, ['simple-text.pdf']);
     await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
@@ -1562,10 +1562,7 @@ test.describe('D0 sheets and toasts', () => {
     // The toast stack: "Deleted page 2 · Undo" over a failure, the Undo toast hovered (✕).
     const toast = await deleteSecondPage(page);
     const chooser = page.waitForEvent('filechooser');
-    await page
-      .getByRole('button', { name: /^Open files/ })
-      .first()
-      .click();
+    await openButton(page).click();
     await (await chooser).setFiles({
       name: 'scan.pdf',
       mimeType: 'application/pdf',

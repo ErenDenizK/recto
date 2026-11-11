@@ -10,7 +10,7 @@
  */
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
-import { fixturePath, quiet, trackEngine, useFileInputPicker } from './helpers';
+import { fixturePath, openButton, quiet, trackEngine, useFileInputPicker } from './helpers';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -23,7 +23,7 @@ test.beforeEach(async ({ page }) => {
 /** Opens the first paragraph of `word-tagged.pdf` ("The ferry left the quay…") for editing. */
 async function openFerry(page: Page, tap = false): Promise<Locator> {
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await chooser).setFiles(fixturePath('text-edit-corpus/word-tagged.pdf'));
   await expect(page.getByRole('tab', { name: 'word-tagged' })).toBeVisible();
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({

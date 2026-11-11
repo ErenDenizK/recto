@@ -11,6 +11,7 @@ import { PDFDict, PDFDocument, PDFName, PDFStream } from '@cantoo/pdf-lib';
 import { expect, test } from '@playwright/test';
 
 import {
+  openButton,
   openFindPanel,
   openFixtures,
   openSaveCopy,
@@ -77,7 +78,7 @@ test('adds page numbers to rotated pages, exports them and reads them back', asy
 
   // Round trip: open the exported file and find the numbers through the engine's text.
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await chooser).setFiles({
     name: 'numbered.pdf',
     mimeType: 'application/pdf',

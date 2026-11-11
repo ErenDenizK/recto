@@ -12,6 +12,7 @@ import { expect, type Page, test } from '@playwright/test';
 import {
   atRest,
   fixturePath,
+  openButton,
   openFixtures,
   quiet,
   sessionSettled,
@@ -126,10 +127,7 @@ async function openAny(page: Page, names: readonly string[]): Promise<void> {
   // A reload restores the last session first; Open waits for it.
   await sessionSettled(page);
   const chooser = page.waitForEvent('filechooser');
-  await page
-    .getByRole('button', { name: /^(Open files|Open files…|Dosya aç|Dosya aç…)$/ })
-    .first()
-    .click();
+  await openButton(page).click();
   await (await chooser).setFiles(names.map(fixturePath));
   await expect(page.locator('[data-read-viewport] canvas').first()).toBeVisible({
     timeout: 20_000,
@@ -290,14 +288,15 @@ test.describe('the frame per class', () => {
     expect((await visiblePieces.first().boundingBox())?.x).toBe(16);
     const trail = await visiblePieces.last().boundingBox();
     expect(trail ? 1440 - (trail.x + trail.width) : 0).toBe(16);
-    // The bottom pieces mirror them (G1): the dock and the page pill one piece high, 16 px up
-    // from the window's bottom edge, the pill 16 px in from its trailing edge.
-    for (const selector of ['[data-capsule]', '[data-testid="page-pill"]']) {
-      const box = await page.locator(selector).first().boundingBox();
-      expect(box?.height, selector).toBe(40);
-      expect(box ? 900 - (box.y + box.height) : 0, selector).toBe(16);
-    }
+    // The bottom pieces (Colophon): the capsule 56 high and 24 up from the window's bottom edge,
+    // the page pill 40 high, centred on the capsule's line (24 + (56 - 40) / 2 = 32 up), 16 in
+    // from its trailing edge.
+    const capsule = await page.locator('[data-capsule]').first().boundingBox();
+    expect(capsule?.height).toBe(56);
+    expect(capsule ? 900 - (capsule.y + capsule.height) : 0).toBe(24);
     const pill = await page.getByTestId('page-pill').boundingBox();
+    expect(pill?.height).toBe(40);
+    expect(pill ? 900 - (pill.y + pill.height) : 0).toBe(32);
     expect(pill ? 1440 - (pill.x + pill.width) : 0).toBe(16);
     await expect(page.getByTestId('sidebar-toggle')).toBeVisible();
 
@@ -307,7 +306,7 @@ test.describe('the frame per class', () => {
     await expect(page.getByTestId('document-menu')).toHaveText(/simple-text/);
     await expect(page.locator('#left-panel')).toHaveCount(0);
 
-    // A-20 at 320 × 256 (400 % zoom of a 1280 × 1024 window): one 40 px capsule, ≤ 25 % chrome.
+    // A-20 at 320 × 256 (400 % zoom of a 1280 × 1024 window): one capsule, ≤ 25 % chrome.
     await page.setViewportSize({ width: 320, height: 256 });
     await expect(top).toHaveAttribute('data-tight');
     const area = await page.evaluate(() => {
@@ -367,7 +366,7 @@ test.describe('the frame per class', () => {
     await expect(band).toHaveAttribute('data-away');
     await expect(page.locator('[data-region="top"]')).toBeVisible();
     // The free rectangle's bottom falls to the band's offset.
-    expect((await freeRect(page)).bottom).toBe(900 - 16);
+    expect((await freeRect(page)).bottom).toBe(900 - 24);
     await page.keyboard.press('Escape');
     await expect(band).not.toHaveAttribute('data-away');
     // The touch route: the pill menu's Focus.

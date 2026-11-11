@@ -8,7 +8,7 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, historyStep, inHistory, useFileInputPicker } from './helpers';
+import { fixturePath, historyStep, inHistory, openButton, useFileInputPicker } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
 
@@ -21,7 +21,7 @@ async function openCorpus(page: Page, name: string, tab: string, firstLetter: st
   await useFileInputPicker(page);
   await page.goto('./?lang=en&paraframe=1');
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await chooser).setFiles(fixturePath(`text-edit-corpus/${name}`));
   await expect(page.getByRole('tab', { name: tab })).toBeVisible();
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({

@@ -17,7 +17,7 @@ import {
 } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { useFileInputPicker } from './helpers';
+import { openButton, useFileInputPicker } from './helpers';
 
 test.skip(
   ({ browserName }) => browserName !== 'chromium',
@@ -93,7 +93,7 @@ test('Save a copy, what gets smaller, with compare (design screenshot)', async (
   const file = testInfo.outputPath('field-report.pdf');
   await writeFile(file, await photoPdf());
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await chooser).setFiles(file);
   await expect(page.getByRole('tab', { name: 'field-report' })).toBeVisible();
 

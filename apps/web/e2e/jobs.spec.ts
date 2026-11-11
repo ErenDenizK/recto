@@ -22,9 +22,11 @@ import { expect, type Locator, type Page, test } from '@playwright/test';
 
 import {
   atRest,
+  EDIT_TEXT_ARMED,
   enterEdit,
   fixturePath,
   markupDoor,
+  openButton,
   openFindPanel,
   openFixtures,
   quiet,
@@ -37,7 +39,6 @@ import {
   useDownloadPath,
   useFileInputPicker,
   waitForSnapshot,
-  EDIT_TEXT_ARMED,
 } from './helpers';
 import { Job, type Presses } from './support/job-report';
 
@@ -243,7 +244,7 @@ test.describe('core jobs', () => {
     if (!isMobile) await page.setViewportSize({ width: 1440, height: 900 });
   });
 
-  test('V1-F1 Open: Open files…, Recents, the sample, a drop, ?sample', async ({
+  test('V1-F1 Open: Open or drop files, Recents, the sample, a drop, ?sample', async ({
     page,
     isMobile,
   }, info) => {
@@ -251,11 +252,11 @@ test.describe('core jobs', () => {
     await startJob(page);
     const job = new Job('V1-F1', 'Open', page, info);
     const home = page.getByTestId('home');
-    const openButton = home.getByRole('button', { name: 'Open files…' });
+    const openFiles = home.getByTestId('library-open');
 
-    await job.act('first visit: Open files… and pick', 2, async (p) => {
+    await job.act('first visit: Open or drop files and pick', 2, async (p) => {
       const chooser = page.waitForEvent('filechooser');
-      await p.press(openButton);
+      await p.press(openFiles);
       await p.gesture(async () => (await chooser).setFiles(fixturePath('simple-text.pdf')));
       await expect(rendered(page)).toBeVisible({ timeout: 20_000 });
     });
@@ -634,7 +635,7 @@ test.describe('core jobs', () => {
       const bytes = await readFile(await (await downloading).path());
       await page.keyboard.press('Escape');
       const chooser = page.waitForEvent('filechooser');
-      await page.getByRole('button', { name: 'Open files' }).first().click();
+      await openButton(page).click();
       await (await chooser).setFiles({
         name: 'edited.pdf',
         mimeType: 'application/pdf',
@@ -767,10 +768,7 @@ test.describe('core jobs', () => {
       null,
       async () => {
         const chooser = page.waitForEvent('filechooser');
-        await page
-          .getByRole('button', { name: /^(Open files|Open files…)$/ })
-          .first()
-          .click();
+        await openButton(page).click();
         await (await chooser).setFiles(fixturePath('demo/demo-agreement.pdf'));
         await expect(page.getByRole('tab', { name: 'demo-agreement' })).toBeVisible();
         await expect(rendered(page)).toBeAttached({ timeout: 20_000 });
@@ -840,7 +838,7 @@ test.describe('core jobs', () => {
       expect(saved.toString('latin1')).not.toContain(TOKEN);
       await page.keyboard.press('Escape');
       const chooser = page.waitForEvent('filechooser');
-      await page.getByRole('button', { name: 'Open files' }).first().click();
+      await openButton(page).click();
       await (await chooser).setFiles({
         name: 'redacted.pdf',
         mimeType: 'application/pdf',
@@ -909,7 +907,7 @@ test.describe('core jobs', () => {
         'open with a writable handle',
         null,
         async () => {
-          await page.getByRole('button', { name: 'Open files' }).first().click();
+          await openButton(page).click();
           await expect(page.getByRole('tab', { name: 'simple-text' })).toBeVisible();
         },
         { gate: true },
@@ -964,7 +962,7 @@ test.describe('core jobs', () => {
         if (browserName === 'chromium') {
           // The open picker is the stub's: it hands out the seeded file.
           await seedFile(page, 'images.pdf');
-          await page.getByRole('button', { name: 'Open files' }).first().click();
+          await openButton(page).click();
           await expect(page.getByRole('tab', { name: 'images' })).toBeVisible();
         } else {
           await openFixtures(page, ['images.pdf']);
@@ -1011,10 +1009,7 @@ test.describe('core jobs', () => {
       null,
       async () => {
         const chooser = page.waitForEvent('filechooser');
-        await page
-          .getByRole('button', { name: /^(Open files|Open files…)$/ })
-          .first()
-          .click();
+        await openButton(page).click();
         await (await chooser).setFiles(['compare-a.pdf', 'compare-b.pdf'].map(fixturePath));
         // Two files opened together land on the Library with both as cards (J12).
         await expect(page.getByRole('listbox', { name: 'Files' }).getByRole('option')).toHaveCount(

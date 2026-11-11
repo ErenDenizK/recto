@@ -59,31 +59,25 @@ test('the frame stays put while the privacy popover opens and closes', async ({ 
 test('the launcher says what Recto does and offers its first steps, in both languages', async ({
   page,
 }) => {
-  // 02-library L2, L10: the headline, the privacy line, Open files…, Combine files…, then Try the
-  // sample's card under the launcher (DSN-50).
+  // Colophon Home (DSN-93): the headline, Open or drop files, Combine, Sign, then the sample's
+  // card beside the launcher.
   await page.goto('./?lang=en');
   const launcher = page.getByTestId('library-launcher');
-  const sample = page.getByTestId('library-sample');
+  const sample = page.getByTestId('desk-sample');
   await expect(
-    launcher.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+    page.getByRole('heading', { name: 'Read, mark up, sign and arrange.' }),
   ).toBeVisible();
-  await expect(launcher.getByText('Nothing leaves this device.')).toBeVisible();
-  for (const name of ['Open files…', 'Combine files…']) {
+  await expect(launcher.getByTestId('library-open')).toHaveText('Open or drop files');
+  for (const name of ['Combine', 'Sign']) {
     await expect(launcher.getByRole('button', { name })).toBeVisible();
   }
-  await expect(sample).toHaveAccessibleName('Try the sample');
   await expect(sample).toBeVisible();
   await page.goto('./?lang=tr');
   await expect(
-    launcher.getByRole('heading', {
-      name: 'PDF’leri okuyun, işaretleyin, imzalayın ve sayfalarını düzenleyin.',
-    }),
+    page.getByRole('heading', { name: 'Okuyun, işaretleyin, imzalayın, düzenleyin.' }),
   ).toBeVisible();
-  await expect(launcher.getByText('Hiçbir şey bu cihazdan çıkmaz.')).toBeVisible();
-  for (const name of ['Dosya aç…', 'Dosyaları birleştir…']) {
-    await expect(launcher.getByRole('button', { name })).toBeVisible();
-  }
-  await expect(sample).toHaveAccessibleName('Örnek belgeyi dene');
+  await expect(launcher.getByTestId('library-open')).toHaveText('Dosya açın veya bırakın');
+  await expect(sample).toBeVisible();
 });
 
 test('the palette finds commands by keywords in both languages, without diacritics', async ({

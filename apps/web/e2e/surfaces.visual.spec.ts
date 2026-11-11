@@ -25,7 +25,15 @@ import { fileURLToPath } from 'node:url';
 import { expect, type Page, test } from '@playwright/test';
 import { createServer, type ViteDevServer } from 'vite';
 
-import { atRest, enterEdit, openFixtures, quiet, trackEngine, useFileInputPicker } from './helpers';
+import {
+  atRest,
+  enterEdit,
+  openButton,
+  openFixtures,
+  quiet,
+  trackEngine,
+  useFileInputPicker,
+} from './helpers';
 
 const WEB = fileURLToPath(new URL('..', import.meta.url));
 
@@ -119,7 +127,7 @@ test.describe('surfaces', () => {
 
   async function surfaces(page: Page, size: string): Promise<void> {
     await page.goto('./?lang=en');
-    await expect(page.getByRole('button', { name: /^Open files/ }).first()).toBeVisible();
+    await expect(openButton(page)).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
     await page.mouse.move(0, 0);
     await expect(page).toHaveScreenshot(`home-${size}.png`, SHOT);

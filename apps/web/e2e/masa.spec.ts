@@ -290,7 +290,9 @@ const framesOf = (page: Page) =>
 function expectOneObjectTravelling(frames: readonly Frame[]): void {
   const widths = frames.flatMap((f) => (f.clone ? [f.clone.width] : []));
   expect(widths.length, 'the cover was drawn').toBeGreaterThanOrEqual(2);
-  expect(Math.max(...widths), 'it grew').toBeGreaterThan(Math.min(...widths) * 1.4);
+  // The first-visit cover is 420 px wide (the Colophon mockup), so the page it grows into is
+  // about 1.26 times it, not the 1.4 of the old, smaller cover: the page must simply be larger.
+  expect(Math.max(...widths), 'it grew').toBeGreaterThan(Math.min(...widths) * 1.15);
   // The desk is the only screen until the cover flies: no reader chrome while it is held.
   const held = frames.filter((f) => f.hold && f.clone && !f.clone.phase.startsWith('flying'));
   for (const frame of held) {

@@ -25,17 +25,18 @@ import { expect, type Locator, type Page, test } from '@playwright/test';
 import {
   copySummary,
   enterEdit,
+  historyStep,
+  inHistory,
+  markAllMatches,
+  openButton,
+  openFindPanel,
   openFixtures,
   openSaveCopy,
-  inHistory,
-  historyStep,
   saveCopyBytes,
-  useDownloadPath,
-  useFileInputPicker,
-  markAllMatches,
-  openFindPanel,
   showSidebar,
   stageAsBesideInspector,
+  useDownloadPath,
+  useFileInputPicker,
 } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
@@ -180,7 +181,7 @@ test('mark by selection and by area, list them, export and re-open with the mark
 
   // 5. Re-open the export: the marks are still marks, listed in the panel.
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await chooser).setFiles({
     name: 'marked.pdf',
     mimeType: 'application/pdf',
@@ -352,7 +353,7 @@ test('apply marks made by selection, search and area; export; the re-opened expo
 
   // 6. Re-open the export in the app and search for the token: nothing.
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await chooser).setFiles({
     name: 'redacted.pdf',
     mimeType: 'application/pdf',

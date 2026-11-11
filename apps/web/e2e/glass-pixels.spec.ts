@@ -39,7 +39,7 @@ import { dirname } from 'node:path';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { useFileInputPicker } from './helpers';
+import { openButton, useFileInputPicker } from './helpers';
 import {
   BACKDROPS,
   COVERAGE_REGISTRY,
@@ -87,10 +87,7 @@ async function openBlankPage(page: Page, file: string): Promise<void> {
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   const chooser = page.waitForEvent('filechooser');
-  await page
-    .getByRole('button', { name: /^(Open files|Dosya aç)$/ })
-    .first()
-    .click();
+  await openButton(page).click();
   await (await chooser).setFiles(file);
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
     timeout: 30_000,

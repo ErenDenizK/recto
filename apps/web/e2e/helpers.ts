@@ -43,6 +43,17 @@ export async function useFileInputPicker(page: Page): Promise<void> {
   });
 }
 
+/**
+ * The button that opens files: the tab strip's + in a document; on Home (no tabs there, DSN-93)
+ * the library-open button. Use it wherever a spec starts from the Home page.
+ */
+export function openButton(page: Page): Locator {
+  return page
+    .getByRole('button', { name: /^(Open files|Dosya aç)$/ })
+    .or(page.getByTestId('library-open'))
+    .first();
+}
+
 /** Opens corpus files through the Open button and waits for their tabs. */
 export async function openFixtures(page: Page, names: readonly string[]): Promise<void> {
   const chooser = page.waitForEvent('filechooser');

@@ -13,13 +13,14 @@ import { readFile } from 'node:fs/promises';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
 import {
+  EDIT_TEXT_ARMED,
   fixturePath,
   historyStep,
   inHistory,
+  openButton,
   openFindPanel,
   openSaveCopy,
   useFileInputPicker,
-  EDIT_TEXT_ARMED,
 } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
@@ -38,7 +39,7 @@ test.beforeEach(async ({ page }) => {
 /** Opens `text-edit-corpus/<file>` and arms Edit text. */
 async function openCorpus(page: Page, file: string): Promise<void> {
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await chooser).setFiles(fixturePath(`text-edit-corpus/${file}`));
   await expect(page.getByRole('tab', { name: file.replace(/\.pdf$/, '') })).toBeVisible();
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
@@ -114,7 +115,7 @@ async function exportAndSearch(page: Page, name: string, query: string): Promise
   const bytes = await readFile(await (await downloadPromise).path());
   await page.keyboard.press('Escape');
   const reopen = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await reopen).setFiles({
     name: `${name}.pdf`,
     mimeType: 'application/pdf',

@@ -22,6 +22,7 @@ import {
   enterEdit,
   fixturePath,
   markAllMatches,
+  openButton,
   openFindPanel,
   openFixtures,
   showSidebar,
@@ -162,7 +163,7 @@ test('Mod+P prints the document as saved, through a frame where the browser has 
 
   // The printed text, read back by the app's own engine: the rest is there, the token is not.
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await chooser).setFiles({
     name: 'printed.pdf',
     mimeType: 'application/pdf',

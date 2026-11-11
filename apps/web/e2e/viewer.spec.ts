@@ -11,6 +11,7 @@ import { PDFDocument, PDFName, PDFString } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
 import {
+  openButton,
   openFixtures,
   PAGE_CANVAS,
   quiet,
@@ -303,7 +304,7 @@ test('the Review tab shows the first of 500 items within 100 ms, without a long 
   page,
 }) => {
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await chooser).setFiles({
     name: 'review-500.pdf',
     mimeType: 'application/pdf',

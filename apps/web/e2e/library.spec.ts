@@ -10,7 +10,7 @@
  * - **J14** back via Recents: 0 when the document was open as the browser closed (restored),
  *   else 1 (the row reopens the snapshot, no picker).
  *
- * Plus a card dragged with the mouse reorders the cards and the tabs, and the drop overlay over
+ * Plus a card dragged with the mouse reorders the cards, and the drop overlay over
  * a document. Script-built drops are Chromium's (as in batch.spec); the tablet project runs the
  * touch journeys (J3 by taps, J12 by long press and taps).
  */
@@ -320,13 +320,11 @@ test('J14 at zero: documents open when the browser closed are back after a reloa
   await waitForSnapshot(page);
   await page.reload();
   await sessionSettled(page);
-  await expectOpenDocuments(page, 2, 20_000);
+  // Home has no tabs (DSN-93): the open documents are its two cards.
+  await expect(cards(page)).toHaveCount(2, { timeout: 20_000 });
 });
 
-test('a card dragged with the mouse reorders the cards and the tabs', async ({
-  page,
-  browserName,
-}) => {
+test('a card dragged with the mouse reorders the cards', async ({ page, browserName }) => {
   test.skip(
     test.info().project.name === 'tablet',
     'Touch reorders with Alt+arrows for now (the touch drag is not wired)',
@@ -353,8 +351,7 @@ test('a card dragged with the mouse reorders the cards and the tabs', async ({
   await expect(
     cards(page).evaluateAll((els) => els.map((el) => el.getAttribute('aria-label')?.split(',')[0])),
   ).resolves.toEqual(['rotated-pages', 'mixed-sizes', 'simple-text']);
-  await expect(tabs(page).first()).toHaveAccessibleName(/^rotated-pages/);
-  // The drop did not open the dragged card.
+  // The drop did not open the dragged card (the tabs follow the cards' order once one opens).
   await expect(library(page)).toBeVisible();
 });
 

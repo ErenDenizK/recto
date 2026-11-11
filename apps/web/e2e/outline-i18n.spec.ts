@@ -60,13 +60,11 @@ test('the outline panel shows the bookmarks and navigates Read mode', async ({ p
 test('?lang= overrides the language without persisting it', async ({ page }) => {
   await page.goto('./?lang=tr');
   await expect(
-    page.getByRole('heading', {
-      name: 'PDF’leri okuyun, işaretleyin, imzalayın ve sayfalarını düzenleyin.',
-    }),
+    page.getByRole('heading', { name: 'Okuyun, işaretleyin, imzalayın, düzenleyin.' }),
   ).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
   // The Library's launcher speaks Turkish.
-  await expect(page.getByRole('button', { name: 'Dosya aç…' })).toBeVisible();
+  await expect(page.getByTestId('library-open')).toHaveText('Dosya açın veya bırakın');
 
   await page.goto('./');
   await expect(page.locator('html')).not.toHaveAttribute('lang', 'tr');
@@ -75,7 +73,7 @@ test('?lang= overrides the language without persisting it', async ({ page }) => 
 test('the Language command switches at runtime and persists', async ({ page }) => {
   await page.goto('./?lang=en');
   await expect(
-    page.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+    page.getByRole('heading', { name: 'Read, mark up, sign and arrange.' }),
   ).toBeVisible();
   // The command field left the strip (01-frame §0); ⌘K stays a key.
   await page.getByTestId('home-search').waitFor();
@@ -85,7 +83,7 @@ test('the Language command switches at runtime and persists', async ({ page }) =
 
   await expect(
     page.getByRole('heading', {
-      name: 'PDF’leri okuyun, işaretleyin, imzalayın ve sayfalarını düzenleyin.',
+      name: 'Okuyun, işaretleyin, imzalayın, düzenleyin.',
     }),
   ).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
@@ -94,7 +92,7 @@ test('the Language command switches at runtime and persists', async ({ page }) =
   await page.reload();
   await expect(
     page.getByRole('heading', {
-      name: 'PDF’leri okuyun, işaretleyin, imzalayın ve sayfalarını düzenleyin.',
+      name: 'Okuyun, işaretleyin, imzalayın, düzenleyin.',
     }),
   ).toBeVisible();
 });

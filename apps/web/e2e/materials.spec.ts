@@ -17,7 +17,7 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, pastDeadline, useFileInputPicker } from './helpers';
+import { fixturePath, openButton, pastDeadline, useFileInputPicker } from './helpers';
 import { emulateCores, useRenderOverride, withoutRenderOverride } from './support/render-override';
 
 /** language.md §2.8, G-32 (`state/render-quality.ts`, kept in step by hand). */
@@ -41,10 +41,7 @@ async function openManyPages(page: Page): Promise<void> {
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   const chooser = page.waitForEvent('filechooser');
-  await page
-    .getByRole('button', { name: /^(Open files|Dosya aç)$/ })
-    .first()
-    .click();
+  await openButton(page).click();
   await (await chooser).setFiles(fixturePath('many-pages.pdf'));
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
     timeout: 30_000,

@@ -36,7 +36,7 @@ import { dirname } from 'node:path';
 import { PDFDocument, rgb } from '@cantoo/pdf-lib';
 import { expect, type Page, test, type TestInfo } from '@playwright/test';
 
-import { atRest, PALETTES, useFileInputPicker, usePalette } from './helpers';
+import { atRest, openButton, PALETTES, useFileInputPicker, usePalette } from './helpers';
 import { decodePng, type Image, screenshotsShowBackdropFilters } from './support/pixels';
 
 test.use({
@@ -65,10 +65,7 @@ async function openStripes(page: Page, info: TestInfo): Promise<void> {
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   const chooser = page.waitForEvent('filechooser');
-  await page
-    .getByRole('button', { name: /^(Open files|Dosya aç)$/ })
-    .first()
-    .click();
+  await openButton(page).click();
   await (await chooser).setFiles(file);
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
     timeout: 30_000,
@@ -339,6 +336,9 @@ for (const palette of PALETTES) {
         // reaches 48 - 18 = 30 px at most, its last tail still 5/255 at 32: 40 px out is the
         // page's own.
         for (const [x, y] of [...curvePoints(box, 40, 'upper'), ...edgePoints(box, 40, 'top')]) {
+          // On the tablet the palette's end caps lie within 40 px of the window's edge: a point
+          // outside the frame has no pixel (the read would wrap to the previous row).
+          if (x < 0 || x >= mid.width) continue;
           const d = distance(pixel(mid, x, y), pixel(bare, x, y));
           check(
             d <= 4,

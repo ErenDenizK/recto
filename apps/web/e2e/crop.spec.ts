@@ -18,14 +18,15 @@ import { PDFDocument } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
 import {
+  historyStep,
+  inHistory,
+  openButton,
+  openFindPanel,
   openFixtures,
   openSaveCopy,
-  useFileInputPicker,
-  openFindPanel,
-  inHistory,
-  historyStep,
   showSidebar,
   stageAsBesideInspector,
+  useFileInputPicker,
 } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
@@ -125,7 +126,7 @@ test('crop every page with discard, export, re-open: cropped size, header gone, 
 
   // Re-open the export in the app (Read mode).
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await chooser).setFiles({
     name: 'cropped.pdf',
     mimeType: 'application/pdf',

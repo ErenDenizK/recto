@@ -14,6 +14,7 @@ import {
   atRest,
   enterEdit,
   fixturePath,
+  openButton,
   openFixtures,
   openSaveCopyFromMenu,
   PAGE_CANVAS,
@@ -47,7 +48,7 @@ const names = (walk: { surfaces: readonly { name: string; visible: boolean }[] }
 
 test('Home: the budget and the text on its glass', async ({ page }) => {
   await page.goto('./?lang=en');
-  await expect(page.getByRole('button', { name: /^Open files/ }).first()).toBeVisible();
+  await expect(openButton(page)).toBeVisible();
   await page.mouse.move(700, 450);
   const walk = await expectGlassClean(page, 'Home');
   // Q-11: within the four of a resting screen.
@@ -362,6 +363,8 @@ test.describe('the compact edition', () => {
 
   test('the reader, the title menu and the page overview', async ({ page }) => {
     await openCompact(page, 'outline-named-dests.pdf');
+    // The one capsule is its own lazy chunk (EDN-24): wait for it to stand before the walk.
+    await atRest(page.getByTestId('compact-capsule'));
     let walk = await expectGlassClean(page, 'compact reader');
     // The split top's circles (DSN-34, the default since DSN-37) and the capsule.
     expect(names(walk).some((n) => n.includes('circle'))).toBe(true);
@@ -373,10 +376,9 @@ test.describe('the compact edition', () => {
     // At rest: the menu's motion has gone (DSN-39, MOT-13).
     await expect(page.getByTestId('compact-file-menu')).not.toHaveAttribute('data-liquid');
     walk = await expectGlassClean(page, 'compact title menu');
-    // The top bar, the capsule, the reader's ✎ Edit button (M10 WP1, EDN-8) and the menu: Q-11's
-    // four at rest.
-    expect(names(walk).some((n) => n.includes('edit'))).toBe(true);
-    expect(walk.visible).toBe(4);
+    // The top bar, the capsule (the reader's ✎ Edit is one of its slots since the one-capsule
+    // default, EDN-24, DSN-93) and the menu: three of Q-11's four at rest.
+    expect(walk.visible).toBe(3);
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('compact-file-menu')).toHaveCount(0);
 

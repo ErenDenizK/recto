@@ -46,11 +46,12 @@ import { expect, type Page, test } from '@playwright/test';
 import {
   enterEdit,
   fixturePath,
+  frames,
+  openButton,
   openFixtures,
   openSaveCopyFromMenu,
   sessionSettled,
   useFileInputPicker,
-  frames,
 } from './helpers';
 import { expectGlassClean, settleAnimations } from './support/glass-walker';
 import {
@@ -174,7 +175,7 @@ test.describe('idle: no frames at rest (A-23, Q-10)', () => {
     test('Home', async ({ page }) => {
       await page.goto('./?lang=en');
       await sessionSettled(page);
-      await expect(page.getByRole('button', { name: /^Open files/ }).first()).toBeVisible();
+      await expect(openButton(page)).toBeVisible();
       await page.mouse.move(2, 450);
       expectIdle(await idleFor(page), 'Home');
     });
@@ -603,7 +604,7 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
   test('a centred dialog closed while it scales in', async ({ page }) => {
     await page.goto('./?lang=en');
     await sessionSettled(page);
-    await expect(page.getByRole('button', { name: /^Open files/ }).first()).toBeVisible();
+    await expect(openButton(page)).toBeVisible();
     const overlay = '[role="dialog"][data-presentation="dialog"]';
     const closing = interruptMidway(page, overlay, { kind: 'key', key: 'Escape' });
     await page.locator('body').press('?');
@@ -721,10 +722,7 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
     const region = page.getByRole('region', { name: 'Notifications' });
     const openDamaged = async () => {
       const chooser = page.waitForEvent('filechooser');
-      await page
-        .getByRole('button', { name: /^Open files/ })
-        .first()
-        .click();
+      await openButton(page).click();
       await (await chooser).setFiles({
         name: 'scan.pdf',
         mimeType: 'application/pdf',
@@ -928,7 +926,7 @@ async function openFile(page: Page, name = 'outline-named-dests.pdf'): Promise<v
 async function tour(page: Page, o: { readonly door: boolean }): Promise<void> {
   await page.goto('./?lang=en');
   await sessionSettled(page);
-  await expect(page.getByRole('button', { name: /^Open files/ }).first()).toBeVisible();
+  await expect(openButton(page)).toBeVisible();
   await settleAnimations(page);
   await startRecording(page);
 

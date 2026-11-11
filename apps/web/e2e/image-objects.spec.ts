@@ -12,13 +12,14 @@ import { readFile } from 'node:fs/promises';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
 import {
+  historyStep,
+  inHistory,
+  openButton,
   openFixtures,
   openSaveCopy,
-  inHistory,
-  historyStep,
-  useFileInputPicker,
   showSidebar,
   stageAsBesideInspector,
+  useFileInputPicker,
 } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
@@ -121,7 +122,7 @@ test('move an image 50 px, extract it as PNG, export and re-open: the image move
 
   // Re-open the export: the engine locates the image at its new place.
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await chooser).setFiles({ name: 'moved.pdf', mimeType: 'application/pdf', buffer: bytes });
   await expect(page.getByRole('tab', { name: 'moved' })).toBeVisible();
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({

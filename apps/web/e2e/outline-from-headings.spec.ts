@@ -8,7 +8,7 @@ import { writeFile } from 'node:fs/promises';
 import { PDFDocument, PDFName, StandardFonts } from '@cantoo/pdf-lib';
 import { expect, test } from '@playwright/test';
 
-import { downloadCopy, openSaveCopy, showSidebar, useFileInputPicker } from './helpers';
+import { downloadCopy, openButton, openSaveCopy, showSidebar, useFileInputPicker } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Download flow is verified on Chromium');
 
@@ -53,7 +53,7 @@ test('add bookmarks from headings: nest, undo, redo, save a copy', async ({ page
   await writeFile(source, await headingsPdf());
   await page.goto('./?lang=en');
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await chooser).setFiles(source);
   await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ 3 · /);
 
@@ -91,7 +91,7 @@ test('add bookmarks from headings: nest, undo, redo, save a copy', async ({ page
   await download.saveAs(saved);
 
   const reopen = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await openButton(page).click();
   await (await reopen).setFiles(saved);
   const reopened = page.getByRole('tree', { name: 'Contents of headings-bookmarked' });
   await expect(reopened.getByRole('treeitem', { name: 'Chapter One' })).toBeVisible();

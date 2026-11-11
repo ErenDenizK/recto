@@ -13,7 +13,7 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { atRest, fixturePath, openFixtures, useFileInputPicker } from './helpers';
+import { atRest, fixturePath, openButton, openFixtures, useFileInputPicker } from './helpers';
 
 /** The least visible name a tab may show, CSS px: a few characters, never a bare dot. */
 const MIN_LABEL = 40;
@@ -135,10 +135,7 @@ for (const lang of ['en', 'tr'] as const) {
     // Three more, then the last one active under a long name.
     await page.setViewportSize({ width: widths[widths.length - 1] ?? 1440, height });
     const chooser = page.waitForEvent('filechooser');
-    await page
-      .getByRole('button', { name: /^(Open files|Dosya aç)$/ })
-      .first()
-      .click();
+    await openButton(page).click();
     await (await chooser).setFiles(
       ['cropbox.pdf', 'tagged.pdf', 'colour-swatches.pdf'].map(fixturePath),
     );
