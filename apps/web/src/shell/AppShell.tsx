@@ -88,6 +88,13 @@ import { Stage } from './Stage';
 
 const MarginMap = lazy(() => import('./frame/margin/MarginMap'));
 
+/** Each aura tone's test id. */
+const AURA_TEST_IDS = {
+  library: 'library-aura',
+  grid: 'grid-aura',
+  reader: 'reader-glow',
+} as const;
+
 export function AppShell() {
   useShortcuts();
   const [dragging, setDragging] = useState(false);
@@ -143,7 +150,14 @@ export function AppShell() {
   // the Library's drifting light or the reader's still glow. Laid behind the stage rather than
   // inside it, so nothing that moves the free rectangle (a side sheet, the sidebar) cuts it or
   // leaves bare canvas at an edge.
-  const aura = !hasDocuments || view === 'home' ? 'library' : readerGlow ? 'reader' : null;
+  const aura =
+    !hasDocuments || view === 'home'
+      ? 'library'
+      : view === 'grid'
+        ? 'grid'
+        : readerGlow
+          ? 'reader'
+          : null;
   useFreeRect(shellRef, {
     offset: compact ? BAND_OFFSET_COMPACT : BAND_OFFSET,
     focus,
@@ -233,9 +247,7 @@ export function AppShell() {
         onDragLeave={onDragLeave}
         onDrop={onDrop}
       >
-        {aura ? (
-          <Aura tone={aura} testId={aura === 'library' ? 'library-aura' : 'reader-glow'} />
-        ) : null}
+        {aura ? <Aura tone={aura} testId={AURA_TEST_IDS[aura]} /> : null}
         <Stage dragging={dragging} />
         {view === 'page' ? <SoftEdge /> : null}
         {/* The margin map (DSN-72, `?margin=1`): its code loads only when the flag is on. */}

@@ -39,7 +39,8 @@
   opacity: 0.65;
 }
 
-.aura[data-tone='reader'] .lobe {
+.aura[data-tone='reader'] .lobe,
+.aura[data-tone='grid'] .lobe {
   animation: none;
   will-change: auto;
 }
@@ -159,6 +160,17 @@
   opacity: 0.4;
   animation-name: aura-drift-c;
   animation-duration: var(--loop-low);
+}
+
+/* Behind the page grid the two lobes stand a little stronger than on Home (which has the beam and
+   the cover's light besides), so the ground reads as the Aura; the pages and their numbers stay
+   well above it. Still: no drift. */
+.aura[data-tone='grid'] .lobe[data-lobe='teal'] {
+  opacity: 0.55;
+}
+
+.aura[data-tone='grid'] .lobe[data-lobe='home-mint'] {
+  opacity: 0.6;
 }
 
 @keyframes aura-drift-a {

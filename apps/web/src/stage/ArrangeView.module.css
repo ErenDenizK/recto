@@ -125,6 +125,16 @@
 }
 
 /*
+ * Over the aura (the shell's `[data-aura]`, AppShell.tsx) the header's canvas fills would be flat
+ * black bands across it, so they let it through; a section's cells then pass under a stuck header
+ * line, which stays legible on its own text colour.
+ */
+:global([data-aura]) .header,
+:global([data-aura]) .header::before {
+  background: transparent;
+}
+
+/*
  * The header is one quiet line (system-audit-2026-10 §4 Pages, I-33; owner feedback F4): the
  * collapse chevron and the section menu are S controls (`--control-h-sm`, 24 / 32), the source
  * dots, the title in body 600, then the count and the tags in footnote secondary as running

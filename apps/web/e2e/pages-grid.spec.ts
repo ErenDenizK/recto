@@ -316,6 +316,57 @@ test('the grid opens by one View Transition, the page morphing into its cell', a
   expect(seen).toEqual(['in', 'page-current']);
 });
 
+test('the Pages bar with pages selected is glyph-only: no words run together (DSN-91)', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name === 'tablet', 'the modifier click is the mouse path');
+  await open(page, ['simple-text.pdf']);
+  await enterGrid(page);
+  await cells(page)
+    .first()
+    .click({ modifiers: ['ControlOrMeta'] });
+  await expect(bar(page).getByRole('button', { name: 'Extract' })).toBeVisible();
+  await settled(page);
+  // Once the bar has finished its morph: only Done carries a visible word, slots never overlap
+  // and nothing overflows its own box.
+  await expect
+    .poll(() =>
+      bar(page).evaluate((root) => {
+        const items = [...root.querySelectorAll<HTMLElement>('[data-pages-item]')]
+          .filter((el) => el.getClientRects().length > 0)
+          .map((el) => {
+            const label = el.querySelector<HTMLElement>('[data-btn-label]');
+            const box = el.getBoundingClientRect();
+            return {
+              item: el.dataset.pagesItem ?? '',
+              left: box.left,
+              right: box.right,
+              shown: label !== null && getComputedStyle(label).display !== 'none',
+              overflows: el.scrollWidth > el.clientWidth,
+            };
+          })
+          .sort((x, y) => x.left - y.left);
+        const count = root.querySelector<HTMLElement>('[data-at-rest], [class*="count"]');
+        const countBox = count?.getBoundingClientRect();
+        const boxes = [
+          ...items.map((i) => ({ left: i.left, right: i.right })),
+          ...(countBox && countBox.width > 2 ? [countBox] : []),
+        ].sort((x, y) => x.left - y.left);
+        let overlap = 0;
+        for (let i = 1; i < boxes.length; i += 1) {
+          overlap = Math.max(overlap, (boxes[i - 1]?.right ?? 0) - (boxes[i]?.left ?? 0));
+        }
+        return {
+          words: items.filter((i) => i.shown).map((i) => i.item),
+          overflow: items.some((i) => i.overflows),
+          overlapping: overlap > 0.5,
+          hasExtract: items.some((i) => i.item === 'extract'),
+        };
+      }),
+    )
+    .toEqual({ words: ['done'], overflow: false, overlapping: false, hasExtract: true });
+});
+
 test('no header band: the title in the tab, scope and size float clear of the Pages bar', async ({
   page,
 }, info) => {

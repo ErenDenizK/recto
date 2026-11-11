@@ -52,12 +52,29 @@
   display: none;
 }
 
+/* Done (DSN-91), the one word the bar shows: a text pill as the palette's, wider than a slot and
+   without its glyph, so its word never lands on the count beside it. */
+.bar [data-pages-item='done']:not([data-icon-only]) {
+  width: auto;
+  padding-inline: 14px;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.bar [data-pages-item='done']:not([data-icon-only]) > svg {
+  display: none;
+}
+
 .bar [data-danger] {
   color: var(--danger);
 }
 
 .bar [data-danger][aria-disabled='true'] {
   color: var(--text-disabled);
+}
+
+.bar [data-icon-only] .caret {
+  display: none;
 }
 
 .bar .caret {
