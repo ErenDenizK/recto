@@ -49,7 +49,7 @@ export interface CompactToolSpec {
   /** The drawer's second row while this tool is armed. */
   readonly Options?: ComponentType;
   /**
-   * The single capsule's tray content while this tool is armed (EDN-24, Labs `phone-capsule`);
+   * The single capsule's tray content while this tool is armed (EDN-24);
    * the tray falls back to `Options`. Unused while the switch is off.
    */
   readonly Tray?: ComponentType;

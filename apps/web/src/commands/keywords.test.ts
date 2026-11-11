@@ -35,17 +35,6 @@ function allCommands(): CommandRegistry {
   return registry;
 }
 
-/** Runs `fn` with the desk flag on (`?desk=1`, DSN-87), then puts the address back. */
-function withDesk<T>(fn: () => T): T {
-  const before = location.href;
-  history.replaceState(null, '', '/?desk=1');
-  try {
-    return fn();
-  } finally {
-    history.replaceState(null, '', before);
-  }
-}
-
 /** Palette results in order, as the palette lists them for a query. */
 function search(registry: CommandRegistry, query: string): string[] {
   return buildSections(query, registry.list(), [], () => true).flatMap((s) =>
@@ -97,7 +86,7 @@ describe('keyword catalogs', () => {
   });
 
   it('names only commands that exist', () => {
-    const registry = withDesk(allCommands);
+    const registry = allCommands();
     const known = new Set(registry.list().map((c) => keywordMessageKey(c.id)));
     expect(enKeys.filter((key) => !known.has(key))).toEqual([]);
   });
@@ -202,11 +191,13 @@ describe('conversion names (R23-8)', () => {
   it.each(['en', 'tr'] as const)('finds each conversion in the %s UI', (locale) => {
     setLocale(locale);
     const registry = allCommands();
-    for (const [query, id] of cases) expect(search(registry, query)[0], query).toBe(id);
+    // The desk's own file commands (below) share these words, so either may lead.
+    for (const [query, id] of cases)
+      expect(search(registry, query).slice(0, 2), query).toContain(id);
   });
 });
 
-describe('the desk’s file commands (DSN-87)', () => {
+describe('the desk’s file commands (DSN-87, always registered since DSN-93)', () => {
   const cases: [string, string][] = [
     ['pdf to jpg', 'file.pdfToImages'],
     ["pdf'ten png", 'file.pdfToImages'],
@@ -217,21 +208,12 @@ describe('the desk’s file commands (DSN-87)', () => {
   ];
   it.each(['en', 'tr'] as const)('finds each by name with nothing open in the %s UI', (locale) => {
     setLocale(locale);
-    const registry = withDesk(allCommands);
+    const registry = allCommands();
     for (const [query, id] of cases) {
       expect(search(registry, query), query).toContain(id);
       const command = registry.list().find((c) => c.id === id);
       expect(command === undefined ? false : registry.isEnabled(command), id).toBe(true);
     }
-  });
-
-  it('registers none of them with the flag off', () => {
-    const ids = allCommands()
-      .list()
-      .map((c) => c.id);
-    expect(ids).not.toContain('file.signPdf');
-    expect(ids).not.toContain('file.imagesToPdf');
-    expect(ids).not.toContain('file.pdfToImages');
   });
 });
 

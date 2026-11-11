@@ -44,8 +44,6 @@ import { m } from '../i18n';
 import { isSampleFile } from '../sample/sample-file';
 import { lockOf, useLockStore } from '../state/lock-store';
 import { adoptFileFacts, fileFactsOf } from '../state/saved-store';
-import { deskEnabled } from '../home/desk-flag';
-import { homeFlagEnabled, HOME_CONTINUE_FLAG } from '../home/home-flags';
 import { documentUi, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { readJson, writeJson } from '../state/safe-storage';
@@ -324,19 +322,17 @@ export function startSession(options: StartOptions): () => void {
   let stopped = false;
   let unwatch: (() => void) | undefined;
   setDataset('session', 'restoring');
-  // Where each document was left, for the Library's Continue (DSN-66), behind its flag.
+  // Where each document was left, for the Library's Continue (DSN-66).
   let stopResume: (() => void) | undefined;
-  if (homeFlagEnabled(HOME_CONTINUE_FLAG)) {
-    void import('./resume-view').then((view) => {
-      if (stopped) return;
-      resumeHook.of = view.resumeDetailOf;
-      const stopWatch = view.watchResume(() => resumeHook.note?.());
-      stopResume = () => {
-        stopWatch();
-        delete resumeHook.of;
-      };
-    });
-  }
+  void import('./resume-view').then((view) => {
+    if (stopped) return;
+    resumeHook.of = view.resumeDetailOf;
+    const stopWatch = view.watchResume(() => resumeHook.note?.());
+    stopResume = () => {
+      stopWatch();
+      delete resumeHook.of;
+    };
+  });
   // Covers and places for the desk (DSN-87), loaded after the first paint's work.
   let stopCovers: (() => void) | undefined;
   const compact = options.edition === 'compact';
@@ -548,10 +544,10 @@ async function launch(ctl: Controller, tabId: string, options: StartOptions): Pr
   const active = manifest.history.entries[manifest.history.present]?.activeDocument;
   const only = compact ? (active ?? manifest.documents[0]?.id) : undefined;
   const outcome = await restoreSession(storage, manifest, only === undefined ? {} : { only });
-  // The desk (DSN-87, owner question Q1, lead default B, behind the desk flag): a new launch
+  // The desk (DSN-87, owner question Q1, lead default B): a new launch
   // (another tab's session, not this tab's own after a reload) lands on the desk with its
   // documents behind it as open cards and Continue focused; a reload returns into the document.
-  if (!compact && deskEnabled() && manifest.tabId !== tabId && outcome.restored.length > 0) {
+  if (!compact && manifest.tabId !== tabId && outcome.restored.length > 0) {
     useUiStore.setState({ destination: 'home' });
   }
   // Documents that did not load (a skipped password prompt, an engine failure) go to Recents

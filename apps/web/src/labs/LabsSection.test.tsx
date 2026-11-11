@@ -55,13 +55,13 @@ describe('LabsSection', () => {
   it('lists only the rows of this edition', () => {
     launchAs('compact');
     const { unmount } = render(<LabsSection />);
-    expect(screen.getByRole('switch', { name: 'One capsule on the phone' })).toBeVisible();
+    expect(screen.getByRole('switch', { name: 'Text view' })).toBeVisible();
     expect(screen.queryByRole('switch', { name: 'Margin map' })).toBeNull();
     unmount();
     launchAs('full');
     render(<LabsSection />);
     expect(screen.getByRole('switch', { name: 'Margin map' })).toBeVisible();
-    expect(screen.queryByRole('switch', { name: 'One capsule on the phone' })).toBeNull();
+    expect(screen.queryByRole('switch', { name: 'Text view' })).toBeNull();
   });
 
   it('picks a value of a multi-value flag', async () => {

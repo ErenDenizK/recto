@@ -1,8 +1,8 @@
 /**
  * The phone's single capsule flag (EDN-24, EDN-29, DSN-82): the one-capsule bottom bar is the
  * default; `?phonebar=0` brings the shipped drawer and capsule back for this page load (kept one
- * wave, EDN-29) and `?phonebar=1` is the default spelled out. Nothing is stored here, and the
- * Labs toggle (`phone-capsule`) no longer decides: it goes with the closing step.
+ * wave, EDN-29) and `?phonebar=1` is the default spelled out. Nothing is stored here and
+ * there is no Labs toggle.
  * Read once per page, as `top-variant.ts` does, so the bar never swaps under the reader.
  */
 export const PHONE_CAPSULE_PARAM = 'phonebar';

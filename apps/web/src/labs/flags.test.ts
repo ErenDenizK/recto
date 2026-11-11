@@ -43,8 +43,8 @@ describe('resolveFlag', () => {
 
   it('turns a shared parameter on only with its own word', () => {
     expect(resolveFlag(flag('home-search'), '?home=search', {}, null).value).toBe('1');
-    expect(resolveFlag(flag('home-continue'), '?home=search', {}, null).source).toBe('default');
-    expect(resolveFlag(flag('open-light'), '?open=light', {}, null).value).toBe('1');
+    expect(resolveFlag(flag('open-page'), '?home=search', {}, null).source).toBe('default');
+    expect(resolveFlag(flag('open-page'), '?open=page', {}, null).value).toBe('1');
   });
 
   it('keeps a choice to its values and falls back to the default', () => {
@@ -63,14 +63,6 @@ describe('resolveFlag', () => {
     expect(decidePaletteVariant('?palette=row', 'groups')).toBe('row');
     expect(decideHomeFlag(HOME_SEARCH_FLAG, '', '1')).toBe(true);
     expect(decideHomeFlag(HOME_SEARCH_FLAG, '?home=0', '1')).toBe(false);
-  });
-
-  it('resolves the phone capsule: the address, then Labs, off by default', () => {
-    const capsule = flag('phone-capsule');
-    expect(resolveFlag(capsule, '', {}, null)).toEqual({ value: '0', source: 'default' });
-    expect(resolveFlag(capsule, '?phonebar=1', {}, null)).toEqual({ value: '1', source: 'url' });
-    expect(resolveFlag(capsule, '', { 'phone-capsule': '1' }, null).source).toBe('labs');
-    expect(resolveFlag(capsule, '?phonebar=0', { 'phone-capsule': '1' }, null).value).toBe('0');
   });
 
   it('resolves the text view: the address, then Labs, off by default, on the phone', () => {
@@ -93,8 +85,7 @@ describe('anyFlagOnByAddress', () => {
     expect(anyFlagOnByAddress('?margin=0&top=split')).toBe(false);
     expect(anyFlagOnByAddress('?margin=1')).toBe(true);
     expect(anyFlagOnByAddress('?top=capsule')).toBe(true);
-    expect(anyFlagOnByAddress('?phonebar=1')).toBe(true);
-    expect(anyFlagOnByAddress('?phonebar=0')).toBe(false);
+    expect(anyFlagOnByAddress('?phonebar=1')).toBe(false);
   });
 });
 

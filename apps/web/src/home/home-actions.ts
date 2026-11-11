@@ -49,7 +49,7 @@ import { stageView, useUiStore } from '../state/ui-store';
 import { addLoadedSource, type LoadedSources, useWorkspaceStore } from '../state/workspace-store';
 import { toast } from '../ui/Toast/toast';
 import { combinedTitle, combineOrder, compareOrder, liveSelection, movedOrder } from './home-model';
-import { HOME_CONTINUE_FLAG, homeFlagEnabled, OPEN_PAGE_FLAG } from './home-flags';
+import { homeFlagEnabled, OPEN_PAGE_FLAG } from './home-flags';
 import { coverKey, prefetchCovers } from './covers';
 import './desk-painted';
 import { backToLibraryMorph, openFromDesk } from './library-morph';
@@ -589,8 +589,8 @@ async function reopen(entry: RecentEntry): Promise<void> {
     if (kept?.ok) {
       setRecentNote(null);
       const { place } = kept.record;
-      // Behind `?home=continue` a kept document opens at its zoom and offset too (3c).
-      if (place.resume !== undefined && homeFlagEnabled(HOME_CONTINUE_FLAG)) {
+      // A kept document opens at its zoom and offset too (3c).
+      if (place.resume !== undefined) {
         const total = kept.record.pages;
         const point = { ...place.resume, page: place.page, total, at: Date.now() };
         // The desk's own resume after this open (`openEntryAtPlace`) finds the page reached.

@@ -8,7 +8,6 @@
 import type { DocumentId } from '@pdf-editor/document-model';
 
 import { lazyModule } from '../motion/lazy';
-import { homeFlagEnabled, OPEN_LIGHT_FLAG } from './home-flags';
 import type { OpenSeed } from './library-transition';
 
 export const libraryTransition = lazyModule(() => import('./library-transition'));
@@ -27,14 +26,10 @@ export function backToLibraryMorph(show: () => void): void {
 }
 
 /**
- * The phone's open behind `?open=light` (DSN-64): a paper sheet grows out of the tapped Library
- * `row` into the reader's page and the light answers; without the flag, `open` alone.
+ * The phone's open (DSN-64): a paper sheet grows out of the tapped Library `row` into the
+ * reader's page and the light answers.
  */
 export function openRowMorph(row: HTMLElement | null, open: () => void): void {
-  if (!homeFlagEnabled(OPEN_LIGHT_FLAG)) {
-    open();
-    return;
-  }
   libraryTransition.run((module) => module.openRowMorph(row, open), open);
 }
 
