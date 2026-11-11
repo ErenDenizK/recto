@@ -14,6 +14,17 @@ const layer = (page: Page) => page.locator('[data-annotation-layer="0"]');
 /** Types a box at a fraction of the first page; returns the field's colour while typing. */
 async function typeBox(page: Page, at: [number, number], label: string): Promise<string> {
   await page.locator('body').press('t');
+  // Measure and click once the tool is armed and the capsule's morph to the palette has
+  // ended (L16): a click during the morph, or on a box measured before it, places no box.
+  await expect(layer(page)).not.toHaveAttribute('data-tool', 'select');
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => Number.isFinite(Number(a.effect?.getComputedTiming().endTime)))
+        .map((a) => a.finished.catch(() => undefined)),
+    ),
+  );
   const box = await layer(page).boundingBox();
   if (!box) throw new Error('page not rendered');
   await page.mouse.click(box.x + box.width * at[0], box.y + box.height * at[1]);
