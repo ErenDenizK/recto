@@ -1,17 +1,22 @@
 /**
  * `pnpm check`: the media budgets (spec §2.4, §8 "Image budgets"). Prints one row per
- * published file with its size, limit and share of it, then the README's first-view
- * total, and exits non-zero on any file over its limit, any budgeted file that is missing,
- * or any published file without a budget (so a new output cannot skip the check).
+ * published file with its size, limit and share of it, then the README's committed copies in
+ * docs/media/ (DSN-97) and their total, and exits non-zero on any file over its limit, any
+ * budgeted file that is missing, or any published file without a budget (so a new output
+ * cannot skip the check).
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { BUDGETS_FILE, MEDIA_DIR } from './paths.ts';
+import { BUDGETS_FILE, MEDIA_DIR, README_MEDIA_DIR } from './paths.ts';
 
 interface Budgets {
   readonly files: Readonly<Record<string, number>>;
-  readonly readme: { readonly limit: number; readonly files: readonly string[] };
+  readonly readme: {
+    readonly limit: number;
+    readonly fileLimit: number;
+    readonly files: Readonly<Record<string, unknown>>;
+  };
 }
 
 /** Not media: published beside it, never budgeted. */
@@ -49,11 +54,28 @@ function main(): number {
     ]);
   }
 
-  const readmeTotal = budgets.readme.files.reduce((sum, name) => sum + (sizes.get(name) ?? 0), 0);
+  // The README's committed copies (DSN-97): each under its own limit, and their total.
+  let readmeTotal = 0;
+  for (const name of Object.keys(budgets.readme.files)) {
+    const path = join(README_MEDIA_DIR, name);
+    const size = existsSync(path) ? statSync(path).size : undefined;
+    readmeTotal += size ?? 0;
+    let status: string;
+    if (size === undefined) status = 'MISSING';
+    else status = size <= budgets.readme.fileLimit ? 'ok' : 'OVER';
+    if (status !== 'ok') failures += 1;
+    rows.push([
+      `docs/media/${name}`,
+      size === undefined ? '-' : kb(size),
+      kb(budgets.readme.fileLimit),
+      size === undefined ? '' : `${Math.round((size / budgets.readme.fileLimit) * 100)}%`,
+      status,
+    ]);
+  }
   const readmeOk = readmeTotal <= budgets.readme.limit;
   if (!readmeOk) failures += 1;
   rows.push([
-    `README first view (${budgets.readme.files.length} files)`,
+    `README media (${Object.keys(budgets.readme.files).length} files)`,
     kb(readmeTotal),
     kb(budgets.readme.limit),
     `${Math.round((readmeTotal / budgets.readme.limit) * 100)}%`,

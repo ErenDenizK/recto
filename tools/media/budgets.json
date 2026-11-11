@@ -1,5 +1,5 @@
 {
-  "$comment": "Size limits per published file in out/media/ (docs/specs/presentation.md \u00a72.4), in bytes, decimal (1 KB = 1000 B). `check` fails on a file over its limit, on a listed file that is missing, and on a file with no entry. `readme` lists the files the README shows on first view; their total has its own limit. `social.png` is the social preview and og:image (spec \u00a74: under 1 MB).",
+  "$comment": "Size limits per published file in out/media/ (docs/specs/presentation.md \u00a72.4), in bytes, decimal (1 KB = 1000 B). `check` fails on a file over its limit, on a listed file that is missing, and on a file with no entry. `readme` lists the README's committed copies in docs/media/ (DSN-97), each from a scene, with a per-file and a total limit; `pnpm readme` writes them and `check` checks them. `social.png` is the social preview and og:image (spec \u00a74: under 1 MB).",
   "files": {
     "00-hero.png": 600000,
     "00-hero.webp": 600000,
@@ -43,16 +43,34 @@
     "10-phone.mp4": 1500000,
     "10-phone.webm": 1500000,
     "10-phone.poster.webp": 1500000,
-    "social.png": 999999
+    "social.png": 999999,
+    "11-home.png": 600000,
+    "11-home.webp": 600000
   },
   "readme": {
-    "limit": 12000000,
-    "files": [
-      "00-hero.png",
-      "02-move-pages.gif",
-      "03-redact.gif",
-      "04-recognise-scan.gif",
-      "05-compare.gif"
-    ]
+    "limit": 8000000,
+    "fileLimit": 2000000,
+    "files": {
+      "home.webp": {
+        "scene": "11-home"
+      },
+      "open-many.gif": {
+        "scene": "01-open-many"
+      },
+      "markup.gif": {
+        "scene": "09-markup"
+      },
+      "sign.gif": {
+        "scene": "07-sign",
+        "width": 800
+      },
+      "redact.gif": {
+        "scene": "03-redact",
+        "width": 800
+      },
+      "phone.gif": {
+        "scene": "10-phone"
+      }
+    }
   }
 }

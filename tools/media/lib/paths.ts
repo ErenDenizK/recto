@@ -12,6 +12,8 @@ export const TOOL_DIR = fileURLToPath(root);
 export const OUT_DIR = fileURLToPath(new URL('out/', root));
 export const MEDIA_DIR = fileURLToPath(new URL('out/media/', root));
 export const REQUEST_LOG = fileURLToPath(new URL('out/requests.log', root));
+/** The README's committed copies (DSN-97), written by `pnpm readme`. */
+export const README_MEDIA_DIR = fileURLToPath(new URL('../../docs/media/', root));
 export const BUDGETS_FILE = fileURLToPath(new URL('budgets.json', root));
 
 /** The working directory of one scene. */
