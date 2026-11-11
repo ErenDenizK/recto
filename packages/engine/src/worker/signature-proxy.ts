@@ -4,7 +4,7 @@
  * (detached in the caller); pass copies when the caller still needs them. Results come back
  * transferred. Call `terminate()` after signing: the worker, and every key it imported, ends.
  */
-import { proxy, releaseProxy, transfer, wrap } from 'comlink';
+import { proxy, transfer, wrap } from 'comlink';
 
 import {
   type EngineCallOptions,
@@ -147,7 +147,7 @@ export function createSignatureProxy(
       }
     },
     terminate() {
-      remote[releaseProxy]();
+      // No Comlink release: it is a request only the worker can answer, and the worker ends here.
       worker.terminate();
     },
   };

@@ -4,6 +4,7 @@ import { registerAppCommands } from './commands/app-commands';
 import { commandRegistry } from './commands/registry';
 import { registerDocumentCommands } from './document/document-commands';
 import { DocumentSheetsHost } from './document/DocumentSheetsHost';
+import { scheduleEnginePrewarm } from './engine/engine-prewarm';
 import { getEngineService } from './engine/engine-service';
 import { SaveCopyHost } from './export/SaveCopyHost';
 import { useLocale } from './i18n';
@@ -40,6 +41,10 @@ export function App() {
   useLayoutEffect(() => startSignatureValidation(), []);
   // Snapshots on this device and restore on launch (ADR-0032 §2.4, §2.5).
   useLayoutEffect(() => startSession({ edition: 'full' }), []);
+  // The engine starts once the first screen has painted, ahead of the first open (PF-24). Here, in
+  // the full edition's own chunk, and not in `main.tsx`: the first paint's closure (V1-P1) is at
+  // its growth cap.
+  useLayoutEffect(scheduleEnginePrewarm, []);
   // The teaching sample: ⌘K "Try the sample", and `?sample` once the restore is over (D4-2).
   useLayoutEffect(() => registerSampleCommands(commandRegistry), [locale]);
   useLayoutEffect(() => openSampleFromLink(openSample), []);
