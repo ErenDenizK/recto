@@ -27,9 +27,7 @@
  */
 import wasmUrl from '@embedpdf/pdfium/pdfium.wasm?url';
 // Vite's `?worker` constructor: the worker script is fetched only when one is constructed.
-import AnalysisWorker from '@pdf-editor/engine/analysis.worker?worker';
 import PdfiumWorker from '@pdf-editor/engine/pdfium.worker?worker';
-import SignatureWorker from '@pdf-editor/engine/signature.worker?worker';
 import {
   createRandomIdGenerator,
   type Rect,
@@ -37,14 +35,10 @@ import {
   type SourceId,
 } from '@pdf-editor/document-model';
 import type {
-  AnalysisProxy,
   decideOverflow,
   EngineCallOptions,
-  EngineErrorCode,
   GlyphOutlineSegment,
   layoutParagraph,
-  OcrPackStore,
-  OcrRecognizer,
   OpenedDocument,
   PdfEditor,
   PdfImageEditor,
@@ -63,241 +57,76 @@ import type {
   ParagraphRef,
   SaveOptions,
   SearchHit,
-  SignatureProxy,
   TextRun,
   VerificationExpectation,
   VerificationResult,
 } from '@pdf-editor/engine';
 
-import { displayedSize, displayRectToUser, userRectToCss } from '../viewer/geometry';
 import { endAssembler, getAssembler } from './assembler-client';
-import type * as Parking from './engine-parking';
-
 import { BitmapCache, type CachedBitmap, bitmapKey, pageKey } from './bitmap-cache';
+import {
+  clippedRepaintBox,
+  intersects,
+  MAX_CLIPPED_REPAINTS,
+  type PageShape,
+  unionRect,
+} from './clipped-repaint';
+import { CallGate } from './engine-gate';
+import type * as Parking from './engine-parking';
+import { type EngineResult, fail, ok, toFailure } from './engine-result';
+import { setPdfiumModule, startupMark } from './engine-startup';
+import {
+  type Job,
+  RenderQueue,
+  type RenderRequest,
+  type Subscriber,
+  tileAwareKey,
+  tileAwarePage,
+  tileOf,
+} from './render-queue';
 
+// The public surface stays this module's: the pieces split out of it are re-exported here.
 export type { CachedBitmap } from './bitmap-cache';
-
-// ---------------------------------------------------------------------------
-// Results
-// ---------------------------------------------------------------------------
-
-export type EngineFailureCode = EngineErrorCode | 'password-cancelled' | 'read-failed';
-
-export interface EngineFailure {
-  readonly code: EngineFailureCode;
-  readonly message: string;
-}
-
-export type EngineResult<T> =
-  | { readonly ok: true; readonly value: T }
-  | { readonly ok: false; readonly error: EngineFailure };
-
-export const ok = <T>(value: T): EngineResult<T> => ({ ok: true, value });
-export const fail = <T>(code: EngineFailureCode, message: string): EngineResult<T> => ({
-  ok: false,
-  error: { code, message },
-});
-
-const ENGINE_CODES: readonly string[] = [
-  'password-required',
-  'password-incorrect',
-  'unsupported-encryption',
-  'corrupt',
-  'unsupported',
-  'out-of-memory',
-  'aborted',
-  'internal',
-];
-
-/** Maps anything thrown by an adapter to a typed failure (duck-typed on `code`). */
-export function toFailure(error: unknown): EngineFailure {
-  const code = (error as { code?: unknown } | null)?.code;
-  const message = error instanceof Error ? error.message : String(error);
-  if (typeof code === 'string' && ENGINE_CODES.includes(code)) {
-    return { code: code as EngineErrorCode, message };
-  }
-  if (error instanceof DOMException && error.name === 'AbortError') {
-    return { code: 'aborted', message };
-  }
-  return { code: 'internal', message };
-}
-
-// ---------------------------------------------------------------------------
-// Render scales
-// ---------------------------------------------------------------------------
-
-/*
- * A render scale is device pixels per PDF point; it names a bitmap in the cache
- * (`bitmap-cache.ts`). Two kinds of scale are used:
- *
- * - Exact scales (`chooseScale`) for final Read-mode renders and tiles: the bitmap maps 1:1
- *   onto the page sheet's device pixels, so the browser never resamples PDFium's
- *   anti-aliased glyphs. Rounded to 4 decimals so equal zooms share one cache key.
- * - Quarter-octave buckets (`chooseBucket`, 2^(k/4)) for thumbnails, where a few shared
- *   variants matter more than 1:1 pixels (at most ~19% oversampling, downscaled by CSS).
- *
- * Previews (`EngineService.preview`) take any cached scale, whatever its kind.
- */
-const STEPS_PER_OCTAVE = 4;
-const MIN_BUCKET = 1 / 64;
-const MAX_BUCKET = 16;
-/** Largest bitmap we render in one piece (~64 MB). Beyond this, tiles (`TiledPage`) help. */
-export const MAX_BITMAP_PIXELS = 4096 * 4096;
-/**
- * Read mode's whole-page budget on every edition (4 MP, 16 MB a page; PF-19): a fit-width
- * page at 1440 × 900 and DPR 2 would otherwise be a 9.35 MP bitmap for every mounted page,
- * offscreen ones included, and on a DPR 3 phone a page at 2× is 6–16 MP, where browsers cap
- * the canvas memory of a tab. Above it the base bitmap is capped and the visible page is
- * covered by exact-scale tiles (`TiledPage`), so what is in view stays 1:1. A Letter or A4
- * page at 100% on a DPR 2 screen (3.5 MP) is under it and drawn whole, as before.
- */
-export const READ_BITMAP_PIXELS = 2048 * 2048;
-
-function roundScale(value: number): number {
-  return Math.round(value * 10_000) / 10_000;
-}
-
-/** Smallest bucket >= scale. */
-export function scaleBucket(scale: number): number {
-  const safe = Number.isFinite(scale) && scale > 0 ? scale : 1;
-  const k = Math.ceil(Math.log2(safe) * STEPS_PER_OCTAVE - 1e-9);
-  return roundScale(Math.min(MAX_BUCKET, Math.max(MIN_BUCKET, 2 ** (k / STEPS_PER_OCTAVE))));
-}
-
-/** Largest bucket <= scale. */
-export function scaleBucketBelow(scale: number): number {
-  const safe = Number.isFinite(scale) && scale > 0 ? scale : 1;
-  const k = Math.floor(Math.log2(safe) * STEPS_PER_OCTAVE + 1e-9);
-  return roundScale(Math.min(MAX_BUCKET, Math.max(MIN_BUCKET, 2 ** (k / STEPS_PER_OCTAVE))));
-}
-
-/** Largest scale at which a `widthPt` × `heightPt` page stays within `maxPixels`. */
-function maxScaleFor(widthPt: number, heightPt: number, maxPixels = MAX_BITMAP_PIXELS): number {
-  return Math.sqrt(Math.min(maxPixels, MAX_BITMAP_PIXELS) / Math.max(1, widthPt * heightPt));
-}
-
-/**
- * The bucket to render a thumbnail at: at least `scale` (device pixels per point), but
- * never more than `MAX_BITMAP_PIXELS` for a page of `widthPt` × `heightPt`.
- */
-export function chooseBucket(scale: number, widthPt: number, heightPt: number): number {
-  const wanted = scaleBucket(scale);
-  const maxScale = maxScaleFor(widthPt, heightPt);
-  return wanted <= maxScale ? wanted : scaleBucketBelow(maxScale);
-}
-
-/** Bounds of an exact scale (zoom 500% at DPR 3 is 20); the pixel cap bounds the rest. */
-const MAX_EXACT_SCALE = 64;
-
-/** `scale` made finite, clamped and rounded to 4 decimals (a stable cache key). */
-export function exactScaleKey(scale: number): number {
-  const safe = Number.isFinite(scale) && scale > 0 ? scale : 1;
-  return roundScale(Math.min(MAX_EXACT_SCALE, Math.max(MIN_BUCKET, safe)));
-}
-
-/**
- * The scale to render a Read-mode page at: exactly `scale` (`exactScaleKey`) so the bitmap
- * is drawn 1:1, or, when that would exceed `maxPixels` (at most `MAX_BITMAP_PIXELS`), the
- * largest bucket below the cap (the page is then capped and `TiledPage` covers it with
- * exact-scale tiles). Read mode passes a smaller budget (`READ_BITMAP_PIXELS`).
- */
-export function chooseScale(
-  scale: number,
-  widthPt: number,
-  heightPt: number,
-  maxPixels = MAX_BITMAP_PIXELS,
-): number {
-  const wanted = exactScaleKey(scale);
-  const maxScale = maxScaleFor(widthPt, heightPt, maxPixels);
-  return wanted <= maxScale ? wanted : scaleBucketBelow(maxScale);
-}
-
-/** True when `chooseScale` caps the page below `scale` (so tiles are needed). */
-export function isCapped(
-  scale: number,
-  widthPt: number,
-  heightPt: number,
-  maxPixels = MAX_BITMAP_PIXELS,
-): boolean {
-  return chooseScale(scale, widthPt, heightPt, maxPixels) < exactScaleKey(scale);
-}
-
-/**
- * Device pixels per point that make a page `widthPt` wide fill `cssWidth` CSS pixels
- * exactly: the sheet's whole device-pixel width over its width in points.
- */
-export function exactScale(cssWidth: number, widthPt: number, dpr: number): number {
-  const device = Math.max(1, Math.round(cssWidth * dpr));
-  return exactScaleKey(device / Math.max(1e-3, widthPt));
-}
-
-/** Side of a bitmap PDFium renders: EmbedPDF sizes it `max(1, round(side × scale))`. */
-export function bitmapSide(sidePt: number, scale: number): number {
-  return Math.max(1, Math.round(sidePt * scale));
-}
-
-/**
- * CSS size of a Read-mode page sheet at `cssScale` (CSS px per point), snapped to whole
- * device pixels and matched to the bitmap `chooseScale(exactScale(…))` renders: the width
- * is the nearest device pixel, the height is what EmbedPDF makes of the page height at
- * that exact scale (`bitmapSide`), so the canvas backing store and the sheet agree pixel
- * for pixel and the canvas is never resampled. The height may therefore be up to about a
- * device pixel off `heightPt × cssScale × dpr` (the aspect ratio follows the snapped width).
- *
- * Exactness limits: the 4-decimal scale moves `widthPt × scale` by at most
- * `widthPt × 5e-5` px (0.03 px for Letter), so widths agree for pages under ~10,000 pt;
- * PDFium reports page sizes as float32, which can flip a side lying on exactly .5 px by one
- * pixel. Either way the bitmap is then stretched by one pixel, as before this snapping.
- * At DPR 1.5 or 3 the browser stores the CSS size in 1/64 px layout units, so it lands
- * within 1/64 CSS px of the device-pixel size and painting snaps it to whole pixels.
- */
-export function sheetSize(
-  widthPt: number,
-  heightPt: number,
-  cssScale: number,
-  dpr: number,
-): { readonly width: number; readonly height: number } {
-  const ratio = dpr > 0 && Number.isFinite(dpr) ? dpr : 1;
-  const width = Math.max(1, Math.round(widthPt * cssScale * ratio));
-  const scale = exactScale(width / ratio, widthPt, ratio);
-  return { width: width / ratio, height: bitmapSide(heightPt, scale) / ratio };
-}
-
-// ---------------------------------------------------------------------------
-// Queue
-// ---------------------------------------------------------------------------
-
-/** Higher runs first. */
-export const RENDER_PRIORITY = { page: 3, visible: 2, offscreen: 1 } as const;
-
-export interface RenderRequest {
-  readonly sourceId: SourceId;
-  readonly index: number;
-  /** Rotation on top of the page's intrinsic /Rotate (VirtualPage.rotation). */
-  readonly rotation: Rotation;
-  /** Device pixels per point: from `chooseScale` (Read mode) or `chooseBucket` (thumbnails). */
-  readonly bucket: number;
-  readonly priority: number;
-  readonly signal?: AbortSignal;
-  /**
-   * Render only this rectangle (unrotated user space) — a tile of a page too large to
-   * render in one piece. `tile` names it in the cache (e.g. `t1024:2,3`); both or neither.
-   */
-  readonly clip?: Rect;
-  readonly tile?: string;
-  /**
-   * Without annotations and form widgets: the page as its content alone, for "see the
-   * original" (docs/plan/v1/PLAN.md S2-1a, the title menu's eye). Cached apart from the
-   * page's own bitmaps, as a tile is (`#bare`), so neither ever stands in for the other.
-   */
-  readonly bare?: boolean;
-}
-
-/** The cache's name for a request's tile, with the bare form marked (`RenderRequest.bare`). */
-function tileOf(request: Pick<RenderRequest, 'tile' | 'bare'>): string | undefined {
-  if (request.bare !== true) return request.tile;
-  return request.tile === undefined ? 'bare' : `${request.tile}+bare`;
-}
+export { clippedRepaintBox, MAX_CLIPPED_REPAINTS } from './clipped-repaint';
+export {
+  type EngineFailure,
+  type EngineFailureCode,
+  type EngineResult,
+  fail,
+  ok,
+  toFailure,
+} from './engine-result';
+export { STARTUP_MARKS, sharedPdfiumModule } from './engine-startup';
+export { RENDER_PRIORITY, type RenderRequest } from './render-queue';
+export {
+  bitmapSide,
+  chooseBucket,
+  chooseScale,
+  exactScale,
+  exactScaleKey,
+  isCapped,
+  MAX_BITMAP_PIXELS,
+  READ_BITMAP_PIXELS,
+  scaleBucket,
+  scaleBucketBelow,
+  sheetSize,
+} from './render-scale';
+export {
+  ANALYSIS_IDLE_MS,
+  type AnalysisLease,
+  AnalysisWorkerHost,
+  createSignatureWorker,
+  getAnalysisWorkers,
+  getOcrRecognizers,
+  getSignatureWorkers,
+  ocrBaseUrl,
+  OCR_RECOGNIZER_IDLE_MS,
+  OcrRecognizerHost,
+  type OcrRecognizerLease,
+  type OcrRecognizerParts,
+  SIGNATURE_IDLE_MS,
+  SignatureWorkerHost,
+} from './worker-hosts';
 
 /** Options of `EngineService.search` (PdfRenderer.search). */
 export interface SearchOptions {
@@ -308,33 +137,6 @@ export interface SearchOptions {
 /** Text runs kept per page by `getPageText` (a small LRU; evicted on close). */
 const TEXT_CACHE_PAGES = 400;
 
-interface Subscriber {
-  readonly priority: number;
-  readonly resolve: (result: EngineResult<CachedBitmap>) => void;
-}
-
-interface Job {
-  readonly key: string;
-  readonly page: string;
-  readonly request: RenderRequest;
-  readonly controller: AbortController;
-  readonly subscribers: Set<Subscriber>;
-  readonly seq: number;
-  running: boolean;
-  /** Set by `close`: the source went away, so a late result must not be cached. */
-  sourceClosed: boolean;
-  /** Set by `invalidatePage`: the page changed while this job ran; its result is stale. */
-  stale: boolean;
-}
-
-/** What a clipped repaint needs of a page: its unrotated CropBox size, /Rotate and origin. */
-interface PageShape {
-  readonly size: { readonly width: number; readonly height: number };
-  readonly rotation: Rotation;
-  readonly originX: number;
-  readonly originY: number;
-}
-
 /** A bitmap the service cached, as it was requested (for clipped repaints). */
 interface RenderedEntry {
   readonly key: string;
@@ -344,64 +146,6 @@ interface RenderedEntry {
   readonly bucket: number;
   readonly clip?: Rect;
   readonly tile?: string;
-}
-
-/** Whole-page bitmaps of one page a clipped repaint patches (the most recent); older go. */
-export const MAX_CLIPPED_REPAINTS = 4;
-
-/**
- * Where a clipped repaint of `rect` (user space) lands in a cached page bitmap of
- * `width` × `height` px rendered with `rotation` on top of the page's /Rotate: the box in
- * whole bitmap pixels that covers it, and the user-space clip that renders exactly that box.
- * Undefined when the rect misses the page.
- */
-export function clippedRepaintBox(
-  shape: PageShape,
-  rotation: Rotation,
-  rect: Rect,
-  width: number,
-  height: number,
-): { left: number; top: number; width: number; height: number; clip: Rect } | undefined {
-  const frame = {
-    size: shape.size,
-    originX: shape.originX,
-    originY: shape.originY,
-    rotation: ((shape.rotation + rotation) % 360) as Rotation,
-    scale: 1,
-  };
-  const shown = displayedSize(frame);
-  if (!(shown.width > 0 && shown.height > 0 && width > 0 && height > 0)) return undefined;
-  // The bitmap's own pixels per point on each axis (EmbedPDF rounds its size).
-  const sx = width / shown.width;
-  const sy = height / shown.height;
-  const box = userRectToCss(frame, rect);
-  const left = Math.max(0, Math.floor(box.left * sx));
-  const top = Math.max(0, Math.floor(box.top * sy));
-  const right = Math.min(width, Math.ceil((box.left + box.width) * sx));
-  const bottom = Math.min(height, Math.ceil((box.top + box.height) * sy));
-  if (right <= left || bottom <= top) return undefined;
-  const clip = displayRectToUser(frame, {
-    left: left / sx,
-    top: top / sy,
-    width: (right - left) / sx,
-    height: (bottom - top) / sy,
-  });
-  return { left, top, width: right - left, height: bottom - top, clip };
-}
-
-function intersects(a: Rect, b: Rect): boolean {
-  return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
-}
-
-function unionRect(a: Rect, b: Rect): Rect {
-  const x = Math.min(a.x, b.x);
-  const y = Math.min(a.y, b.y);
-  return {
-    x,
-    y,
-    width: Math.max(a.x + a.width, b.x + b.width) - x,
-    height: Math.max(a.y + a.height, b.y + b.height) - y,
-  };
 }
 
 export type PasswordPrompt = (request: {
@@ -457,6 +201,11 @@ export interface EngineServiceOptions {
   /** Render jobs in flight at once. PDFium has one worker; 2 keeps it busy. */
   readonly concurrency?: number;
   readonly newSourceId?: () => SourceId;
+  /**
+   * Gate the renderer's non-render calls behind Read-mode page renders (engine-gate.ts, PF-24).
+   * Off by default, so a test double sees its calls at once; the app's service turns it on.
+   */
+  readonly gateCalls?: boolean;
   /** Record `performance` marks for renders (defaults to dev builds). */
   readonly timings?: boolean;
   /**
@@ -468,6 +217,9 @@ export interface EngineServiceOptions {
 
 /** How long the engine worker lives with no source open (PF-18). */
 export const WORKER_IDLE_MS = 10_000;
+
+/** How long a pre-warmed worker (`prewarm`, PF-24) is kept for a first open before PF-18 ends it. */
+export const PREWARM_HOLD_MS = 45_000;
 
 type ParkingModule = typeof Parking;
 
@@ -484,10 +236,12 @@ export class EngineService {
   renderer: Promise<RendererLike> | undefined;
   private readonly createRenderer: () => RendererLike | Promise<RendererLike>;
   private readonly cache: BitmapCache;
-  private readonly concurrency: number;
   private readonly newSourceId: () => SourceId;
   private readonly timings: boolean;
-  private readonly jobs = new Map<string, Job>();
+  private readonly queue: RenderQueue;
+  private readonly gate: CallGate | undefined;
+  /** Sources the service opened: the user's documents, whose calls the gate never holds. */
+  private readonly userSources = new Set<string>();
   /** Original bytes of every open source (see the module comment). */
   /** @internal engine-parking.ts */
   readonly retained = new Map<SourceId, Blob>();
@@ -500,9 +254,10 @@ export class EngineService {
   /** CropBox per page of every open source, when the engine reports it. */
   /** @internal engine-parking.ts */
   readonly cropBoxes = new Map<SourceId, readonly (Rect | undefined)[]>();
-  /** @internal engine-parking.ts */
-  running = 0;
-  private seq = 0;
+  /** Render jobs running now (`canEnd`). @internal engine-parking.ts */
+  get running(): number {
+    return this.queue.running;
+  }
   private passwordPrompt: PasswordPrompt | undefined;
   /** Content revision per `${sourceId}:${index}`, bumped by `invalidatePage`. */
   private readonly revisions = new Map<string, number>();
@@ -553,7 +308,18 @@ export class EngineService {
   constructor(options: EngineServiceOptions) {
     this.createRenderer = options.createRenderer;
     this.cache = new BitmapCache(options.cacheBudgetBytes);
-    this.concurrency = Math.max(1, options.concurrency ?? 2);
+    this.gate = options.gateCalls
+      ? new CallGate({
+          visibleSources: () => this.queue.visibleSources(),
+          renderSources: () => this.queue.renderSources(),
+          foreground: (source) => this.userSources.has(source),
+        })
+      : undefined;
+    this.queue = new RenderQueue(
+      Math.max(1, options.concurrency ?? 2),
+      (job) => this.run(job),
+      () => this.gate?.poke(),
+    );
     this.idleMs = options.idleMs ?? WORKER_IDLE_MS;
     const ids = createRandomIdGenerator();
     this.newSourceId = options.newSourceId ?? (() => ids.source());
@@ -566,7 +332,9 @@ export class EngineService {
   engine(): Promise<RendererLike> {
     this.lastUse = Date.now();
     if (this.renderer === undefined) {
-      const created = Promise.resolve().then(() => this.createRenderer());
+      const created = Promise.resolve()
+        .then(() => this.createRenderer())
+        .then((renderer) => this.gate?.wrap(renderer) ?? renderer);
       created.catch(() => {
         if (this.renderer === created) this.renderer = undefined;
       });
@@ -574,6 +342,19 @@ export class EngineService {
       this.armIdle();
     }
     return this.renderer;
+  }
+
+  /**
+   * Starts the worker ahead of the first open (PF-24): its script, the wasm fetch and compile,
+   * the instantiate. It is kept `PREWARM_HOLD_MS`, then PF-18's idle end applies as for any
+   * worker with nothing open. A no-op while a worker is running.
+   */
+  prewarm(): void {
+    if (this.renderer !== undefined) return;
+    const release = this.hold();
+    void this.engine().then(() => {
+      setTimeout(release, PREWARM_HOLD_MS);
+    }, release);
   }
 
   /** Called when the worker ended for idleness: holders of its proxies drop them. */
@@ -841,6 +622,8 @@ export class EngineService {
     sourceId?: SourceId,
   ): Promise<EngineResult<OpenedSource>> {
     const id = sourceId ?? this.newSourceId();
+    // The user's document from here on (kept for undo's reopen, so never removed: ids are small).
+    this.userSources.add(id);
     let attempt = password;
     let tries = 0;
     for (;;) {
@@ -901,10 +684,10 @@ export class EngineService {
    */
   dropRendering(sourceId: SourceId, reason: string): void {
     const prefix = `${sourceId}:`;
-    for (const job of [...this.jobs.values()]) {
+    for (const job of [...this.queue.jobs.values()]) {
       if (!job.key.startsWith(prefix)) continue;
       job.sourceClosed = true;
-      this.cancel(job, reason);
+      this.queue.cancel(job, reason);
     }
     this.cache.removeSource(sourceId);
     this.forgetRendered(prefix);
@@ -972,14 +755,14 @@ export class EngineService {
     } catch (error) {
       return { ok: false, error: toFailure(error) };
     } finally {
-      for (const job of [...this.jobs.values()]) {
+      for (const job of [...this.queue.jobs.values()]) {
         if (!job.key.startsWith(prefix)) continue;
         if (!job.running) {
-          this.cancel(job, 'Source reopened');
+          this.queue.cancel(job, 'Source reopened');
           continue;
         }
         job.stale = true;
-        if (this.jobs.get(job.key) === job) this.jobs.delete(job.key);
+        if (this.queue.jobs.get(job.key) === job) this.queue.jobs.delete(job.key);
       }
       this.cache.removeSource(sourceId);
       this.forgetRendered(prefix);
@@ -1172,18 +955,18 @@ export class EngineService {
     );
     this.forgetRendered(prefix);
     this.cache.removePrefix(prefix);
-    for (const job of [...this.jobs.values()]) {
+    for (const job of [...this.queue.jobs.values()]) {
       if (!job.key.startsWith(prefix)) continue;
       if (!job.running) {
         // Not started: nothing to wait for. Its requesters resolve as aborted and ask again
         // (PageCanvas re-requests on the revision change below).
-        this.cancel(job, 'Page changed');
+        this.queue.cancel(job, 'Page changed');
         continue;
       }
       // Running: let it finish (PDFium cannot stop mid-page) but never cache or share its
       // result; new requests start a fresh job.
       job.stale = true;
-      if (this.jobs.get(job.key) === job) this.jobs.delete(job.key);
+      if (this.queue.jobs.get(job.key) === job) this.queue.jobs.delete(job.key);
     }
     const key = `${sourceId}:${index}`;
     this.revisions.set(key, (this.revisions.get(key) ?? 0) + 1);
@@ -1217,10 +1000,10 @@ export class EngineService {
   requestClippedRepaint(sourceId: SourceId, index: number, rectInPage: Rect): void {
     const pageId = `${sourceId}:${index}`;
     const prefix = `${pageId}:`;
-    for (const job of [...this.jobs.values()]) {
+    for (const job of [...this.queue.jobs.values()]) {
       if (!job.key.startsWith(prefix) || !job.running) continue;
       job.stale = true;
-      if (this.jobs.get(job.key) === job) this.jobs.delete(job.key);
+      if (this.queue.jobs.get(job.key) === job) this.queue.jobs.delete(job.key);
     }
     const tracked = this.rendered.get(pageId);
     const pages: RenderedEntry[] = [];
@@ -1405,6 +1188,11 @@ export class EngineService {
     );
   }
 
+  /** Resolves once the call gate has decided the calls made so far (tests). */
+  gateDrained(): Promise<void> {
+    return this.gate?.drained() ?? Promise.resolve();
+  }
+
   get cacheStats(): { readonly entries: number; readonly bytes: number; readonly budget: number } {
     return {
       entries: this.cache.size,
@@ -1415,7 +1203,7 @@ export class EngineService {
 
   /** Jobs queued or running; for tests and diagnostics. */
   get pendingJobs(): number {
-    return this.jobs.size;
+    return this.queue.jobs.size;
   }
 
   renderPage(request: RenderRequest): Promise<EngineResult<CachedBitmap>> {
@@ -1429,75 +1217,24 @@ export class EngineService {
     if (signal?.aborted) return Promise.resolve(fail('aborted', 'Render aborted'));
 
     return new Promise((resolve) => {
-      let job = this.jobs.get(key);
-      if (job === undefined) {
-        job = {
-          key,
-          page: tileAwarePage(pageKey(sourceId, index, rotation), tile),
-          request,
-          controller: new AbortController(),
-          subscribers: new Set(),
-          seq: this.seq++,
-          running: false,
-          sourceClosed: false,
-          stale: false,
-        };
-        this.jobs.set(key, job);
-      }
+      const job = this.queue.job(
+        key,
+        tileAwarePage(pageKey(sourceId, index, rotation), tile),
+        request,
+      );
       const subscriber: Subscriber = { priority: request.priority, resolve };
       job.subscribers.add(subscriber);
-      const current = job;
       signal?.addEventListener(
         'abort',
         () => {
-          if (!current.subscribers.delete(subscriber)) return;
+          if (!job.subscribers.delete(subscriber)) return;
           resolve(fail('aborted', 'Render aborted'));
-          if (current.subscribers.size === 0) this.cancel(current, 'No longer needed');
+          if (job.subscribers.size === 0) this.queue.cancel(job, 'No longer needed');
         },
         { once: true },
       );
-      this.pump();
+      this.queue.pump();
     });
-  }
-
-  private priorityOf(job: Job): number {
-    let max = -Infinity;
-    for (const s of job.subscribers) max = Math.max(max, s.priority);
-    return max;
-  }
-
-  private cancel(job: Job, reason: string): void {
-    if (this.jobs.get(job.key) === job) this.jobs.delete(job.key);
-    job.controller.abort(new DOMException(reason, 'AbortError'));
-    for (const s of job.subscribers) s.resolve(fail('aborted', reason));
-    job.subscribers.clear();
-  }
-
-  private next(): Job | undefined {
-    let best: Job | undefined;
-    let bestPriority = -Infinity;
-    for (const job of this.jobs.values()) {
-      if (job.running) continue;
-      const priority = this.priorityOf(job);
-      if (priority > bestPriority || (priority === bestPriority && best && job.seq < best.seq)) {
-        best = job;
-        bestPriority = priority;
-      }
-    }
-    return best;
-  }
-
-  private pump(): void {
-    while (this.running < this.concurrency) {
-      const job = this.next();
-      if (job === undefined) return;
-      job.running = true;
-      this.running += 1;
-      void this.run(job).finally(() => {
-        this.running -= 1;
-        this.pump();
-      });
-    }
   }
 
   private async run(job: Job): Promise<void> {
@@ -1544,7 +1281,7 @@ export class EngineService {
     } catch (error) {
       result = { ok: false, error: toFailure(error) };
     }
-    if (this.jobs.get(job.key) === job) this.jobs.delete(job.key);
+    if (this.queue.jobs.get(job.key) === job) this.queue.jobs.delete(job.key);
     for (const s of job.subscribers) s.resolve(result);
     job.subscribers.clear();
   }
@@ -1595,7 +1332,7 @@ export class EngineService {
 
   /** Terminates the worker and drops every cached bitmap. */
   async destroy(): Promise<void> {
-    for (const job of [...this.jobs.values()]) this.cancel(job, 'Engine destroyed');
+    for (const job of [...this.queue.jobs.values()]) this.queue.cancel(job, 'Engine destroyed');
     this.cache.clear();
     this.retained.clear();
     this.passwords.clear();
@@ -1614,19 +1351,6 @@ export class EngineService {
     }
   }
 }
-
-/**
- * Cache identity of a tile: its own "page" (`…:rotation#tile`) so tiles never stand in for
- * a whole-page preview (`BitmapCache.best`), yet `removeSource` still drops them.
- */
-function tileAwarePage(page: string, tile: string | undefined): string {
-  return tile === undefined ? page : `${page}#${tile}`;
-}
-
-function tileAwareKey(page: string, tile: string | undefined, bucket: number): string {
-  return `${tileAwarePage(page, tile)}:${bucket}`;
-}
-
 /** Per-page CropBoxes when the engine reports them (see `pageCropBox`). */
 export function readCropBoxes(document: OpenedDocument): readonly (Rect | undefined)[] {
   // Defensive: test doubles may omit `pages`.
@@ -1649,50 +1373,7 @@ export function readShapes(document: OpenedDocument): readonly PageShape[] {
   }));
 }
 
-/**
- * The start-up marks (docs/plan/v1/PLAN.md W1-g, PF-2 and PF-4; perf-audit.md item 2), as
- * `pdf-editor.startup.<name>` `performance` marks, each recorded once per session: the engine requested (the
- * first open; the wasm download starts here), the PDFium worker configured (its proxy made from
- * the client chunk; the configuration is posted as soon as the wasm is compiled), the wasm
- * compiled and the worker running on it, the document opened, and the first page's bitmap.
- * `e2e/startup.spec.ts` reports them beside the open time.
- */
-export const STARTUP_MARKS = [
-  'engine-requested',
-  'worker-configured',
-  'wasm-compiled',
-  'document-opened',
-  'first-page-bitmap',
-] as const;
-
-const marked = new Set<string>();
-
-function startupMark(name: (typeof STARTUP_MARKS)[number]): void {
-  if (marked.has(name) || typeof performance?.mark !== 'function') return;
-  marked.add(name);
-  try {
-    performance.mark(`pdf-editor.startup.${name}`);
-  } catch {
-    // Timing is best effort.
-  }
-}
-
 let instance: EngineService | undefined;
-/** The PDFium worker's compiled wasm (PF-4), once the renderer has asked for it. */
-let pdfiumModule: Promise<WebAssembly.Module | undefined> | undefined;
-
-/**
- * The compiled `pdfium.wasm` of the PDFium worker, to hand to the compress and signature workers
- * (PF-4), when this browser can post a module; `undefined` before the first document opens, or
- * where it cannot (the worker then loads the wasm from its URL).
- */
-export async function sharedPdfiumModule(): Promise<WebAssembly.Module | undefined> {
-  const module = await pdfiumModule;
-  if (module === undefined) return undefined;
-  const { postableModule } = await import('@pdf-editor/engine/client');
-  return postableModule(module);
-}
-
 /**
  * The app-wide engine service. The PDFium worker starts on first use (ARCHITECTURE.md §2:
  * loaded on first document open), and only the light client entry
@@ -1702,6 +1383,7 @@ export async function sharedPdfiumModule(): Promise<WebAssembly.Module | undefin
  */
 export function getEngineService(): EngineService {
   instance ??= new EngineService({
+    gateCalls: true,
     createRenderer: async () => {
       startupMark('engine-requested');
       // The wasm download starts now, beside the worker's script and the client chunk (PF-2);
@@ -1731,7 +1413,7 @@ export function getEngineService(): EngineService {
         });
         startupMark('worker-configured');
         const module = compiledModule(proxy);
-        pdfiumModule = module;
+        setPdfiumModule(module);
         void import('../tools/compress-client').then(({ sharePdfiumModule }) =>
           sharePdfiumModule(module),
         );
@@ -1751,304 +1433,4 @@ async function compiledModule(proxy: PdfiumProxy): Promise<WebAssembly.Module | 
   const module = await proxy.compiledWasm();
   if (module !== undefined) startupMark('wasm-compiled');
   return module;
-}
-
-// ---------------------------------------------------------------------------
-// Signature worker (M5 spec recognize-and-compare §3, ADR-0013)
-// ---------------------------------------------------------------------------
-
-/** The shared signature worker ends after this long without a call (spec §3.2). */
-export const SIGNATURE_IDLE_MS = 5 * 60_000;
-
-/** A new signature worker (`@pdf-editor/engine/signature.worker`) behind its proxy. */
-export async function createSignatureWorker(): Promise<SignatureProxy> {
-  // Constructed first so the worker script loads while the engine chunk does.
-  const worker = new SignatureWorker({ name: 'recto signature' });
-  try {
-    const [{ createSignatureProxy }, pdfiumWasm] = await Promise.all([
-      import('@pdf-editor/engine/client'),
-      sharedPdfiumModule(),
-    ]);
-    // The self-hosted PDFium lets the worker compare the signed revision's pages with the
-    // file's (spec §3.1 step 6): a page that looks different is never "changed nothing". The
-    // PDFium worker's compiled module spares it a second compile (PF-4).
-    return createSignatureProxy(worker, {
-      pdfiumWasmUrl: wasmUrl,
-      ...(pdfiumWasm === undefined ? {} : { pdfiumWasm }),
-    });
-  } catch (error) {
-    worker.terminate();
-    throw error;
-  }
-}
-
-/**
- * The signature worker's lifecycle. Validation on open and "View signed version" share one
- * long-lived worker (`run`), terminated `idleMs` after its last call ends; signing takes a
- * worker of its own (`dedicated`), which the caller terminates right after signing so the
- * imported key goes with it (ADR-0013 §2).
- */
-export class SignatureWorkerHost {
-  private shared: Promise<SignatureProxy> | undefined;
-  private timer: ReturnType<typeof setTimeout> | undefined;
-  private busy = 0;
-
-  constructor(
-    private readonly create: () => Promise<SignatureProxy> = createSignatureWorker,
-    private readonly idleMs: number = SIGNATURE_IDLE_MS,
-  ) {}
-
-  /** True while the shared worker exists (started and not yet terminated). */
-  get alive(): boolean {
-    return this.shared !== undefined;
-  }
-
-  /** Runs `task` on the shared worker, starting it when needed. */
-  async run<T>(task: (proxy: SignatureProxy) => Promise<T>): Promise<T> {
-    this.busy += 1;
-    if (this.timer !== undefined) clearTimeout(this.timer);
-    this.timer = undefined;
-    try {
-      if (this.shared === undefined) {
-        const created = this.create();
-        created.catch(() => {
-          if (this.shared === created) this.shared = undefined;
-        });
-        this.shared = created;
-      }
-      return await task(await this.shared);
-    } finally {
-      this.busy -= 1;
-      if (this.busy === 0) {
-        this.timer = setTimeout(() => {
-          this.timer = undefined;
-          this.terminate();
-        }, this.idleMs);
-      }
-    }
-  }
-
-  /** A worker for one signing; the caller must `terminate()` it when done. */
-  dedicated(): Promise<SignatureProxy> {
-    return this.create();
-  }
-
-  /** Ends the shared worker now (idle timeout, tests). A later `run` starts a new one. */
-  terminate(): void {
-    if (this.timer !== undefined) clearTimeout(this.timer);
-    this.timer = undefined;
-    const current = this.shared;
-    this.shared = undefined;
-    void current?.then(
-      (proxy) => proxy.terminate(),
-      () => undefined,
-    );
-  }
-}
-
-let signatureHost: SignatureWorkerHost | undefined;
-
-/** The app-wide signature worker host (the worker itself starts on first use). */
-export function getSignatureWorkers(): SignatureWorkerHost {
-  signatureHost ??= new SignatureWorkerHost();
-  return signatureHost;
-}
-
-// ---------------------------------------------------------------------------
-// Analysis worker (M5 spec recognize-and-compare §2, §4): compare and convert
-// ---------------------------------------------------------------------------
-
-/** The analysis worker ends after this long with no lease held. */
-export const ANALYSIS_IDLE_MS = 2 * 60_000;
-
-/** A hold on the analysis worker: it stays alive until every lease is released. */
-export interface AnalysisLease {
-  readonly proxy: AnalysisProxy;
-  /** Idempotent; the worker ends `ANALYSIS_IDLE_MS` after the last lease is released. */
-  release(): void;
-}
-
-/**
- * The analysis worker (`@pdf-editor/engine/analysis.worker`, pure JS), started on first use
- * and terminated after `idleMs` without a lease. A comparison holds its lease while its
- * result (heat maps) is on screen; a conversion for the length of the run.
- */
-export class AnalysisWorkerHost {
-  private shared: Promise<AnalysisProxy> | undefined;
-  private timer: ReturnType<typeof setTimeout> | undefined;
-  private leases = 0;
-
-  constructor(
-    private readonly create: () => Promise<AnalysisProxy> = async () => {
-      const worker = new AnalysisWorker({ name: 'recto analysis' });
-      try {
-        const { createAnalysisProxy } = await import('@pdf-editor/engine');
-        return createAnalysisProxy(worker);
-      } catch (error) {
-        worker.terminate();
-        throw error;
-      }
-    },
-    private readonly idleMs: number = ANALYSIS_IDLE_MS,
-  ) {}
-
-  get alive(): boolean {
-    return this.shared !== undefined;
-  }
-
-  async acquire(): Promise<AnalysisLease> {
-    this.leases += 1;
-    if (this.timer !== undefined) clearTimeout(this.timer);
-    this.timer = undefined;
-    let released = false;
-    const release = () => {
-      if (released) return;
-      released = true;
-      this.leases -= 1;
-      if (this.leases > 0) return;
-      this.timer = setTimeout(() => this.terminate(), this.idleMs);
-    };
-    if (this.shared === undefined) {
-      const created = this.create();
-      created.catch(() => {
-        if (this.shared === created) this.shared = undefined;
-      });
-      this.shared = created;
-    }
-    try {
-      return { proxy: await this.shared, release };
-    } catch (error) {
-      release();
-      throw error;
-    }
-  }
-
-  /** Ends the worker now; calls in flight reject with `aborted`. */
-  terminate(): void {
-    if (this.timer !== undefined) clearTimeout(this.timer);
-    this.timer = undefined;
-    const current = this.shared;
-    this.shared = undefined;
-    void current?.then(
-      (proxy) => proxy.dispose(),
-      () => undefined,
-    );
-  }
-}
-
-let analysisHost: AnalysisWorkerHost | undefined;
-
-/** The app-wide analysis worker host (the worker itself starts on first `acquire`). */
-export function getAnalysisWorkers(): AnalysisWorkerHost {
-  analysisHost ??= new AnalysisWorkerHost();
-  return analysisHost;
-}
-
-// ---------------------------------------------------------------------------
-// OCR recognizer (M5 spec recognize-and-compare §1.1, ADR-0012)
-// ---------------------------------------------------------------------------
-
-/** The recognizer pool is disposed this long after the last run released it (spec §1.1). */
-export const OCR_RECOGNIZER_IDLE_MS = 60_000;
-
-/** A hold on the recognizer: it stays alive until every lease is released. */
-export interface OcrRecognizerLease {
-  readonly recognizer: OcrRecognizer;
-  /** Idempotent; the pool is disposed `OCR_RECOGNIZER_IDLE_MS` after the last release. */
-  release(): void;
-}
-
-/** What the host creates on first use: the recognizer and the pack loader it reads from. */
-export interface OcrRecognizerParts {
-  readonly recognizer: OcrRecognizer;
-  readonly packs: OcrPackStore;
-}
-
-/** The served `ocr/` directory (ADR-0012 §2): on the app's own origin, under the base path. */
-export function ocrBaseUrl(): string {
-  return `${import.meta.env.BASE_URL}ocr/`;
-}
-
-/**
- * The OCR recognizer's lifecycle. tesseract.js (a lazy chunk) posts pages to its own
- * classic workers, served from our origin; the pool of one or two recognizers is started by
- * the first run and kept `idleMs` after the last lease is released, so a second run right
- * after the first does not start the engine again. The pack loader (`OcrPackStore`) is
- * shared with the language manager, which never starts a recognizer.
- */
-export class OcrRecognizerHost {
-  private parts: Promise<OcrRecognizerParts> | undefined;
-  private timer: ReturnType<typeof setTimeout> | undefined;
-  private leases = 0;
-
-  constructor(
-    private readonly create: () => Promise<OcrRecognizerParts> = async () => {
-      const { createOcrRecognizer, OcrPackStore } = await import('@pdf-editor/engine/client');
-      const packs = new OcrPackStore({ baseUrl: ocrBaseUrl() });
-      return { recognizer: createOcrRecognizer({ baseUrl: ocrBaseUrl(), packs }), packs };
-    },
-    private readonly idleMs: number = OCR_RECOGNIZER_IDLE_MS,
-  ) {}
-
-  private load(): Promise<OcrRecognizerParts> {
-    if (this.parts === undefined) {
-      const created = this.create();
-      created.catch(() => {
-        if (this.parts === created) this.parts = undefined;
-      });
-      this.parts = created;
-    }
-    return this.parts;
-  }
-
-  /** The language pack loader (no recognizer is started). */
-  async packs(): Promise<OcrPackStore> {
-    return (await this.load()).packs;
-  }
-
-  /** Whether a lease is held (a run is using the recognizer). */
-  get busy(): boolean {
-    return this.leases > 0;
-  }
-
-  async acquire(): Promise<OcrRecognizerLease> {
-    this.leases += 1;
-    if (this.timer !== undefined) clearTimeout(this.timer);
-    this.timer = undefined;
-    let released = false;
-    const release = () => {
-      if (released) return;
-      released = true;
-      this.leases -= 1;
-      if (this.leases > 0) return;
-      this.timer = setTimeout(() => {
-        this.timer = undefined;
-        this.dispose();
-      }, this.idleMs);
-    };
-    try {
-      return { recognizer: (await this.load()).recognizer, release };
-    } catch (error) {
-      release();
-      throw error;
-    }
-  }
-
-  /** Terminates the recognizers now (idle timeout, tests); the pack loader stays. */
-  dispose(): void {
-    if (this.timer !== undefined) clearTimeout(this.timer);
-    this.timer = undefined;
-    void this.parts?.then(
-      (parts) => parts.recognizer.dispose(),
-      () => undefined,
-    );
-  }
-}
-
-let ocrHost: OcrRecognizerHost | undefined;
-
-/** The app-wide OCR recognizer host (tesseract.js loads on the first run). */
-export function getOcrRecognizers(): OcrRecognizerHost {
-  ocrHost ??= new OcrRecognizerHost();
-  return ocrHost;
 }

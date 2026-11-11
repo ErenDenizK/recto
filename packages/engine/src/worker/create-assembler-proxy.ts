@@ -5,7 +5,7 @@
  * caller still needs them. The result bytes are transferred back.
  */
 
-import { proxy, releaseProxy, transfer, wrap } from 'comlink';
+import { proxy, transfer, wrap } from 'comlink';
 
 import {
   type AnnotationConformanceReport,
@@ -119,7 +119,7 @@ export function createAssemblerProxy(worker: Worker): AssemblerProxy {
       return remote.checkAnnotations(transfer(bytes, [bytes]), options);
     },
     dispose(): void {
-      remote[releaseProxy]();
+      // No Comlink release: it is a request only the worker can answer, and the worker ends here.
       worker.terminate();
     },
   };

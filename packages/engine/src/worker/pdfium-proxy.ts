@@ -18,7 +18,7 @@
  */
 import type { FontFallbackConfig } from '@embedpdf/engines';
 import type { SourceId } from '@pdf-editor/document-model';
-import { proxy, releaseProxy, transfer, wrap } from 'comlink';
+import { proxy, transfer, wrap } from 'comlink';
 
 import { abortedError } from '../pdfium/abort';
 import { compileResponse, postableModule } from '../pdfium/wasm-module';
@@ -286,7 +286,7 @@ export function createPdfiumProxy(worker: Worker, options: PdfiumProxyOptions): 
     for (const kill of [...pending]) {
       kill(new EngineError('aborted', 'The PDFium worker was destroyed'));
     }
-    remote[releaseProxy]();
+    // No Comlink release: it is a request only the worker can answer, and the worker ends here.
     worker.terminate();
   };
 
