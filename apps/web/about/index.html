@@ -11,14 +11,14 @@
     <meta name="theme-color" content="#08090c" />
     <meta
       name="description"
-      content="Recto is a PDF editor that runs entirely in your browser. Nothing is uploaded. Arrange pages across many PDFs, annotate, fill forms, redact, edit text, recognise scans, compare and sign."
+      content="Recto is a PDF editor that runs entirely in your browser. Nothing is uploaded. How it works, what you can check, and how it was built: an owner who decides, and a team of AI agents that builds through pull requests, decision records and CI on three browser engines."
     />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Recto PDF" />
     <meta property="og:title" content="About Recto" />
     <meta
       property="og:description"
-      content="A PDF editor that runs entirely in your browser. Nothing is uploaded. Arrange pages across many PDFs, annotate, fill forms, redact, edit text, recognise scans, compare and sign."
+      content="A PDF editor that runs entirely in your browser. Nothing is uploaded. Arrange pages across many PDFs, mark up, fill and sign, redact, edit text, recognise scans and compare."
     />
     <meta property="og:url" content="https://erendenizk.github.io/recto/about/" />
     <meta property="og:image" content="https://erendenizk.github.io/recto/media/social.png" />
@@ -29,14 +29,13 @@
       content="Recto: a PDF editor that runs entirely in your browser. Nothing is uploaded."
     />
     <meta name="twitter:card" content="summary_large_image" />
-    <!-- The Recto mark (docs/brand/README.md; tools/media `app-icons` writes every file): the
-         ICO for browsers without SVG favicons, the SVG (gradient on dark, near-black on
-         light tabs) for the rest, the opaque tile for the iOS and iPadOS Home Screen. -->
+    <!-- The Recto mark (docs/brand/README.md; tools/media `app-icons` writes every file). -->
     <link rel="icon" href="%BASE_URL%favicon.ico" sizes="16x16 32x32 48x48" />
     <link rel="icon" href="%BASE_URL%icons/glyph.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="%BASE_URL%icons/apple-touch-icon.png" />
-    <!-- 'Inter Recto' Latin, fetched with the HTML (ADR-0027 §2.1); about.css declares it. The
-         script adds the preload so that every engine fetches it once (decisions PRC-16). -->
+    <!-- 'Inter Recto' Latin, fetched with the HTML (ADR-0027 §2.1); about.css declares it and
+         'Noto Serif Recto' (DSN-89). The script adds the preload so that every engine fetches
+         it once (decisions PRC-16). -->
     <script
       src="%BASE_URL%preload-face.js"
       data-href="%BASE_URL%fonts/inter-recto-latin.woff2"
@@ -49,45 +48,44 @@
     <a class="skip-link" href="#main">Skip to content</a>
 
     <header class="topbar">
-      <div class="wrap">
-        <a class="brand" href="./" aria-label="Recto, about">
-          <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path
-              fill-rule="evenodd"
-              d="M6 2.5h7v5.5a2 2 0 0 0 2 2h5.5v9.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-15a2 2 0 0 1 2-2ZM14.75 2.5 20.5 8.25h-4.75a1 1 0 0 1-1-1Z"
-            />
-          </svg>
-          <span>Recto</span>
+      <div class="topbar-inner">
+        <a class="brand" href="./" aria-label="Recto, about this app">
+          <img class="glyph" src="%BASE_URL%icons/glyph.svg" alt="" width="22" height="22" />
+          <span class="wordmark">recto</span>
         </a>
-        <a class="topbar-link" href="https://github.com/ErenDenizK/recto">Source on GitHub</a>
-        <a class="button button-primary" href="%BASE_URL%">Open the app</a>
+        <nav class="topbar-nav" aria-label="Site">
+          <a class="topbar-link" href="https://github.com/ErenDenizK/recto">Source</a>
+          <a class="button button-primary" href="%BASE_URL%">Open the app</a>
+        </nav>
       </div>
     </header>
 
     <main id="main">
-      <!-- Hero ------------------------------------------------------------------------------>
-      <section aria-labelledby="thesis">
-        <div class="wrap hero">
-          <div>
-            <h1 id="thesis">A PDF editor that runs entirely in your browser. Nothing is uploaded.</h1>
-            <p class="jobs">
-              Open many PDFs, arrange their pages on one light table, annotate, fill forms,
-              redact, edit text, recognise scans, compare versions and sign.
-            </p>
-            <div class="hero-actions">
-              <a class="button button-primary" href="%BASE_URL%">Open the app</a>
-              <a class="button" href="https://github.com/ErenDenizK/recto">Source on GitHub</a>
-            </div>
-            <p class="hero-meta">Chromium, Firefox, Safari · No account · Nothing is uploaded</p>
+      <!-- Title page -------------------------------------------------------------------->
+      <section class="title-page" aria-labelledby="thesis">
+        <div class="title-text">
+          <p class="kicker">Recto PDF · Public beta · Apache-2.0</p>
+          <h1 id="thesis">A PDF editor that runs entirely in your browser. Nothing is uploaded.</h1>
+          <p class="lede">
+            Open many PDFs, arrange their pages on one light table, mark them up, fill and sign,
+            redact, edit text, recognise scans and compare versions. Every step runs on your
+            device, and every claim on this page links to the test or the source behind it.
+          </p>
+          <div class="actions">
+            <a class="button button-primary button-large" href="%BASE_URL%">Open the app</a>
+            <a class="button button-large" href="#built">How it was built</a>
           </div>
-          <figure class="clip" id="01-open-many">
+          <p class="meta">Chromium, Firefox and Safari · No account · Offline after one visit</p>
+        </div>
+        <figure class="plate plate-hero" id="01-open-many">
+          <div class="screen">
             <video
               id="hero-clip"
               autoplay
+              controls
               muted
               loop
               playsinline
-              controls
               preload="none"
               width="1440"
               height="900"
@@ -97,589 +95,947 @@
               <source src="../media/01-open-many.webm" type="video/webm" />
               <source src="../media/01-open-many.mp4" type="video/mp4" />
             </video>
-            <figcaption id="hero-clip-caption">
-              Three PDFs dropped on the Library, then laid out in the Pages grid as three sections.
-              Demo documents, fictional data.
-            </figcaption>
-          </figure>
-        </div>
+          </div>
+          <figcaption id="hero-clip-caption">
+            <span class="fig">Plate 1</span> Three PDFs dropped on Home, then laid out in the Pages
+            grid as three sections. Demo documents, fictional data.
+          </figcaption>
+        </figure>
       </section>
 
-      <!-- Three facts ----------------------------------------------------------------------->
-      <section aria-labelledby="facts-title">
-        <div class="wrap">
-          <h2 id="facts-title" class="section-title">Three things you can check</h2>
-          <ul class="facts">
-            <li class="fact">
-              <h3>No requests to other sites</h3>
-              <p>
-                The page's Content Security Policy allows connections to this site only. The
-                tests that record media and run OCR fail on any request to another origin, and
-                the media run publishes its full request log.
+      <div class="book">
+        <!-- Contents ------------------------------------------------------------------->
+        <nav class="contents" aria-labelledby="contents-title">
+          <h2 id="contents-title" class="contents-title">Contents</h2>
+          <ol>
+            <li><a href="#thesis-1"><span class="num">1</span>The thesis</a></li>
+            <li><a href="#can-do"><span class="num">2</span>What you can do</a></li>
+            <li><a href="#how"><span class="num">3</span>How it works</a></li>
+            <li><a href="#check"><span class="num">4</span>Check it yourself</a></li>
+            <li><a href="#built"><span class="num">5</span>How it was built</a></li>
+            <li><a href="#limits"><span class="num">6</span>What it does not do</a></li>
+            <li><a href="#colophon"><span class="num">·</span>Colophon</a></li>
+          </ol>
+        </nav>
+
+        <div class="chapters">
+          <!-- 1 The thesis ------------------------------------------------------------->
+          <section class="chapter" aria-labelledby="thesis-1">
+            <p class="chapter-num">Chapter 1</p>
+            <h2 id="thesis-1">The thesis: everything runs on this device</h2>
+            <div class="prose">
+              <p class="first">
+                A PDF often holds what a person would rather not hand to a stranger: a contract, a
+                medical letter, a bank statement. Most PDF tools on the web begin by uploading the
+                file. Recto does the opposite. The site sends the app to your browser once; from
+                then on, rendering, editing, redaction, recognition and signing happen in
+                WebAssembly engines inside the tab, and the result is saved back to your disk.
               </p>
-              <ul class="evidence">
-                <li><a href="../media/requests.log">Request log</a></li>
-                <li>
+              <p>
+                That is a property of the build, not a promise. The page's Content Security Policy
+                allows connections to this site only, so the browser itself refuses any other
+                destination. The app counts requests to other origins and shows the count, and the
+                script that records this page's clips fails on any request that leaves the origin.
+              </p>
+            </div>
+            <ul class="facts">
+              <li>
+                <p class="fact-title">No requests to other sites</p>
+                <p>The policy says <code>connect-src 'self'</code>; the media run logs every request.</p>
+                <p class="source">
+                  <a href="../media/requests.log">Request log</a> ·
                   <a
-                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/apps/web/e2e/ocr.spec.ts"
-                    >OCR test</a
+                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/apps/web/index.html"
+                    >index.html</a
                   >
-                </li>
-                <li>
-                  <a href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/.github/workflows/ci.yml"
-                    >CI workflow</a
-                  >
-                </li>
-              </ul>
-            </li>
-            <li class="fact">
-              <h3>Works offline after one visit</h3>
-              <p>
-                A service worker keeps the app and its PDF engine on your device. With the
-                network off, a reload still loads the app, opens a PDF and renders its pages.
-                OCR works offline for the languages you keep.
-              </p>
-              <ul class="evidence">
-                <li>
+                </p>
+              </li>
+              <li>
+                <p class="fact-title">Works offline after one visit</p>
+                <p>A test reloads with the network off, opens a PDF and renders its pages.</p>
+                <p class="source">
                   <a
                     href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/apps/web/e2e/offline.spec.ts"
-                    >Offline test</a
+                    >offline.spec.ts</a
                   >
-                </li>
-              </ul>
-            </li>
-            <li class="fact">
-              <h3>Apache-2.0, every dependency listed</h3>
-              <p>
-                The code is open under the Apache License 2.0. Each bundled component, from
-                PDFium to the fonts, is listed with its copyright and licence.
-              </p>
-              <ul class="evidence">
-                <li><a href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/NOTICE">NOTICE</a></li>
-                <li>
+                </p>
+              </li>
+              <li>
+                <p class="fact-title">Open source, every part listed</p>
+                <p>Apache-2.0, and each bundled component, PDFium to the fonts, with its licence.</p>
+                <p class="source">
+                  <a href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/NOTICE">NOTICE</a> ·
                   <a href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/LICENSE">LICENSE</a>
-                </li>
-              </ul>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <!-- Arrange --------------------------------------------------------------------------->
-      <section aria-labelledby="arrange-title">
-        <div class="wrap feature">
-          <div class="feature-media">
-            <figure class="clip" id="02-move-pages">
-              <video
-                controls
-                muted
-                loop
-                playsinline
-                preload="none"
-                width="1440"
-                height="900"
-                poster="../media/02-move-pages.poster.webp"
-                aria-describedby="arrange-caption"
-              >
-                <source src="../media/02-move-pages.webm" type="video/webm" />
-                <source src="../media/02-move-pages.mp4" type="video/mp4" />
-              </video>
-              <figcaption id="arrange-caption">
-                Pages 3 and 4 of a report dragged into an agreement, which then holds six pages.
-              </figcaption>
-            </figure>
-          </div>
-          <div class="feature-text">
-            <h2 id="arrange-title">Arrange</h2>
-            <p class="claim">
-              Pages from every open PDF sit on one light table. Move them between documents and
-              export a file whose bookmarks, links, page labels and form fields follow the pages.
-            </p>
-            <h3>What it does</h3>
-            <ul>
-              <li>
-                Drag pages between documents; reorder, rotate, delete, duplicate, split, merge and
-                interleave; add images as pages.
-              </li>
-              <li>
-                Rewrites bookmarks and links to the pages' new places and drops the ones whose
-                page was removed; merges form fields and rebuilds page labels.
-              </li>
-              <li>
-                Re-opens the exported file in a fresh PDFium worker and checks it before the
-                download is offered.
-                <a
-                  href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/docs/ARCHITECTURE.md#4-export-pipeline"
-                  >Export pipeline</a
-                >
+                </p>
               </li>
             </ul>
-            <h3>What it does not do</h3>
+          </section>
+
+          <!-- 2 What you can do -------------------------------------------------------->
+          <section class="chapter" aria-labelledby="can-do">
+            <p class="chapter-num">Chapter 2</p>
+            <h2 id="can-do">What you can do</h2>
+            <div class="prose">
+              <p class="first">
+                Each plate is a clip of the current build, recorded by a script against the same
+                demo files every time. Press play to watch one. Beside it: what the feature does,
+                where it stops, and the test that holds it.
+              </p>
+            </div>
+
+            <article class="feature" aria-labelledby="markup-title">
+              <figure class="plate" id="09-markup">
+                <div class="screen">
+                  <video
+                    controls
+                    muted
+                    loop
+                    playsinline
+                    preload="none"
+                    width="1440"
+                    height="900"
+                    data-poster="../media/09-markup.poster.webp"
+                    aria-describedby="markup-caption"
+                  >
+                    <source src="../media/09-markup.webm" type="video/webm" />
+                    <source src="../media/09-markup.mp4" type="video/mp4" />
+                  </video>
+                </div>
+                <figcaption id="markup-caption">
+                  <span class="fig">Plate 2</span> Markup opens from the dock: a highlight, a pen
+                  underline, then Done.
+                </figcaption>
+              </figure>
+              <div class="feature-text">
+                <h3 id="markup-title">Mark up</h3>
+                <p>
+                  The capsule at the foot of the window turns into the Markup palette: pens,
+                  highlighter, eraser and lasso, text boxes, notes, shapes, images, stamps, form
+                  fields and signatures. Every mark is a standard PDF annotation and one step of
+                  the undo history.
+                </p>
+                <p class="limit">
+                  Each annotation type the app writes is read back by both PDFium and pdf.js in CI.
+                  <a
+                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/docs/qa/annotations-matrix.md"
+                    >Annotation matrix</a
+                  >
+                </p>
+              </div>
+            </article>
+
+            <article class="feature" aria-labelledby="sign-title">
+              <figure class="plate" id="07-sign">
+                <div class="screen">
+                  <video
+                    controls
+                    muted
+                    loop
+                    playsinline
+                    preload="none"
+                    width="1440"
+                    height="900"
+                    data-poster="../media/07-sign.poster.webp"
+                    aria-describedby="sign-caption"
+                  >
+                    <source src="../media/07-sign.webm" type="video/webm" />
+                    <source src="../media/07-sign.mp4" type="video/mp4" />
+                  </video>
+                </div>
+                <figcaption id="sign-caption">
+                  <span class="fig">Plate 3</span> Signed with a test certificate, opened again, and
+                  shown as Intact.
+                </figcaption>
+              </figure>
+              <div class="feature-text">
+                <h3 id="sign-title">Sign, and see what was checked</h3>
+                <p>
+                  Signs with a .p12 or .pfx certificate as the last step of an export (PAdES-B),
+                  then opens the signed file again. On open, each signature reads Intact; Intact,
+                  changed later; Changed after signing; Broken; or Cannot check, with one line on
+                  what was checked.
+                </p>
+                <p class="limit">
+                  It never calls a signature valid or trusted: signer identity, trust and
+                  revocation are not checked, and there is no long-term validation.
+                  <a
+                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/apps/web/e2e/signatures.spec.ts"
+                    >Signature test</a
+                  >
+                </p>
+              </div>
+            </article>
+
+            <article class="feature" aria-labelledby="redact-title">
+              <figure class="plate" id="03-redact">
+                <div class="screen" style="aspect-ratio: 1440 / 1056">
+                  <video
+                    controls
+                    muted
+                    loop
+                    playsinline
+                    preload="none"
+                    width="1440"
+                    height="1056"
+                    data-poster="../media/03-redact.poster.webp"
+                    aria-describedby="redact-caption"
+                  >
+                    <source src="../media/03-redact.webm" type="video/webm" />
+                    <source src="../media/03-redact.mp4" type="video/mp4" />
+                  </video>
+                </div>
+                <figcaption id="redact-caption">
+                  <span class="fig">Plate 4</span> Sensitive data found and redacted; a search for
+                  the IBAN then finds nothing.
+                </figcaption>
+              </figure>
+              <div class="feature-text">
+                <h3 id="redact-title">Redact, and the text is gone</h3>
+                <p>
+                  Redaction removes the text, images and paths under each mark, scrubs matching
+                  strings across the file, then reads the exported bytes again. If any redacted
+                  text can still be found, the download is blocked.
+                </p>
+                <p class="limit">
+                  Images in JBIG2, CCITT or JPEG&nbsp;2000 cannot be searched and are listed as not
+                  searched. The finder suggests matches; it does not decide what is sensitive.
+                  <a
+                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/apps/web/e2e/redaction.spec.ts"
+                    >Redaction test</a
+                  >
+                </p>
+              </div>
+            </article>
+
+            <article class="feature feature-phone" aria-labelledby="phone-title">
+              <figure class="plate plate-phone" id="10-phone">
+                <div class="screen">
+                  <video
+                    controls
+                    muted
+                    loop
+                    playsinline
+                    preload="none"
+                    width="390"
+                    height="844"
+                    data-poster="../media/10-phone.poster.webp"
+                    aria-describedby="phone-caption"
+                  >
+                    <source src="../media/10-phone.webm" type="video/webm" />
+                    <source src="../media/10-phone.mp4" type="video/mp4" />
+                  </video>
+                </div>
+                <figcaption id="phone-caption">
+                  <span class="fig">Plate 5</span> On a phone: the sample, a swipe, then one
+                  fingertip highlights a line.
+                </figcaption>
+              </figure>
+              <div class="feature-text">
+                <h3 id="phone-title">The phone edits too</h3>
+                <p>
+                  Phones get their own edition, a separate shell on the same engine: a reader
+                  first, with one capsule that turns into the editing tools. Pen, highlight,
+                  adding text, editing text and signatures work by touch, and a fingertip's wide
+                  contact is never taken for a palm.
+                </p>
+                <p class="limit">
+                  The other tools stay on desktop and tablet; on a small screen the phone keeps
+                  these five, by the owner's decision.
+                  <a
+                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/docs/adr/0034-editions.md"
+                    >ADR-0034</a
+                  >
+                </p>
+              </div>
+            </article>
+
+            <h3 class="subhead">More in the app</h3>
+            <div class="gallery">
+              <figure class="plate plate-small" id="02-move-pages">
+                <div class="screen" style="aspect-ratio: 1440 / 1028">
+                  <video
+                    controls
+                    muted
+                    loop
+                    playsinline
+                    preload="none"
+                    width="1440"
+                    height="1028"
+                    data-poster="../media/02-move-pages.poster.webp"
+                    aria-describedby="arrange-caption"
+                  >
+                    <source src="../media/02-move-pages.webm" type="video/webm" />
+                    <source src="../media/02-move-pages.mp4" type="video/mp4" />
+                  </video>
+                </div>
+                <figcaption id="arrange-caption">
+                  <span class="fig-title">Arrange across files.</span> Pages dragged from a report
+                  into an agreement; bookmarks, links, labels and fields follow them on export.
+                </figcaption>
+              </figure>
+              <figure class="plate plate-small" id="06-edit-text">
+                <div class="screen" style="aspect-ratio: 1440 / 1040">
+                  <video
+                    controls
+                    muted
+                    loop
+                    playsinline
+                    preload="none"
+                    width="1440"
+                    height="1040"
+                    data-poster="../media/06-edit-text.poster.webp"
+                    aria-describedby="edit-caption"
+                  >
+                    <source src="../media/06-edit-text.webm" type="video/webm" />
+                    <source src="../media/06-edit-text.mp4" type="video/mp4" />
+                  </video>
+                </div>
+                <figcaption id="edit-caption">
+                  <span class="fig-title">Edit a line of text.</span> "2024" becomes "2025" in the
+                  line's own embedded font. One line at a time; paragraphs do not reflow.
+                </figcaption>
+              </figure>
+              <figure class="plate plate-small" id="04-recognise-scan">
+                <div class="screen">
+                  <video
+                    controls
+                    muted
+                    loop
+                    playsinline
+                    preload="none"
+                    width="1440"
+                    height="900"
+                    data-poster="../media/04-recognise-scan.poster.webp"
+                    aria-describedby="recognise-caption"
+                  >
+                    <source src="../media/04-recognise-scan.webm" type="video/webm" />
+                    <source src="../media/04-recognise-scan.mp4" type="video/mp4" />
+                  </video>
+                </div>
+                <figcaption id="recognise-caption">
+                  <span class="fig-title">Recognise a scan.</span> An invisible text layer in nine
+                  languages, packs from this site. Tested end to end in Chromium only so far; the
+                  wait is cut from the clip.
+                </figcaption>
+              </figure>
+              <figure class="plate plate-small" id="05-compare">
+                <div class="screen">
+                  <video
+                    controls
+                    muted
+                    loop
+                    playsinline
+                    preload="none"
+                    width="1440"
+                    height="900"
+                    data-poster="../media/05-compare.poster.webp"
+                    aria-describedby="compare-caption"
+                  >
+                    <source src="../media/05-compare.webm" type="video/webm" />
+                    <source src="../media/05-compare.mp4" type="video/mp4" />
+                  </video>
+                </div>
+                <figcaption id="compare-caption">
+                  <span class="fig-title">Compare two versions.</span> Changed areas, an onion skin
+                  and changed words. It shows differences; it does not merge them.
+                </figcaption>
+              </figure>
+            </div>
+          </section>
+
+          <!-- 3 How it works ----------------------------------------------------------->
+          <section class="chapter" aria-labelledby="how">
+            <p class="chapter-num">Chapter 3</p>
+            <h2 id="how">How it works</h2>
+            <div class="prose">
+              <p class="first">
+                The app is a set of static files. Your edits are recorded as operations in a
+                document model, each with its undo step, and nothing is written into a file until
+                you export. Export assembles a new file, opens it in a fresh PDFium worker and
+                checks page count, page sizes and the text under redactions before the download
+                is offered.
+              </p>
+            </div>
+
+            <figure class="diagram-plate">
+              <div
+                class="diagram-scroll"
+                tabindex="0"
+                role="region"
+                aria-label="Diagram: how Recto handles a file"
+              >
+                <svg
+                  class="diagram"
+                  viewBox="0 0 880 300"
+                  role="img"
+                  aria-labelledby="diagram-title diagram-desc"
+                >
+                  <title id="diagram-title">How Recto handles a file</title>
+                  <desc id="diagram-desc">
+                    The main thread holds the interface, the call gate and the document model.
+                    Calls cross to Web Workers on the same origin: PDFium in WebAssembly, pdf-lib,
+                    qpdf, tesseract, PKI.js and analysis. Export writes a new file, a fresh PDFium
+                    worker verifies it, and the file is saved to your device.
+                  </desc>
+                  <defs>
+                    <marker
+                      id="arrow"
+                      viewBox="0 0 10 10"
+                      refX="9"
+                      refY="5"
+                      markerWidth="7"
+                      markerHeight="7"
+                      orient="auto-start-reverse"
+                    >
+                      <path class="arrowhead" d="M0 0 10 5 0 10Z" />
+                    </marker>
+                  </defs>
+                  <text class="zone" x="16" y="20">MAIN THREAD</text>
+                  <rect class="box" x="16" y="34" width="250" height="64" rx="10" />
+                  <text class="label" x="32" y="61">Interface</text>
+                  <text class="note" x="32" y="81">Home, pages, Markup, palette</text>
+                  <rect class="box box-accent" x="16" y="114" width="250" height="64" rx="10" />
+                  <text class="label" x="32" y="141">Call gate</text>
+                  <text class="note" x="32" y="161">visible renders go first</text>
+                  <rect class="box" x="16" y="194" width="250" height="64" rx="10" />
+                  <text class="label" x="32" y="221">Document model</text>
+                  <text class="note" x="32" y="241">operations, history, undo</text>
+                  <path class="edge" d="M141 98V112" marker-end="url(#arrow)" />
+                  <path class="edge" d="M266 146H314" marker-end="url(#arrow)" />
+                  <text class="note" x="270" y="138">Comlink</text>
+
+                  <text class="zone" x="330" y="20">WEB WORKERS, SAME ORIGIN</text>
+                  <rect class="frame" x="318" y="34" width="298" height="224" rx="12" />
+                  <rect class="box box-worker" x="332" y="48" width="132" height="58" rx="8" />
+                  <text class="label-small" x="344" y="72">PDFium</text>
+                  <text class="note" x="344" y="91">WebAssembly</text>
+                  <rect class="box box-worker" x="472" y="48" width="132" height="58" rx="8" />
+                  <text class="label-small" x="484" y="72">pdf-lib</text>
+                  <text class="note" x="484" y="91">assembly</text>
+                  <rect class="box box-worker" x="332" y="116" width="132" height="58" rx="8" />
+                  <text class="label-small" x="344" y="140">qpdf</text>
+                  <text class="note" x="344" y="159">repair, size</text>
+                  <rect class="box box-worker" x="472" y="116" width="132" height="58" rx="8" />
+                  <text class="label-small" x="484" y="140">tesseract</text>
+                  <text class="note" x="484" y="159">OCR</text>
+                  <rect class="box box-worker" x="332" y="184" width="132" height="58" rx="8" />
+                  <text class="label-small" x="344" y="208">PKI.js</text>
+                  <text class="note" x="344" y="227">sign, check</text>
+                  <rect class="box box-worker" x="472" y="184" width="132" height="58" rx="8" />
+                  <text class="label-small" x="484" y="208">analysis</text>
+                  <text class="note" x="484" y="227">compare, text</text>
+                  <path class="edge" d="M318 226H268" marker-end="url(#arrow)" />
+
+                  <text class="zone" x="660" y="20">EXPORT</text>
+                  <rect class="box" x="660" y="34" width="204" height="64" rx="10" />
+                  <text class="label" x="676" y="61">Write a new file</text>
+                  <text class="note" x="676" y="81">pages, links, fields</text>
+                  <rect class="box box-accent" x="660" y="114" width="204" height="64" rx="10" />
+                  <text class="label" x="676" y="141">Verify</text>
+                  <text class="note" x="676" y="161">in a fresh PDFium worker</text>
+                  <rect class="box" x="660" y="194" width="204" height="64" rx="10" />
+                  <text class="label" x="676" y="221">Save to your device</text>
+                  <text class="note" x="676" y="241">nothing leaves it</text>
+                  <path class="edge" d="M616 66H658" marker-end="url(#arrow)" />
+                  <path class="edge" d="M762 98V112" marker-end="url(#arrow)" />
+                  <path class="edge" d="M762 178V192" marker-end="url(#arrow)" />
+                  <text class="note" x="16" y="288">
+                    Every box runs in your browser tab; the service worker keeps them for offline
+                    use.
+                  </text>
+                </svg>
+              </div>
+            </figure>
+
+            <div class="mechanisms">
+              <section class="mechanism" aria-labelledby="m-pdfium">
+                <h3 id="m-pdfium">PDFium, in WebAssembly, in a worker</h3>
+                <p>
+                  The engine that renders pages, reads text and writes annotations is PDFium, the
+                  one inside Chromium, compiled to WebAssembly and run in a Web Worker of its own,
+                  so a heavy page never blocks a scroll or a click. The interface reaches it by
+                  messages. Assembly, repair, recognition and signatures have workers of their
+                  own.
+                </p>
+                <p class="source">
+                  <a
+                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/docs/adr/0011-engine-hosting-for-content-editing.md"
+                    >ADR-0011</a
+                  >
+                  ·
+                  <a
+                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/docs/ARCHITECTURE.md"
+                    >Architecture</a
+                  >
+                </p>
+              </section>
+              <section class="mechanism" aria-labelledby="m-gate">
+                <h3 id="m-gate">A call gate on the main thread</h3>
+                <p>
+                  An audit found that PDFium rendered a page in 18 to 48 ms while the app waited
+                  270 to 470 ms for it: the render queued behind other calls to the one worker,
+                  302 annotation reads among them. A gate between the app and the worker now lets
+                  the renders you can see go first and posts the reads behind them. Thumbnails of
+                  a 300-page file arrived 29% sooner (2,360 to 1,680 ms), with identical pixels.
+                </p>
+                <p>
+                  Two other ideas were built, measured and not kept. A second PDFium worker bought
+                  16 ms of zoom for 68 MB of memory. The browser's native compression was faster
+                  but could change which encoding the Smaller save picks.
+                </p>
+                <p class="source">
+                  <a href="https://github.com/ErenDenizK/recto/pull/193">Pull request #193</a> ·
+                  <a
+                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/docs/process/decisions/product.md"
+                    >PF-24, PF-25, PF-26</a
+                  >
+                </p>
+              </section>
+              <section class="mechanism" aria-labelledby="m-glass">
+                <h3 id="m-glass">Glass drawn on the GPU</h3>
+                <p>
+                  The capsule and the bars over the page are glass. Where WebGL2 runs on real
+                  hardware, one canvas over the reader refracts the page bitmaps as mip-mapped
+                  textures, uploaded only when a bitmap changes, and draws only when the scene
+                  moves. Wherever text on the glass would fall under 4.5:1 contrast, the glass is
+                  pulled towards a solid tone.
+                </p>
+                <p>
+                  On a software renderer, with reduced transparency, more contrast or forced
+                  colours, or after any GPU failure, the same pieces fall back to CSS drawn from
+                  the same tokens.
+                </p>
+                <p class="source">
+                  <a
+                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/docs/process/decisions/glass.md"
+                    >GLS-7, GLS-12 to GLS-15</a
+                  >
+                </p>
+              </section>
+              <section class="mechanism" aria-labelledby="m-offline">
+                <h3 id="m-offline">Installable, and offline after one visit</h3>
+                <p>
+                  A service worker precaches the app shell and keeps the WebAssembly engines and
+                  fonts in caches of their own. The OCR packs, about 22 MB with the engine,
+                  download from this site only when you recognise text or choose to keep them.
+                  Size gates in CI hold the first paint to 120 KB of script, and a gate is never
+                  raised to fit a change.
+                </p>
+                <p class="source">
+                  <a
+                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/docs/adr/0010-i18n-and-pwa.md"
+                    >ADR-0010</a
+                  >
+                  ·
+                  <a
+                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/tools/qa/bundle-budget.json"
+                    >Bundle budget</a
+                  >
+                </p>
+              </section>
+            </div>
+          </section>
+
+          <!-- 4 Check it yourself ------------------------------------------------------>
+          <section class="chapter" aria-labelledby="check">
+            <p class="chapter-num">Chapter 4</p>
+            <h2 id="check">Check it yourself</h2>
+            <div class="prose">
+              <p class="first">
+                None of these claims asks for trust. Each check takes a minute with your browser's
+                developer tools or the source.
+              </p>
+            </div>
+            <ol class="checks">
+              <li>
+                <p>
+                  Read the Content Security Policy in the app's HTML. It says
+                  <code>connect-src 'self'</code>: the browser refuses connections to any other
+                  origin.
+                </p>
+                <p class="source">
+                  <a
+                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/apps/web/index.html"
+                    >apps/web/index.html</a
+                  >
+                </p>
+              </li>
+              <li>
+                <p>
+                  Open the privacy button in the app's bar. It reads "On this device" and counts
+                  every request to another origin that the browser records. It cannot see
+                  WebSocket frames or requests the policy blocked, which never leave the browser.
+                </p>
+                <p class="source">
+                  <a
+                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/apps/web/src/privacy/external-requests.ts"
+                    >external-requests.ts</a
+                  >
+                </p>
+              </li>
+              <li>
+                <p>
+                  Open the app once, turn the network off and reload. It still opens a PDF and
+                  renders its pages.
+                </p>
+                <p class="source">
+                  <a
+                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/apps/web/e2e/offline.spec.ts"
+                    >offline.spec.ts</a
+                  >
+                </p>
+              </li>
+              <li>
+                <p>
+                  Open the network panel and recognise a scan. The OCR engine and its language pack
+                  come from this site, and only when you use them.
+                </p>
+                <p class="source">
+                  <a
+                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/apps/web/e2e/ocr.spec.ts"
+                    >ocr.spec.ts</a
+                  >
+                </p>
+              </li>
+              <li>
+                <p>
+                  No telemetry, no account and no cookie. Search the source for
+                  <code>document.cookie</code>, <code>sendBeacon</code> or an analytics host.
+                </p>
+              </li>
+              <li>
+                <p>
+                  What stays on your device: the app in the service worker's cache; engines, fonts
+                  and kept OCR packs in caches named <code>pdf-editor-*</code>; open documents and
+                  their edits in the origin private file system, so a reload can restore them; and
+                  closed ones in Recents for 30 days or up to 500 MB. Clear them in the privacy
+                  popover, or by clearing the site's data.
+                </p>
+                <p class="source">
+                  <a
+                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/apps/web/src/session/storage.ts"
+                    >storage.ts</a
+                  >
+                  ·
+                  <a
+                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/apps/web/src/session/retention.ts"
+                    >retention.ts</a
+                  >
+                </p>
+              </li>
+              <li>
+                <p>
+                  The clips on this page were recorded by a script that logs every request and
+                  fails on any other origin. The log is published with them.
+                </p>
+                <p class="source">
+                  <a href="../media/requests.log">requests.log</a> ·
+                  <a
+                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/tools/media/lib/privacy.ts"
+                    >privacy.ts</a
+                  >
+                </p>
+              </li>
+            </ol>
+          </section>
+
+          <!-- 5 How it was built ------------------------------------------------------->
+          <section class="chapter" aria-labelledby="built">
+            <p class="chapter-num">Chapter 5</p>
+            <h2 id="built">How it was built</h2>
+            <div class="prose">
+              <p class="first">
+                Recto has one owner, a student, who sets the direction and makes the important
+                technical decisions. The code is written by a team of AI agents, organised like a
+                small company and held to a written process: lanes, pull requests, decision
+                records, a quality bar, and CI on three browser engines. All of it is in the
+                repository.
+              </p>
+            </div>
+
+            <dl class="figures">
+              <div class="figure">
+                <dt>Commits on <code>develop</code></dt>
+                <dd>2,084</dd>
+                <dd class="figure-note">since 26 September 2026</dd>
+              </div>
+              <div class="figure">
+                <dt>Pull requests merged</dt>
+                <dd>189</dd>
+                <dd class="figure-note">one concern each, since 16 October</dd>
+              </div>
+              <div class="figure">
+                <dt>Decision records</dt>
+                <dd>321</dd>
+                <dd class="figure-note">and 35 architecture decision records</dd>
+              </div>
+              <div class="figure">
+                <dt>Unit and component tests</dt>
+                <dd>7,399</dd>
+                <dd class="figure-note">run on every push</dd>
+              </div>
+              <div class="figure">
+                <dt>End-to-end tests</dt>
+                <dd>1,843</dd>
+                <dd class="figure-note">per push, in seven browser projects</dd>
+              </div>
+              <div class="figure">
+                <dt>Agent lanes measured</dt>
+                <dd>63</dd>
+                <dd class="figure-note">tokens, minutes, fix rounds, escapes</dd>
+              </div>
+            </dl>
+            <p class="figures-source">
+              As of 11 November 2026. Commits and pull requests from GitHub; records from the
+              <a
+                href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/docs/process/decisions.md"
+                >decisions index</a
+              >; tests from the
+              <a href="https://github.com/ErenDenizK/recto/actions/runs/42946486294">CI run</a> of
+              pull request #193's last commit; lanes from the
+              <a
+                href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/docs/process/agent-metrics.md"
+                >metrics ledger</a
+              >.
+            </p>
+
+            <h3 class="subhead">Who decides what</h3>
+            <ol class="org">
+              <li>
+                <p class="org-role">The owner, as the board</p>
+                <p>
+                  Vision, scope, the name, releases, taste, and anything that speaks for him in
+                  public. A question for the board waits for his answer, and his answer wins over
+                  any earlier record.
+                </p>
+              </li>
+              <li>
+                <p class="org-role">The lead, as chief executive</p>
+                <p>
+                  A long-running agent session that a scheduled task wakes three times a day. It
+                  picks the work from the roadmap, writes short briefs, opens lanes, records each
+                  technique decision it settles, merges, and reports to the board in the HQ issue.
+                </p>
+              </li>
+              <li>
+                <p class="org-role">Agents hired per lane</p>
+                <p>
+                  An <em>implementer</em> builds a settled spec inside the files its brief owns and
+                  stops to ask on any open question. A <em>reviewer</em> reads risky or multi-file
+                  work before its pull request opens. A <em>design critic</em> holds screenshots to
+                  the quality bar. <em>Readers</em> search the code and read CI logs, so logs never
+                  fill the lead's context. Agents do not hire agents.
+                </p>
+              </li>
+            </ol>
+            <p class="prose-note">
+              Work is routed by role: a <em>judge</em> plans, decides taste and reviews; a
+              <em>builder</em> builds from a settled spec; a <em>reader</em> reads and reports.
+              Effort is chosen per kind of work and measured: every lane is a row in the ledger,
+              every failure a lesson, and A/B experiments decide which role does which work.
+              <a
+                href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/docs/process/model-routing.md"
+                >Routing</a
+              >
+              ·
+              <a
+                href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/docs/company/charter.md"
+                >Charter</a
+              >
+              ·
+              <a href="https://github.com/ErenDenizK/recto/issues/26">HQ issue</a>
+            </p>
+
+            <h3 class="subhead">The discipline</h3>
+            <div class="rules">
+              <section class="rule" aria-labelledby="r-lanes">
+                <h4 id="r-lanes">Lanes</h4>
+                <p>
+                  Each package of work owns a set of folders, so parallel agents never edit the
+                  same file. Heavy commands share one lock on the machine.
+                </p>
+                <p class="source">
+                  <a
+                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/docs/process/agent-workflow.md"
+                    >Agent workflow</a
+                  >
+                </p>
+              </section>
+              <section class="rule" aria-labelledby="r-prs">
+                <h4 id="r-prs">Pull requests</h4>
+                <p>
+                  One concern each, with What, Why, How tested, screenshots and the decisions it
+                  adds; merged with a merge commit once every check is green.
+                </p>
+                <p class="source">
+                  <a href="https://github.com/ErenDenizK/recto/pulls?q=is%3Apr+is%3Amerged"
+                    >Merged pull requests</a
+                  >
+                </p>
+              </section>
+              <section class="rule" aria-labelledby="r-decisions">
+                <h4 id="r-decisions">Decision records</h4>
+                <p>
+                  Every owner and lead decision is a row with its date and source; a newer row
+                  names the one it replaces. A script keeps the index and the full rows in step.
+                </p>
+                <p class="source">
+                  <a
+                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/tools/qa/decisions-index.ts"
+                    >decisions-index.ts</a
+                  >
+                </p>
+              </section>
+              <section class="rule" aria-labelledby="r-bar">
+                <h4 id="r-bar">A quality bar</h4>
+                <p>
+                  Fourteen rules, Q-1 to Q-14, from "glass rests crisp" to "states are complete",
+                  each with how it is tested. UI work is held to them before it merges.
+                </p>
+                <p class="source">
+                  <a
+                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/docs/design/redesign-2026-10/quality-bar.md"
+                    >Quality bar</a
+                  >
+                </p>
+              </section>
+              <section class="rule" aria-labelledby="r-ci">
+                <h4 id="r-ci">CI on three engines</h4>
+                <p>
+                  Format, lint, types, unit tests, the build and its size gates; then end-to-end
+                  tests in Chromium, Firefox and WebKit, on a tablet, and on a phone in both
+                  orientations.
+                </p>
+                <p class="source">
+                  <a
+                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/.github/workflows/ci.yml"
+                    >ci.yml</a
+                  >
+                </p>
+              </section>
+              <section class="rule" aria-labelledby="r-lessons">
+                <h4 id="r-lessons">Lessons</h4>
+                <p>
+                  A failure becomes a lesson row the same day, and the standing rules of every
+                  brief carry its prevention: no fixed waits in tests, no polling a busy lock.
+                </p>
+                <p class="source">
+                  <a
+                    href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/docs/process/lessons.md"
+                    >Lessons</a
+                  >
+                </p>
+              </section>
+            </div>
+
+            <h3 class="subhead">One lane, end to end</h3>
+            <ol class="timeline">
+              <li>
+                <p class="step">Brief</p>
+                <p>
+                  The owner approves a performance experiment from an audit. The lead writes the
+                  brief: the objective, the files in scope, the decisions to cite, the checks.
+                </p>
+              </li>
+              <li>
+                <p class="step">Build</p>
+                <p>
+                  A builder agent splits the engine service, adds the call gate, and builds the
+                  two ideas that were later dropped, each as its own commit.
+                </p>
+              </li>
+              <li>
+                <p class="step">Review</p>
+                <p>
+                  A review in the judge role finds a timer poll, a message sent to a worker about
+                  to end, and a compression change that could alter output. One round fixes each,
+                  with tests.
+                </p>
+              </li>
+              <li>
+                <p class="step">CI</p>
+                <p>
+                  The size gate rejects 1.4 KB more on the first paint, so the early start moves.
+                  Then the phone in landscape fails, and the gate is reworked until all 46
+                  checks pass.
+                </p>
+              </li>
+              <li>
+                <p class="step">Record</p>
+                <p>
+                  Merged as pull request #193 with three decision rows: PF-24 kept, PF-25 tried
+                  and taken out, PF-26 measured and not built.
+                </p>
+              </li>
+            </ol>
+            <p class="prose-note">
+              The same lane with every link:
+              <a
+                href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/docs/process/lane-walkthrough.md"
+                >one lane, end to end</a
+              >.
+            </p>
+          </section>
+
+          <!-- 6 What it does not do ---------------------------------------------------->
+          <section class="chapter" aria-labelledby="limits">
+            <p class="chapter-num">Chapter 6</p>
+            <h2 id="limits">What it does not do</h2>
             <ul class="limits">
-              <li>No conversion from or to Word, Excel or PowerPoint.</li>
               <li>
-                Every export is a rewrite: signatures in the sources are removed, and the export
-                dialog says so.
+                Office files convert to PDF on desktop and tablet only, behind a flag, after a
+                one-time download of about 70 MB. There is no PDF to Office, and no PDF/A claim.
               </li>
               <li>
-                A tagged-PDF structure that cannot be kept intact is removed, and you are told.
+                Signatures are never called valid: signer identity, trust and revocation are not
+                checked, and there is no long-term validation.
               </li>
+              <li>Text is edited one line at a time; paragraphs do not reflow.</li>
+              <li>
+                OCR, Compare and the signing download are tested end to end in Chromium only, for
+                now.
+              </li>
+              <li>No collaboration, no cloud sync and no server API.</li>
+              <li>
+                One document is handled by one single-threaded WebAssembly worker; about 1 GB per
+                document is the design ceiling.
+              </li>
+              <li>It is a public beta and has not been audited by a third party.</li>
             </ul>
-          </div>
+          </section>
         </div>
-      </section>
-
-      <!-- Redact ---------------------------------------------------------------------------->
-      <section aria-labelledby="redact-title">
-        <div class="wrap feature flip">
-          <div class="feature-media">
-            <figure class="clip" id="03-redact">
-              <video
-                controls
-                muted
-                loop
-                playsinline
-                preload="none"
-                width="1440"
-                height="900"
-                poster="../media/03-redact.poster.webp"
-                aria-describedby="redact-caption"
-              >
-                <source src="../media/03-redact.webm" type="video/webm" />
-                <source src="../media/03-redact.mp4" type="video/mp4" />
-              </video>
-              <figcaption id="redact-caption">
-                Sensitive data found and redacted; a search for the IBAN then finds nothing.
-              </figcaption>
-            </figure>
-          </div>
-          <div class="feature-text">
-            <h2 id="redact-title">Redact</h2>
-            <p class="claim">
-              Redaction removes the text, images and paths under each mark, then re-reads the
-              exported file. A finding blocks the download.
-            </p>
-            <h3>What it does</h3>
-            <ul>
-              <li>
-                Marks by selection, word, area or search hit, or from the sensitive-data finder:
-                e-mail addresses, phone numbers, IBANs, Turkish ID numbers, card numbers and
-                dates. You review every mark before applying.
-              </li>
-              <li>
-                Applying removes the content under the marks, scrubs matching strings across the
-                file and fills the areas, then checks the exact bytes you will download.
-                <a
-                  href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/apps/web/e2e/redaction.spec.ts"
-                  >Redaction test</a
-                >
-              </li>
-            </ul>
-            <h3>What it does not do</h3>
-            <ul class="limits">
-              <li>
-                It does not read inside JBIG2, CCITT or JPEG&nbsp;2000 images; the report lists
-                them as not searched.
-              </li>
-              <li>The finder suggests matches. It does not decide what is sensitive for you.</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <!-- Recognise and compare ------------------------------------------------------------->
-      <section aria-labelledby="recognise-title">
-        <div class="wrap feature">
-          <div class="feature-media">
-            <figure class="clip" id="04-recognise-scan">
-              <video
-                controls
-                muted
-                loop
-                playsinline
-                preload="none"
-                width="1440"
-                height="900"
-                poster="../media/04-recognise-scan.poster.webp"
-                aria-describedby="recognise-caption"
-              >
-                <source src="../media/04-recognise-scan.webm" type="video/webm" />
-                <source src="../media/04-recognise-scan.mp4" type="video/mp4" />
-              </video>
-              <figcaption id="recognise-caption">
-                A scanned letter recognised in English. The recognition run is shortened in the
-                clip.
-              </figcaption>
-            </figure>
-            <figure class="clip" id="05-compare">
-              <video
-                controls
-                muted
-                loop
-                playsinline
-                preload="none"
-                width="1440"
-                height="900"
-                poster="../media/05-compare.poster.webp"
-                aria-describedby="compare-caption"
-              >
-                <source src="../media/05-compare.webm" type="video/webm" />
-                <source src="../media/05-compare.mp4" type="video/mp4" />
-              </video>
-              <figcaption id="compare-caption">
-                Two versions of a report: changed areas, onion skin, then the changed word.
-              </figcaption>
-            </figure>
-          </div>
-          <div class="feature-text">
-            <h2 id="recognise-title">Recognise and compare</h2>
-            <p class="claim">
-              OCR adds an invisible text layer to scanned pages, so you can search and select
-              their text. Compare shows what changed between two versions.
-            </p>
-            <h3>What it does</h3>
-            <ul>
-              <li>
-                Recognises nine languages with tesseract.js. Each language pack downloads from
-                this site the first time you use it and can be kept for offline use.
-              </li>
-              <li>
-                Rates each page Good, Review or Poor, and steps through low-confidence words
-                with J and K. On our test scans, 98% of words were found (Chromium).
-                <a
-                  href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/packages/engine/src/ocr/layer.test.ts"
-                  >OCR test</a
-                >
-              </li>
-              <li>
-                Compares two documents side by side or as an onion skin, with changed areas,
-                changed words and a report you can export.
-                <a
-                  href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/apps/web/e2e/compare.spec.ts"
-                  >Compare test</a
-                >
-              </li>
-            </ul>
-            <h3>What it does not do</h3>
-            <ul class="limits">
-              <li>OCR is tested on Chromium only so far.</li>
-              <li>Low-confidence words are flagged for you to review, not corrected.</li>
-              <li>Compare is read-only: it shows differences and does not merge them.</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <!-- Sign and export ------------------------------------------------------------------->
-      <section aria-labelledby="sign-title">
-        <div class="wrap feature flip">
-          <div class="feature-media">
-            <figure class="clip" id="07-sign">
-              <video
-                controls
-                muted
-                loop
-                playsinline
-                preload="none"
-                width="1440"
-                height="900"
-                poster="../media/07-sign.poster.webp"
-                aria-describedby="sign-caption"
-              >
-                <source src="../media/07-sign.webm" type="video/webm" />
-                <source src="../media/07-sign.mp4" type="video/mp4" />
-              </video>
-              <figcaption id="sign-caption">
-                Signed with a test certificate, re-opened, and shown as Intact.
-              </figcaption>
-            </figure>
-            <figure class="clip" id="06-edit-text">
-              <video
-                controls
-                muted
-                loop
-                playsinline
-                preload="none"
-                width="1440"
-                height="900"
-                poster="../media/06-edit-text.poster.webp"
-                aria-describedby="edit-caption"
-              >
-                <source src="../media/06-edit-text.webm" type="video/webm" />
-                <source src="../media/06-edit-text.mp4" type="video/mp4" />
-              </video>
-              <figcaption id="edit-caption">One line edited, "2024" to "2025", in the same font.</figcaption>
-            </figure>
-            <figure class="clip" id="08-markdown">
-              <video
-                controls
-                muted
-                loop
-                playsinline
-                preload="none"
-                width="1440"
-                height="900"
-                poster="../media/08-markdown.poster.webp"
-                aria-describedby="markdown-caption"
-              >
-                <source src="../media/08-markdown.webm" type="video/webm" />
-                <source src="../media/08-markdown.mp4" type="video/mp4" />
-              </video>
-              <figcaption id="markdown-caption">
-                Pages 2 to 4 converted to Markdown and previewed with their headings before the download.
-              </figcaption>
-            </figure>
-          </div>
-          <div class="feature-text">
-            <h2 id="sign-title">Sign and export</h2>
-            <p class="claim">
-              Sign with a certificate as the last export step, and see what was checked in a
-              signed file. Edit a line of text, or take pages out as Markdown.
-            </p>
-            <h3>What it does</h3>
-            <ul>
-              <li>
-                Signs with a .p12 or .pfx certificate as the last export step (PAdES-B), then
-                re-opens the signed file.
-              </li>
-              <li>
-                On open, each signature reads Intact; Intact, changed later; Changed after
-                signing; Broken; or Cannot check, with one line on what was checked.
-                <a
-                  href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/apps/web/e2e/signatures.spec.ts"
-                  >Signature test</a
-                >
-              </li>
-              <li>
-                Edits a line in its own font when the font has the characters, and reads the
-                result back before keeping it; otherwise a bundled font is used and the line is
-                labelled "Font substituted".
-                <a
-                  href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/apps/web/e2e/text-edit.spec.ts"
-                  >Text edit test</a
-                >
-              </li>
-              <li>
-                Converts a document, a page or a range to Markdown or plain text, with headings,
-                page breaks and joined hyphens.
-                <a
-                  href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/apps/web/e2e/convert.spec.ts"
-                  >Markdown test</a
-                >
-              </li>
-            </ul>
-            <h3>What it does not do</h3>
-            <ul class="limits">
-              <li>
-                It never labels a signature "valid" or "trusted". It checks the bytes against the
-                certificates in the file; signer identity, trust and revocation are not
-                checked, and there is no long-term validation (LTV).
-              </li>
-              <li>Text edits work one line at a time.</li>
-              <li>Markdown reading order is a heuristic, and tables are not detected.</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <!-- Check it yourself ----------------------------------------------------------------->
-      <section aria-labelledby="check-title">
-        <div class="wrap">
-          <h2 id="check-title" class="section-title">Check it yourself</h2>
-          <ol class="checks">
-            <li>
-              <p>
-                Read the Content Security Policy in the app's HTML. It says
-                <code>connect-src 'self'</code>: the browser refuses connections to any other
-                origin.
-              </p>
-              <p class="source">
-                <a href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/apps/web/index.html"
-                  >apps/web/index.html</a
-                >
-              </p>
-            </li>
-            <li>
-              <p>
-                Watch the status bar. It reads "No external requests" and counts every request
-                to another origin that the browser records (scripts, styles, fonts, images,
-                fetches, workers, WebAssembly). It cannot see WebSocket frames or requests the
-                policy blocked, which never leave the browser.
-              </p>
-              <p class="source">
-                <a
-                  href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/apps/web/src/privacy/external-requests.ts"
-                  >external-requests.ts</a
-                >
-              </p>
-            </li>
-            <li>
-              <p>
-                Open the app once, turn the network off and reload. It still opens a PDF and
-                renders its pages, and the status bar still reads "No external requests".
-              </p>
-              <p class="source">
-                <a
-                  href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/apps/web/e2e/offline.spec.ts"
-                  >offline.spec.ts</a
-                >
-              </p>
-            </li>
-            <li>
-              <p>
-                Open your browser's network panel and run OCR. The engine and the language pack
-                come from this site, only when you use them; all nine packs with the engine are
-                about 22 MB.
-              </p>
-              <p class="source">
-                <a
-                  href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/docs/adr/0012-ocr-hosting-and-language-packs.md"
-                  >ADR-0012</a
-                >
-              </p>
-            </li>
-            <li>
-              <p>
-                No telemetry, no accounts, no cookies. The application panel of your browser's
-                developer tools lists the cookies: there are none.
-              </p>
-            </li>
-            <li>
-              <p>
-                What stays on your device: the app and its engines in the service worker's cache,
-                the OCR language packs you used or kept, your saved recipes, and settings such as
-                panel layout, language, comment author name, pen presets and the last page read
-                in a document. Home lists your recent files: their names, sizes and page counts,
-                and in Chrome and Edge the browser's handle to reopen them, on this device only;
-                "Clear recents" forgets them. Your PDFs are not stored; closing the tab closes
-                them. The app's About dialog shows the storage in use.
-              </p>
-            </li>
-          </ol>
-        </div>
-      </section>
-
-      <!-- How it works ---------------------------------------------------------------------->
-      <section aria-labelledby="how-title">
-        <div class="wrap feature">
-          <div class="feature-text">
-            <h2 id="how-title">How it works</h2>
-            <p class="claim">
-              The app is static files from this site. Each engine runs in its own Web Worker,
-              reached through messages, so the interface keeps responding while a file renders
-              or exports.
-            </p>
-            <p class="claim">
-              Your edits are recorded as operations in a document model, with undo for every
-              step. Nothing is written into a file until you export. Export assembles a new
-              file, re-opens it in a fresh PDFium worker and checks page count, page sizes and
-              the text under redactions; only then is the download offered.
-            </p>
-            <p class="claim">
-              <a href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/docs/ARCHITECTURE.md"
-                >Architecture</a
-              >
-            </p>
-          </div>
-          <svg
-            class="diagram"
-            viewBox="0 0 360 612"
-            role="img"
-            aria-labelledby="diagram-title diagram-desc"
-          >
-            <title id="diagram-title">How Recto handles a file</title>
-            <desc id="diagram-desc">
-              The UI thread sends work through Comlink to six Web Workers: PDFium, pdf-lib, qpdf,
-              tesseract, signatures and analysis. Their results update the document model and
-              its history. Export assembles a new file, verification re-opens and checks it, and
-              then the file is downloaded.
-            </desc>
-            <defs>
-              <marker
-                id="arrow"
-                viewBox="0 0 10 10"
-                refX="9"
-                refY="5"
-                markerWidth="7"
-                markerHeight="7"
-                orient="auto-start-reverse"
-              >
-                <path class="arrowhead" d="M0 0 10 5 0 10Z" />
-              </marker>
-            </defs>
-
-            <rect class="box" x="8" y="8" width="344" height="52" rx="10" />
-            <text class="label" x="24" y="31">UI thread</text>
-            <text class="note" x="24" y="49">light table, viewer, command palette</text>
-
-            <path class="edge" d="M180 60V92" marker-end="url(#arrow)" />
-            <text class="note" x="190" y="81">Comlink</text>
-
-            <rect class="frame" x="8" y="96" width="344" height="196" rx="10" />
-            <text class="note" x="24" y="117">Web Workers</text>
-            <rect class="box box-worker" x="20" y="128" width="154" height="44" rx="6" />
-            <text class="label-small" x="32" y="147">PDFium</text>
-            <text class="note" x="32" y="163">render, text, edits</text>
-            <rect class="box box-worker" x="186" y="128" width="154" height="44" rx="6" />
-            <text class="label-small" x="198" y="147">pdf-lib</text>
-            <text class="note" x="198" y="163">assembly</text>
-            <rect class="box box-worker" x="20" y="180" width="154" height="44" rx="6" />
-            <text class="label-small" x="32" y="199">qpdf</text>
-            <text class="note" x="32" y="215">repair, compression</text>
-            <rect class="box box-worker" x="186" y="180" width="154" height="44" rx="6" />
-            <text class="label-small" x="198" y="199">tesseract</text>
-            <text class="note" x="198" y="215">OCR</text>
-            <rect class="box box-worker" x="20" y="232" width="154" height="44" rx="6" />
-            <text class="label-small" x="32" y="251">signatures</text>
-            <text class="note" x="32" y="267">check, sign</text>
-            <rect class="box box-worker" x="186" y="232" width="154" height="44" rx="6" />
-            <text class="label-small" x="198" y="251">analysis</text>
-            <text class="note" x="198" y="267">compare, Markdown</text>
-
-            <path class="edge" d="M180 292V324" marker-end="url(#arrow)" />
-
-            <rect class="box" x="8" y="328" width="344" height="52" rx="10" />
-            <text class="label" x="24" y="351">Document model and history</text>
-            <text class="note" x="24" y="369">every edit is an operation; undo for each</text>
-
-            <path class="edge" d="M180 380V404" marker-end="url(#arrow)" />
-
-            <rect class="box" x="8" y="408" width="344" height="52" rx="10" />
-            <text class="label" x="24" y="431">Export</text>
-            <text class="note" x="24" y="449">a new file: pages, bookmarks, links, fields</text>
-
-            <path class="edge" d="M180 460V484" marker-end="url(#arrow)" />
-
-            <rect class="box box-check" x="8" y="488" width="344" height="52" rx="10" />
-            <text class="label" x="24" y="511">Verification</text>
-            <text class="note" x="24" y="529">re-opened in a fresh PDFium worker</text>
-
-            <path class="edge" d="M180 540V564" marker-end="url(#arrow)" />
-
-            <rect class="box" x="8" y="568" width="344" height="40" rx="10" />
-            <text class="label" x="24" y="593">Download, to your device</text>
-          </svg>
-        </div>
-      </section>
+      </div>
     </main>
 
-    <footer class="footer">
-      <div class="wrap">
+    <footer class="colophon" id="colophon" aria-labelledby="colophon-title">
+      <div class="colophon-inner">
+        <h2 id="colophon-title" class="colophon-title">Colophon</h2>
         <p>
-          Recto <span class="version">%VITE_APP_VERSION%</span> · Public beta. Built and
-          maintained by one person; not audited by a third party. Tested on Chromium, Firefox
-          and WebKit in CI.
+          Set in Noto Serif and Inter, both under the SIL Open Font License and served from this
+          site, like everything else on the page. The plates were recorded with Playwright against
+          the build they show, at 1440 by 900 and on a 390 by 844 phone, with demo documents and
+          fictional data.
         </p>
-        <ul class="footer-links">
-          <li><a href="https://github.com/ErenDenizK/recto/releases">Release notes</a></li>
+        <p>
+          Recto <span class="version">%VITE_APP_VERSION%</span>, public beta, built from commit
+          <a
+            class="commit"
+            href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/README.md"
+            >%VITE_SOURCE_REF%</a
+          >. Tested on Chromium, Firefox and WebKit in CI.
+        </p>
+        <ul class="colophon-links">
+          <li><a href="https://github.com/ErenDenizK/recto">Source on GitHub</a></li>
+          <li><a href="https://github.com/ErenDenizK/recto/releases">Releases</a></li>
           <li>
-            <a href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/docs/ROADMAP.md">Roadmap</a>
+            <a href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/docs/company/roadmap.md"
+              >Roadmap</a
+            >
           </li>
           <li>
             <a href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/LICENSE">Licence: Apache-2.0</a>
           </li>
           <li><a href="https://github.com/ErenDenizK/recto/blob/%VITE_SOURCE_REF%/NOTICE">Credits</a></li>
-          <li><a href="https://github.com/ErenDenizK/recto">Source on GitHub</a></li>
         </ul>
         <!-- The maker's credits line, the footer's last line (family README §4 move 3; kit
              mark/README.md "The credits line", option A; owner, 2026-10-10). -->

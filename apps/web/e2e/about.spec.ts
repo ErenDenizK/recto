@@ -2,7 +2,8 @@
  * The about page (presentation spec §3, acceptance §8) from the preview build: `about/`
  * transfers at most 300 KB without its videos, asks no other origin for anything, loads no
  * script of the app's bundle, carries the app's Content Security Policy word for word, and
- * under reduced motion leaves the hero clip on its poster. The layout has no horizontal
+ * under reduced motion leaves the hero clip on its poster. Posters below the title page load as
+ * their plates near the screen (`data-poster`, about.js). The layout has no horizontal
  * scroll at phone width or at 1440 px, and the app's Document menu opens the page in a new
  * tab.
  *
@@ -117,13 +118,16 @@ test('the about page stays within its budget and asks only its own origin', asyn
   const clips = await page.locator('video').evaluateAll((videos) =>
     videos.map((node) => {
       const video = node as HTMLVideoElement;
-      return { id: video.id, preload: video.getAttribute('preload'), poster: video.poster };
+      // A plate below the title page names its poster in data-poster; about.js sets the
+      // attribute as the plate nears the screen.
+      const poster = video.getAttribute('poster') ?? video.dataset.poster ?? '';
+      return { id: video.id, preload: video.getAttribute('preload'), poster };
     }),
   );
   expect(clips.length).toBeGreaterThanOrEqual(8);
   for (const clip of clips) {
     expect(clip.preload, clip.id).toBe('none');
-    expect(clip.poster, clip.id).toMatch(/\/media\/[\w-]+\.poster\.webp$/);
+    expect(clip.poster, clip.id).toMatch(/\/?media\/[\w-]+\.poster\.webp$/);
   }
 });
 
