@@ -1,10 +1,8 @@
 /**
  * ◆ Library (`components/01-frame.md` F3): the strip's first button, the Recto mark
- * (`BrandMark`, the gradient on dark) in a 32 / 44 px circle. Click, Enter or `0`
- * shows the Library (`view.home`). On the Library it is current: the n5 fill, the label
- * "Library" beside the glyph (medium and up) and `aria-current="page"`. It replaces the title
- * bar's Home button (`AppGlyph.tsx`'s `HomeButton`; the glyph stays there for the compact
- * edition and Settings).
+ * (`BrandMark` 24, the gradient on dark) alone, no label (Colophon L2). Click, Enter or `0`
+ * shows Home (`view.home`). Only the document strip mounts it: Home has its own strip
+ * (`HomeStrip`, where the mark is the brand and not a control).
  */
 import { BrandMark } from '../../brand/BrandMark';
 import { commandRegistry } from '../../commands/registry';
@@ -14,7 +12,7 @@ import { Tooltip } from '../../ui/Tooltip';
 import { useCommandShortcut } from '../use-command-shortcut';
 import styles from './TopStrip.module.css';
 
-export function LibraryButton({ current }: { readonly current: boolean }) {
+export function LibraryButton() {
   const shortcut = useCommandShortcut('view.home');
   return (
     <Tooltip label={m.frame_library()} shortcut={shortcut}>
@@ -25,17 +23,11 @@ export function LibraryButton({ current }: { readonly current: boolean }) {
         // eslint-disable-next-line recto/q9-controls
         className={styles.library}
         aria-label={m.frame_library()}
-        aria-current={current ? 'page' : undefined}
         aria-keyshortcuts={shortcut ? toAriaKeyShortcut(shortcut, currentPlatform) : undefined}
         data-testid="home-button"
         onClick={() => void commandRegistry.execute('view.home')}
       >
-        <BrandMark size={18} />
-        {current ? (
-          <span className={styles.libraryLabel} aria-hidden="true">
-            {m.frame_library()}
-          </span>
-        ) : null}
+        <BrandMark size={24} />
       </button>
     </Tooltip>
   );

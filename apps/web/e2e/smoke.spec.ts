@@ -92,7 +92,7 @@ test('the palette finds commands by keywords in both languages, without diacriti
   await page.goto('./?lang=en');
   const search = async (query: string) => {
     // The shortcut is registered when the shell mounts; a press before that is lost.
-    await page.getByTestId('home-button').waitFor();
+    await page.getByTestId('home-search').waitFor();
     await page.keyboard.press('ControlOrMeta+k');
     const input = page.getByRole('combobox', { name: /^(Search commands|Komut ara)$/ });
     await input.fill(query);

@@ -1,6 +1,6 @@
 /**
  * The privacy shield ◎ (`components/01-frame.md` F8; ARCHITECTURE.md §7): keeps the product's
- * promise in sight. A 32 / 44 px circle in the strip with `shield-check`; with external
+ * promise in sight. A 32 / 44 px circle in the strip with `lock-simple` (DSN-92; on Home the "On this device" status); with external
  * requests, `shield-warning` in the warning colour and a count badge (the count is in the
  * name too, never alone). It opens the privacy popover (`04-context` §17, spec X29): the
  * observed external URLs (expected: none), the CSP in one sentence plus the enforced
@@ -36,7 +36,14 @@ function connectSrc(): string | undefined {
   return sources === undefined ? undefined : `connect-src ${sources.join(' ')}`;
 }
 
-export function PrivacyShield({ className }: { readonly className?: string | undefined }) {
+export function PrivacyShield({
+  className,
+  form = 'glyph',
+}: {
+  readonly className?: string | undefined;
+  /** `glyph`: the editor's lock circle; `status`: Home's "On this device" (DSN-92). */
+  readonly form?: 'glyph' | 'status';
+}) {
   const { count, urls } = useExternalRequests();
   const swStatus = usePwaStore((s) => s.status);
   const updateAvailable = usePwaStore((s) => s.updateAvailable);
@@ -50,18 +57,23 @@ export function PrivacyShield({ className }: { readonly className?: string | und
       <Tooltip label={name}>
         <Popover.Trigger
           ref={triggerRef}
-          className={[styles.trigger, className].filter(Boolean).join(' ')}
+          className={[form === 'status' ? styles.status : styles.trigger, className]
+            .filter(Boolean)
+            .join(' ')}
           aria-label={name}
           aria-haspopup="dialog"
           data-state={clean ? 'clean' : 'external'}
           data-testid="privacy-indicator"
         >
           {clean ? (
-            <Icon name="shield-check" aria-hidden="true" />
+            <Icon name="lock-simple" aria-hidden="true" />
           ) : (
             <Icon name="shield-warning" aria-hidden="true" />
           )}
-          {clean ? null : (
+          {form === 'status' ? (
+            <span aria-hidden="true">{clean ? m.frame_on_device() : formatNumber(count)}</span>
+          ) : null}
+          {clean || form === 'status' ? null : (
             <span className={styles.badge} aria-hidden="true">
               {formatNumber(count)}
             </span>

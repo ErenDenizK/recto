@@ -57,10 +57,13 @@ test('the shell and the engine work offline after one visit', async ({ page, con
     )
     .toBeGreaterThan(0);
 
-  // About Recto reports the worker as installed (on the Library, from its ⋯; the footer's
-  // privacy chip left, DSN-46).
-  await page.getByTestId('library-menu').click();
-  await page.getByTestId('library-menu-about').click();
+  // About Recto reports the worker as installed (on Home, from the strip's search).
+  await page.getByTestId('home-search').click();
+  await page.getByRole('combobox', { name: 'Search commands' }).fill('About Recto');
+  await page
+    .getByRole('option', { name: /About Recto/ })
+    .first()
+    .click();
   await expect(page.getByTestId('about-offline')).toHaveAttribute('data-status', 'ready');
   await expect(page.getByTestId('about-offline')).toHaveText(/works offline/);
   await page.keyboard.press('Escape');
