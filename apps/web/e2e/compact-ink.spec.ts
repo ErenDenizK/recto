@@ -38,7 +38,7 @@ async function shot(page: Page, name: string, settle = 500): Promise<void> {
 
 async function openReader(page: Page): Promise<void> {
   await useFileInputPicker(page);
-  await page.goto('./?lang=en');
+  await page.goto('./?lang=en&phonebar=0');
   await expect(page.getByTestId('compact-library')).toBeVisible();
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Open PDF' }).click();

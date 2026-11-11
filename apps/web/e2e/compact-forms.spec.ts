@@ -53,7 +53,7 @@ const zoom = async (page: Page) =>
 
 /** Opens the sample and brings its form page under the top bar. */
 async function openForm(page: Page, lang = 'en'): Promise<void> {
-  await page.goto(`./?sample&lang=${lang}`);
+  await page.goto(`./?sample&lang=${lang}&phonebar=0`);
   await expect(page.getByTestId('compact-reader')).toBeVisible();
   await expect(page.locator('[data-page-index="0"] canvas').first()).toHaveAttribute(
     'data-state',

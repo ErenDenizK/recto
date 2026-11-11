@@ -50,7 +50,7 @@ async function shot(page: Page, name: string, settle = 400): Promise<void> {
 
 /** Opens the sample and brings the feature's fourth paragraph a third of the way down. */
 async function openSample(page: Page, lang = 'en'): Promise<void> {
-  await page.goto(`./?sample&lang=${lang}`);
+  await page.goto(`./?sample&lang=${lang}&phonebar=0`);
   await expect(page.getByTestId('compact-reader')).toBeVisible();
   await expect(page.locator('[data-page-index="0"] canvas').first()).toHaveAttribute(
     'data-state',
@@ -453,7 +453,7 @@ test.describe('the first selection brings the editing chunk (EDN-21)', () => {
     page,
   }) => {
     await useFileInputPicker(page);
-    await page.goto('./?lang=en');
+    await page.goto('./?lang=en&phonebar=0');
     await expect(page.getByTestId('compact-library')).toBeVisible();
     const chooser = page.waitForEvent('filechooser');
     await page.getByRole('button', { name: /^(Open PDF|PDF aç)$/ }).click();

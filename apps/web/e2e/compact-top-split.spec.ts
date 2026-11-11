@@ -531,3 +531,27 @@ test.describe('the split top (DSN-34)', () => {
     });
   });
 });
+
+test.describe('the split top: the title in the serif, the page count after it (EDN-29)', () => {
+  test('sets the title at 16 in the serif with "1 / N" in the tertiary ink beside it', async ({
+    page,
+  }) => {
+    await openSample(page, '');
+    const text = page.getByTestId('compact-title-text');
+    const style = await text.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return { family: s.fontFamily, size: s.fontSize, weight: s.fontWeight };
+    });
+    expect(style.family).toContain('Noto Serif Recto');
+    expect(style.size).toBe('16px');
+    expect(style.weight).toBe('400');
+    const count = page.getByTestId('compact-title-count');
+    await expect(count).toHaveText(/^1 \/ \d+$/);
+    // 13 px in the tertiary ink, and the heading's accessible name carries the title alone.
+    expect(await count.evaluate((el) => getComputedStyle(el).fontSize)).toBe('13px');
+    await expect(page.getByRole('heading', { level: 1 })).not.toHaveAccessibleName(/\d \/ \d/);
+    // It follows the page the reader is on.
+    await scrollPages(page, 2000);
+    await expect(count).not.toHaveText(/^1 \//);
+  });
+});

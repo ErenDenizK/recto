@@ -39,7 +39,7 @@ function recordScripts(page: Page): string[] {
 
 async function openLibrary(page: Page, lang = 'en'): Promise<void> {
   await useFileInputPicker(page);
-  await page.goto(`./?lang=${lang}`);
+  await page.goto(`./?lang=${lang}&phonebar=0`);
   await expect(page.getByTestId('compact-library')).toBeVisible();
 }
 
@@ -220,13 +220,11 @@ test.describe('the compact edition', () => {
     await expect(page.locator('html')).toHaveAttribute('data-edition', 'compact');
     await expect(page.getByTestId('app-shell')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Open PDF' })).toBeVisible();
-    // The composition of DSN-31: the brand and promise, the tools as chips (read as a list and
-    // the line after it, DSN-51), the sample as a card, and Open PDF in the dock, a 44 px
-    // target or more.
+    // The composition of EDN-29: the brand and the gear, the first visit's Margin cover with its
+    // name and "Try the sample" as a link, and Open in the dock, a 44 px target or more.
     await expect(page.getByRole('heading', { level: 1, name: 'Recto' })).toBeVisible();
-    const tools = page.getByTestId('compact-tools');
-    await expect(tools.getByRole('listitem')).toHaveText(['Pen', 'Highlight', 'Text', 'Sign']);
-    await expect(tools.getByText('Every tool on a computer or tablet.')).toBeVisible();
+    await expect(page.getByTestId('compact-tools')).toHaveCount(0);
+    await expect(page.getByRole('heading', { level: 2, name: 'Margin, No. 07' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Try the sample' })).toBeVisible();
     const open = page.getByTestId('compact-library-dock').getByRole('button', { name: 'Open PDF' });
     const box = await open.boundingBox();
@@ -235,11 +233,8 @@ test.describe('the compact edition', () => {
     expect((box?.y ?? 0) + (box?.height ?? 0)).toBeGreaterThan(
       (page.viewportSize()?.height ?? 0) * 0.75,
     );
-    // First run: Recents holds its place with a calm empty row (XD-3).
-    const empty = page.getByTestId('compact-recents-empty');
-    await expect(empty.getByRole('heading', { name: 'Recent' })).toBeVisible();
-    await expect(empty).toContainText('No files yet');
-    await expect(empty).toContainText('PDFs you open show here, newest first.');
+    // First run: no Recent section until there is a file.
+    await expect(page.getByRole('heading', { name: 'Recent' })).toHaveCount(0);
     // No horizontal page scroll.
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       page.viewportSize()?.width ?? 0,
@@ -256,8 +251,7 @@ test.describe('the compact edition', () => {
   test('the Library speaks Turkish', async ({ page }) => {
     await openLibrary(page, 'tr');
     await expect(page.getByRole('button', { name: 'PDF aç' })).toBeVisible();
-    await expect(page.getByText('Tüm araçlar bilgisayar ve tablette.')).toBeVisible();
-    await expect(page.getByTestId('compact-tools')).toContainText('İmza');
+    await expect(page.getByRole('heading', { level: 2, name: 'Kenar, Sayı 07' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Örnek belgeyi dene' })).toBeVisible();
     // Turkish is longer: nothing in the Library clips or spills sideways.
     const clipped = await page.evaluate(() =>
@@ -268,7 +262,6 @@ test.describe('the compact edition', () => {
         .map((el) => el.textContent),
     );
     expect(clipped).toEqual([]);
-    await expect(page.getByTestId('compact-recents-empty')).toContainText('Henüz dosya yok');
     await shot(page, 'compact-library-tr');
     // Language is a setting, not a control on the page (DSN-46): the settings gear reaches it
     // before a file is open, in the Settings sheet (DSN-51, DSN-53), and changes the Library at
@@ -346,7 +339,7 @@ test.describe('the compact edition', () => {
     await expect(open).toBeVisible();
   });
 
-  test('Recents show as a card list; on its side the column splits so several rows show', async ({
+  test('Recent shows as a shelf of covers on one baseline, with Clear and the sample last', async ({
     page,
   }) => {
     await openLibrary(page);
@@ -355,82 +348,71 @@ test.describe('the compact edition', () => {
     await openPdf(page, 'annotations.pdf');
     await page.getByRole('button', { name: 'Library' }).click();
     const recents = page.getByTestId('compact-recents');
-    await expect(recents.getByRole('button')).toHaveCount(2);
-    // Clear is set at the section title's size (visual audit 2026-10 item 6), with a 44 px target.
+    // Two files and the sample as the shelf's last tile.
+    await expect(recents.getByRole('button')).toHaveCount(3);
+    // Clear is set at the section title's size, with a 44 px target.
     const title = page.getByRole('heading', { name: 'Recent' });
     const clear = page.getByRole('button', { name: 'Clear recents' });
     const size = (l: Locator) => l.evaluate((el) => getComputedStyle(el).fontSize);
     expect(await size(clear)).toBe(await size(title));
     expect((await clear.boundingBox())?.height).toBeGreaterThanOrEqual(44);
-    const viewport = page.viewportSize();
-    if (viewport && viewport.width > viewport.height) {
-      // On its side, Recents start in the top third and both rows show whole, above the edge.
-      const titleBox = await title.boundingBox();
-      expect(titleBox?.y ?? Infinity).toBeLessThan(viewport.height / 3);
-      for (const row of await recents.getByRole('button').all()) {
-        const rowBox = await row.boundingBox();
-        expect((rowBox?.y ?? 0) + (rowBox?.height ?? 0)).toBeLessThanOrEqual(viewport.height);
-      }
+    // The covers are 200 high and share one bottom edge, the shelf line.
+    const tiles = await recents.getByTestId('compact-recent').all();
+    const bottoms: number[] = [];
+    for (const tile of tiles) {
+      const sheet = await tile.locator('span').first().boundingBox();
+      expect(sheet?.height).toBe(200);
+      bottoms.push(Math.round((sheet?.y ?? 0) + (sheet?.height ?? 0)));
     }
+    expect(new Set(bottoms).size).toBe(1);
     await shot(page, 'compact-library-recents');
   });
 
-  test('with twelve Recents a swipe scrolls the Library to the last, clear of the dock', async ({
+  test('with twelve Recents a swipe scrolls the shelf to the last, which reopens', async ({
     page,
   }) => {
     await openLibrary(page);
     // The Library has opened the store (first run), so the seed lands in its schema.
-    await expect(page.getByTestId('compact-recents-empty')).toBeVisible();
+    await expect(page.getByTestId('compact-library')).toHaveAttribute('data-first-run');
     await seedRecents(page, 12);
-    const rows = page.getByTestId('compact-recents').getByRole('button');
-    await expect(rows).toHaveCount(12);
-    const last = rows.last();
-    const dock = page.getByTestId('compact-library-dock');
+    const tiles = page.getByTestId('compact-recent');
+    await expect(tiles).toHaveCount(12);
+    const shelf = page.getByTestId('compact-recents');
     const viewport = page.viewportSize() ?? { width: 390, height: 844 };
-    // The page itself scrolls (DSN-33), moved by a finger's swipes, not by a script.
+    const shelfBox = await shelf.boundingBox();
+    if (!shelfBox) throw new Error('no shelf');
+    // The shelf scrolls sideways under a finger's swipes, not by a script; the page does not.
     const scrolled = () =>
-      page.evaluate(() => {
-        const el = document.scrollingElement;
-        return el ? { top: el.scrollTop, end: el.scrollHeight - el.clientHeight } : undefined;
-      });
+      shelf.evaluate((el) => ({ left: el.scrollLeft, end: el.scrollWidth - el.clientWidth }));
     const cdp = await page.context().newCDPSession(page);
-    const x = Math.round(viewport.width * 0.75);
-    const from = Math.round(viewport.height * 0.7);
-    const step = Math.round(viewport.height * 0.04);
-    for (let i = 0; i < 8; i++) {
+    const y = Math.round(shelfBox.y + 100);
+    for (let i = 0; i < 12; i++) {
       const at = await scrolled();
-      if (at && at.top >= at.end - 1) break;
+      if (at.left >= at.end - 1) break;
       await cdp.send('Input.dispatchTouchEvent', {
         type: 'touchStart',
-        touchPoints: [{ x, y: from }],
+        touchPoints: [{ x: viewport.width - 20, y }],
       });
       for (let n = 1; n <= 10; n++) {
         await cdp.send('Input.dispatchTouchEvent', {
           type: 'touchMove',
-          touchPoints: [{ x, y: from - n * step }],
+          touchPoints: [{ x: viewport.width - 20 - n * 30, y }],
         });
       }
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
       await frames(page, 2);
     }
-    await expect.poll(async () => (await scrolled())?.top ?? 0).toBeGreaterThan(0);
-    await expect
-      .poll(async () => {
-        const at = await scrolled();
-        return at ? at.end - at.top : Number.POSITIVE_INFINITY;
-      })
-      .toBeLessThanOrEqual(1);
-    // The last row stands whole above the dock, which stands above the home indicator.
-    const rowBox = await last.boundingBox();
-    const dockBox = await dock.boundingBox();
-    if (!rowBox || !dockBox) throw new Error('no row or dock');
-    expect(rowBox.y).toBeGreaterThanOrEqual(0);
-    expect(rowBox.y + rowBox.height).toBeLessThanOrEqual(dockBox.y);
-    expect(dockBox.y + dockBox.height).toBeLessThanOrEqual(viewport.height);
+    await expect.poll(async () => (await scrolled()).left).toBeGreaterThan(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      viewport.width,
+    );
     await shot(page, 'compact-library-many-recents');
-    // A tap on it reopens it; a seeded entry keeps no handle, so through the file dialog.
+    // The last cover is a sample tile; the twelfth file stands before it. A tap reopens it; a
+    // seeded entry keeps no handle, so through the file dialog.
+    const last = tiles.last();
+    await last.scrollIntoViewIfNeeded();
     const chooser = page.waitForEvent('filechooser');
-    await page.touchscreen.tap(rowBox.x + rowBox.width / 2, rowBox.y + rowBox.height / 2);
+    await last.tap();
     await (await chooser).setFiles(fixturePath('simple-text.pdf'));
     await expect(page.getByTestId('compact-reader')).toBeVisible();
     // The reader scrolls its own pages again, from the top of the window.
@@ -453,7 +435,7 @@ test.describe('the compact edition', () => {
   }) => {
     // A link straight to a document: no pointer was used, so Chromium would ring the scripted
     // focus as :focus-visible (V2 review item 2). The ring waits for Tab or F6.
-    await page.goto('./?sample');
+    await page.goto('./?sample&phonebar=0');
     await expect(page.locator('[data-page-index="0"] canvas').first()).toHaveAttribute(
       'data-state',
       'rendered',
@@ -889,23 +871,30 @@ test.describe('the compact edition', () => {
     await expect(pageNumber(page)).toHaveText('1 / 3');
   });
 
-  test('back to the Library lists the open file first; another file replaces it', async ({
+  test('back to the Library continues the open file; another file replaces it', async ({
     page,
   }) => {
     await openLibrary(page);
     await openPdf(page, 'simple-text.pdf');
     await page.getByRole('button', { name: 'Library' }).click();
-    const recents = page.getByTestId('compact-recents');
-    const reading = recents.getByRole('button', { name: /^simple-text\.pdf, .*Reading now$/ });
-    await expect(reading).toBeVisible();
-    await reading.click();
+    // The open file is Continue (EDN-29): its name, its page, the one lime; the dock's Open is a
+    // ghost pill meanwhile, and the shelf does not list the file a second time.
+    const card = page.getByTestId('continue-card');
+    await expect(card.getByTestId('continue-name')).toHaveText('simple-text');
+    await expect(card.getByTestId('continue-page')).toHaveText(/^Page 1 of 3$/);
+    await expect(
+      page.getByTestId('compact-library-dock').getByRole('button', { name: 'Open PDF' }),
+    ).toHaveAttribute('data-ghost');
+    await card.getByTestId('continue-resume').click();
     await expect(pageNumber(page)).toHaveText('1 / 3');
     await page.getByRole('button', { name: 'Library' }).click();
     await openPdf(page, 'annotations.pdf');
     await page.getByRole('button', { name: 'Library' }).click();
-    await expect(recents.getByRole('button').first()).toHaveAccessibleName(/^annotations\.pdf/);
-    // One document at a time.
-    await expect(recents.getByRole('button', { name: /Reading now$/ })).toHaveCount(1);
+    // One document at a time: annotations is Continue now, and simple-text leads the shelf.
+    await expect(card.getByTestId('continue-name')).toHaveText('annotations');
+    const recents = page.getByTestId('compact-recents');
+    await expect(recents.getByRole('button').first()).toHaveAccessibleName(/^simple-text\.pdf/);
+    await expect(recents.getByRole('button', { name: /Reading now$/ })).toHaveCount(0);
   });
 
   test('Turkish chrome fits: menu, sheets and Find clip nothing', async ({ page }) => {
