@@ -41,6 +41,6 @@ export { CapsuleTools } from './CapsuleTools';
 export { CapsuleTray } from './CapsuleTray';
 export { EditIsland } from './EditIsland';
 export { type CompactToolSpec, registerCompactTool } from './registry';
-export { RedoChip } from './RedoChip';
+export { RedoChip, UndoChip } from './RedoChip';
 export { SignHost } from './sign';
 export { ToolDrawer } from './ToolDrawer';

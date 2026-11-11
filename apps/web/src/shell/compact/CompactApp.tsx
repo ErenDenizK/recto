@@ -39,6 +39,7 @@ import { CompactReader } from './CompactReader';
 import { openPdf, shareOrDownload } from './compact-actions';
 import { PhoneScanHost } from './scan/ScanEntry';
 import { capsuleAway, showLibrary, showReader, useCompactStore } from './compact-store';
+import { phoneCapsule } from './phone-capsule-flag';
 
 const VIEWPORT =
   'width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content';
@@ -60,6 +61,15 @@ function applyViewport(): () => void {
 
 export function CompactApp() {
   useLayoutEffect(() => applyViewport(), []);
+  // The single capsule's metrics (60 high, 30 from the bottom) are what the toasts and the sheets
+  // clear (`CompactApp.module.css`); the shipped capsule's stay with `?phonebar=0`.
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    if (phoneCapsule()) root.dataset.phoneCapsule = '';
+    return () => {
+      delete root.dataset.phoneCapsule;
+    };
+  }, []);
   // The app's one scroll bar over every scroller, the phone's lists and sheets too (GLS-26).
   useLayoutEffect(() => installScrollThumbs(), []);
   // The find map's rail: Find's hit ticks on the reader's edge (R26, DSN-65; `?findmap=1`).
@@ -82,6 +92,19 @@ export function CompactApp() {
   useEffect(() => installCopyHandler(), []);
   useEffect(() => {
     void loadRecents();
+  }, []);
+  // The single capsule's chunk (EDN-29) is asked for once the Library has painted, so the reader
+  // finds it ready; the editing chunk behind it still waits for intent (EDN-21).
+  useEffect(() => {
+    if (!phoneCapsule()) return undefined;
+    const ask = () => void import('./PhoneCapsule');
+    // Browsers without idle callbacks (older WebKit) ask after a short wait.
+    if (typeof requestIdleCallback === 'function') {
+      const id = requestIdleCallback(ask);
+      return () => cancelIdleCallback(id);
+    }
+    const id = setTimeout(ask, 200);
+    return () => clearTimeout(id);
   }, []);
   // Kept documents restore here too (ADR-0033 §2.3): the active one, at its page; one with
   // changes made in the full edition opens with them and offers Download a copy, which

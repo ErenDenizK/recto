@@ -14,6 +14,8 @@
  */
 .top {
   --top-offset: max(env(safe-area-inset-top, 0px), 12px);
+  --title-size: 16px;
+  --title-lh: 20px;
   position: fixed;
   top: 0;
   right: 0;
@@ -154,6 +156,7 @@
 .heading {
   display: flex;
   flex: 1;
+  align-items: center;
   justify-content: center;
   min-width: 0;
   margin: 0;
@@ -170,10 +173,12 @@
   padding: 0 8px;
   border-radius: var(--radius-capsule);
   color: var(--text-primary);
-  font-size: var(--type-callout);
-  font-weight: 600;
-  line-height: var(--type-callout-lh);
-  letter-spacing: var(--track-callout);
+  /* The document's name in the serif (DSN-89: titles only), 16 / 20. */
+  font-family: var(--font-serif);
+  font-size: var(--title-size);
+  font-weight: 400;
+  line-height: var(--title-lh);
+  letter-spacing: -0.005em;
   touch-action: manipulation;
   transition:
     transform var(--hide-ms, var(--spring-quick)) var(--hide-ease, var(--ease-spring)),
@@ -198,6 +203,22 @@
   white-space: nowrap;
 }
 
+/* "3 / 6" after the title: 13 in the tertiary ink, tabular, in the title's own lift. */
+.count {
+  flex: none;
+  color: var(--text-tertiary);
+  font-size: var(--type-footnote);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--type-footnote-lh);
+  text-shadow:
+    0 0 2px var(--canvas),
+    0 0 8px var(--canvas);
+  white-space: nowrap;
+  transition:
+    transform var(--hide-ms, var(--spring-quick)) var(--hide-ease, var(--ease-spring)),
+    opacity var(--hide-fade, var(--duration-base)) var(--ease-out) var(--hide-fade-delay, 0ms);
+}
+
 .chevron {
   display: inline-flex;
   flex: none;
@@ -216,7 +237,7 @@
   height: 16px;
 }
 
-.top[data-hidden] :is(.circle, .title) {
+.top[data-hidden] :is(.circle, .title, .count) {
   opacity: 0;
   transform: translateY(calc(-100% - var(--top-offset)));
 }

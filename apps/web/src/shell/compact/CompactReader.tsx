@@ -121,11 +121,15 @@ export const TOP_BAR_EDGE = 12;
 export const CAPSULE_HEIGHT = 56;
 /** The capsule's least distance from the bottom edge (01-frame F1 §2). */
 export const CAPSULE_OFFSET = 12;
+/** The single capsule (EDN-29, DSN-91): 60 high, standing max(safe area, 30) from the bottom. */
+const PHONE_CAPSULE_HEIGHT = 60;
+const PHONE_CAPSULE_OFFSET = 30;
 /**
- * Extra room under the pages while the single capsule is on (EDN-24): its tray (56 px and the
- * 8 px gap), constant so the pages never re-lay out when the tray toggles.
+ * Extra room under the pages while the single capsule is on (EDN-24, EDN-29): the options row
+ * above it (44 px and the 12 px gap), constant so the pages never re-lay out when the tray
+ * toggles.
  */
-const TRAY_ROOM = 64;
+const TRAY_ROOM = 56;
 /** Remember the reading position after it has settled this long (as Read mode). */
 const REMEMBER_DELAY_MS = 600;
 /** Mod+wheel: this many pixels of wheel double or halve the zoom (desktop compact). */
@@ -244,11 +248,9 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
     insetLeft: insets.left,
     insetRight: insets.right,
     padTop: TOP_BAR_HEIGHT + Math.max(insets.top, TOP_BAR_EDGE) + PAGE_GAP,
-    padBottom:
-      CAPSULE_HEIGHT +
-      Math.max(insets.bottom, CAPSULE_OFFSET) +
-      PAGE_GAP +
-      (phoneCapsule() ? TRAY_ROOM : 0),
+    padBottom: phoneCapsule()
+      ? PHONE_CAPSULE_HEIGHT + Math.max(insets.bottom, PHONE_CAPSULE_OFFSET) + PAGE_GAP + TRAY_ROOM
+      : CAPSULE_HEIGHT + Math.max(insets.bottom, CAPSULE_OFFSET) + PAGE_GAP,
   };
   const layout = layoutPages(sizes, frame, zoom, dpr);
   const [ranges, setRanges] = useState<Ranges>(() => ({

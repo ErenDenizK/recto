@@ -11,13 +11,20 @@ import { fixtureFile } from '../../../../test/store-harness';
 import { openPdf } from '../compact-actions';
 import { resetCompactStore, setTrayOpen, showLibrary, useCompactStore } from '../compact-store';
 import { armTool, enterEditing, exitEditing, resetBridge, toggleEraser } from './bridge';
-import { installTrayOpener, tapCapsuleTool, tapRule, trayTool } from './capsule-state';
+import { installTrayOpener, pressedTool, tapCapsuleTool, tapRule, trayTool } from './capsule-state';
 import './tools';
 
 const compact = () => useCompactStore.getState();
 
 describe('the pressed tool', () => {
-  it('the Eraser counts as the tool it took over from, Edit text as Text', () => {
+  it('the Eraser counts as the tool it took over from; Edit text has its own slot', () => {
+    expect(pressedTool(null, 'pen')).toBeNull();
+    expect(pressedTool('pen', 'text')).toBe('pen');
+    expect(pressedTool('eraser', 'highlight')).toBe('highlight');
+    expect(pressedTool('edit-text', 'pen')).toBe('edit-text');
+  });
+
+  it('the tray follows it, but Edit text borrows Text’s options', () => {
     expect(trayTool(null, 'pen')).toBeNull();
     expect(trayTool('pen', 'text')).toBe('pen');
     expect(trayTool('eraser', 'highlight')).toBe('highlight');
@@ -35,7 +42,9 @@ describe('the armed-tool tap table', () => {
   it('turns the armed tool off with the tray open, opens the tray when closed', () => {
     expect(tapRule('pen', 'pen', 'pen', true)).toBe('off');
     expect(tapRule('pen', 'pen', 'pen', false)).toBe('open');
-    expect(tapRule('edit-text', 'text', 'text', true)).toBe('off');
+    expect(tapRule('edit-text', 'edit-text', 'edit-text', true)).toBe('off');
+    // Edit text pressed, a tap on Text arms Text.
+    expect(tapRule('edit-text', 'edit-text', 'text', true)).toBe('arm');
   });
 
   it('returns from the Eraser to the tool it took over from', () => {

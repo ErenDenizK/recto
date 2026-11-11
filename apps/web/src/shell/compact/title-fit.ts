@@ -6,8 +6,9 @@
  * the name whole (DSN-34).
  *
  * The cut is measured, once per name and width (a resize, a rotation), never per frame: the
- * room is the heading's width less the title's padding, gap and ▾; the text is measured in the
- * title's own font on a 2D canvas.
+ * room is the heading's width less the title's padding, gap and ▾ and what stands beside the
+ * title in the heading (the page count); the text is measured in the title's own font on a 2D
+ * canvas.
  */
 import { type RefObject, useLayoutEffect, useState } from 'react';
 
@@ -71,6 +72,18 @@ export function useMiddleTitle(
       for (const child of trigger.children) {
         if (child === span) continue;
         room -= child.getBoundingClientRect().width + (Number.parseFloat(style.columnGap) || 0);
+      }
+      // What stands beside the trigger in the heading (the page count) and the heading's gap.
+      const beside = getComputedStyle(box);
+      for (const child of box.children) {
+        if (child === trigger) continue;
+        const margins =
+          Number.parseFloat(getComputedStyle(child).marginLeft) +
+          Number.parseFloat(getComputedStyle(child).marginRight);
+        room -=
+          child.getBoundingClientRect().width +
+          (Number.parseFloat(beside.columnGap) || 0) +
+          margins;
       }
       measurer ??= document.createElement('canvas').getContext('2d');
       const context = measurer;

@@ -19,7 +19,8 @@
  *   pieces, the theme's canvas colour (GLS-20) fading out downwards over a backdrop blur that a
  *   mask fades out with it. No script per scrolled frame.
  *
- * "n / N" stays in the capsule (DSN-34): no second page indicator under the title. The pieces
+ * **The title** is set in the serif at 16 (DSN-89) and "3 / 6" follows it in the tertiary ink at
+ * 13 (EDN-29); the capsule keeps its own "n / N" button, which is Go to page (DSN-34). The pieces
  * hide on scroll with the capsule exactly as the capsule top does (`topBarAway`, DSN-32), each
  * moving and fading on itself (Q-3: never a wrapper, which would cut their glass off the page),
  * and the header is `inert` while hidden. Its pieces count as one glass surface (Q-11,
@@ -30,6 +31,7 @@ import type { VirtualDocument } from '@pdf-editor/document-model';
 import { useEffect, useRef } from 'react';
 
 import { m } from '../../i18n';
+import { useViewStore } from '../../state/view-store';
 import { Icon } from '../../ui/Icon';
 import { IconButton } from '../../ui/IconButton';
 import type { SplitTopParts } from './CompactChrome';
@@ -100,6 +102,7 @@ function FileMenu({
   const title = useMiddleTitle(doc.title, headingRef, textRef);
   const file = useFileInfo(doc);
   const name = file?.name ?? doc.title;
+  const current = useViewStore((s) => s.currentPage);
   return (
     <Menu.Root
       open={open}
@@ -122,6 +125,9 @@ function FileMenu({
             <Icon name="caret-down" />
           </span>
         </Menu.Trigger>
+        <span className={styles.count} aria-hidden="true" data-testid="compact-title-count">
+          {Math.min(current, doc.pages.length - 1) + 1} / {doc.pages.length}
+        </span>
       </h1>
       <Menu.Portal>
         <Menu.Positioner
