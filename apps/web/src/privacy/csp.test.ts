@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-import aboutHtml from '../../about/index.html?raw';
 import indexHtml from '../../index.html?raw';
 import { documentCsp, externalSources, parseCsp } from './csp';
 
@@ -32,11 +31,8 @@ describe('index.html Content Security Policy', () => {
 
   // Browsers ignore these in a meta policy and log an error on every load (CSP3 §6.1);
   // GitHub Pages cannot send them as headers (ADR-0004).
-  it.each([
-    ['index.html', indexHtml],
-    ['about/index.html', aboutHtml],
-  ])('%s carries no header-only directive', (_name, html) => {
-    const csp = parseCsp(shippedPolicy(html));
+  it('index.html carries no header-only directive', () => {
+    const csp = parseCsp(shippedPolicy(indexHtml));
     for (const directive of ['frame-ancestors', 'sandbox', 'report-uri']) {
       expect(csp.has(directive)).toBe(false);
     }

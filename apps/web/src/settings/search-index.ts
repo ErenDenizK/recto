@@ -60,7 +60,6 @@ export type SettingsRowId =
   | 'aboutSource'
   | 'aboutStorage'
   | 'aboutOffline'
-  | 'aboutPage'
   | 'officePackage'
   | 'aboutOfficeLicences';
 
@@ -286,13 +285,6 @@ export const SETTINGS_ROWS: readonly SettingsRow[] = [
     section: 'more',
     page: 'about',
     title: at(m.about_offline),
-    commands: ABOUT,
-  },
-  {
-    id: 'aboutPage',
-    section: 'more',
-    page: 'about',
-    title: at(m.settings_about_how),
     commands: ABOUT,
   },
   {

@@ -238,32 +238,6 @@ const appVersion = (
   }
 ).version;
 
-/** The about page's footer reads the version as `%VITE_APP_VERSION%`; CI may set it. */
-process.env.VITE_APP_VERSION ??= appVersion;
-
-/**
- * The about page links to the sources of the build it ships with (`%VITE_SOURCE_REF%` in
- * `about/index.html`): the full commit SHA, so the links hold whatever the branches do. CI's
- * `GITHUB_SHA`, else the checkout's HEAD, else the development branch.
- */
-process.env.VITE_SOURCE_REF ??= sourceRef();
-
-/** Full SHA of the built commit, else `develop` (no commit is known outside a checkout). */
-function sourceRef(): string {
-  const fromCi = process.env.GITHUB_SHA?.trim();
-  if (fromCi) return fromCi;
-  try {
-    const sha = execFileSync('git', ['rev-parse', 'HEAD'], {
-      cwd: fileURLToPath(new URL('.', import.meta.url)),
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    }).trim();
-    return sha === '' ? 'develop' : sha;
-  } catch {
-    return 'develop';
-  }
-}
-
 /** Short SHA of the built commit: CI's `GITHUB_SHA`, else the checkout's HEAD, else "unknown". */
 function appCommit(): string {
   const fromCi = process.env.GITHUB_SHA?.trim();
@@ -475,7 +449,7 @@ export default defineConfig({
         // factory: the app always passes a factory (ADR-0011), so it is never loaded. `ocr/`
         // (tesseract's worker, cores and ~22 MB of packs) downloads only when OCR is used
         // (ADR-0012 §4).
-        // `media/` (the about page's clips, posters and the media run's request log) is added
+        // `media/` (the README media, the social preview and the media run's request log) is added
         // to the site by the deploy job and is never precached (presentation spec §2.6).
         // `lab/` (the glass lab, GLS-1) is a page beside the app, never part of its shell.
         // `convert/` (the Office conversion package, ~79 MB) downloads only on consent and is
@@ -644,9 +618,6 @@ export default defineConfig({
         // Static "not found" page for GitHub Pages. Built as an HTML entry (not copied from
         // `public/`) so that `%BASE_URL%` is substituted; no SPA redirect trick (ADR-0004).
         notFound: fileURLToPath(new URL('./404.html', import.meta.url)),
-        // The about page (presentation spec §3): plain HTML and CSS beside the app, built to
-        // about/index.html. It loads none of the app's code.
-        about: fileURLToPath(new URL('./about/index.html', import.meta.url)),
         // The glass lab (docs/research/23-liquid-glass-lab.md, decisions GLS-1): a standalone
         // page at lab/glass/, never loaded by the app, sharing no module with it.
         glassLab: fileURLToPath(new URL('./lab/glass/index.html', import.meta.url)),

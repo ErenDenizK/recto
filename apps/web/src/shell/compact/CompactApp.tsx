@@ -123,7 +123,7 @@ export function CompactApp() {
       }),
     [],
   );
-  // `?sample` from the about page opens the teaching sample's phone cut in the reader (D4-2,
+  // `?sample` in a link opens the teaching sample's phone cut in the reader (D4-2,
   // MOB-12).
   useEffect(
     () =>

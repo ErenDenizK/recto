@@ -10,10 +10,9 @@
  *
  * Without arguments it checks:
  *
- * - **Public copy:** README.md, the about page (`apps/web/about/**\/*.html`) and the
- *   release-notes template (`.github/release-notes.md`); a default input that does not exist
- *   yet is skipped. English pages get the English lists; a page under a `tr/` folder (the
- *   Turkish about page, brand plan §7) gets the Turkish ones. Only words a reader sees are
+ * - **Public copy:** README.md, and the release-notes template
+ *   (`.github/release-notes.md`); a default input that does not exist yet is skipped.
+ *   English pages get the English lists; a page under a `tr/` folder gets the Turkish ones. Only words a reader sees are
  *   checked: fenced code blocks (Mermaid diagrams excepted), inline code, HTML comments, URLs,
  *   tags, scripts and styles are blanked first, keeping the reader-facing attributes `alt`,
  *   `title`, `aria-label`, `content` and `placeholder`. The structures of brand plan §7 apply
@@ -41,7 +40,6 @@ const ROOT = resolve(import.meta.dirname, '../..');
 /** Copy checked when no arguments are given, relative to the repository root. */
 const DEFAULT_INPUTS = [
   'README.md',
-  'apps/web/about',
   '.github/release-notes.md',
   'apps/web/messages/en.json',
   'apps/web/messages/tr.json',

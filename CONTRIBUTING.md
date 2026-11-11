@@ -40,7 +40,7 @@ in **English**. User-facing strings live in locale files and are translated sepa
 | `packages/engine` | Engine interfaces and their adapters (PDFium, pdf-lib). Tests run in Vitest browser mode. |
 | `packages/document-model` | Virtual document model, commands and history. Platform-agnostic: no DOM (ADR-0007). |
 | `test/fixtures` | The PDF test corpus, with provenance in its `README.md`. |
-| `tools` | Workspace tools: the deterministic fixture generator (`tools/fixtures`), the README and about-page media recorder (`tools/media`), the copy check (`tools/copy-check`), the redirect folder for the old address (`tools/portfolio-redirect`). |
+| `tools` | Workspace tools: the deterministic fixture generator (`tools/fixtures`), the README media recorder (`tools/media`), the copy check (`tools/copy-check`), the redirect folder for the old address (`tools/portfolio-redirect`). |
 | `tooling` | Shared helpers for tool configuration (for example browser resolution for tests). |
 | `docs` | Vision, architecture, roadmap, design, ADRs and research. |
 | `.github` | CI, deployment and release workflows, the release-notes template, issue and pull request templates. |
@@ -73,7 +73,7 @@ in **English**. User-facing strings live in locale files and are translated sepa
 
 ## Public copy
 
-The README, the about page (`apps/web/about/`) and the release notes follow the copy rules of
+The README and the release notes follow the copy rules of
 `docs/specs/presentation.md` §1.2: mechanism words, a limit next to each capability, and
 evidence one click away (a test, a CI step, a source file or an ADR). The `docs` CI job runs
 the copy check, which rejects the banned words of §1.3, exclamation marks and emoji, and a
