@@ -161,10 +161,19 @@ function CompactToasts() {
   return <ToastRegion edition="compact" band={away ? 'away' : 'shown'} covered={covered} />;
 }
 
+/** Each aura tone's test id. */
+const AURA_TEST_IDS = {
+  library: 'library-aura',
+  grid: 'grid-aura',
+  reader: 'reader-glow',
+} as const;
+
 function CompactRoot() {
   const place = useCompactStore((s) => s.place);
   const hasDocument = useWorkspaceStore((s) => s.workspace.activeDocument !== undefined);
   const glow = useAppearanceStore((s) => s.glow);
+  // The page overview lies over the aura too: the still grid tone, never bare canvas.
+  const overviewOpen = useCompactStore((s) => s.overview !== 'closed');
   // The reader needs a document; without one (a failed reopen) the Library shows.
   useEffect(() => {
     if (place === 'reader' && !hasDocument) showLibrary();
@@ -173,7 +182,7 @@ function CompactRoot() {
   // The background light (DSN-24), as in the full edition's shell: one layer fixed to the
   // window behind everything, the Library's drifting aura or, with Settings › Background glow
   // on, the reader's still glow behind its canvas (G5). The pages stay white over it.
-  const aura = reading ? (glow ? 'reader' : null) : 'library';
+  const aura = reading ? (overviewOpen ? 'grid' : glow ? 'reader' : null) : 'library';
   // The Library scrolls the document, the reader its own pages (DSN-33, CompactApp.module.css).
   useLayoutEffect(() => {
     const root = document.documentElement;
@@ -184,9 +193,7 @@ function CompactRoot() {
   }, [reading]);
   return (
     <div className={styles.root} data-testid="compact-app" data-place={place}>
-      {aura ? (
-        <Aura tone={aura} testId={aura === 'library' ? 'library-aura' : 'reader-glow'} />
-      ) : null}
+      {aura ? <Aura tone={aura} testId={AURA_TEST_IDS[aura]} /> : null}
       {reading ? <CompactReader /> : <CompactLibrary />}
     </div>
   );

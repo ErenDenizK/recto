@@ -103,6 +103,26 @@ describe('the docked frame', () => {
     expect(commandRegistry.get('view.glass.tinted')?.keywords).toContain('saydamlık');
   });
 
+  it('lays the aura still behind the Pages grid, whatever Background glow says', async () => {
+    render(<App />);
+    const bytes = await (await fetch(simpleUrl)).arrayBuffer();
+    await act(async () => {
+      await openDocuments([new File([bytes], 'simple-text.pdf', { type: 'application/pdf' })]);
+    });
+    act(() => {
+      useAppearanceStore.setState({ glow: false });
+      useUiStore.getState().showSurface('grid');
+    });
+    const shell = screen.getByTestId('app-shell');
+    const aura = await screen.findByTestId('grid-aura');
+    expect(shell).toHaveAttribute('data-aura', 'grid');
+    expect(aura).toHaveAttribute('data-tone', 'grid');
+    const stage = shell.querySelector<HTMLElement>(':scope > main');
+    expect(stage && getComputedStyle(stage).backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    // Still: a surface at rest draws no frames (DSN-94, Q-10).
+    expect(aura.getAnimations({ subtree: true })).toHaveLength(0);
+  });
+
   it('lays Background glow behind the reader, on by default; its command turns it off (G5)', async () => {
     render(<App />);
     const bytes = await (await fetch(simpleUrl)).arrayBuffer();

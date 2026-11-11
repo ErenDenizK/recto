@@ -11,7 +11,9 @@
  * cost ladder's steps 2 and 3; it never starts under reduced motion (the system's or the
  * setting's), where the aura is still. Decorative: `aria-hidden` and pointer-transparent.
  *
- * Two tones: `library`, behind the Library's column, and `reader`, the same light dimmer and
+ * Three tones: `grid`, Home's two lobes held still behind the Pages grid and the phone's page
+ * overview, so the page-picking ground is the Aura and never flat black (owner feedback
+ * 2026-11-11; a surface at rest draws no frames, DSN-94); `library`, behind the Library's column, and `reader`, the same light dimmer and
  * still behind the reader's canvas when Settings › Background glow is on (G5): a document view
  * keeps Q-10's zero frames at rest, so only the Library drifts. The shell lays it once, behind
  * the stage and fixed to the window (owner feedback 2026-10-10, R15), so a sheet, the sidebar or
@@ -42,7 +44,7 @@ export function Aura({
   tone,
   testId,
 }: {
-  readonly tone: 'library' | 'reader';
+  readonly tone: 'library' | 'grid' | 'reader';
   readonly testId?: string;
 }) {
   const hidden = useDocumentHidden();
@@ -54,7 +56,7 @@ export function Aura({
       data-paused={hidden || undefined}
       data-testid={testId}
     >
-      {(tone === 'library' ? HOME_LOBES : READER_LOBES).map((lobe) => (
+      {(tone === 'reader' ? READER_LOBES : HOME_LOBES).map((lobe) => (
         <span key={lobe} className={styles.lobe} data-lobe={lobe} />
       ))}
     </div>
