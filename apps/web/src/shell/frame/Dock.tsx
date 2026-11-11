@@ -264,11 +264,11 @@ function DockButton({
   // An icon button at the slot size (`Dock.module.css`), named by `aria-label` and dimmed by
   // `aria-disabled` alone so a press still says why (RA-21) instead of being swallowed.
   const button = (
-    // The IconButton's circle (`styles.item` composes it) with the tooltip's `reason` below,
-    // which IconButton does not carry: a dimmed item says why (RA-21).
-    // eslint-disable-next-line recto/q9-controls
     <button
       type="button"
+      // The IconButton's circle (`styles.item` composes it) with the tooltip's `reason` below,
+      // which IconButton does not carry: a dimmed item says why (RA-21).
+      // eslint-disable-next-line recto/q9-controls
       className={styles.item}
       data-size="bar"
       data-capsule-item={capsuleKey(item)}
