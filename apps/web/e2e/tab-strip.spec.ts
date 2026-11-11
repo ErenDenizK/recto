@@ -167,6 +167,12 @@ test('✕ sits the same distance after every tab’s name, a short one too', asy
   for (const name of ['simple-text.pdf', 'forms-a.pdf', 'rotated-pages.pdf']) {
     await openFixtures(page, [name]);
   }
+  // Wide enough that both inactive tabs show: at 820 px the third goes into "1 more".
+  await page.setViewportSize({ width: 1180, height: 820 });
+  await expect(
+    page.locator('[data-bar="title"] [role="tab"]:not([aria-selected="true"])'),
+  ).toHaveCount(2);
+  await atRest(page.locator('[data-bar="title"]'));
   const gaps = await page.evaluate(() =>
     [...document.querySelectorAll<HTMLElement>('[data-bar="title"] [role="tab"]')]
       .filter((tab) => tab.getAttribute('aria-selected') !== 'true')

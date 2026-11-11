@@ -200,7 +200,13 @@ test('Continue after a cold start: covers from storage, no engine before the pai
     expect(src).toMatch(/^blob:/);
   }
 
-  // The paint mark exists and is within the CI allowance; the number is recorded.
+  // The paint mark exists and is within the CI allowance; the number is recorded. It follows the
+  // cover by the decode wait (COVER_WAIT_MS) and a frame, so wait for it rather than read once.
+  await expect
+    .poll(() => fresh.evaluate((name) => performance.getEntriesByName(name).length, MARK), {
+      timeout: 10_000,
+    })
+    .toBeGreaterThan(0);
   const { painted, paintedAt } = await fresh.evaluate((name) => {
     const startTime = performance.getEntriesByName(name)[0]?.startTime ?? null;
     return {

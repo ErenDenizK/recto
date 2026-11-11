@@ -205,6 +205,11 @@ test.describe('idle: no frames at rest (A-23, Q-10)', () => {
       'data-state',
       'rendered',
     );
+    // An open's light answers once (DSN-64, DSN-93): a pulse on two springs that ends by itself.
+    // It is a motion, not rest: wait for it to start and to leave before counting.
+    const pulse = page.locator('[data-open-light]');
+    await pulse.waitFor({ state: 'attached' });
+    await pulse.waitFor({ state: 'detached' });
     expectIdle(await idleFor(page), 'the compact reader');
   });
 });

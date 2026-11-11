@@ -447,6 +447,10 @@ test.describe('jobs through the frame', () => {
     // menu item does nothing on a slow engine.
     await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ \d+ · /);
     await page.getByTestId('document-menu').click();
+    // Press the item once the menu has come to rest: a press during its entrance can be lost.
+    const menu = page.getByRole('menu', { name: 'Document' });
+    await expect(menu).toBeVisible();
+    await atRest(menu);
     await page.getByRole('menuitem', { name: 'Page numbers…' }).click();
     const sheet = page.getByTestId('furniture-dialog-page-numbers');
     await expect(sheet).toBeVisible();

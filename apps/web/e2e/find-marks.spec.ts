@@ -128,6 +128,22 @@ test('hits read at 3:1 on the dark cover and on a white page; the current one is
   // Let the render settle under the hits.
   await expect(page.locator('main canvas[data-state="rendered"]').first()).toBeVisible();
 
+  // The page opens fitted to the free rectangle, where a body-text hit stands 7 px tall and the
+  // sampler (8 px floor) would pass it by. One step in lifts the body-text hits above the
+  // floor, whatever the frame leaves free.
+  await page.getByTestId('page-pill').click();
+  await page.getByTestId('page-pill-menu').getByRole('button', { name: 'Zoom in' }).click();
+  await page.keyboard.press('Escape');
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          [...document.querySelectorAll('[data-testid="search-highlights"] > div')].filter(
+            (el) => el.getBoundingClientRect().height >= 8,
+          ).length,
+      ),
+    )
+    .toBeGreaterThanOrEqual(2);
   const dark: Sample[] = [];
   const light: Sample[] = [];
   // Walk the document a screen at a time, sampling every hit that shows.
@@ -137,7 +153,7 @@ test('hits read at 3:1 on the dark cover and on a white page; the current one is
     'dark',
   );
   const scroller = page.locator('[data-read-viewport]');
-  for (let step = 0; step < 12; step++) {
+  for (let step = 0; step < 24; step++) {
     for (const s of await sampleHits(page)) (luminance(s.page) < 4 ? dark : light).push(s);
     if (dark.length > 2 && light.length > 2) break;
     const before = await scroller.evaluate((el) => el.scrollTop);
