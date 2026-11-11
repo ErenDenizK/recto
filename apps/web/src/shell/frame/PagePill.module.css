@@ -23,7 +23,8 @@
   padding: 0 var(--pill-pad);
   border-radius: var(--piece-radius);
   color: var(--text-primary);
-  font-size: 13px;
+  --pill-size: 13px;
+  font-size: var(--pill-size);
   font-weight: var(--weight-label);
   line-height: var(--piece-label-lh);
   font-variant-numeric: tabular-nums;

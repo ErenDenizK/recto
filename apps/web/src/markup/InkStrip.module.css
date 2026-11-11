@@ -41,7 +41,7 @@
 
 /* A recent colour's 18 px dot carries a quiet white ring (0 0 0 1px at .28), as the mockup's. */
 .colours .swatches > * > span:last-child {
-  box-shadow: 0 0 0 1px rgb(var(--white-rgb) / 0.28);
+  box-shadow: 0 0 0 1px var(--border-swatch);
 }
 
 /* The colour slot: the well and the tool's recents, hugging them. */

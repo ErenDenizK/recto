@@ -7,7 +7,7 @@
 .brand {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--space-2);
   pointer-events: auto;
   color: var(--text-primary);
 }
@@ -34,7 +34,8 @@
   padding: 0 8px 0 12px;
   border-radius: var(--radius-control);
   color: var(--text-tertiary);
-  font-size: 13px;
+  --search-size: 13px;
+  font-size: var(--search-size);
   text-align: left;
   pointer-events: auto;
   transform: translateX(-50%);

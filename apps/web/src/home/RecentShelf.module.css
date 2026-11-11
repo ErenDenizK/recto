@@ -151,8 +151,8 @@
   width: 28px;
   height: 28px;
   border-radius: var(--radius-capsule);
-  background: rgb(18 20 24 / 0.78);
-  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.55);
+  background: color-mix(in srgb, var(--canvas) 78%, transparent);
+  box-shadow: 0 0 0 1px var(--scrim);
   transform: translate(-50%, -50%);
 }
 

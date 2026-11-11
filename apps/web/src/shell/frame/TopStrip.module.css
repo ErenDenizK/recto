@@ -446,7 +446,8 @@
 .nameSplit,
 .nameTail {
   font-family: var(--font-serif);
-  font-size: 16px;
+  --title-size: 16px;
+  font-size: var(--title-size);
   font-weight: 400;
   line-height: 20px;
   letter-spacing: -0.005em;

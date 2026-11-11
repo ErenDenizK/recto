@@ -71,7 +71,9 @@
 
 .wordmark {
   min-width: 0;
-  font-size: 18px;
+  /* The brand step on the phone is 18 (DSN-89). */
+  --brand-size: 18px;
+  font-size: var(--brand-size);
   font-variation-settings: 'opsz' 22;
   font-weight: var(--weight-brand);
   letter-spacing: 0.005em;
@@ -385,7 +387,7 @@
 }
 
 .glyph {
-  color: rgb(0 0 0 / 0.35);
+  color: color-mix(in srgb, var(--canvas) 35%, transparent);
 }
 
 .name {

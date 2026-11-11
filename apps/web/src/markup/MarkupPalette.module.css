@@ -153,7 +153,9 @@
   height: var(--strip-control);
   padding-inline: 14px;
   color: var(--text-primary);
-  font-size: 13px;
+  /* 13 on every pointer: the capsule's one word (DSN-91) keeps its size on touch. */
+  --done-size: 13px;
+  font-size: var(--done-size);
   font-weight: var(--weight-label);
   letter-spacing: 0;
 }

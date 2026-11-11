@@ -96,7 +96,9 @@
 .name {
   color: var(--text-primary);
   font-family: var(--font-serif);
-  font-size: 16px;
+  /* The sample's name in the serif at 16 (DSN-89's `doc` step on a card). */
+  --name-size: 16px;
+  font-size: var(--name-size);
   font-weight: var(--weight-regular);
   line-height: 22px;
   letter-spacing: var(--track-doc-xl);

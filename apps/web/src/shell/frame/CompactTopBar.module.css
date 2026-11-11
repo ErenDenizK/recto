@@ -118,7 +118,8 @@
   color: var(--text-primary);
   /* The document's name in the serif at 16 / 20 (DSN-89: titles only). */
   font-family: var(--font-serif);
-  font-size: 16px;
+  --title-size: 16px;
+  font-size: var(--title-size);
   font-weight: 400;
   line-height: 20px;
   letter-spacing: -0.005em;

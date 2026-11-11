@@ -386,7 +386,7 @@ describe('Library', () => {
     expect(titleOf(ws().activeDocument ?? undefined)).toBe('simple-text');
   });
 
-  it('reorders with Alt+arrows: tabs and Combine follow, one history entry', async () => {
+  it('reorders with Alt+arrows: the order and Combine follow, one history entry', async () => {
     await openOnHome('simple-text.pdf', 'rotated-pages.pdf', 'mixed-sizes.pdf');
     card('simple-text').focus();
     await userEvent.keyboard('{Alt>}{ArrowRight}{/Alt}');
@@ -400,11 +400,8 @@ describe('Library', () => {
     await waitFor(() => {
       expect(card('simple-text')).toHaveFocus();
     });
-    expect(
-      within(screen.getByRole('tablist', { name: 'Open documents' }))
-        .getAllByRole('tab')
-        .map((tab) => tab.textContent?.trim().replace(/\s+.*/, '')),
-    ).toEqual(['rotated-pages', 'simple-text', 'mixed-sizes']);
+    // Home has no tab strip (DSN-93): the order the tabs will show is the model's.
+    expect(screen.queryByRole('tablist', { name: 'Open documents' })).toBeNull();
     useWorkspaceStore.getState().undo();
     expect(ws().documentOrder.map(titleOf)).toEqual([
       'simple-text',
@@ -436,8 +433,9 @@ describe('Library', () => {
     });
     // No documents: the Open shelf is gone and the panel is all that starts a session.
     expect(within(screen.getByTestId('home')).queryByRole('listbox')).toBeNull();
-    // The strip's Library button (01-frame F2) is the current place.
-    expect(screen.getByTestId('home-button')).toHaveAttribute('aria-current', 'page');
+    // Home is the place: its strip carries no Library button (DSN-93).
+    expect(screen.queryByTestId('home-button')).toBeNull();
+    expect(screen.getByTestId('home')).toBeVisible();
     expect(useUiStore.getState()).toMatchObject({ destination: 'document', docUi: {} });
   });
 

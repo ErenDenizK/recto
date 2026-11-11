@@ -56,15 +56,15 @@
   background: var(--border-quiet);
 }
 
-/* The first and last rows follow the panel's radius. */
+/* The first and last rows follow the panel's radius (16 minus the 4 inset). */
 .row:first-child {
-  border-start-start-radius: calc(var(--radius-lg) - 4px);
-  border-start-end-radius: calc(var(--radius-lg) - 4px);
+  border-start-start-radius: var(--radius-md);
+  border-start-end-radius: var(--radius-md);
 }
 
 .row:last-child {
-  border-end-start-radius: calc(var(--radius-lg) - 4px);
-  border-end-end-radius: calc(var(--radius-lg) - 4px);
+  border-end-start-radius: var(--radius-md);
+  border-end-end-radius: var(--radius-md);
 }
 
 @media (hover: hover) {

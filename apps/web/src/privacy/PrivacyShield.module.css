@@ -196,7 +196,7 @@
   padding: 0 6px;
   border-radius: var(--radius-control);
   color: var(--text-tertiary);
-  font-size: 12px;
+  font-size: var(--type-footnote);
   font-weight: 500;
   white-space: nowrap;
   transition: color var(--duration-fast) var(--ease-out);
