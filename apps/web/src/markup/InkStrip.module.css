@@ -39,6 +39,11 @@
   }
 }
 
+/* A recent colour's 18 px dot carries a quiet white ring (0 0 0 1px at .28), as the mockup's. */
+.colours .swatches > * > span:last-child {
+  box-shadow: 0 0 0 1px rgb(var(--white-rgb) / 0.28);
+}
+
 /* The colour slot: the well and the tool's recents, hugging them. */
 .colours {
   display: flex;
@@ -76,7 +81,7 @@
   width: 1px;
   height: var(--palette-sep-h);
   margin-inline: var(--palette-sep-m);
-  background: var(--border-hairline);
+  background: var(--border-strong);
 }
 
 /* The width slot (10-ink §2.1): the slider and its readout, which keeps the well's inset from

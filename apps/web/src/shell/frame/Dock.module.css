@@ -6,15 +6,11 @@
  * while the capsule reshapes: the capsule is centred in it by the flex column, and the morph's
  * layout ends at the capsule (Q-6). Only the surfaces take the pointer.
  *
- * The dock's items (`.toolbar` in the capsule): one row at the piece height less its rim
- * (--piece-h, G1), --control-h controls (32 px fine, 44 coarse; Q-9) with the piece's 20 px
- * glyph and the label beside it in the piece's label type at 500 (Q-8), primary text (labels
- * are never secondary on M2, F10 §3).
- * With labels under the glyphs (`data-labels="under"`) the piece keeps its height (40 / 48,
- * G1; system-audit-2026-10 §3.3: "labels under keeps the piece"): the items stay M controls,
- * the caption under a 16 px glyph (20 px coarse, where the 44 px item has room), at least 64
- * px wide (F10 §2). A sheet narrowing the free rectangle on a tablet so never makes a second,
- * taller dock (the audit's 56 px bar).
+ * The dock's items (`.toolbar` in the capsule; DSN-91): glyphs only, no visible words. One row
+ * at --capsule-h less the 1 px rim each side (56 → 54, so the 6 px pad is the rim and 5 more),
+ * --capsule-slot circles (44) with the 22 px capsule glyph in --glyph-on-glass, 2 px apart.
+ * Each item keeps its name (`aria-label`) and its key (`aria-keyshortcuts`); the tooltip says
+ * "Name" with the keycap.
  */
 .dock {
   position: absolute;
@@ -26,61 +22,34 @@
   /* The capsule comes first in the DOM (Tab order: bar, then options); the tier sits on top. */
   flex-direction: column-reverse;
   align-items: center;
-  gap: var(--space-1);
+  /* The options strip floats --options-gap (10) above the capsule (DSN-91). */
+  gap: var(--options-gap);
   pointer-events: none;
 }
 
 .toolbar {
+  --control-h: var(--capsule-slot);
   display: flex;
   flex: none;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-half);
   box-sizing: border-box;
-  height: calc(var(--piece-h) - 2px);
-  padding: 0 var(--piece-pad);
+  height: calc(var(--capsule-h) - 2px);
+  padding: 0 calc(var(--capsule-pad) - 1px);
   white-space: nowrap;
 }
 
-.item {
-  composes: focus-inset from global;
-}
-
 /*
- * Items are M quiet buttons (`btn btn-quiet`, styles/controls.css; ui/Button): their height,
- * label type at 500, washes, press and disabled colour are the control system's. The piece
- * only keeps its padding at both densities and the piece's 20 px glyph (Q-9).
+ * An item is the bar's icon button (`ui/IconButton.module.css`: the circle, its washes, the
+ * press scale, the pressed look while its menu is open) at the slot size.
  */
-.toolbar .item {
-  --btn-pad: var(--space-3);
+.item {
+  composes: button from '../../ui/IconButton.module.css';
+  composes: focus-inset from global;
+  color: var(--glyph-on-glass);
 }
 
 .toolbar .icon {
-  width: var(--piece-icon);
-  height: var(--piece-icon);
-}
-
-/* Labels under the glyphs: the same piece and M items, caption under the glyph (F10 §2). */
-.toolbar[data-labels='under'] .item {
-  flex-direction: column;
-  gap: 0;
-  min-width: var(--space-16);
-  padding: 0 var(--space-2);
-  font-size: var(--type-caption);
-  line-height: var(--type-caption-lh);
-}
-
-.toolbar[data-labels='under'] .icon {
-  width: var(--icon-sm);
-  height: var(--icon-sm);
-}
-
-@media (pointer: coarse), (any-pointer: coarse) {
-  .toolbar[data-labels='under'] .item {
-    gap: var(--space-half);
-  }
-
-  .toolbar[data-labels='under'] .icon {
-    width: var(--icon-md);
-    height: var(--icon-md);
-  }
+  width: var(--icon-capsule);
+  height: var(--icon-capsule);
 }

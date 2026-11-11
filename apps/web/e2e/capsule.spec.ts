@@ -334,12 +334,15 @@ for (const palette of PALETTES) {
             );
           }
         }
-        // Above the pill, past the shadow's reach (8 px), the bare page: no glass past the curve.
-        for (const [x, y] of [...curvePoints(box, 8, 'upper'), ...edgePoints(box, 8, 'top')]) {
+        // Above the pill, past the shadow's reach, the bare page: no glass past the curve. The
+        // smoked shadow (`0 18px 48px`, DSN-89) is thrown 18 px down, so above the pill it
+        // reaches 48 - 18 = 30 px at most, its last tail still 5/255 at 32: 40 px out is the
+        // page's own.
+        for (const [x, y] of [...curvePoints(box, 40, 'upper'), ...edgePoints(box, 40, 'top')]) {
           const d = distance(pixel(mid, x, y), pixel(bare, x, y));
           check(
             d <= 4,
-            `outside +8 px at ${x.toFixed(1)}, ${y.toFixed(1)}: ${d}/255 from the page`,
+            `outside +40 px at ${x.toFixed(1)}, ${y.toFixed(1)}: ${d}/255 from the page`,
           );
         }
         // Inside: the stripes are gone (blurred), and it is glass in the theme's tone (GLS-20):
@@ -408,7 +411,10 @@ for (const palette of PALETTES) {
       await settled(page);
       expect(await capsule.evaluate((el, n) => el === n, node)).toBe(true);
       await expect(capsule).toHaveAttribute('data-capsule', 'locked');
-      await expect(dock.getByRole('button')).toHaveText(['Pages', 'Locked', 'More']);
+      // Glyphs only (DSN-91): the names are the buttons' aria-labels.
+      await expect(dock.getByRole('button')).toHaveCount(3);
+      await expect(dock.getByRole('button', { name: 'Pages', exact: true })).toBeVisible();
+      await expect(dock.getByRole('button', { name: 'More', exact: true })).toBeVisible();
       await expect(dock.getByRole('button', { name: /^Locked: stripes/ })).toHaveAttribute(
         'aria-haspopup',
         'dialog',
